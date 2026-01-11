@@ -31,12 +31,22 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Django
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Apps del dominio
+    'backend.apps.users.apps.UsersConfig',
+    'backend.apps.students.apps.StudentsConfig',
+    'backend.apps.academics.apps.AcademicsConfig',
+    'backend.apps.attendance.apps.AttendanceConfig',
+    'backend.apps.discipline.apps.DisciplineConfig',
+    'backend.apps.notifications.apps.NotificationsConfig',
+    'backend.apps.analytics.apps.AnalyticsConfig',
 ]
 
 MIDDLEWARE = [
@@ -49,7 +59,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'backend.urls'
+ROOT_URLCONF = 'backend.config.urls'
 
 TEMPLATES = [
     {
@@ -66,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+WSGI_APPLICATION = 'backend.config.wsgi.application'
 
 
 # Database
