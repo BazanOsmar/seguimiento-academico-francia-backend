@@ -1,24 +1,62 @@
+from django.conf import settings
 from django.db import models
-from students.models import Estudiante
-from users.models import Usuario
+from backend.apps.students.models import Estudiante
+
+User = settings.AUTH_USER_MODEL
 
 
 class Citacion(models.Model):
+    ESTADOS_ASISTENCIA = (
+        ('PENDIENTE', 'Pendiente'),
+        ('ASISTIO', 'Asistió'),
+        ('NO_ASISTIO', 'No asistió'),
+        ('ATRASO', 'atraso'),
+        ('Informativo', 'Informativo'),
+    )
+
     estudiante = models.ForeignKey(
         Estudiante,
-        on_delete=models.CASCADE,
-        related_name='citaciones'
+        on_delete=models.CASCADE
     )
+
     emisor = models.ForeignKey(
-        Usuario,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='citaciones_emitidas'
+        User,
+        on_delete=models.PROTECT
     )
-    motivo = models.CharField(max_length=255)
+
+    motivo = models.CharField(
+        max_length=20
+    )
+
     descripcion = models.TextField()
-    fecha_envio = models.DateField()
-    estado = models.BooleanField(default=True)
+
+    estado = models.CharField(
+        max_length=20
+    )
+
+    fecha_envio = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    fecha_limite_asistencia = models.DateField()
+
+    fecha_asistencia = models.DateField(
+        null=True,
+        blank=True
+    )
+
+    asistencia = models.CharField(
+        max_length=30,
+        choices=ESTADOS_ASISTENCIA,
+        default='PENDIENTE',
+        db_index=True
+    )
+
+    class Meta:
+        ordering = ['-fecha_envio']
+        indexes = [
+            models.Index(fields=['fecha_limite_asistencia']),
+        ]
 
     def __str__(self):
-        return f"Citacion - {self.estudiante}"
+        return f"Citación - {self.estudiante}"

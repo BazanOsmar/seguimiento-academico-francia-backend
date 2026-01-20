@@ -1,9 +1,11 @@
+from django.conf import settings
 from django.db import models
-from users.models import Usuario
+
+User = settings.AUTH_USER_MODEL
 
 
 class Curso(models.Model):
-    grado = models.CharField(max_length=20)
+    grado = models.CharField(max_length=50)
     paralelo = models.CharField(max_length=10)
 
     def __str__(self):
@@ -11,28 +13,19 @@ class Curso(models.Model):
 
 
 class Materia(models.Model):
-    nombre_materia = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100)
 
     def __str__(self):
-        return self.nombre_materia
+        return self.nombre
 
 
 class ProfesorCurso(models.Model):
-    usuario = models.ForeignKey(
-        Usuario,
-        on_delete=models.CASCADE,
-        related_name='profesor_cursos'
-    )
-    curso = models.ForeignKey(
-        Curso,
-        on_delete=models.CASCADE,
-        related_name='profesor_cursos'
-    )
-    materia = models.ForeignKey(
-        Materia,
-        on_delete=models.CASCADE,
-        related_name='profesor_cursos'
-    )
+    profesor = models.ForeignKey(User, on_delete=models.PROTECT)
+    curso = models.ForeignKey(Curso, on_delete=models.PROTECT)
+    materia = models.ForeignKey(Materia, on_delete=models.PROTECT)
+
+    class Meta:
+        unique_together = ('profesor', 'curso', 'materia')
 
     def __str__(self):
-        return f"{self.usuario} - {self.materia}"
+        return f"{self.profesor} - {self.materia} ({self.curso})"

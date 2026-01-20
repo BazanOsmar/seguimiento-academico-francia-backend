@@ -1,24 +1,16 @@
+from django.conf import settings
 from django.db import models
-from students.models import Estudiante
-from users.models import Usuario
+from backend.apps.students.models import Estudiante
+
+User = settings.AUTH_USER_MODEL
 
 
-class AsistenciaRegente(models.Model):
-    estudiante = models.ForeignKey(
-        Estudiante,
-        on_delete=models.CASCADE,
-        related_name='asistencias'
-    )
+class Asistencia(models.Model):
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE)
     fecha = models.DateField()
     hora = models.TimeField()
-    estado = models.CharField(max_length=20)
-
-    registrado_por = models.ForeignKey(
-        Usuario,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='asistencias_registradas'
-    )
+    estado = models.BooleanField()
+    registrado_por = models.ForeignKey(User, on_delete=models.PROTECT)
 
     def __str__(self):
-        return f"{self.estudiante} - {self.fecha}"
+        return f"Asistencia {self.estudiante} - {self.fecha}"
