@@ -27,5 +27,5 @@ from django.urls import path, include
 urlpatterns = [
     path('api/auth/', include('backend.apps.authentication.urls')),
     path('api/users/', include('backend.apps.users.urls')),
-
+    path("api/academics/", include("backend.apps.academics.urls")),
 ]

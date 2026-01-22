@@ -17,3 +17,20 @@ class IsDirector(BasePermission):
             return False
 
         return user.tipo_usuario.nombre == 'Director'
+
+class IsDirectorOrRegente(BasePermission):
+    """
+    Permite el acceso únicamente a usuarios autenticados
+    cuyo tipo de usuario sea Director o Regente.
+
+    Este permiso se utiliza para endpoints administrativos
+    relacionados con la gestión académica y disciplinaria,
+    donde el acceso debe estar restringido a autoridades.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.tipo_usuario is not None
+            and request.user.tipo_usuario.nombre in ("Director", "Regente")
+        )
