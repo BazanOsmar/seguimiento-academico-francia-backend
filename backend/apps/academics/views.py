@@ -1,7 +1,7 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 
-from users.permissions import IsDirectorOrRegente
+from backend.apps.users.permissions import IsDirectorOrRegente
 from .models import Curso
 from .serializers import CursoSerializer
 
