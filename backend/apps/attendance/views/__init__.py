@@ -1,0 +1,1 @@
+from .session_state_views import EstadoAsistenciaDiariaView
