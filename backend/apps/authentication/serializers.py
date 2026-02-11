@@ -24,10 +24,14 @@ class LoginSerializer(serializers.Serializer):
         )
 
         if not user:
-            raise serializers.ValidationError("Credenciales inválidas")
+            raise serializers.ValidationError({
+                "errores": "Datos incorrectos"
+            })
 
         if not user.is_active:
-            raise serializers.ValidationError("Usuario inactivo")
+            raise serializers.ValidationError({
+                "errores": "Usuario inactivo"
+            })
 
         data['user'] = user
         return data
@@ -44,7 +48,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         """
         La nueva contraseña debe tener entre 8 y 10 caracteres.
         """
-        if not (8 <= len(value) <= 10):
+        if not (8 <= len(value) <= 16):
             raise serializers.ValidationError(
                 "La contraseña debe tener entre 8 y 10 caracteres."
             )

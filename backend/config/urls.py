@@ -23,6 +23,7 @@ urlpatterns = [
 """
 
 from django.urls import path, include
+from django.contrib import admin
 
 urlpatterns = [
     path('api/auth/', include('backend.apps.authentication.urls')),
@@ -30,5 +31,6 @@ urlpatterns = [
     path("api/academics/", include("backend.apps.academics.urls")),
     path("api/students/", include("backend.apps.students.urls")),
     path("api/attendance/", include("backend.apps.attendance.urls")),
+    path("admin/", admin.site.urls)
 
 ]

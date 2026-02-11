@@ -1,1 +1,2 @@
 from .session_state_views import EstadoAsistenciaDiariaView
+from .attendance_create_views import RegistrarAsistenciaCursoView

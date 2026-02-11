@@ -4,9 +4,17 @@ from backend.apps.academics.models import Curso
 
 User = settings.AUTH_USER_MODEL
 
+
 class Estudiante(models.Model):
     nombre = models.CharField(max_length=100)
     apellidos = models.CharField(max_length=100)
+
+    carnet = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        verbose_name="Número de carnet"
+    )
 
     tutor = models.ForeignKey(
         User,
@@ -20,4 +28,4 @@ class Estudiante(models.Model):
     )
 
     def __str__(self):
-        return f"{self.nombre} {self.apellidos}"
+        return f"{self.carnet} - {self.nombre} {self.apellidos}"

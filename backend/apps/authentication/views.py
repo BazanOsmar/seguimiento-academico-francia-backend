@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
 
 from .serializers import LoginSerializer
 from backend.apps.users.permissions import IsDirector
@@ -28,14 +29,25 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data['user']
+
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+
         refresh = RefreshToken.for_user(user)
 
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
-            'primer_ingreso': user.primer_ingreso,
-            'tipo_usuario': user.tipo_usuario.nombre if user.tipo_usuario else None
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'primer_ingreso': user.primer_ingreso,
+                'tipo_usuario': user.tipo_usuario.nombre if user.tipo_usuario else None
+            }
         })
+
 
 
 class ChangePasswordView(APIView):
@@ -53,7 +65,7 @@ class ChangePasswordView(APIView):
 
         if not user.check_password(serializer.validated_data['password_actual']):
             return Response(
-                {'detail': 'Contraseña actual incorrecta'},
+                {'errores': 'Contraseña actual incorrecta'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -61,4 +73,4 @@ class ChangePasswordView(APIView):
         user.primer_ingreso = False
         user.save()
 
-        return Response({'detail': 'Contraseña actualizada correctamente'})
+        return Response({'errores': 'Contraseña actualizada correctamente'})
