@@ -222,3 +222,5 @@ static/
 # IDE
 .vscode/
 >>>>>>> 8e1570c (Estructura inicial del proyecto Django)
+
+ESTRUCTURA_PROYECTO.md

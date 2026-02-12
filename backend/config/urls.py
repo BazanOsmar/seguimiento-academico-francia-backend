@@ -31,6 +31,6 @@ urlpatterns = [
     path("api/academics/", include("backend.apps.academics.urls")),
     path("api/students/", include("backend.apps.students.urls")),
     path("api/attendance/", include("backend.apps.attendance.urls")),
-    path("admin/", admin.site.urls)
-
+    path("admin/", admin.site.urls),
+    path("api/discipline/", include("backend.apps.discipline.urls")),
 ]

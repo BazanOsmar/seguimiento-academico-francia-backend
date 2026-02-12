@@ -2,7 +2,6 @@ from django.urls import path
 
 from backend.apps.attendance.views.attendance_combined_views import AsistenciaCursoView
 from .views import EstadoAsistenciaDiariaView
-from .views.attendance_read_views import ObtenerAsistenciaCursoView
 
 urlpatterns = [
     path(
