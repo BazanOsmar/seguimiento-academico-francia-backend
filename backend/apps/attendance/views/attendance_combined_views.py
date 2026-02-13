@@ -11,6 +11,7 @@ from backend.apps.students.models import Estudiante
 
 from ..serializers.attendance_create_serializers import AsistenciaCreateSerializer
 from ..serializers.attendance_read_serializers import AsistenciaSesionDetailSerializer
+from ..services.consecutive_check import verificar_faltas_atrasos_consecutivos
 
 
 class AsistenciaCursoView(APIView):
@@ -184,6 +185,8 @@ class AsistenciaCursoView(APIView):
         ]
 
         Asistencia.objects.bulk_create(asistencias_objs)
+
+        verificar_faltas_atrasos_consecutivos(sesion)
 
         return Response(
             {
