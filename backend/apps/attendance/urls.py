@@ -1,7 +1,7 @@
 from django.urls import path
 
 from backend.apps.attendance.views.attendance_combined_views import AsistenciaCursoView
-from .views import EstadoAsistenciaDiariaView
+from .views import EstadoAsistenciaDiariaView, RegistrosRecientesView
 
 urlpatterns = [
     path(
@@ -13,5 +13,10 @@ urlpatterns = [
         "cursos/<int:curso_id>/asistencia/",
         AsistenciaCursoView.as_view(),
         name="asistencia-curso",
+    ),
+    path(
+        "registros-recientes/",
+        RegistrosRecientesView.as_view(),
+        name="registros-recientes",
     ),
 ]

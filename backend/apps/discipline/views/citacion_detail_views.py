@@ -40,6 +40,7 @@ class CitacionDetailView(APIView):
                 "estudiante__tutor__tipo_usuario",
                 "emisor",
                 "emisor__tipo_usuario",
+                "actualizado_por",
             ).get(id=citacion_id)
         except Citacion.DoesNotExist:
             return None

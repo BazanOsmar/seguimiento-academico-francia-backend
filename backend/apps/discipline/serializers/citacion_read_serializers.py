@@ -50,6 +50,7 @@ class CitacionDetailSerializer(serializers.ModelSerializer):
     emitido_por_nombre = serializers.SerializerMethodField()
     emitido_por_cargo = serializers.SerializerMethodField()
     motivo_descripcion = serializers.CharField(source="descripcion")
+    actualizado_por_nombre = serializers.SerializerMethodField()
 
     class Meta:
         model = Citacion
@@ -66,6 +67,7 @@ class CitacionDetailSerializer(serializers.ModelSerializer):
             "motivo",
             "motivo_descripcion",
             "fecha_asistencia",
+            "actualizado_por_nombre",
         ]
 
     def get_estudiante_nombre(self, obj):
@@ -85,4 +87,9 @@ class CitacionDetailSerializer(serializers.ModelSerializer):
     def get_emitido_por_cargo(self, obj):
         if obj.emisor.tipo_usuario:
             return obj.emisor.tipo_usuario.nombre
+        return None
+
+    def get_actualizado_por_nombre(self, obj):
+        if obj.actualizado_por:
+            return f"{obj.actualizado_por.first_name} {obj.actualizado_por.last_name}".strip()
         return None
