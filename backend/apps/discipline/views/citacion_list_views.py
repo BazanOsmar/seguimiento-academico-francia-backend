@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from ..models import Citacion
 from ..serializers import CitacionListSerializer
 from backend.apps.users.permissions import IsDirectorOrRegente
+from ..services.citacion_vencimiento import marcar_citaciones_vencidas
 
 
 class CitacionListView(APIView):
@@ -41,6 +42,8 @@ class CitacionListView(APIView):
     permission_classes = [IsAuthenticated, IsDirectorOrRegente]
 
     def get(self, request):
+        marcar_citaciones_vencidas()
+
         queryset = Citacion.objects.select_related(
             "estudiante",
             "estudiante__curso",

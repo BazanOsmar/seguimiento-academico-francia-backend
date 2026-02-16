@@ -19,3 +19,11 @@ class EstudianteListSerializer(serializers.ModelSerializer):
             "nombre",
             "apellidos",
         )
+
+
+class EstudianteBusquedaSerializer(serializers.ModelSerializer):
+    curso = serializers.StringRelatedField()
+
+    class Meta:
+        model = Estudiante
+        fields = ("id", "nombre", "apellidos", "carnet", "curso")

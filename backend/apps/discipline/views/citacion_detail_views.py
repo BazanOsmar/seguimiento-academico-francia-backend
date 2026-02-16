@@ -1,12 +1,14 @@
+from django.utils import timezone
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from ..models import Citacion
-from ..serializers.citacion_read_serializers import CitacionListSerializer
-from ..serializers.citacion_write_serializers import CitacionUpdateAsistenciaSerializer
+from ..serializers.citacion_read_serializers import CitacionDetailSerializer
 from backend.apps.users.permissions import IsDirectorOrRegente
+from ..services.citacion_vencimiento import marcar_citaciones_vencidas
 
 
 class CitacionDetailView(APIView):
@@ -27,13 +29,17 @@ class CitacionDetailView(APIView):
 
     def _get_citacion(self, citacion_id):
         """
-        Busca la citación por ID.
+        Busca la citación por ID con las relaciones necesarias.
         Devuelve la instancia o None si no existe.
         """
         try:
             return Citacion.objects.select_related(
                 "estudiante",
                 "estudiante__curso",
+                "estudiante__tutor",
+                "estudiante__tutor__tipo_usuario",
+                "emisor",
+                "emisor__tipo_usuario",
             ).get(id=citacion_id)
         except Citacion.DoesNotExist:
             return None
@@ -42,65 +48,56 @@ class CitacionDetailView(APIView):
         """
         GET api/discipline/citaciones/<id>/
 
-        Devuelve el detalle de una citación específica.
-
-        Respuesta exitosa (200):
-        {
-            "id": 1,
-            "estudiante_nombre": "Juan Pérez",
-            "curso": "Tercero A",
-            "asistencia": "PENDIENTE",
-            "fecha_envio": "2025-10-15T08:30:00Z",
-            "fecha_limite_asistencia": "2025-10-20",
-            "motivo": "FALTAS",
-            "estado": "ENVIADA",
-            "fecha_asistencia": null
-        }
+        Devuelve el detalle completo de una citación específica.
         """
+        marcar_citaciones_vencidas()
+
         citacion = self._get_citacion(citacion_id)
         if citacion is None:
             return Response(
-                {"detail": "Citación no encontrada."},
+                {"errores": "Citación no encontrada."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = CitacionListSerializer(citacion)
+        serializer = CitacionDetailSerializer(citacion)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, citacion_id):
         """
         PATCH api/discipline/citaciones/<id>/
 
-        Actualiza el estado de asistencia del padre a la citación.
-        Se usa cuando el regente registra si el padre se presentó o no.
-
-        Body esperado:
-        {
-            "asistencia": "ASISTIO",
-            "fecha_asistencia": "2025-10-18"
-        }
-
-        Respuesta exitosa (200): citación actualizada completa.
+        Registra que el padre/tutor se presentó a la citación.
+        No requiere body. El backend determina automáticamente:
+        - ASISTIO: si la fecha actual <= fecha_limite_asistencia
+        - ATRASO:  si la fecha actual > fecha_limite_asistencia
         """
         citacion = self._get_citacion(citacion_id)
         if citacion is None:
             return Response(
-                {"detail": "Citación no encontrada."},
+                {"errores": "Citación no encontrada."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # partial=True permite enviar solo los campos que cambian
-        serializer = CitacionUpdateAsistenciaSerializer(
-            citacion,
-            data=request.data,
-            partial=True,
+        if citacion.asistencia in ("ASISTIO", "ATRASO"):
+            return Response(
+                {"errores": "Esta citación ya fue marcada como atendida."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hoy = timezone.now().date()
+        citacion.fecha_asistencia = hoy
+        citacion.asistencia = (
+            "ASISTIO" if hoy <= citacion.fecha_limite_asistencia else "ATRASO"
         )
+        citacion.actualizado_por = request.user
+        citacion.save(update_fields=["asistencia", "fecha_asistencia", "actualizado_por"])
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        citacion = serializer.save()
-
-        # Devolvemos la citación actualizada con el serializer de lectura
-        response_serializer = CitacionListSerializer(citacion)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "id": citacion.id,
+                "asistencia": citacion.asistencia,
+                "fecha_asistencia": citacion.fecha_asistencia,
+                "mensaje": "Estado actualizado correctamente",
+            },
+            status=status.HTTP_200_OK,
+        )

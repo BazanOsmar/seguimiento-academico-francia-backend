@@ -52,6 +52,14 @@ class Citacion(models.Model):
         db_index=True
     )
 
+    actualizado_por = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='citaciones_actualizadas',
+    )
+
     class Meta:
         ordering = ['-fecha_envio']
         indexes = [
