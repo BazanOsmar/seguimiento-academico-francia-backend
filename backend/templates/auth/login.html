@@ -1,0 +1,122 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO / identidad -->
+    <title>Iniciar Sesión — Unidad Educativa Francia "A"</title>
+    <meta name="description"   content="Acceso al sistema de seguimiento académico de la Unidad Educativa Francia A.">
+    <meta name="robots"        content="noindex, nofollow">
+    <meta name="theme-color"   content="#192444">
+    <meta name="application-name" content="Seguimiento Académico Francia A">
+
+    <!-- Icono de pestaña -->
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+
+<div class="card">
+
+    <!-- ── Panel izquierdo ──────────────────────────────────── -->
+    <div class="card-left">
+        <div class="logo-wrapper">
+            <img src="{% static 'img/logo_francia.png' %}" alt="Escudo de la Unidad Educativa Francia A">
+        </div>
+        <div class="school-info">
+            <p class="school-subtitle">UNIDAD EDUCATIVA</p>
+            <h1 class="school-name">FRANCIA&nbsp;"A"</h1>
+        </div>
+    </div>
+
+    <!-- ── Panel derecho ────────────────────────────────────── -->
+    <div class="card-right">
+        <div class="deco deco-tr"></div>
+        <div class="deco deco-bl"></div>
+
+        <div class="form-wrap">
+            <h2 class="welcome">Bienvenido</h2>
+
+            <!-- Error global -->
+            <div class="error-box" id="errorBox" role="alert" aria-live="assertive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span id="errorMsg"></span>
+            </div>
+
+            <form id="loginForm" novalidate autocomplete="on">
+
+                <!-- Usuario -->
+                <div class="input-group" id="usernameGroup">
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder=" "
+                        autocomplete="username"
+                        maxlength="10"
+                        aria-label="Usuario (máx. 10 caracteres)"
+                        aria-describedby="usernameCounter"
+                    >
+                    <label for="username">Usuario</label>
+                    <span class="field-counter" id="usernameCounter" aria-hidden="true">0/9</span>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="input-group" id="passwordGroup">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder=" "
+                        autocomplete="current-password"
+                        minlength="8"
+                        maxlength="12"
+                        aria-label="Contraseña (mínimo 8 caracteres, máximo 12)"
+                        aria-describedby="passwordCounter"
+                    >
+                    <label for="password">Contraseña</label>
+                    <span class="field-counter" id="passwordCounter" aria-hidden="true">0/10</span>
+                    <button type="button" class="toggle-pwd" id="togglePwd" aria-label="Mostrar contraseña">
+                        <!-- Ojo abierto -->
+                        <svg class="icon-eye" width="19" height="19" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <!-- Ojo tachado -->
+                        <svg class="icon-eye-off" width="19" height="19" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                            <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Botón -->
+                <button type="submit" class="btn-login" id="btnLogin">
+                    <span id="btnText">Iniciar Sesión</span>
+                    <span class="spinner hidden" id="btnSpinner" aria-hidden="true"></span>
+                </button>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script src="{% static 'js/login.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+/* ================================================================
+   PALETA DE COLORES — Seguimiento Académico
+   ================================================================ */
+:root {
+    /* ── Fondos ─────────────────────────────────────────────── */
+    --bg-app:         #0d1726;
+    --bg-surface:     #132034;
+    --bg-card:        #1a2d45;
+    --bg-card-hover:  #1f3452;
+    --bg-active:      rgba(59, 130, 246, 0.18);
+    --bg-input:       #152540;
+
+    /* ── Bordes ─────────────────────────────────────────────── */
+    --border:         #243d5e;
+    --border-subtle:  #1c3050;
+
+    /* ── Acento (azul) ──────────────────────────────────────── */
+    --accent:         #3b82f6;
+    --accent-hover:   #2563eb;
+    --accent-dim:     rgba(59, 130, 246, 0.15);
+    --accent-text:    #60a5fa;
+
+    /* ── Estados ────────────────────────────────────────────── */
+    --success:        #22c55e;
+    --success-dim:    rgba(34, 197, 94, 0.15);
+    --danger:         #ef4444;
+    --danger-dim:     rgba(239, 68, 68, 0.15);
+    --warning:        #f59e0b;
+    --warning-dim:    rgba(245, 158, 11, 0.15);
+    --info:           #06b6d4;
+    --info-dim:       rgba(6, 182, 212, 0.15);
+
+    /* ── Texto ──────────────────────────────────────────────── */
+    --text-primary:   #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:     #64748b;
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    --sidebar-w:          68px;
+    --sidebar-expanded-w: 200px;
+    --topbar-h:           62px;
+    --radius-card:        14px;
+    --radius-sm:          8px;
+    --shadow-card:        0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Reset / Base ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* ================================================================
+   SIDEBAR — posición fija, expande al hover
+   ================================================================ */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-w);
+    background: var(--bg-app);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s ease;
+}
+
+/* hover solo se aplica en desktop — ver @media al final */
+
+/* ── Perfil (parte superior) ────────────────────────────────── */
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 14px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    min-height: 74px;
+}
+
+.sidebar-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent-text);
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.sidebar-profile-info {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: opacity 0.22s ease 0.08s,
+                transform 0.22s ease 0.08s;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* ver @media desktop al final */
+
+.profile-name {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.profile-role {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ── Navegación ─────────────────────────────────────────────── */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    padding: 12px 14px;
+    overflow: hidden;
+}
+
+/* ── Ítem de nav ────────────────────────────────────────────── */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 44px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.18s ease,
+                color 0.18s ease;
+    flex-shrink: 0;
+}
+
+.nav-item svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.nav-item:hover {
+    background: var(--accent-dim);
+    color: var(--text-secondary);
+}
+
+.nav-item.active {
+    background: var(--bg-active);
+    color: var(--accent-text);
+}
+
+/* ── Etiqueta de nav ────────────────────────────────────────── */
+.nav-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: opacity 0.2s ease 0.09s,
+                transform 0.2s ease 0.09s;
+    pointer-events: none;
+}
+
+/* ver @media desktop al final */
+
+/* ── Logout ─────────────────────────────────────────────────── */
+.sidebar-bottom {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+/* ================================================================
+   TOPBAR
+   ================================================================ */
+.topbar {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-w);
+    right: 0;
+    height: var(--topbar-h);
+    background: var(--bg-app);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    z-index: 50;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ver @media desktop al final */
+
+.page-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s, color 0.18s;
+    position: relative;
+}
+
+.btn-icon:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.notif-badge {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--danger);
+    border: 1.5px solid var(--bg-app);
+}
+
+/* ================================================================
+   MAIN CONTENT
+   ================================================================ */
+.main-content {
+    margin-left: var(--sidebar-w);
+    margin-top: var(--topbar-h);
+    height: calc(100vh - var(--topbar-h));
+    overflow-y: auto;
+    padding: 28px;
+    background: var(--bg-surface);
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ================================================================
+   HAMBURGER (oculto en desktop)
+   ================================================================ */
+.btn-menu {
+    display: none;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.18s;
+}
+.btn-menu:hover { color: var(--text-primary); }
+
+/* ================================================================
+   BACKDROP (overlay móvil)
+   ================================================================ */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.sidebar-backdrop.visible {
+    display: block;
+    opacity: 1;
+}
+
+/* ================================================================
+   DESKTOP ≥769px — hover expansion + push
+   ================================================================ */
+@media (min-width: 769px) {
+    .sidebar:hover {
+        width: var(--sidebar-expanded-w);
+        box-shadow: 6px 0 32px rgba(0, 0, 0, 0.45);
+    }
+    .sidebar:hover .sidebar-profile-info {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .sidebar:hover .nav-label {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .sidebar:hover ~ .topbar {
+        left: var(--sidebar-expanded-w);
+    }
+    .sidebar:hover ~ .main-content {
+        margin-left: var(--sidebar-expanded-w);
+    }
+}
+
+/* ================================================================
+   TABLET/MÓVIL ≤768px — sidebar como overlay con botón
+   ================================================================ */
+@media (max-width: 768px) {
+    .btn-menu { display: flex; }
+
+    .sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-expanded-w);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    box-shadow 0.3s ease;
+    }
+    .sidebar.sidebar--open {
+        transform: translateX(0);
+        box-shadow: 6px 0 32px rgba(0, 0, 0, 0.5);
+    }
+    .sidebar.sidebar--open .nav-label,
+    .sidebar.sidebar--open .sidebar-profile-info {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .topbar {
+        left: 0;
+        transition: none;
+    }
+    .main-content {
+        margin-left: 0;
+        padding: 20px 16px;
+        transition: none;
+    }
+}
+
+/* ================================================================
+   MÓVIL ≤480px
+   ================================================================ */
+@media (max-width: 480px) {
+    .topbar { padding: 0 16px; }
+    .page-title { font-size: 1.1rem; }
+    .main-content { padding: 16px 12px; }
+}

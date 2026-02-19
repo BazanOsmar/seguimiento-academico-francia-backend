@@ -49,7 +49,10 @@ INSTALLED_APPS = [
     'backend.apps.discipline.apps.DisciplineConfig',
     'backend.apps.notifications.apps.NotificationsConfig',
     'backend.apps.analytics.apps.AnalyticsConfig',
-    'backend.apps.authentication'
+    'backend.apps.authentication',
+
+    # Frontend
+    'backend.apps.pages',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +83,7 @@ SIMPLE_JWT = {
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -146,4 +149,5 @@ SIMPLE_JWT = {
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
