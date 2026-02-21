@@ -5,11 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Dashboard — Francia "A"</title>
+    <title>Estudiantes — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
-
     <script>
         const token = localStorage.getItem('access_token');
         const user  = JSON.parse(localStorage.getItem('user') || 'null');
@@ -22,8 +21,6 @@
 
     <!-- ── Sidebar ──────────────────────────────────────────────── -->
     <aside class="sidebar">
-
-        <!-- Perfil -->
         <div class="sidebar-profile">
             <div class="sidebar-avatar">
                 <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
@@ -34,21 +31,16 @@
             </div>
         </div>
 
-        <!-- Navegación -->
         <nav class="sidebar-nav" aria-label="Menú principal">
-
-            <a href="/director/estudiantes/" class="nav-item" data-title="Estudiantes" aria-label="Estudiantes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="/director/estudiantes/" class="nav-item active" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
                 <span class="nav-label">Estudiantes</span>
             </a>
-
-            <a href="#" class="nav-item" data-title="Usuarios" aria-label="Usuarios">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="#" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
@@ -56,10 +48,8 @@
                 </svg>
                 <span class="nav-label">Usuarios</span>
             </a>
-
-            <a href="#" class="nav-item" data-title="Asistencia" aria-label="Asistencia">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="#" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2"/>
                     <line x1="16" y1="2" x2="16" y2="6"/>
                     <line x1="8"  y1="2" x2="8"  y2="6"/>
@@ -68,41 +58,32 @@
                 </svg>
                 <span class="nav-label">Asistencia</span>
             </a>
-
-            <a href="#" class="nav-item" data-title="Comunicados" aria-label="Comunicados">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="#" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 11l19-9v18L3 13v-2z"/>
                     <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                 </svg>
                 <span class="nav-label">Comunicados</span>
             </a>
-
-            <a href="#" class="nav-item" data-title="Calificaciones" aria-label="Calificaciones">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="#" class="nav-item" aria-label="Calificaciones">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
                 <span class="nav-label">Calificaciones</span>
             </a>
-
-            <a href="/director/" class="nav-item active" data-title="Estadísticas" aria-label="Estadísticas">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a href="/director/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
                     <line x1="12" y1="20" x2="12" y2="4"/>
                     <line x1="6"  y1="20" x2="6"  y2="14"/>
                 </svg>
                 <span class="nav-label">Estadísticas</span>
             </a>
-
         </nav>
 
-        <!-- Logout -->
         <div class="sidebar-bottom">
             <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                     <polyline points="16 17 21 12 16 7"/>
                     <line x1="21" y1="12" x2="9" y2="12"/>
@@ -110,46 +91,86 @@
                 <span class="nav-label">Cerrar</span>
             </button>
         </div>
-
     </aside>
 
-    <!-- ── Backdrop móvil ───────────────────────────────────────── -->
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-    <!-- ── Top bar ───────────────────────────────────────────────── -->
+    <!-- ── Top bar ────────────────────────────────────────────────── -->
     <header class="topbar">
         <div style="display:flex;align-items:center;gap:12px;">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="6"  x2="21" y2="6"/>
                     <line x1="3" y1="12" x2="21" y2="12"/>
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
             </button>
-            <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            <h1 class="page-title">Estudiantes</h1>
         </div>
         <div class="topbar-actions">
             <button class="btn-icon" aria-label="Notificaciones">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 <span class="notif-badge"></span>
             </button>
         </div>
-        </div>
     </header>
 
-    <!-- ── Contenido principal ──────────────────────────────────── -->
-    <main class="main-content" id="mainContent">
-        <!-- Los paneles se cargarán aquí -->
+    <!-- ── Contenido ─────────────────────────────────────────────── -->
+    <main class="main-content">
+
+        <!-- Búsqueda -->
+        <div class="course-search-wrap">
+            <div class="search-wrapper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="searchInput" class="search-input"
+                       placeholder="Buscar por nombre, apellidos o carnet…"
+                       autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Resultados de búsqueda de estudiantes -->
+        <div id="searchResults" class="hidden">
+            <div class="table-card">
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nombre completo</th>
+                                <th>Carnet</th>
+                                <th>Curso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="searchTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <span class="table-count" id="searchCount"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid de cursos -->
+        <div id="coursesGrid" class="courses-grid">
+            <!-- cargando... -->
+            <div class="courses-loading" id="coursesLoading">
+                <div class="table-spinner"></div>
+                Cargando cursos…
+            </div>
+        </div>
+
     </main>
 
+<script src="{% static 'js/estudiantes.js' %}"></script>
 <script>
+    /* ── Sidebar ─────────────────────────────────────────────── */
     const _user = JSON.parse(localStorage.getItem('user') || 'null');
     if (_user) {
         const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
@@ -157,50 +178,21 @@
         document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
     }
 
-    // ── Hamburguesa (móvil/tablet) ───────────────────────────────
     const sidebar  = document.querySelector('.sidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
     const btnMenu  = document.getElementById('btnMenu');
 
-    // ── Expansión desktop: JS en vez de CSS :hover para evitar
-    //    el colapso brusco al hacer click en un ítem ────────────
     const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
-    sidebar.addEventListener('mouseenter', () => {
-        if (isDesktop()) sidebar.classList.add('sidebar--expanded');
-    });
-    sidebar.addEventListener('mouseleave', () => {
-        if (isDesktop()) sidebar.classList.remove('sidebar--expanded');
-    });
+    sidebar.addEventListener('mouseenter', () => { if (isDesktop()) sidebar.classList.add('sidebar--expanded'); });
+    sidebar.addEventListener('mouseleave', () => { if (isDesktop()) sidebar.classList.remove('sidebar--expanded'); });
 
-    function openSidebar() {
-        sidebar.classList.add('sidebar--open');
-        backdrop.classList.add('visible');
-    }
-    function closeSidebar() {
-        sidebar.classList.remove('sidebar--open');
-        backdrop.classList.remove('visible');
-    }
+    function openSidebar()  { sidebar.classList.add('sidebar--open');    backdrop.classList.add('visible'); }
+    function closeSidebar() { sidebar.classList.remove('sidebar--open'); backdrop.classList.remove('visible'); }
 
     btnMenu.addEventListener('click', () =>
         sidebar.classList.contains('sidebar--open') ? closeSidebar() : openSidebar()
     );
     backdrop.addEventListener('click', closeSidebar);
-
-    // Cambio de sección: si el href es "#" solo actualiza título/activo,
-    // si tiene ruta real deja navegar normalmente.
-    const pageTitle = document.getElementById('pageTitle');
-    document.querySelectorAll('.nav-item[data-title]').forEach(item => {
-        item.addEventListener('click', (e) => {
-            const href = item.getAttribute('href');
-            if (!href || href === '#') {
-                e.preventDefault();
-                pageTitle.textContent = item.dataset.title;
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-            }
-            // Si tiene href real → navega normalmente (no se previene)
-        });
-    });
 
     document.getElementById('btnLogout').addEventListener('click', () => {
         localStorage.removeItem('access_token');

@@ -1,4 +1,8 @@
+import logging
+
 from backend.apps.attendance.models import Asistencia
+
+logger = logging.getLogger(__name__)
 
 
 UMBRAL_FALTAS = 3
@@ -33,9 +37,9 @@ def verificar_faltas_atrasos_consecutivos(sesion):
             .values_list('estado', flat=True)[:UMBRAL_FALTAS]
         )
         if len(ultimas) == UMBRAL_FALTAS and all(e == 'FALTA' for e in ultimas):
-            print(
-                f"ALERTA: Estudiante {estudiante.nombre} {estudiante.apellidos} "
-                f"acumula {UMBRAL_FALTAS} faltas consecutivas en {curso}"
+            logger.warning(
+                "Estudiante %s %s acumula %d faltas consecutivas en %s",
+                estudiante.nombre, estudiante.apellidos, UMBRAL_FALTAS, curso
             )
 
     for estudiante in estudiantes_atraso:
@@ -46,7 +50,7 @@ def verificar_faltas_atrasos_consecutivos(sesion):
             .values_list('estado', flat=True)[:UMBRAL_ATRASOS]
         )
         if len(ultimas) == UMBRAL_ATRASOS and all(e == 'ATRASO' for e in ultimas):
-            print(
-                f"ALERTA: Estudiante {estudiante.nombre} {estudiante.apellidos} "
-                f"acumula {UMBRAL_ATRASOS} atrasos consecutivos en {curso}"
+            logger.warning(
+                "Estudiante %s %s acumula %d atrasos consecutivos en %s",
+                estudiante.nombre, estudiante.apellidos, UMBRAL_ATRASOS, curso
             )

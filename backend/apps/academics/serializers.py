@@ -6,11 +6,9 @@ class CursoSerializer(serializers.ModelSerializer):
     """
     Serializador de solo lectura para exponer
     los cursos (aulas) disponibles en la institución.
-
-    Se utiliza como punto de entrada para procesos
-    de control de asistencia por parte de regentes.
     """
+    estudiantes_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Curso
-        fields = ("id", "grado", "paralelo")
+        fields = ("id", "grado", "paralelo", "estudiantes_count")

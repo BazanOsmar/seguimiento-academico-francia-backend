@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAuthenticated
 from ..models import Citacion
 from ..serializers.citacion_read_serializers import CitacionDetailSerializer
 from backend.apps.users.permissions import IsDirectorOrRegente
-from ..services.citacion_vencimiento import marcar_citaciones_vencidas
 
 
 class CitacionDetailView(APIView):
@@ -51,8 +50,6 @@ class CitacionDetailView(APIView):
 
         Devuelve el detalle completo de una citación específica.
         """
-        marcar_citaciones_vencidas()
-
         citacion = self._get_citacion(citacion_id)
         if citacion is None:
             return Response(

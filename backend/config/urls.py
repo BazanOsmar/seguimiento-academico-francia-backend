@@ -22,8 +22,20 @@ urlpatterns = [
 ]
 """
 
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.contrib import admin
+from django.views.generic import TemplateView
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from backend.apps.pages.views import page_not_found_view
+
+handler404 = page_not_found_view
+
+
+@api_view()
+def api_not_found(request, *args, **kwargs):
+    return Response({'errores': 'Recurso no encontrado.'}, status=404)
+
 
 urlpatterns = [
     # API
@@ -33,10 +45,27 @@ urlpatterns = [
     path("api/students/", include("backend.apps.students.urls")),
     path("api/attendance/", include("backend.apps.attendance.urls")),
     path("api/discipline/", include("backend.apps.discipline.urls")),
+    path("api/notifications/", include("backend.apps.notifications.urls")),
+
+    # Service Worker FCM — debe estar en la raíz del dominio
+    path(
+        'firebase-messaging-sw.js',
+        TemplateView.as_view(
+            template_name='firebase-messaging-sw.js',
+            content_type='application/javascript',
+        ),
+        name='firebase-sw',
+    ),
 
     # Admin
     path("admin/", admin.site.urls),
 
     # Frontend (páginas HTML)
     path("", include("backend.apps.pages.urls")),
+
+    # Rutas /api/* sin match → JSON 404 (debe ir antes del catch-all HTML)
+    re_path(r'^api/', api_not_found),
+
+    # Catch-all → página 404 personalizada
+    re_path(r'^.*$', page_not_found_view),
 ]

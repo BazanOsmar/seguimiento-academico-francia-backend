@@ -21,7 +21,10 @@ venv/
 *.log
 local_settings.py
 media/
-static/
+staticfiles/
+
+# Credenciales Firebase (nunca subir al repo)
+backend/config/secrets/
 
 # Tests / coverage
 .coverage
@@ -47,3 +50,7 @@ CLAUDE.md
 ESTRUCTURA_PROYECTO.md
 REQUERIMIENTOS_API_DETALLE_CITACION.md
 ENDPOINTS.md
+RESUMEN_SESION.md
+
+# Claude Code
+.claude/

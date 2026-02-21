@@ -18,6 +18,17 @@ class IsDirector(BasePermission):
 
         return user.tipo_usuario.nombre == 'Director'
 
+class IsRegente(BasePermission):
+    """Permite el acceso únicamente a usuarios cuyo tipo sea Regente."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.tipo_usuario is not None
+            and request.user.tipo_usuario.nombre == "Regente"
+        )
+
+
 class IsDirectorOrRegente(BasePermission):
     """
     Permite el acceso únicamente a usuarios autenticados

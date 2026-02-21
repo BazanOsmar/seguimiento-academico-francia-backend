@@ -1,9 +1,7 @@
 import re
-import random
-import string
 from django.contrib.auth import get_user_model
-from django.utils.crypto import get_random_string
 from rest_framework import serializers
+from backend.core.utils import generar_password
 
 User = get_user_model()
 
@@ -75,24 +73,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
         return value
 
-    def _generate_initial_password(self, first_name, last_name):
-        """
-        Genera una contraseña temporal de 10 caracteres:
-        - 3 letras del nombre
-        - 3 letras del apellido
-        - 4 caracteres aleatorios
-        """
-        name_part = first_name.strip()[:3].lower()
-        last_part = last_name.strip()[:3].lower()
-
-        random_part = ''.join(
-            random.choices(string.ascii_letters + string.digits, k=4)
-        )
-
-        return f"{name_part}{last_part}{random_part}"
-
     def create(self, validated_data):
-        password = self._generate_initial_password(
+        password = generar_password(
             validated_data['first_name'],
             validated_data['last_name']
         )

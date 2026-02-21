@@ -1,6 +1,6 @@
+from django.db.models import Count, Q
 from rest_framework import serializers
 from backend.apps.attendance.models import Asistencia, AsistenciaSesion
-from backend.apps.students.models import Estudiante
 
 
 class EstudianteAsistenciaReadSerializer(serializers.Serializer):
@@ -57,24 +57,39 @@ class AsistenciaSesionDetailSerializer(serializers.ModelSerializer):
         asistencias = obj.asistencias.select_related('estudiante').all()
         return EstudianteAsistenciaReadSerializer(asistencias, many=True).data
 
-    def get_total_estudiantes(self, obj):
-        """Total de estudiantes en la sesión"""
-        return obj.asistencias.count()
-
     def get_resumen(self, obj):
-        """Resumen estadístico de la asistencia"""
-        asistencias = obj.asistencias.all()
-        
-        total = asistencias.count()
-        presentes = asistencias.filter(estado='PRESENTE').count()
-        faltas = asistencias.filter(estado='FALTA').count()
-        atrasos = asistencias.filter(estado='ATRASO').count()
-        licencias = asistencias.filter(estado='LICENCIA').count()
+        """Resumen estadístico de la asistencia (una sola query con aggregate)."""
+        agg = obj.asistencias.aggregate(
+            total=Count('id'),
+            presente=Count('id', filter=Q(estado='PRESENTE')),
+            falta=Count('id', filter=Q(estado='FALTA')),
+            atraso=Count('id', filter=Q(estado='ATRASO')),
+            licencia=Count('id', filter=Q(estado='LICENCIA')),
+        )
+        return agg
 
-        return {
-            'total': total,
-            'presente': presentes,
-            'falta': faltas,
-            'atraso': atrasos,
-            'licencia': licencias
-        }
+    def get_total_estudiantes(self, obj):
+        """Total de estudiantes — reutiliza el valor ya calculado en resumen."""
+        return obj.asistencias.aggregate(total=Count('id'))['total']
+
+
+_DIAS_ES = {
+    0: 'Lunes', 1: 'Martes', 2: 'Miércoles',
+    3: 'Jueves', 4: 'Viernes', 5: 'Sábado', 6: 'Domingo',
+}
+
+
+class HistorialEstudianteSerializer(serializers.ModelSerializer):
+    """
+    Un registro de asistencia individual para el historial de un estudiante.
+    Usado en GET /api/attendance/estudiantes/{id}/historial/
+    """
+    fecha      = serializers.DateField(source='sesion.fecha')
+    dia_semana = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Asistencia
+        fields = ('fecha', 'dia_semana', 'hora', 'estado')
+
+    def get_dia_semana(self, obj):
+        return _DIAS_ES[obj.sesion.fecha.weekday()]

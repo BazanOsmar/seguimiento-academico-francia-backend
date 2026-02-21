@@ -130,9 +130,11 @@ class AsistenciaCursoView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Obtener estudiantes del curso
-        estudiantes_curso = Estudiante.objects.filter(curso=curso)
-        total_estudiantes = estudiantes_curso.count()
+        # Obtener IDs de estudiantes del curso (una sola query)
+        estudiantes_reales_ids = set(
+            Estudiante.objects.filter(curso=curso).values_list("id", flat=True)
+        )
+        total_estudiantes = len(estudiantes_reales_ids)
 
         if total_estudiantes == 0:
             return Response(
@@ -144,10 +146,6 @@ class AsistenciaCursoView(APIView):
         estudiantes_enviados_ids = {
             item["estudiante_id"] for item in asistencias_data
         }
-
-        estudiantes_reales_ids = set(
-            estudiantes_curso.values_list("id", flat=True)
-        )
 
         if estudiantes_enviados_ids != estudiantes_reales_ids:
             faltantes = estudiantes_reales_ids - estudiantes_enviados_ids
@@ -199,33 +197,17 @@ class AsistenciaCursoView(APIView):
         )
 
     def _extract_first_error(self, errors):
-        """Extrae el primer error en formato de string simple"""
-        if 'errores' in errors:
-            error_msg = errors['errores']
-            if isinstance(error_msg, list):
-                return str(error_msg[0])
-            return str(error_msg)
-        
-        if 'asistencias' in errors:
-            asist_errors = errors['asistencias']
-            
-            if isinstance(asist_errors, list) and asist_errors:
-                primer_item = asist_errors[0]
-                
-                if isinstance(primer_item, dict):
-                    for field, field_errors in primer_item.items():
-                        if isinstance(field_errors, list) and field_errors:
-                            return str(field_errors[0])
-                        return str(field_errors)
-                
-                return str(primer_item)
-            
-            if isinstance(asist_errors, str):
-                return asist_errors
-        
-        for field, field_errors in errors.items():
-            if isinstance(field_errors, list) and field_errors:
-                return str(field_errors[0])
-            return str(field_errors)
-        
+        """Extrae el primer mensaje de error como string."""
+        def _first(v):
+            return str(v[0]) if isinstance(v, list) else str(v)
+
+        for field, msgs in errors.items():
+            if field == 'asistencias' and isinstance(msgs, list):
+                for item in msgs:
+                    if isinstance(item, dict):
+                        for _, ferr in item.items():
+                            return _first(ferr)
+                return _first(msgs)
+            return _first(msgs)
+
         return "Error de validación en los datos enviados."

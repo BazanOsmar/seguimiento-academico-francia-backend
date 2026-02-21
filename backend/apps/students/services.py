@@ -1,0 +1,47 @@
+import random
+import string
+from django.db import transaction
+
+from backend.apps.users.models import TipoUsuario, User
+from backend.core.utils import generar_password
+from .models import Estudiante
+
+
+def _generar_username_tutor():
+    """Username numérico único de 9 dígitos para el tutor."""
+    for _ in range(20):
+        username = ''.join(random.choices(string.digits, k=9))
+        if not User.objects.filter(username=username).exists():
+            return username
+    raise ValueError("No se pudo generar un username único.")
+
+
+@transaction.atomic
+def crear_estudiante_con_tutor(datos):
+    """
+    Crea el tutor (User) y el Estudiante en una transacción atómica.
+    Retorna (estudiante, credenciales_tutor).
+    """
+    tipo_tutor, _ = TipoUsuario.objects.get_or_create(nombre='Tutor')
+
+    username = _generar_username_tutor()
+    password = generar_password(datos['tutor_nombre'], datos['tutor_apellidos'])
+
+    tutor = User.objects.create_user(
+        username=username,
+        password=password,
+        first_name=datos['tutor_nombre'],
+        last_name=datos['tutor_apellidos'],
+        tipo_usuario=tipo_tutor,
+        primer_ingreso=True,
+    )
+
+    estudiante = Estudiante.objects.create(
+        nombre=datos['nombre'],
+        apellidos=datos['apellidos'],
+        carnet=datos.get('carnet') or None,
+        curso=datos['curso'],
+        tutor=tutor,
+    )
+
+    return estudiante, {'username': username, 'password': password}

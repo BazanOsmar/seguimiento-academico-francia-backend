@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -22,12 +23,15 @@ AUTH_USER_MODEL = 'users.User'
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ur2sqa76o*c)d77af0nzpnc!n01!)@%36$=4hh=3b2&0y6*#l_'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-ur2sqa76o*c)d77af0nzpnc!n01!)@%36$=4hh=3b2&0y6*#l_'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,10.0.2.2').split(',')
 
 
 # Application definition
@@ -40,6 +44,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Terceros
+    'rest_framework',
+    'rest_framework_simplejwt',
 
     # Apps del dominio
     'backend.apps.users.apps.UsersConfig',
@@ -73,10 +81,9 @@ REST_FRAMEWORK = {
     ),
 }
 
-# Configuración de JWT para la API
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -140,14 +147,32 @@ USE_I18N = True
 USE_TZ = True
 
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(hours=1),
-}
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# ── Firebase Admin SDK ────────────────────────────────────────────
+import firebase_admin
+from firebase_admin import credentials as fb_credentials
+
+_FIREBASE_CREDS = BASE_DIR / 'config' / 'secrets' / 'firebase-adminsdk.json'
+if _FIREBASE_CREDS.exists() and not firebase_admin._apps:
+    firebase_admin.initialize_app(fb_credentials.Certificate(str(_FIREBASE_CREDS)))
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'backend.apps.attendance': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+    },
+}

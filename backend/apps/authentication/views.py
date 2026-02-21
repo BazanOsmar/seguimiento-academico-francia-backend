@@ -3,11 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.utils import timezone
 
-from .serializers import LoginSerializer
-from backend.apps.users.permissions import IsDirector
-from .serializers import ChangePasswordSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer
 # Create your views here.
 class LoginView(APIView):
     """
@@ -29,9 +26,6 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data['user']
-
-        user.last_login = timezone.now()
-        user.save(update_fields=["last_login"])
 
         refresh = RefreshToken.for_user(user)
 
@@ -73,4 +67,4 @@ class ChangePasswordView(APIView):
         user.primer_ingreso = False
         user.save()
 
-        return Response({'errores': 'Contraseña actualizada correctamente'})
+        return Response({'mensaje': 'Contraseña actualizada correctamente'})

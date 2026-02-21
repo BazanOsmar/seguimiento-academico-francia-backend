@@ -46,10 +46,10 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate_password_nueva(self, value):
         """
-        La nueva contraseña debe tener entre 8 y 10 caracteres.
+        La nueva contraseña debe tener entre 8 y 16 caracteres.
         """
         if not (8 <= len(value) <= 16):
             raise serializers.ValidationError(
-                "La contraseña debe tener entre 8 y 10 caracteres."
+                "La contraseña debe tener entre 8 y 16 caracteres."
             )
         return value

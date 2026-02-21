@@ -6,17 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Profesor — Francia "A"</title>
     <script>
-        // ── Protección de ruta ──────────────────────────────────────────
-        // Cambiar a false para activar la protección en producción
-        const DEV_BYPASS_AUTH = true;
-        // ───────────────────────────────────────────────────────────────
-
-        if (!DEV_BYPASS_AUTH) {
-            const token = localStorage.getItem('access_token');
-            const user  = JSON.parse(localStorage.getItem('user') || 'null');
-            if (!token || !user || user.tipo_usuario !== 'Profesor') {
-                window.location.replace('/login/');
-            }
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || user.tipo_usuario !== 'Profesor') {
+            window.location.replace('/login/');
         }
     </script>
 </head>

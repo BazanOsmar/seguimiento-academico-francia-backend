@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from ..models import Citacion
 
@@ -21,7 +22,6 @@ class CitacionCreateSerializer(serializers.ModelSerializer):
 
     def validate_fecha_limite_asistencia(self, value):
         """La fecha límite no puede ser en el pasado."""
-        from django.utils import timezone
         if value < timezone.now().date():
             raise serializers.ValidationError(
                 "La fecha límite de asistencia no puede ser en el pasado."

@@ -1,3 +1,4 @@
+from django.db.models import Count
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 
@@ -9,13 +10,15 @@ from .serializers import CursoSerializer
 class CursoListView(ListAPIView):
     """
     Endpoint que permite obtener el listado de cursos
-    (aulas) registrados en la institución.
-
-    Este endpoint está restringido a usuarios con rol
-    Director o Regente, ya que constituye el punto inicial
-    para el registro de asistencia diaria.
+    (aulas) registrados en la institución, con conteo de estudiantes.
     """
 
-    queryset = Curso.objects.all().order_by("grado", "paralelo")
     serializer_class = CursoSerializer
     permission_classes = (IsAuthenticated, IsDirectorOrRegente)
+
+    def get_queryset(self):
+        return (
+            Curso.objects
+            .annotate(estudiantes_count=Count('estudiante'))
+            .order_by('grado', 'paralelo')
+        )

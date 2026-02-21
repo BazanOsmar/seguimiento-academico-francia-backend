@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from backend.apps.students.models import Estudiante
 from backend.apps.attendance.models import Asistencia
 
 
@@ -10,8 +9,7 @@ class AsistenciaItemSerializer(serializers.Serializer):
     """
 
     estudiante_id = serializers.IntegerField()
-    
-    # ✅ CORRECCIÓN: Usar las mismas opciones que el modelo
+
     estado = serializers.ChoiceField(
         choices=Asistencia.EstadoAsistencia.choices,
         error_messages={
@@ -21,20 +19,12 @@ class AsistenciaItemSerializer(serializers.Serializer):
             )
         }
     )
-    
+
     hora = serializers.TimeField(
         error_messages={
             'invalid': 'Formato de hora inválido. Use HH:MM:SS'
         }
     )
-
-    def validate_estudiante_id(self, value):
-        """Validar que el estudiante exista"""
-        if not Estudiante.objects.filter(id=value).exists():
-            raise serializers.ValidationError(
-                "El estudiante especificado no existe."
-            )
-        return value
 
 
 class AsistenciaCreateSerializer(serializers.Serializer):

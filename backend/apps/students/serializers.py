@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Estudiante
+from backend.apps.academics.models import Curso
 
 
 class EstudianteListSerializer(serializers.ModelSerializer):
@@ -27,3 +28,54 @@ class EstudianteBusquedaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Estudiante
         fields = ("id", "nombre", "apellidos", "carnet", "curso")
+
+
+# ── Panel Director ────────────────────────────────────────────────
+
+class EstudianteDirectorSerializer(serializers.ModelSerializer):
+    """Lectura: tabla del panel director."""
+    nombre_completo = serializers.SerializerMethodField()
+    curso_nombre    = serializers.SerializerMethodField()
+    tutor_nombre    = serializers.SerializerMethodField()
+    tutor_username  = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Estudiante
+        fields = (
+            "id",
+            "nombre_completo",
+            "carnet",
+            "curso_nombre",
+            "tutor_nombre",
+            "tutor_username",
+        )
+
+    def get_nombre_completo(self, obj):
+        return f"{obj.nombre} {obj.apellidos}"
+
+    def get_curso_nombre(self, obj):
+        return str(obj.curso)
+
+    def get_tutor_nombre(self, obj):
+        t = obj.tutor
+        return f"{t.first_name} {t.last_name}".strip() or t.username
+
+    def get_tutor_username(self, obj):
+        return obj.tutor.username
+
+
+class EstudianteCreateSerializer(serializers.Serializer):
+    """Escritura: crea estudiante + tutor en una transacción."""
+    nombre          = serializers.CharField(max_length=100)
+    apellidos       = serializers.CharField(max_length=100)
+    carnet          = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    curso           = serializers.PrimaryKeyRelatedField(queryset=Curso.objects.all())
+    tutor_nombre    = serializers.CharField(max_length=100)
+    tutor_apellidos = serializers.CharField(max_length=100)
+
+    def validate_carnet(self, value):
+        if not value:
+            return None
+        if Estudiante.objects.filter(carnet=value).exists():
+            raise serializers.ValidationError("Ya existe un estudiante con ese número de carnet.")
+        return value
