@@ -69,6 +69,8 @@ class CitacionDetailSerializer(CitacionBaseSerializer):
 
     def get_tutor_nombre(self, obj):
         tutor = obj.estudiante.tutor
+        if tutor is None:
+            return None
         return f"{tutor.first_name} {tutor.last_name}".strip()
 
     def get_emitido_por_nombre(self, obj):
