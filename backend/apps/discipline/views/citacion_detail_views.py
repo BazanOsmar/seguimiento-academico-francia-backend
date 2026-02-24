@@ -90,6 +90,16 @@ class CitacionDetailView(APIView):
         citacion.actualizado_por = request.user
         citacion.save(update_fields=["asistencia", "fecha_asistencia", "actualizado_por"])
 
+        from backend.apps.auditoria.services import registrar
+        nombre_usuario = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        nombre_estudiante = f"{citacion.estudiante.nombre} {citacion.estudiante.apellidos}"
+        registrar(
+            request.user,
+            'ACTUALIZAR_CITACION',
+            f"{nombre_usuario} marcó citación #{citacion.id} de {nombre_estudiante} como {citacion.asistencia}",
+            request,
+        )
+
         return Response(
             {
                 "id": citacion.id,

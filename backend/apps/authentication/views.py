@@ -1,10 +1,12 @@
+from django.contrib.auth.models import update_last_login
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, ChangePasswordSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer
 # Create your views here.
 class LoginView(APIView):
     """
@@ -27,6 +29,12 @@ class LoginView(APIView):
 
         user = serializer.validated_data['user']
 
+        update_last_login(None, user)
+
+        from backend.apps.auditoria.services import registrar
+        nombre = f"{user.first_name} {user.last_name}".strip() or user.username
+        registrar(user, 'LOGIN', f"{nombre} inició sesión", request)
+
         refresh = RefreshToken.for_user(user)
 
         return Response({
@@ -46,17 +54,29 @@ class LoginView(APIView):
 
 class ChangePasswordView(APIView):
     """
-    Permite al usuario autenticado cambiar su propia contraseña.
+    Cambio de contraseña.
+    - Usuario normal: cambia su propia contraseña (requiere password_actual + password_nueva).
+    - Director: resetea la contraseña de otro usuario (requiere user_id).
     """
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        es_director = (
+            hasattr(request.user, 'tipo_usuario') and
+            request.user.tipo_usuario is not None and
+            request.user.tipo_usuario.nombre == 'Director'
+        )
+
+        if es_director:
+            return self._resetear_por_director(request)
+        return self._cambiar_propio(request)
+
+    def _cambiar_propio(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-
         if not user.check_password(serializer.validated_data['password_actual']):
             return Response(
                 {'errores': 'Contraseña actual incorrecta'},
@@ -68,3 +88,35 @@ class ChangePasswordView(APIView):
         user.save()
 
         return Response({'mensaje': 'Contraseña actualizada correctamente'})
+
+    def _resetear_por_director(self, request):
+        from backend.apps.users.models import User
+        from backend.core.utils import generar_password
+
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(pk=serializer.validated_data['user_id'])
+        nueva_password = generar_password(
+            user.first_name or user.username,
+            user.last_name or user.username,
+        )
+
+        user.set_password(nueva_password)
+        user.primer_ingreso = True
+        user.save()
+
+        from backend.apps.auditoria.services import registrar
+        nombre_destino = f"{user.first_name} {user.last_name}".strip() or user.username
+        director_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        registrar(
+            request.user,
+            'RESET_PASSWORD',
+            f"{director_nombre} reseteó la contraseña de '{user.username}' ({nombre_destino})",
+            request,
+        )
+
+        return Response({
+            'mensaje': 'Contraseña reseteada correctamente.',
+            'password_nueva': nueva_password,
+        })

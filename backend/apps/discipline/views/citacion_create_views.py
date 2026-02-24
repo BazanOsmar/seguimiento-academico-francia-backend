@@ -51,6 +51,16 @@ class CitacionCreateView(APIView):
         # El emisor es el usuario autenticado, no viene del payload
         citacion = serializer.save(emisor=request.user)
 
+        from backend.apps.auditoria.services import registrar
+        nombre_emisor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        nombre_estudiante = f"{citacion.estudiante.nombre} {citacion.estudiante.apellidos}"
+        registrar(
+            request.user,
+            'CREAR_CITACION',
+            f"{nombre_emisor} creó citación para {nombre_estudiante} (motivo: {citacion.motivo})",
+            request,
+        )
+
         # Devolvemos la citación creada con el serializer de lectura
         response_serializer = CitacionListSerializer(citacion)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)

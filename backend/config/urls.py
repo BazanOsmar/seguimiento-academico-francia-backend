@@ -46,6 +46,7 @@ urlpatterns = [
     path("api/attendance/", include("backend.apps.attendance.urls")),
     path("api/discipline/", include("backend.apps.discipline.urls")),
     path("api/notifications/", include("backend.apps.notifications.urls")),
+    path("api/auditoria/",    include("backend.apps.auditoria.urls")),
 
     # Service Worker FCM — debe estar en la raíz del dominio
     path(

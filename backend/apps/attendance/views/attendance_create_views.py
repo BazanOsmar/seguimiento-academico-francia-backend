@@ -139,6 +139,15 @@ class RegistrarAsistenciaCursoView(APIView):
 
         Asistencia.objects.bulk_create(asistencias_objs)
 
+        from backend.apps.auditoria.services import registrar
+        nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        registrar(
+            request.user,
+            'REGISTRAR_ASISTENCIA',
+            f"{nombre} registró asistencia del curso {curso} ({fecha:%d/%m/%Y})",
+            request,
+        )
+
         return Response(
             {
                 "mensaje": "Asistencia registrada correctamente",

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'backend.apps.discipline.apps.DisciplineConfig',
     'backend.apps.notifications.apps.NotificationsConfig',
     'backend.apps.analytics.apps.AnalyticsConfig',
+    'backend.apps.auditoria.apps.AuditoriaConfig',
     'backend.apps.authentication',
 
     # Frontend
