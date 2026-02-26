@@ -10,6 +10,9 @@ urlpatterns = [
     path('director/estudiantes/<int:curso_id>/', views.director_curso_estudiantes_view, name='director-curso-estudiantes'),
     path('director/usuarios/',                    views.director_usuarios_view,        name='director-usuarios'),
     path('director/usuarios/<int:user_id>/',      views.director_perfil_usuario_view,  name='director-perfil-usuario'),
+    path('director/asistencia/',          views.director_asistencia_view,          name='director-asistencia'),
+    path('director/asistencia/exportar/', views.director_asistencia_exportar_view, name='director-asistencia-exportar'),
+    path('director/actividad/',      views.director_actividad_view,   name='director-actividad'),
     path('director/comunicados/',    views.director_comunicados_view, name='director-comunicados'),
     path('profesor/',                views.profesor_view,             name='profesor'),
 ]

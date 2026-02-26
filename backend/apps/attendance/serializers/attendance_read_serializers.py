@@ -12,11 +12,20 @@ class EstudianteAsistenciaReadSerializer(serializers.Serializer):
     nombre_completo = serializers.SerializerMethodField()
     estado = serializers.CharField()
     hora = serializers.TimeField()
+    asistencias_recientes = serializers.SerializerMethodField()
 
     def get_nombre_completo(self, obj):
-        """Devuelve el nombre completo del estudiante"""
-        estudiante = obj.estudiante
-        return f"{estudiante.nombre} {estudiante.apellidos}".strip()
+        """Devuelve el nombre en formato 'Apellidos, Nombre' (estilo planilla)."""
+        e = obj.estudiante
+        return f"{e.apellidos}, {e.nombre}".strip()
+
+    def get_asistencias_recientes(self, obj):
+        """
+        Últimas N asistencias del estudiante (pasadas como context['recent_map']).
+        Cada item: {"fecha": "YYYY-MM-DD", "estado": "PRESENTE"}
+        """
+        recent_map = self.context.get('recent_map', {})
+        return recent_map.get(obj.estudiante.id, [])
 
 
 class AsistenciaSesionDetailSerializer(serializers.ModelSerializer):
@@ -25,6 +34,7 @@ class AsistenciaSesionDetailSerializer(serializers.ModelSerializer):
     """
     curso_nombre = serializers.CharField(source='curso.__str__', read_only=True)
     registrado_por_nombre = serializers.SerializerMethodField()
+    registrado_por_tipo = serializers.SerializerMethodField()
     asistencias = serializers.SerializerMethodField()
     total_estudiantes = serializers.SerializerMethodField()
     resumen = serializers.SerializerMethodField()
@@ -38,38 +48,42 @@ class AsistenciaSesionDetailSerializer(serializers.ModelSerializer):
             'fecha',
             'estado',
             'registrado_por_nombre',
+            'registrado_por_tipo',
             'created_at',
             'total_estudiantes',
             'resumen',
-            'asistencias'
+            'asistencias',
         ]
 
     def get_registrado_por_nombre(self, obj):
-        """Nombre del usuario que registró la asistencia"""
         user = obj.registrado_por
         return f"{user.first_name} {user.last_name}".strip() or user.username
 
+    def get_registrado_por_tipo(self, obj):
+        return str(getattr(obj.registrado_por, 'tipo_usuario', '') or '')
+
     def get_asistencias(self, obj):
-        """
-        Lista de asistencias individuales.
-        ✅ SIN ordenamiento para evitar errores
-        """
-        asistencias = obj.asistencias.select_related('estudiante').all()
-        return EstudianteAsistenciaReadSerializer(asistencias, many=True).data
+        """Lista de asistencias ordenada por apellidos del estudiante."""
+        asistencias = (
+            obj.asistencias
+            .select_related('estudiante')
+            .order_by('estudiante__apellidos', 'estudiante__nombre')
+        )
+        return EstudianteAsistenciaReadSerializer(
+            asistencias, many=True, context=self.context
+        ).data
 
     def get_resumen(self, obj):
         """Resumen estadístico de la asistencia (una sola query con aggregate)."""
-        agg = obj.asistencias.aggregate(
+        return obj.asistencias.aggregate(
             total=Count('id'),
             presente=Count('id', filter=Q(estado='PRESENTE')),
             falta=Count('id', filter=Q(estado='FALTA')),
             atraso=Count('id', filter=Q(estado='ATRASO')),
             licencia=Count('id', filter=Q(estado='LICENCIA')),
         )
-        return agg
 
     def get_total_estudiantes(self, obj):
-        """Total de estudiantes — reutiliza el valor ya calculado en resumen."""
         return obj.asistencias.aggregate(total=Count('id'))['total']
 
 

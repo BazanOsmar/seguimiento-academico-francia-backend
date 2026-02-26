@@ -14,6 +14,36 @@ from ..serializers.attendance_read_serializers import AsistenciaSesionDetailSeri
 from ..services.consecutive_check import verificar_faltas_atrasos_consecutivos
 
 
+def _build_recent_map(curso_id, current_fecha, limit=5):
+    """
+    Devuelve {estudiante_id: [{"fecha": "YYYY-MM-DD", "estado": "..."}]}
+    para las últimas `limit` sesiones del curso hasta `current_fecha` (inclusive).
+    Orden: de más antigua a más reciente por estudiante.
+    Solo 2 queries independientemente del número de estudiantes.
+    """
+    session_ids = list(
+        AsistenciaSesion.objects.filter(
+            curso_id=curso_id,
+            fecha__lte=current_fecha,
+        ).order_by('-fecha').values_list('id', flat=True)[:limit]
+    )
+    if not session_ids:
+        return {}
+
+    result = {}
+    for a in (
+        Asistencia.objects
+        .filter(sesion_id__in=session_ids)
+        .select_related('sesion')
+        .order_by('sesion__fecha')
+    ):
+        result.setdefault(a.estudiante_id, []).append({
+            'fecha': a.sesion.fecha.isoformat(),
+            'estado': a.estado,
+        })
+    return result
+
+
 class AsistenciaCursoView(APIView):
     """
     Vista combinada para gestionar asistencia de un curso.
@@ -73,13 +103,13 @@ class AsistenciaCursoView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Serializar y devolver
-        serializer = AsistenciaSesionDetailSerializer(sesion)
-        
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
+        # Construir mapa de asistencias recientes (2 queries extra, todas en memoria)
+        recent_map = _build_recent_map(curso_id, fecha)
+
+        serializer = AsistenciaSesionDetailSerializer(
+            sesion, context={'recent_map': recent_map}
         )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @transaction.atomic
     def post(self, request, curso_id):

@@ -488,6 +488,7 @@ body {
     background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-secondary);
+    
     text-decoration: none;
     flex-shrink: 0;
     transition: background 0.18s, color 0.18s;
@@ -654,6 +655,25 @@ body {
 }
 .btn-primary:hover  { background: var(--accent-hover); }
 .btn-primary:disabled { opacity: 0.55; cursor: default; }
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0 18px;
+    height: 38px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+}
+.btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); }
 
 .btn-ghost {
     display: inline-flex;
@@ -860,7 +880,7 @@ body {
     top: 0;
     right: 0;
     height: 100vh;
-    width: 560px;
+    width: 420px;
     max-width: 100vw;
     background: var(--bg-card);
     border-left: 1px solid var(--border);
@@ -906,11 +926,7 @@ body {
 .drawer-body {
     flex: 1;
     overflow-y: auto;
-    padding: 20px 24px;
-}
-
-.form-group--full {
-    grid-column: 1 / -1;
+    padding: 24px;
 }
 
 .drawer-section-label {
@@ -1000,6 +1016,25 @@ body {
     font-size: 0.75rem;
     color: var(--danger);
     margin-top: 2px;
+}
+
+.form-error {
+    font-size: 0.78rem;
+    color: var(--danger);
+    font-weight: 500;
+    width: 100%;
+    text-align: left;
+    margin-top: -4px;
+}
+
+/* Icono nativo del date picker en color blanco (tema oscuro) */
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.65;
+    cursor: pointer;
+}
+.form-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
 }
 
 .form-hint {

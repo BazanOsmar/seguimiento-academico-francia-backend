@@ -1,0 +1,293 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistencia{% if curso %} — {{ curso }}{% endif %} — Francia "A"</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 12px;
+            color: #1a1a2e;
+            background: #fff;
+            padding: 24px 28px;
+        }
+
+        /* ── Botón imprimir ────────────────────────────────────── */
+        .btn-print {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37,99,235,.35);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            z-index: 100;
+        }
+        .btn-print:hover { background: #1d4ed8; }
+
+        /* ── Cabecera ──────────────────────────────────────────── */
+        .doc-header {
+            text-align: center;
+            margin-bottom: 22px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #1e293b;
+        }
+        .doc-school {
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 3px;
+        }
+        .doc-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+        .doc-meta {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            font-size: 11px;
+            color: #64748b;
+            flex-wrap: wrap;
+        }
+        .doc-meta strong { color: #1e293b; }
+
+        /* ── Bloque de sesión ──────────────────────────────────── */
+        .session-block {
+            margin-bottom: 26px;
+            page-break-inside: avoid;
+        }
+        .session-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #475569;
+            background: #f1f5f9;
+            border-left: 3px solid #2563eb;
+            padding: 6px 10px;
+        }
+        .session-resumen {
+            display: flex;
+            gap: 18px;
+            font-size: 10.5px;
+            padding: 5px 10px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            color: #64748b;
+        }
+        .session-resumen span { font-weight: 600; }
+        .r-p { color: #16a34a; }
+        .r-f { color: #dc2626; }
+        .r-a { color: #d97706; }
+        .r-l { color: #2563eb; }
+
+        /* ── Tabla ─────────────────────────────────────────────── */
+        .att-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+        }
+        .att-table th {
+            background: #1e293b;
+            color: #fff;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            font-size: 10px;
+            padding: 7px 10px;
+            text-align: left;
+        }
+        .att-table th.c { text-align: center; }
+        .att-table tbody tr:nth-child(even) { background: #f8fafc; }
+        .att-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .att-table td.c { text-align: center; }
+        .col-num { width: 32px; color: #94a3b8; font-size: 10.5px; }
+
+        .est-presente { color: #16a34a; font-weight: 700; }
+        .est-falta    { color: #dc2626; font-weight: 700; }
+        .est-atraso   { color: #d97706; font-weight: 700; }
+        .est-licencia { color: #2563eb; font-weight: 700; }
+
+        /* ── Sin datos ─────────────────────────────────────────── */
+        .no-data-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            gap: 12px;
+            text-align: center;
+        }
+        .no-data-box__icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #fef3c7;
+            color: #d97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+        .no-data-box h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .no-data-box p {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0;
+            max-width: 340px;
+        }
+
+        /* ── Error ─────────────────────────────────────────────── */
+        .error-box {
+            text-align: center;
+            padding: 64px 24px;
+            color: #dc2626;
+        }
+        .error-box h2 { font-size: 20px; margin-bottom: 10px; }
+        .error-box p  { font-size: 14px; color: #64748b; }
+
+        /* ── Pie ───────────────────────────────────────────────── */
+        .doc-footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 10px;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ── Print ─────────────────────────────────────────────── */
+        @media print {
+            .btn-print { display: none !important; }
+            body { padding: 0; }
+            @page { margin: 1.8cm; size: A4 portrait; }
+            .session-block { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+{% if error %}
+
+<div class="error-box">
+    <h2>No se pudo generar el reporte</h2>
+    <p>{{ error }}</p>
+</div>
+
+{% else %}
+
+<button class="btn-print" onclick="window.print()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 6 2 18 2 18 9"/>
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+        <rect x="6" y="14" width="12" height="8"/>
+    </svg>
+    Imprimir / Guardar PDF
+</button>
+
+<!-- Cabecera del documento -->
+<div class="doc-header">
+    <div class="doc-school">Unidad Educativa "Francia A"</div>
+    <div class="doc-title">Registro de Asistencia</div>
+    <div class="doc-meta">
+        <span>Curso: <strong>{{ curso }}</strong></span>
+        {% if rango_unico %}
+            <span>Fecha: <strong>{{ fecha_desde_fmt }}</strong></span>
+        {% else %}
+            <span>Del <strong>{{ fecha_desde_fmt }}</strong> al <strong>{{ fecha_hasta_fmt }}</strong></span>
+        {% endif %}
+        <span>Generado: <strong>{{ generado_en }}</strong></span>
+    </div>
+</div>
+
+<!-- Sesiones -->
+{% if sesiones_data %}
+    {% for s in sesiones_data %}
+    <div class="session-block">
+        <div class="session-title">{{ s.dia_semana }}, {{ s.fecha_display }}</div>
+        <div class="session-resumen">
+            <span>Total: <strong>{{ s.resumen.total }}</strong></span>
+            <span class="r-p">Presentes: <strong>{{ s.resumen.presente }}</strong></span>
+            <span class="r-f">Faltas: <strong>{{ s.resumen.falta }}</strong></span>
+            <span class="r-a">Retrasos: <strong>{{ s.resumen.atraso }}</strong></span>
+            <span class="r-l">Licencias: <strong>{{ s.resumen.licencia }}</strong></span>
+        </div>
+        <table class="att-table">
+            <thead>
+                <tr>
+                    <th class="c" style="width:32px">#</th>
+                    <th>Nombre Estudiante</th>
+                    <th class="c" style="width:90px">Estado</th>
+                    <th class="c" style="width:64px">Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in s.asistencias %}
+                <tr>
+                    <td class="col-num c">{{ a.numero }}</td>
+                    <td>{{ a.nombre }}</td>
+                    <td class="c est-{{ a.estado_cls }}">{{ a.estado }}</td>
+                    <td class="c">{{ a.hora }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="no-data-box">
+        <div class="no-data-box__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <h2>Sin registros</h2>
+        <p>
+            No se encontraron registros de asistencia para
+            {% if rango_unico %}el día {{ fecha_desde_fmt }}
+            {% else %}el período del {{ fecha_desde_fmt }} al {{ fecha_hasta_fmt }}{% endif %}.
+        </p>
+    </div>
+{% endif %}
+
+<div class="doc-footer">
+    <span>Unidad Educativa Francia "A" — Sistema de Seguimiento Académico</span>
+    <span>{{ generado_en }}</span>
+</div>
+
+{% endif %}
+
+<script></script>
+
+</body>
+</html>
