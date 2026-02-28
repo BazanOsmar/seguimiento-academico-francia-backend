@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CitacionListView, CitacionCreateView, CitacionDetailView
+from .views import CitacionListView, CitacionCreateView, CitacionDetailView, CitacionVistoView
 
 urlpatterns = [
     # Lista todas las citaciones (con filtros opcionales)
@@ -10,4 +10,7 @@ urlpatterns = [
 
     # Detalle y actualización de una citación específica
     path("citaciones/<int:citacion_id>/", CitacionDetailView.as_view(), name="citacion-detail"),
+
+    # App móvil: el tutor marca que vio la citación
+    path("citaciones/<int:citacion_id>/visto/", CitacionVistoView.as_view(), name="citacion-visto"),
 ]

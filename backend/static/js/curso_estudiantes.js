@@ -93,7 +93,7 @@ searchInput.addEventListener('input', () => {
 // ── Drawer ────────────────────────────────────────────────────────
 function abrirDrawer() {
     clearErrors();
-    ['fNombre','fApellidos','fCarnet','fTutorNombre','fTutorApellidos'].forEach(id => {
+    ['fNombre','fApellidos','fCarnet','fTutorNombre','fTutorApellidos','fTutorCarnet'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -121,12 +121,14 @@ btnGuardar.addEventListener('click', async () => {
     const carnet         = document.getElementById('fCarnet').value.trim();
     const tutorNombre    = document.getElementById('fTutorNombre').value.trim();
     const tutorApellidos = document.getElementById('fTutorApellidos').value.trim();
+    const tutorCarnet    = document.getElementById('fTutorCarnet').value.trim();
 
     let valido = true;
     if (!nombre)         { inputError(document.getElementById('fNombre'),         'Campo obligatorio.'); valido = false; }
     if (!apellidos)      { inputError(document.getElementById('fApellidos'),      'Campo obligatorio.'); valido = false; }
     if (!tutorNombre)    { inputError(document.getElementById('fTutorNombre'),    'Campo obligatorio.'); valido = false; }
     if (!tutorApellidos) { inputError(document.getElementById('fTutorApellidos'), 'Campo obligatorio.'); valido = false; }
+    if (!tutorCarnet)    { inputError(document.getElementById('fTutorCarnet'),    'Campo obligatorio.'); valido = false; }
     if (!valido) return;
 
     setGuardando(true);
@@ -139,6 +141,7 @@ btnGuardar.addEventListener('click', async () => {
             curso: CURSO_ID,
             tutor_nombre:    tutorNombre,
             tutor_apellidos: tutorApellidos,
+            tutor_carnet:    tutorCarnet,
         }),
     });
 

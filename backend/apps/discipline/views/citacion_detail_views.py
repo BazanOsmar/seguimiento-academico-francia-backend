@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..models import Citacion
 from ..serializers.citacion_read_serializers import CitacionDetailSerializer
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.apps.users.permissions import IsDirectorOrRegente, IsTutor
 
 
 class CitacionDetailView(APIView):
@@ -107,5 +107,41 @@ class CitacionDetailView(APIView):
                 "fecha_asistencia": citacion.fecha_asistencia,
                 "mensaje": "Estado actualizado correctamente",
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class CitacionVistoView(APIView):
+    """
+    POST api/discipline/citaciones/<id>/visto/
+
+    Marca la citación como VISTO cuando el tutor la visualiza en la app móvil.
+    Solo cambia el estado si la citación está en PENDIENTE.
+
+    Permisos: Solo Tutores (llamado desde app móvil).
+    """
+
+    permission_classes = [IsAuthenticated, IsTutor]
+
+    def post(self, request, citacion_id):
+        try:
+            citacion = Citacion.objects.get(id=citacion_id)
+        except Citacion.DoesNotExist:
+            return Response(
+                {"errores": "Citación no encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if citacion.asistencia != "PENDIENTE":
+            return Response(
+                {"id": citacion.id, "asistencia": citacion.asistencia},
+                status=status.HTTP_200_OK,
+            )
+
+        citacion.asistencia = "VISTO"
+        citacion.save(update_fields=["asistencia"])
+
+        return Response(
+            {"id": citacion.id, "asistencia": "VISTO"},
             status=status.HTTP_200_OK,
         )

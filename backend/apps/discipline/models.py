@@ -7,10 +7,11 @@ User = settings.AUTH_USER_MODEL
 
 class Citacion(models.Model):
     ESTADOS_ASISTENCIA = (
-        ('PENDIENTE', 'Pendiente'),
-        ('ASISTIO', 'Asistió'),
-        ('NO_ASISTIO', 'No asistió'),
-        ('ATRASO', 'atraso'),
+        ('PENDIENTE',   'Pendiente'),
+        ('VISTO',       'Visto'),
+        ('ASISTIO',     'Asistió'),
+        ('NO_ASISTIO',  'No asistió'),
+        ('ATRASO',      'Atraso'),
         ('Informativo', 'Informativo'),
     )
 

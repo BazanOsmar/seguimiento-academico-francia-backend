@@ -9,6 +9,15 @@ const REDIRECT = {
 
 const TIPOS_PERMITIDOS = ['Director', 'Profesor'];
 
+// ─── Rebote: si ya hay sesión activa, ir directo al dashboard ────────────────
+(function () {
+    const token = localStorage.getItem('access_token');
+    const user  = JSON.parse(localStorage.getItem('user') || 'null');
+    if (token && user && REDIRECT[user.tipo_usuario]) {
+        window.location.replace(REDIRECT[user.tipo_usuario]);
+    }
+})();
+
 // ─── Reglas de validación ────────────────────────────────────────────────────
 const USERNAME_MAX = 10;
 const PASSWORD_MIN = 8;

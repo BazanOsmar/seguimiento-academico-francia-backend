@@ -58,10 +58,12 @@ class EstudianteDirectorSerializer(serializers.ModelSerializer):
 
     def get_tutor_nombre(self, obj):
         t = obj.tutor
+        if t is None:
+            return None
         return f"{t.first_name} {t.last_name}".strip() or t.username
 
     def get_tutor_username(self, obj):
-        return obj.tutor.username
+        return obj.tutor.username if obj.tutor else None
 
 
 class EstudianteCreateSerializer(serializers.Serializer):
@@ -72,10 +74,17 @@ class EstudianteCreateSerializer(serializers.Serializer):
     curso           = serializers.PrimaryKeyRelatedField(queryset=Curso.objects.all())
     tutor_nombre    = serializers.CharField(max_length=100)
     tutor_apellidos = serializers.CharField(max_length=100)
+    tutor_carnet    = serializers.CharField(max_length=20)
 
     def validate_carnet(self, value):
         if not value:
             return None
         if Estudiante.objects.filter(carnet=value).exists():
             raise serializers.ValidationError("Ya existe un estudiante con ese número de carnet.")
+        return value
+
+    def validate_tutor_carnet(self, value):
+        from backend.apps.users.models import User
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Ya existe un usuario con ese número de carnet.")
         return value

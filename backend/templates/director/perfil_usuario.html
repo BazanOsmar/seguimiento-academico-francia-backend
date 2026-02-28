@@ -185,6 +185,221 @@
         .cred-copy.copied { color: var(--success); }
 
         .btn-full { width: 100%; }
+
+        /* ── FCM badge ── */
+        .fcm-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .fcm-badge--activo { background: rgba(34,197,94,.12);  color: #22c55e; }
+        .fcm-badge--sin    { background: rgba(148,163,184,.08); color: #64748b; }
+
+        /* ── Banner primer ingreso ── */
+        .banner-warn {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(251,191,36,.08);
+            border: 1px solid rgba(251,191,36,.3);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            font-size: 0.82rem;
+            color: #fbbf24;
+            line-height: 1.4;
+        }
+        .banner-warn svg { flex-shrink: 0; margin-top: 1px; }
+
+        /* ── Sección estudiante vinculado ── */
+        .estudiante-section {
+            margin-top: 20px;
+        }
+        .estudiante-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        .estudiante-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 8px;
+            text-decoration: none;
+            transition: border-color .15s;
+        }
+        .estudiante-card:hover { border-color: var(--accent); }
+        .estudiante-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--accent-dim);
+            border: 1.5px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-text);
+            flex-shrink: 0;
+        }
+        .estudiante-info { flex: 1; min-width: 0; }
+        .estudiante-nombre {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .estudiante-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .estudiante-arrow { color: var(--text-muted); flex-shrink: 0; }
+
+        /* ── Editar nombre inline ── */
+        .perfil-nombre-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+        .perfil-nombre-wrap .perfil-nombre { margin-bottom: 0; }
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            transition: color .15s;
+        }
+        .btn-icon:hover { color: var(--accent-text); }
+        .edit-form {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+        .edit-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .input-sm {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.82rem;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s;
+        }
+        .input-sm:focus { border-color: var(--accent); }
+        .input-sm.input-error { border-color: var(--danger); }
+        .edit-field-err {
+            font-size: 0.72rem;
+            color: var(--danger);
+            margin-top: 3px;
+            min-height: 14px;
+        }
+        .edit-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
+
+        /* ── Secciones extra ── */
+        .extra-section { margin-top: 20px; }
+        .extra-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Chips cursos */
+        .cursos-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .curso-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .curso-chip-grado { font-weight: 700; color: var(--accent-text); }
+
+        /* Tabla citaciones */
+        .cit-table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+        .cit-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .cit-table th {
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .cit-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+        .cit-table tr:last-child td { border-bottom: none; }
+
+        /* Estado badges citaciones */
+        .estado-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .estado--pendiente   { background: rgba(251,191,36,.12); color: #fbbf24; }
+        .estado--visto       { background: rgba(167,139,250,.12); color: #a78bfa; }
+        .estado--asistio     { background: rgba(34,197,94,.12);  color: #22c55e; }
+        .estado--no_asistio  { background: rgba(239,68,68,.12);  color: #ef4444; }
+        .estado--atraso      { background: rgba(239,68,68,.12);  color: #ef4444; }
+        .estado--informativo { background: rgba(96,165,250,.12); color: #60a5fa; }
     </style>
 </head>
 <body>
@@ -218,7 +433,7 @@
                 </svg>
                 <span class="nav-label">Usuarios</span>
             </a>
-            <a href="#" class="nav-item" aria-label="Asistencia">
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2"/>
                     <line x1="16" y1="2" x2="16" y2="6"/>
@@ -241,7 +456,7 @@
                 </svg>
                 <span class="nav-label">Calificaciones</span>
             </a>
-            <a href="/director/" class="nav-item" aria-label="Estadísticas">
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
                     <line x1="12" y1="20" x2="12" y2="4"/>
@@ -290,11 +505,58 @@
                 Volver a Usuarios
             </a>
 
+            <!-- Banner: contraseña nunca cambiada -->
+            <div class="banner-warn hidden" id="bannerPrimerIngreso">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Este usuario nunca ha cambiado su contraseña inicial.
+            </div>
+
             <div class="perfil-card">
                 <div class="perfil-avatar" id="perfilIniciales">—</div>
-                <p class="perfil-nombre"   id="perfilNombre">Cargando…</p>
+
+                <div class="perfil-nombre-wrap">
+                    <p class="perfil-nombre" id="perfilNombre">Cargando…</p>
+                    <button class="btn-icon hidden" id="btnEditarNombre" title="Editar nombre">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
                 <p class="perfil-username" id="perfilUsername"></p>
-                <div class="perfil-rol"    id="perfilRol"></div>
+
+                <!-- Formulario de edición inline (oculto por defecto) -->
+                <div class="edit-form hidden" id="editNombreForm">
+                    <div class="edit-row">
+                        <div>
+                            <input class="input-sm" type="text" id="editNombre" placeholder="Nombres">
+                            <p class="edit-field-err hidden" id="editNombreErr"></p>
+                        </div>
+                        <div>
+                            <input class="input-sm" type="text" id="editApellidos" placeholder="Apellidos">
+                            <p class="edit-field-err hidden" id="editApellidosErr"></p>
+                        </div>
+                    </div>
+                    <div class="edit-actions">
+                        <button class="btn-ghost btn-sm" id="btnEditarCancelar">Cancelar</button>
+                        <button class="btn-primary btn-sm" id="btnEditarGuardar">
+                            <span id="editGuardarTexto">Guardar</span>
+                            <span id="editGuardarSpinner" class="btn-spinner hidden"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="perfil-rol" id="perfilRol"></div>
+
+                <div class="perfil-info-row">
+                    <span class="perfil-info-label">Notificaciones</span>
+                    <span class="perfil-info-value" id="perfilFcm"></span>
+                </div>
 
                 <div class="perfil-info-row">
                     <span class="perfil-info-label">Último acceso</span>
@@ -310,6 +572,36 @@
                         Resetear contraseña
                     </button>
                 </div>
+            </div>
+
+            <!-- Estudiante vinculado (solo Tutores) -->
+            <div class="estudiante-section hidden" id="estudianteSection">
+                <p class="estudiante-section-title">Estudiante vinculado</p>
+                <div id="estudiantesLista"></div>
+            </div>
+
+            <!-- Citaciones recientes (solo Tutores) -->
+            <div class="extra-section hidden" id="citacionesSection">
+                <p class="extra-section-title">Últimas citaciones</p>
+                <div class="cit-table-wrap">
+                    <table class="cit-table">
+                        <thead>
+                            <tr>
+                                <th>Estudiante</th>
+                                <th>Motivo</th>
+                                <th>Estado</th>
+                                <th>Fecha límite</th>
+                            </tr>
+                        </thead>
+                        <tbody id="citacionesTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cursos asignados (solo Profesores) -->
+            <div class="extra-section hidden" id="cursosSection">
+                <p class="extra-section-title">Cursos asignados</p>
+                <div class="cursos-chips" id="cursosChips"></div>
             </div>
 
         </div>

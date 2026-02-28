@@ -11,18 +11,18 @@
           → Par de claves web
    ================================================================ */
 
-// ── TODO 1: pega aquí tu configuración web de Firebase ────────────
+// ── Configuración web de Firebase ─────────────────────────────────
 const _FCM_CONFIG = {
-    apiKey:            "TU_API_KEY",
-    authDomain:        "TU_PROJECT_ID.firebaseapp.com",
-    projectId:         "TU_PROJECT_ID",
-    storageBucket:     "TU_PROJECT_ID.appspot.com",
-    messagingSenderId: "TU_SENDER_ID",
-    appId:             "TU_APP_ID",
+    apiKey:            "AIzaSyDr_pBXNjmKGPZZVOI593Xm1getxGTYqB4",
+    authDomain:        "seguimiento-academico-f4ee7.firebaseapp.com",
+    projectId:         "seguimiento-academico-f4ee7",
+    storageBucket:     "seguimiento-academico-f4ee7.firebasestorage.app",
+    messagingSenderId: "513504237662",
+    appId:             "1:513504237662:web:7d7643ceb37eba10fb7ccf",
 };
 
-// ── TODO 2: pega aquí tu VAPID key (clave pública web) ────────────
-const _VAPID_KEY = "TU_VAPID_KEY";
+// ── VAPID key (clave pública web) ──────────────────────────────────
+const _VAPID_KEY = "BDBiXcLGx85q-XW01wiJ-49NYzYET61KqHxGyTt0wNJQ35s7jEKY25yX6pATZKTU4mb9G39Ru1ZU4gWJoLjmVbc";
 
 // ─────────────────────────────────────────────────────────────────
 const FCM_TOKEN_URL = '/api/notifications/fcm/token/';

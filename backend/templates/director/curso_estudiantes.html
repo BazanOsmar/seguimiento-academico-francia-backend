@@ -1,4 +1,4 @@
-{% load static %}
+{% load static static_v %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -39,7 +39,7 @@
                 </svg>
                 <span class="nav-label">Estudiantes</span>
             </a>
-            <a href="#" class="nav-item" aria-label="Usuarios">
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
@@ -48,7 +48,7 @@
                 </svg>
                 <span class="nav-label">Usuarios</span>
             </a>
-            <a href="#" class="nav-item" aria-label="Asistencia">
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2"/>
                     <line x1="16" y1="2" x2="16" y2="6"/>
@@ -58,7 +58,7 @@
                 </svg>
                 <span class="nav-label">Asistencia</span>
             </a>
-            <a href="#" class="nav-item" aria-label="Comunicados">
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 11l19-9v18L3 13v-2z"/>
                     <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
@@ -71,7 +71,7 @@
                 </svg>
                 <span class="nav-label">Calificaciones</span>
             </a>
-            <a href="/director/" class="nav-item" aria-label="Estadísticas">
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
                     <line x1="12" y1="20" x2="12" y2="4"/>
@@ -229,6 +229,10 @@
                     <label class="form-label" for="fTutorApellidos">Apellidos <span class="req">*</span></label>
                     <input type="text" id="fTutorApellidos" class="form-input" maxlength="100" placeholder="Apellidos del tutor" autocomplete="off">
                 </div>
+                <div class="form-group">
+                    <label class="form-label" for="fTutorCarnet">Carnet (CI) <span class="req">*</span></label>
+                    <input type="text" id="fTutorCarnet" class="form-input" maxlength="20" placeholder="Nro. de carnet del tutor" autocomplete="off">
+                </div>
             </div>
             <div class="form-hint">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -236,7 +240,7 @@
                     <line x1="12" y1="8" x2="12" y2="12"/>
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
-                Se generarán automáticamente las credenciales de acceso del tutor (usuario y contraseña).
+                El carnet del tutor será su nombre de usuario para iniciar sesión. La contraseña se generará automáticamente.
             </div>
 
         </div>
@@ -292,7 +296,7 @@
     const CURSO_ID     = {{ curso_id }};
     const CURSO_NOMBRE = "{{ curso_nombre }}";
 </script>
-<script src="{% static 'js/curso_estudiantes.js' %}"></script>
+<script src="{% static_v 'js/curso_estudiantes.js' %}"></script>
 <script>
     /* ── Sidebar ─────────────────────────────────────────────── */
     const _user = JSON.parse(localStorage.getItem('user') || 'null');

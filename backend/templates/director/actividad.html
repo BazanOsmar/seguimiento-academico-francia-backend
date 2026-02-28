@@ -1,21 +1,90 @@
-{% load static %}
+{% load static static_v %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Estudiantes — Francia "A"</title>
+    <title>Actividad — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
     <script>
         const token = localStorage.getItem('access_token');
         const user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!token || !user || !['Director', 'Regente'].includes(user.tipo_usuario)) {
+        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
             window.location.replace('/login/');
         }
     </script>
+    <style>
+        /* ── Chips de filtro ── */
+        .chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .chip-filtro {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .chip-filtro:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .chip-filtro.chip--active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent-text);
+        }
+
+        /* ── Badges de acción ── */
+        .accion-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-login      { background: rgba(59,130,246,.12);  color: #60a5fa; }
+        .badge-usuario    { background: rgba(74,222,128,.12);  color: #4ade80; }
+        .badge-reset      { background: rgba(251,146,60,.12);  color: #fb923c; }
+        .badge-asistencia { background: rgba(6,182,212,.12);   color: #22d3ee; }
+        .badge-citacion   { background: rgba(192,132,252,.12); color: #c084fc; }
+        .badge-default    { background: rgba(148,163,184,.12); color: #94a3b8; }
+
+        /* ── Paginación ── */
+        .pagination-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .page-info { font-size: 0.8rem; color: var(--text-muted); }
+
+        .btn-page {
+            padding: 6px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .btn-page:hover:not(:disabled) { background: var(--bg-card-hover); color: var(--text-primary); }
+        .btn-page:disabled { opacity: .35; cursor: not-allowed; }
+
+        .td-descripcion { max-width: 420px; }
+    </style>
 </head>
 <body>
 
@@ -32,7 +101,7 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Menú principal">
-            <a href="/director/estudiantes/" class="nav-item active" aria-label="Estudiantes">
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
@@ -64,6 +133,12 @@
                     <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                 </svg>
                 <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/actividad/" class="nav-item active" aria-label="Actividad">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <span class="nav-label">Actividad</span>
             </a>
             <a href="#" class="nav-item" aria-label="Calificaciones">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -105,72 +180,63 @@
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
             </button>
-            <h1 class="page-title">Estudiantes</h1>
-        </div>
-        <div class="topbar-actions">
-            <button class="btn-icon" aria-label="Notificaciones">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <span class="notif-badge"></span>
-            </button>
+            <h1 class="page-title">Actividad del sistema</h1>
         </div>
     </header>
 
     <!-- ── Contenido ─────────────────────────────────────────────── -->
     <main class="main-content">
+        <div class="content-wrap" style="max-width:960px;margin:0 auto;">
 
-        <!-- Búsqueda -->
-        <div class="course-search-wrap">
-            <div class="search-wrapper">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"/>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input type="text" id="searchInput" class="search-input"
-                       placeholder="Buscar por nombre, apellidos o carnet…"
-                       autocomplete="off">
+            <!-- Chips de filtro -->
+            <div class="chips-row">
+                <button class="chip-filtro chip--active" data-accion="">Todos</button>
+                <button class="chip-filtro" data-accion="LOGIN">Logins</button>
+                <button class="chip-filtro" data-accion="CREAR_USUARIO">Crear usuario</button>
+                <button class="chip-filtro" data-accion="RESET_PASSWORD">Reset contraseña</button>
+                <button class="chip-filtro" data-accion="REGISTRAR_ASISTENCIA">Asistencia</button>
+                <button class="chip-filtro" data-accion="CREAR_CITACION">Crear citación</button>
+                <button class="chip-filtro" data-accion="ACTUALIZAR_CITACION">Act. citación</button>
             </div>
-        </div>
 
-        <!-- Resultados de búsqueda de estudiantes -->
-        <div id="searchResults" class="hidden">
+            <!-- Tabla -->
             <div class="table-card">
                 <div class="table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Nombre completo</th>
-                                <th>Carnet</th>
-                                <th>Curso</th>
+                                <th style="width:140px;">Acción</th>
+                                <th>Descripción</th>
+                                <th>Usuario</th>
+                                <th style="width:150px;">Fecha</th>
                             </tr>
                         </thead>
-                        <tbody id="searchTableBody">
+                        <tbody id="tbodyActividad">
+                            <tr class="tr-loading">
+                                <td colspan="4">
+                                    <div class="table-spinner"></div>
+                                    Cargando…
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="table-footer">
-                    <span class="table-count" id="searchCount"></span>
+                <div class="pagination-row">
+                    <span id="tableCount" class="table-count">— registros</span>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <button class="btn-page" id="btnPrev">← Anterior</button>
+                        <span class="page-info" id="pageInfo">—</span>
+                        <button class="btn-page" id="btnNext">Siguiente →</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Grid de cursos -->
-        <div id="coursesGrid" class="courses-grid">
-            <!-- cargando... -->
-            <div class="courses-loading" id="coursesLoading">
-                <div class="table-spinner"></div>
-                Cargando cursos…
-            </div>
         </div>
-
     </main>
 
-<script src="{% static 'js/estudiantes.js' %}"></script>
+<script src="{% static_v 'js/actividad.js' %}"></script>
 <script>
-    /* ── Sidebar ─────────────────────────────────────────────── */
+    /* ── Sidebar ──────────────────────────────────────────────── */
     const _user = JSON.parse(localStorage.getItem('user') || 'null');
     if (_user) {
         const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
@@ -181,7 +247,6 @@
     const sidebar  = document.querySelector('.sidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
     const btnMenu  = document.getElementById('btnMenu');
-
     const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
     let _leaveTimer;
     sidebar.addEventListener('mouseenter', () => {
@@ -199,16 +264,16 @@
             sidebar.classList.add('sidebar--expanded');
         }
     });
-
-    function openSidebar()  { sidebar.classList.add('sidebar--open');    backdrop.classList.add('visible'); }
-    function closeSidebar() { sidebar.classList.remove('sidebar--open'); backdrop.classList.remove('visible'); }
-
     btnMenu.addEventListener('click', () =>
-        sidebar.classList.contains('sidebar--open') ? closeSidebar() : openSidebar()
+        sidebar.classList.contains('sidebar--open')
+            ? (sidebar.classList.remove('sidebar--open'), backdrop.classList.remove('visible'))
+            : (sidebar.classList.add('sidebar--open'),    backdrop.classList.add('visible'))
     );
-    backdrop.addEventListener('click', closeSidebar);
+    backdrop.addEventListener('click', () => {
+        sidebar.classList.remove('sidebar--open');
+        backdrop.classList.remove('visible');
+    });
 
-    // Bloquear links "#" (pantallas aún no implementadas)
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', e => {
             const href = item.getAttribute('href');

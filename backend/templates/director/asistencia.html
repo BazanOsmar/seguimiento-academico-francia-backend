@@ -8,6 +8,7 @@
     <title>Asistencia — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
     <script src="{% static 'js/api.js' %}"></script>
 
     <script>
@@ -83,32 +84,64 @@
         .filter-input::placeholder { color: var(--text-muted); }
         select.filter-input { cursor: pointer; }
 
-        /* Date input con icono de calendario */
-        .date-field-wrap {
-            position: relative;
-        }
-        .date-field-wrap .filter-input {
-            padding-right: 36px;
-            cursor: pointer;
-        }
-        /* Ocultar el icono nativo del navegador y reemplazar con el nuestro */
-        .date-field-wrap input[type="date"]::-webkit-calendar-picker-indicator {
-            opacity: 0;
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
+        /* Date input con icono de calendario (flatpickr reemplaza el nativo) */
+        .date-field-wrap { position: relative; }
+        .date-field-wrap .filter-input { padding-right: 36px; cursor: pointer; }
         .date-cal-icon {
-            position: absolute;
-            right: 10px;
-            top: 50%;
+            position: absolute; right: 10px; top: 50%;
             transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
+            color: var(--text-muted); pointer-events: none;
         }
+
+        /* ── Flatpickr dark theme ────────────────────────────────── */
+        .flatpickr-calendar {
+            background: #1a2d45; border: 1px solid #243d5e;
+            border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 0.875rem; color: #94a3b8;
+        }
+        .flatpickr-calendar.arrowTop:before { border-bottom-color: #243d5e; }
+        .flatpickr-calendar.arrowTop:after  { border-bottom-color: #132034; }
+        .flatpickr-calendar.arrowBottom:before { border-top-color: #243d5e; }
+        .flatpickr-calendar.arrowBottom:after  { border-top-color: #1a2d45; }
+        .flatpickr-months { background: #132034; border-radius: 13px 13px 0 0; }
+        .flatpickr-month  { color: #f1f5f9; fill: #f1f5f9; height: 42px; }
+        .flatpickr-prev-month, .flatpickr-next-month { color: #64748b; fill: #64748b; padding: 10px; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #f1f5f9; }
+        .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: inherit; }
+        .flatpickr-current-month { color: #f1f5f9; font-size: 0.95rem; font-weight: 700; padding-top: 10px; }
+        .flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { color: #f1f5f9; background: transparent; font-weight: 700; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
+        .numInputWrapper:hover { background: rgba(255,255,255,0.04); }
+        .numInputWrapper span.arrowUp:after   { border-bottom-color: #64748b; }
+        .numInputWrapper span.arrowDown:after { border-top-color:    #64748b; }
+        .flatpickr-weekdays { background: #132034; }
+        .flatpickr-weekday  { background: transparent; color: #64748b; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; }
+        .flatpickr-days { border: none; padding: 6px 8px 10px; }
+        .dayContainer   { padding: 0; }
+        .flatpickr-day {
+            color: #94a3b8; border: 1px solid transparent;
+            border-radius: 8px; height: 36px; line-height: 35px; max-width: 36px; font-size: 0.85rem;
+        }
+        .flatpickr-day:hover, .flatpickr-day:focus { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
+        .flatpickr-day.today { border-color: #3b82f6; color: #60a5fa; font-weight: 700; }
+        .flatpickr-day.today:hover { background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #60a5fa; }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 700;
+        }
+        .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover {
+            background: #2563eb; border-color: #2563eb;
+        }
+        .flatpickr-day.inRange {
+            background: rgba(59,130,246,0.15); border-color: transparent; color: #60a5fa;
+            box-shadow: -5px 0 0 rgba(59,130,246,0.15), 5px 0 0 rgba(59,130,246,0.15);
+        }
+        .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover,
+        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: #243d5e; background: transparent; border-color: transparent;
+        }
+        .flatpickr-day.flatpickr-disabled:hover { cursor: not-allowed; }
 
         /* Search input con icono */
         .search-field-wrap {
@@ -608,7 +641,7 @@
                 <span class="nav-label">Calificaciones</span>
             </a>
 
-            <a href="/director/" class="nav-item" data-title="Estadísticas" aria-label="Estadísticas">
+            <a href="/director/estadisticas/" class="nav-item" data-title="Estadísticas" aria-label="Estadísticas">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
                     <line x1="12" y1="20" x2="12" y2="4"/>
@@ -927,6 +960,8 @@
         </div>
     </div>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
 <script src="{% static 'js/asistencia.js' %}"></script>
 
 <script>
@@ -1001,6 +1036,40 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
 <script src="{% static 'js/fcm.js' %}"></script>
 <script>initFCM();</script>
+
+<script>
+/* ── Flatpickr en inputs de fecha ──────────────────────────────── */
+(function () {
+    if (typeof flatpickr === 'undefined') return;
+
+    // Filtro principal: dispara el listener de asistencia.js al cambiar
+    flatpickr('#inputFecha', {
+        locale:        'es',
+        dateFormat:    'Y-m-d',
+        maxDate:       'today',
+        disableMobile: true,
+        allowInput:    false,
+        onChange: function (_, dateStr) {
+            const el = document.getElementById('inputFecha');
+            if (el) el.dispatchEvent(new Event('change'));
+        },
+    });
+
+    // Export: rango de fechas
+    flatpickr('#exportFechaDesde', {
+        locale:        'es',
+        dateFormat:    'Y-m-d',
+        disableMobile: true,
+        allowInput:    false,
+    });
+    flatpickr('#exportFechaHasta', {
+        locale:        'es',
+        dateFormat:    'Y-m-d',
+        disableMobile: true,
+        allowInput:    false,
+    });
+})();
+</script>
 
 </body>
 </html>

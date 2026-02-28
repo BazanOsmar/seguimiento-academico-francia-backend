@@ -73,6 +73,30 @@ function badgeHtml(rol) {
     return `<span class="role-badge ${b.cls}">${escHtml(b.label)}</span>`;
 }
 
+function fcmBadgeHtml(tieneFcm) {
+    if (tieneFcm) {
+        return `<span class="fcm-badge fcm-badge--activo">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            Con app
+        </span>`;
+    }
+    return `<span class="fcm-badge fcm-badge--sin">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+        Sin app
+    </span>`;
+}
+
 // ── Formato last_login ────────────────────────────────────────────
 function formatLastLogin(dt) {
     if (!dt) return '<span class="no-data">Nunca entró</span>';
@@ -137,7 +161,7 @@ searchInput.addEventListener('input', aplicarFiltros);
 // ── Tabla ─────────────────────────────────────────────────────────
 function renderTabla(lista) {
     if (!lista.length) {
-        tbody.innerHTML = `<tr class="tr-empty"><td colspan="4">No se encontraron usuarios.</td></tr>`;
+        tbody.innerHTML = `<tr class="tr-empty"><td colspan="5">No se encontraron usuarios.</td></tr>`;
         tableCount.textContent = '0 registros';
         return;
     }
@@ -146,6 +170,7 @@ function renderTabla(lista) {
             <td class="td-name">${escHtml(u.first_name)}</td>
             <td>${escHtml(u.last_name)}</td>
             <td>${badgeHtml(u.rol)}</td>
+            <td>${fcmBadgeHtml(u.tiene_fcm)}</td>
             <td class="td-muted">${formatLastLogin(u.last_login)}</td>
         </tr>
     `).join('');

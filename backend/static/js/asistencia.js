@@ -448,7 +448,7 @@ btnReset.addEventListener('click', () => {
     if (_calendarioAbierto) _closeCalendario();
     // Limpiar inputs
     selectCurso.value = '';
-    inputFecha.value  = '';
+    inputFecha._flatpickr ? inputFecha._flatpickr.clear() : (inputFecha.value = '');
     inputBuscar.value = '';
     _cursoId = null;
     _fecha   = null;

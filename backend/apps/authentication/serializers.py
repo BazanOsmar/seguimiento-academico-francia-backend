@@ -37,19 +37,26 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 class ChangePasswordSerializer(serializers.Serializer):
-    """
-    Serializer responsable de validar el cambio de contraseña.
-    """
+    """Cambio de contraseña por el propio usuario."""
 
     password_actual = serializers.CharField(required=True)
-    password_nueva = serializers.CharField(required=True)
+    password_nueva  = serializers.CharField(required=True)
 
     def validate_password_nueva(self, value):
-        """
-        La nueva contraseña debe tener entre 8 y 16 caracteres.
-        """
         if not (8 <= len(value) <= 16):
             raise serializers.ValidationError(
                 "La contraseña debe tener entre 8 y 16 caracteres."
             )
+        return value
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    """Reseteo de contraseña por el Director sobre otro usuario."""
+
+    user_id = serializers.IntegerField(required=True)
+
+    def validate_user_id(self, value):
+        from backend.apps.users.models import User
+        if not User.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("Usuario no encontrado.")
         return value

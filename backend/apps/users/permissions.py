@@ -45,3 +45,14 @@ class IsDirectorOrRegente(BasePermission):
             and request.user.tipo_usuario is not None
             and request.user.tipo_usuario.nombre in ("Director", "Regente")
         )
+
+
+class IsTutor(BasePermission):
+    """Permite el acceso únicamente a usuarios cuyo tipo sea Tutor (app móvil)."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.tipo_usuario is not None
+            and request.user.tipo_usuario.nombre == "Tutor"
+        )

@@ -134,6 +134,10 @@ def director_asistencia_exportar_view(request):
     return render(request, 'director/asistencia_exportar.html', ctx)
 
 
+def director_estadisticas_view(request):
+    return render(request, 'director/estadisticas.html')
+
+
 def director_actividad_view(request):
     return render(request, 'director/actividad.html')
 

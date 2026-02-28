@@ -18,8 +18,10 @@ class Estudiante(models.Model):
 
     tutor = models.ForeignKey(
         User,
-        on_delete=models.PROTECT,
-        related_name='estudiantes'
+        on_delete=models.SET_NULL,
+        related_name='estudiantes',
+        null=True,
+        blank=True,
     )
 
     curso = models.ForeignKey(
