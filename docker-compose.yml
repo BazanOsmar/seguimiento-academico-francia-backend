@@ -12,6 +12,8 @@ services:
   web:
     build: .
     env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.config.settings.production
     depends_on:
       - db
     ports:
