@@ -66,19 +66,26 @@ function clearErrors() {
 // ── Tabla ─────────────────────────────────────────────────────────
 function renderTabla(lista) {
     if (!lista.length) {
-        tbody.innerHTML = `<tr class="tr-empty"><td colspan="5">No se encontraron estudiantes.</td></tr>`;
+        tbody.innerHTML = `<tr class="tr-empty"><td colspan="6">No se encontraron estudiantes.</td></tr>`;
         tableCount.textContent = '0 registros';
         return;
     }
     tbody.innerHTML = lista.map((e, i) => `
-        <tr>
+        <tr class="tr-clickable" data-href="/director/estudiantes/${CURSO_ID}/${e.id}/">
             <td class="td-num">${i + 1}</td>
             <td class="td-name">${escHtml(e.nombre_completo)}</td>
             <td class="td-muted">${e.carnet ? escHtml(e.carnet) : '<span class="no-data">—</span>'}</td>
             <td>${escHtml(e.tutor_nombre)}</td>
             <td class="td-mono">${escHtml(e.tutor_username)}</td>
+            <td>${e.activo
+                ? '<span class="badge badge--success">Activo</span>'
+                : '<span class="badge badge--danger">Inactivo</span>'
+            }</td>
         </tr>
     `).join('');
+    tbody.querySelectorAll('.tr-clickable').forEach(tr => {
+        tr.addEventListener('click', () => window.location.href = tr.dataset.href);
+    });
     tableCount.textContent = `${lista.length} ${lista.length === 1 ? 'registro' : 'registros'}`;
 }
 

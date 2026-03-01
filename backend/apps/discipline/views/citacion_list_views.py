@@ -59,5 +59,10 @@ class CitacionListView(APIView):
         if curso_id:
             queryset = queryset.filter(estudiante__curso_id=curso_id)
 
+        # Filtrar por estudiante, ej: ?estudiante_id=5
+        estudiante_id = request.query_params.get("estudiante_id")
+        if estudiante_id:
+            queryset = queryset.filter(estudiante_id=estudiante_id)
+
         serializer = CitacionListSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

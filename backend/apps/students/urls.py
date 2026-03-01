@@ -3,6 +3,7 @@ from backend.apps.students.views.student_list_views import EstudiantesPorCursoVi
 from backend.apps.students.views.student_director_views import (
     EstudianteDirectorListView,
     EstudianteCreateView,
+    EstudianteDetailView,
 )
 from backend.apps.students.views.student_search_views import EstudianteBusquedaView
 
@@ -26,5 +27,10 @@ urlpatterns = [
         "buscar/",
         EstudianteBusquedaView.as_view(),
         name="estudiantes-buscar",
+    ),
+    path(
+        "<int:pk>/",
+        EstudianteDetailView.as_view(),
+        name="estudiante-detail",
     ),
 ]

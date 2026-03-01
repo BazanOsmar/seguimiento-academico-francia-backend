@@ -302,17 +302,27 @@ body {
 
 /* ─── RESPONSIVE ────────────────────────────────────────────────── */
 @media (max-width: 720px) {
+    html {
+        height: 100%;
+        overflow: hidden;
+    }
+
     body {
+        height: 100%;
+        min-height: unset;
         padding: 0;
         align-items: flex-start;
+        overflow: hidden;
     }
 
     .card {
         flex-direction: column;
         border-radius: 0;
-        min-height: 100dvh;
+        height: 100%;
+        min-height: unset;
         max-width: 100%;
         box-shadow: none;
+        overflow-y: auto;
     }
 
     .card-left {

@@ -22,7 +22,7 @@ class EstudiantesPorCursoView(ListAPIView):
     def get_queryset(self):
         curso_id = self.kwargs.get("curso_id")
 
-        queryset = Estudiante.objects.filter(curso_id=curso_id)
+        queryset = Estudiante.objects.filter(curso_id=curso_id, activo=True)
 
         if not queryset.exists():
             raise NotFound(

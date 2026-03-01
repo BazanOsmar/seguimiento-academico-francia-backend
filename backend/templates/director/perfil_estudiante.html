@@ -1,0 +1,567 @@
+{% load static static_v %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Perfil Estudiante — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+    <style>
+        .perfil-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 860px) {
+            .perfil-layout { grid-template-columns: 1fr; }
+        }
+
+        .perfil-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 32px 28px;
+        }
+        .perfil-avatar {
+            width: 68px; height: 68px;
+            border-radius: 50%;
+            background: var(--accent-dim);
+            border: 2px solid var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .perfil-avatar svg { color: var(--accent); }
+        .perfil-nombre {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .perfil-curso {
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        .perfil-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 18px 0;
+        }
+        .perfil-field-list { display: flex; flex-direction: column; gap: 12px; }
+        .perfil-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .perfil-field-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .perfil-field-value {
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            text-align: right;
+        }
+        .perfil-section-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 12px;
+        }
+
+        /* ── Botón baja ── */
+        .btn-baja {
+            width: 100%;
+            margin-top: 20px;
+            padding: 9px 0;
+            border-radius: var(--radius);
+            border: 1px solid var(--danger);
+            background: transparent;
+            color: var(--danger);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .btn-baja:hover { background: var(--danger); color: #fff; }
+        .btn-reactivar {
+            width: 100%;
+            margin-top: 20px;
+            padding: 9px 0;
+            border-radius: var(--radius);
+            border: 1px solid var(--success);
+            background: transparent;
+            color: var(--success);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .btn-reactivar:hover { background: var(--success); color: #fff; }
+
+        /* ── Citaciones ── */
+        .cit-item {
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+        }
+        .cit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        .cit-motivo {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .cit-fecha {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .cit-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary, var(--text-muted));
+            line-height: 1.45;
+        }
+        .cit-empty {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 24px 0;
+        }
+
+        /* ── Modal confirmación ── */
+        .confirm-modal-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.6);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .confirm-modal-backdrop.visible { display: flex; }
+        .confirm-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 36px 32px 28px;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,.35);
+        }
+        .confirm-modal-icon {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 18px;
+        }
+        .confirm-modal-icon--danger  { background: var(--danger-dim);  color: var(--danger); }
+        .confirm-modal-icon--success { background: var(--success-dim); color: var(--success); }
+        .confirm-modal h3 {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .confirm-modal p {
+            text-align: center;
+            font-size: 0.84rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+        .confirm-modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .confirm-modal-actions .btn-ghost,
+        .confirm-modal-actions .btn-confirm {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            justify-content: center;
+            transition: opacity .15s, background .15s;
+        }
+        .confirm-modal-actions .btn-confirm {
+            border: none;
+        }
+        .confirm-modal-actions .btn-confirm:hover { opacity: .85; }
+        .btn-confirm--danger  { background: var(--danger);  color: #fff; }
+        .btn-confirm--success { background: var(--success); color: #fff; }
+    </style>
+</head>
+<body>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item active" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="#" class="nav-item" aria-label="Calificaciones">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Calificaciones</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ────────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <a href="/director/estudiantes/{{ curso_id }}/" class="btn-back" aria-label="Volver al curso">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </a>
+            <h1 class="page-title">Perfil del Estudiante</h1>
+        </div>
+    </header>
+
+    <!-- ── Contenido ─────────────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="content-wrap">
+
+            <!-- Cargando -->
+            <div id="perfilLoading" style="text-align:center;padding:60px 0;">
+                <div class="table-spinner" style="margin:0 auto;"></div>
+            </div>
+
+            <!-- Layout dos columnas -->
+            <div id="perfilContent" class="perfil-layout" style="display:none;">
+
+                <!-- ── Columna izquierda: datos ── -->
+                <div class="perfil-card">
+                    <div class="perfil-avatar">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                        </svg>
+                    </div>
+                    <p class="perfil-nombre" id="pNombre"></p>
+                    <p class="perfil-curso"  id="pCurso"></p>
+
+                    <hr class="perfil-divider">
+
+                    <p class="perfil-section-title">Datos del estudiante</p>
+                    <div class="perfil-field-list">
+                        <div class="perfil-field">
+                            <span class="perfil-field-label">Carnet</span>
+                            <span class="perfil-field-value" id="pCarnet"></span>
+                        </div>
+                        <div class="perfil-field">
+                            <span class="perfil-field-label">Estado</span>
+                            <span class="perfil-field-value" id="pActivo"></span>
+                        </div>
+                    </div>
+
+                    <hr class="perfil-divider">
+
+                    <p class="perfil-section-title">Tutor</p>
+                    <div class="perfil-field-list">
+                        <div class="perfil-field">
+                            <span class="perfil-field-label">Nombre</span>
+                            <span class="perfil-field-value" id="pTutorNombre"></span>
+                        </div>
+                        <div class="perfil-field">
+                            <span class="perfil-field-label">Usuario</span>
+                            <span class="perfil-field-value td-mono" id="pTutorUsername"></span>
+                        </div>
+                    </div>
+
+                    <button id="btnCambiarEstado" class="btn-baja" style="display:none;"></button>
+                </div>
+
+                <!-- ── Columna derecha: citaciones ── -->
+                <div class="perfil-card">
+                    <p class="perfil-section-title">Citaciones</p>
+                    <div id="citacionesContainer">
+                        <div class="table-spinner" style="margin:0 auto;display:block;"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- ── Modal confirmación cambio de estado ──────────────────── -->
+    <div class="confirm-modal-backdrop" id="confirmBackdrop">
+        <div class="confirm-modal">
+            <div class="confirm-modal-icon" id="confirmIcon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="confirmIconSvg">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <h3 id="confirmTitle"></h3>
+            <p id="confirmDesc"></p>
+            <div class="confirm-modal-actions">
+                <button class="btn-ghost" id="btnConfirmCancelar">Cancelar</button>
+                <button class="btn-confirm" id="btnConfirmAceptar"></button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const ESTUDIANTE_ID = {{ estudiante_id }};
+    const CURSO_ID      = {{ curso_id }};
+</script>
+<script>
+'use strict';
+
+const ASISTENCIA_LABEL = {
+    PENDIENTE:  'Pendiente',
+    VISTO:      'Visto',
+    ASISTIO:    'Asistió',
+    NO_ASISTIO: 'No asistió',
+    ATRASO:     'Atraso',
+    Informativo:'Informativo',
+};
+const ASISTENCIA_CLASS = {
+    PENDIENTE:  'badge--warning',
+    VISTO:      'badge--default',
+    ASISTIO:    'badge--success',
+    NO_ASISTIO: 'badge--danger',
+    ATRASO:     'badge--warning',
+    Informativo:'badge--default',
+};
+
+let _activo = true;
+
+function renderEstado(activo) {
+    document.getElementById('pActivo').innerHTML = activo
+        ? '<span class="badge badge--success">Activo</span>'
+        : '<span class="badge badge--danger">Inactivo</span>';
+
+    const btn = document.getElementById('btnCambiarEstado');
+    btn.style.display = '';
+    if (activo) {
+        btn.className   = 'btn-baja';
+        btn.textContent = 'Dar de baja al estudiante';
+    } else {
+        btn.className   = 'btn-reactivar';
+        btn.textContent = 'Reactivar estudiante';
+    }
+}
+
+function renderCitaciones(lista) {
+    const cont = document.getElementById('citacionesContainer');
+    if (!lista.length) {
+        cont.innerHTML = '<p class="cit-empty">Este estudiante no tiene citaciones registradas.</p>';
+        return;
+    }
+    cont.innerHTML = lista.map(c => {
+        const fecha = new Date(c.fecha_envio).toLocaleDateString('es-BO', { day:'2-digit', month:'short', year:'numeric' });
+        const badgeClass = ASISTENCIA_CLASS[c.asistencia] || 'badge--default';
+        const label      = ASISTENCIA_LABEL[c.asistencia] || c.asistencia;
+        return `
+        <div class="cit-item">
+            <div class="cit-header">
+                <span class="cit-motivo">${c.motivo}</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="badge ${badgeClass}">${label}</span>
+                    <span class="cit-fecha">${fecha}</span>
+                </div>
+            </div>
+            <p class="cit-desc">${c.estado}</p>
+        </div>`;
+    }).join('');
+}
+
+/* ── Inicializar ─────────────────────────────────────────── */
+(async () => {
+    const [resEstudiante, resCitaciones] = await Promise.all([
+        fetchAPI(`/api/students/${ESTUDIANTE_ID}/`),
+        fetchAPI(`/api/discipline/citaciones/?estudiante_id=${ESTUDIANTE_ID}`),
+    ]);
+
+    document.getElementById('perfilLoading').style.display = 'none';
+    document.getElementById('perfilContent').style.display = 'grid';
+
+    if (resEstudiante.ok) {
+        const d = resEstudiante.data;
+        _activo = d.activo;
+        document.getElementById('pNombre').textContent        = d.nombre_completo;
+        document.getElementById('pCurso').textContent         = d.curso_nombre;
+        document.getElementById('pCarnet').textContent        = d.carnet || '—';
+        document.getElementById('pTutorNombre').textContent   = d.tutor_nombre || '—';
+        document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
+        renderEstado(_activo);
+    }
+
+    if (resCitaciones.ok) {
+        renderCitaciones(Array.isArray(resCitaciones.data) ? resCitaciones.data : []);
+    }
+})();
+
+/* ── Modal confirmación ──────────────────────────────────── */
+const confirmBackdrop  = document.getElementById('confirmBackdrop');
+const confirmIcon      = document.getElementById('confirmIcon');
+const confirmTitle     = document.getElementById('confirmTitle');
+const confirmDesc      = document.getElementById('confirmDesc');
+const btnConfirmAceptar  = document.getElementById('btnConfirmAceptar');
+const btnConfirmCancelar = document.getElementById('btnConfirmCancelar');
+
+document.getElementById('btnCambiarEstado').addEventListener('click', () => {
+    if (_activo) {
+        confirmIcon.className     = 'confirm-modal-icon confirm-modal-icon--danger';
+        confirmTitle.textContent  = 'Dar de baja al estudiante';
+        confirmDesc.textContent   = 'El estudiante dejará de aparecer en los listados de asistencia y búsquedas. Esta acción es reversible: podrás reactivarlo en cualquier momento desde este mismo perfil.';
+        btnConfirmAceptar.className     = 'btn-confirm btn-confirm--danger';
+        btnConfirmAceptar.textContent   = 'Sí, dar de baja';
+    } else {
+        confirmIcon.className     = 'confirm-modal-icon confirm-modal-icon--success';
+        confirmTitle.textContent  = 'Reactivar estudiante';
+        confirmDesc.textContent   = 'El estudiante volverá a aparecer en los listados de asistencia y búsquedas de todos los usuarios.';
+        btnConfirmAceptar.className     = 'btn-confirm btn-confirm--success';
+        btnConfirmAceptar.textContent   = 'Sí, reactivar';
+    }
+    confirmBackdrop.classList.add('visible');
+});
+
+btnConfirmCancelar.addEventListener('click', () => confirmBackdrop.classList.remove('visible'));
+confirmBackdrop.addEventListener('click', e => { if (e.target === confirmBackdrop) confirmBackdrop.classList.remove('visible'); });
+
+btnConfirmAceptar.addEventListener('click', async () => {
+    confirmBackdrop.classList.remove('visible');
+    const nuevoEstado = !_activo;
+    const { ok, data } = await fetchAPI(`/api/students/${ESTUDIANTE_ID}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ activo: nuevoEstado }),
+    });
+    if (!ok) return;
+    _activo = data.activo;
+    renderEstado(_activo);
+});
+
+/* ── Sidebar ────────────────────────────────────────────── */
+const _user = JSON.parse(localStorage.getItem('user') || 'null');
+if (_user) {
+    const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
+    document.getElementById('profileName').textContent = nombre;
+    document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
+}
+
+const sidebar  = document.querySelector('.sidebar');
+const backdrop = document.getElementById('sidebarBackdrop');
+const btnMenu  = document.getElementById('btnMenu');
+
+const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
+sidebar.addEventListener('mouseenter', () => { if (isDesktop()) sidebar.classList.add('sidebar--expanded'); });
+sidebar.addEventListener('mouseleave', () => { if (isDesktop()) sidebar.classList.remove('sidebar--expanded'); });
+
+function openSidebar()  { sidebar.classList.add('sidebar--open');    backdrop.classList.add('visible'); }
+function closeSidebar() { sidebar.classList.remove('sidebar--open'); backdrop.classList.remove('visible'); }
+
+btnMenu.addEventListener('click', () =>
+    sidebar.classList.contains('sidebar--open') ? closeSidebar() : openSidebar()
+);
+backdrop.addEventListener('click', closeSidebar);
+
+document.getElementById('btnLogout').addEventListener('click', () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.replace('/login/');
+});
+</script>
+
+</body>
+</html>

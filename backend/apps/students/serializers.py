@@ -48,6 +48,7 @@ class EstudianteDirectorSerializer(serializers.ModelSerializer):
             "curso_nombre",
             "tutor_nombre",
             "tutor_username",
+            "activo",
         )
 
     def get_nombre_completo(self, obj):

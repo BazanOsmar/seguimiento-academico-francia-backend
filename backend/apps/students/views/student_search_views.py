@@ -25,6 +25,7 @@ class EstudianteBusquedaView(APIView):
         qs = (
             Estudiante.objects
             .select_related('curso')
+            .filter(activo=True)
             .filter(Q(nombre__icontains=q) | Q(apellidos__icontains=q))
             .order_by('apellidos', 'nombre')[:10]
         )

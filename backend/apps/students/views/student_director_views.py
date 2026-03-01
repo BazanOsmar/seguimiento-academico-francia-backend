@@ -12,6 +12,7 @@ from backend.apps.students.serializers import (
     EstudianteCreateSerializer,
 )
 from backend.apps.students.services import crear_estudiante_con_tutor
+from rest_framework.exceptions import NotFound
 
 
 class EstudianteDirectorListView(APIView):
@@ -66,3 +67,30 @@ class EstudianteCreateView(APIView):
             'estudiante': EstudianteDirectorSerializer(estudiante).data,
             'credenciales_tutor': credenciales,
         }, status=status.HTTP_201_CREATED)
+
+
+class EstudianteDetailView(APIView):
+    """
+    GET  /api/students/<id>/  — Detalle del estudiante.
+    PATCH /api/students/<id>/ — Actualiza el campo activo.
+    Solo Director.
+    """
+    permission_classes = (IsAuthenticated, IsDirector)
+
+    def _get_estudiante(self, pk):
+        try:
+            return Estudiante.objects.select_related('curso', 'tutor').get(pk=pk)
+        except Estudiante.DoesNotExist:
+            raise NotFound({'errores': 'Estudiante no encontrado.'})
+
+    def get(self, request, pk):
+        return Response(EstudianteDirectorSerializer(self._get_estudiante(pk)).data)
+
+    def patch(self, request, pk):
+        estudiante = self._get_estudiante(pk)
+        activo = request.data.get('activo')
+        if activo is None or not isinstance(activo, bool):
+            return Response({'errores': 'El campo activo es requerido y debe ser true o false.'}, status=status.HTTP_400_BAD_REQUEST)
+        estudiante.activo = activo
+        estudiante.save(update_fields=['activo'])
+        return Response(EstudianteDirectorSerializer(estudiante).data)

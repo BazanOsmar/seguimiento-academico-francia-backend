@@ -8,6 +8,7 @@ urlpatterns = [
     path('director/',                views.director_view,             name='director'),
     path('director/estudiantes/',              views.director_estudiantes_view,        name='director-estudiantes'),
     path('director/estudiantes/<int:curso_id>/', views.director_curso_estudiantes_view, name='director-curso-estudiantes'),
+    path('director/estudiantes/<int:curso_id>/<int:estudiante_id>/', views.director_perfil_estudiante_view, name='director-perfil-estudiante'),
     path('director/usuarios/',                    views.director_usuarios_view,        name='director-usuarios'),
     path('director/usuarios/<int:user_id>/',      views.director_perfil_usuario_view,  name='director-perfil-usuario'),
     path('director/asistencia/',          views.director_asistencia_view,          name='director-asistencia'),

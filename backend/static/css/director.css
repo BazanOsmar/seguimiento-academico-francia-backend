@@ -826,6 +826,22 @@ body {
     white-space: nowrap;
 }
 
+.badge {
+    display: inline-block;
+    border-radius: 50px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.badge--success { background: var(--success-dim, #d1fae5); color: var(--success, #059669); }
+.badge--danger  { background: var(--danger-dim,  #fee2e2); color: var(--danger,  #dc2626); }
+.badge--warning { background: rgba(251,191,36,.15);       color: #d97706; }
+.badge--default { background: var(--accent-dim);          color: var(--text-muted); }
+
+.tr-clickable { cursor: pointer; }
+.tr-clickable:hover td { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+
 .tr-loading td,
 .tr-empty td {
     text-align: center;

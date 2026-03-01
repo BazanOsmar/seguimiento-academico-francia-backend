@@ -28,6 +28,13 @@ def director_curso_estudiantes_view(request, curso_id):
     })
 
 
+def director_perfil_estudiante_view(request, curso_id, estudiante_id):
+    return render(request, 'director/perfil_estudiante.html', {
+        'curso_id': curso_id,
+        'estudiante_id': estudiante_id,
+    })
+
+
 def director_usuarios_view(request):
     return render(request, 'director/usuarios.html')
 

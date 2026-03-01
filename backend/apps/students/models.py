@@ -29,5 +29,7 @@ class Estudiante(models.Model):
         on_delete=models.PROTECT
     )
 
+    activo = models.BooleanField(default=True, verbose_name="Activo en la unidad educativa")
+
     def __str__(self):
         return f"{self.carnet} - {self.nombre} {self.apellidos}"
