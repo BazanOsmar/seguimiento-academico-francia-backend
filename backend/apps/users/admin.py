@@ -48,3 +48,5 @@ class UserAdmin(DjangoUserAdmin):
         }),
     )
 
+
+admin.site.register(TipoUsuario)
