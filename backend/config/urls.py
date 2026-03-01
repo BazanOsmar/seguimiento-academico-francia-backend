@@ -58,8 +58,8 @@ urlpatterns = [
         name='firebase-sw',
     ),
 
-    # Admin
-    path("admin/", admin.site.urls),
+    # Admin — ruta no predecible
+    path("gestion/panel-interno-4x8z1w3k/", admin.site.urls),
 
     # Frontend (páginas HTML)
     path("", include("backend.apps.pages.urls")),
