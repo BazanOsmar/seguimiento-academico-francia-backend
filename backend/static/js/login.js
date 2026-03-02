@@ -3,7 +3,7 @@
 const LOGIN_URL = '/api/auth/login/';
 
 const REDIRECT = {
-    'Director': '/director/',
+    'Director': '/director/estudiantes/',
     'Profesor': '/profesor/',
 };
 

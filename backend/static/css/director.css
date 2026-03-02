@@ -1111,12 +1111,25 @@ body {
     padding: 32px;
     width: 380px;
     max-width: calc(100vw - 32px);
+    max-height: 90dvh;
+    overflow-y: auto;
+    position: relative;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 14px;
     animation: modalIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.modal--wide { width: 440px; }
+@media (max-width: 480px) {
+    .modal-backdrop { align-items: flex-end; }
+    .modal {
+        border-radius: var(--radius-card) var(--radius-card) 0 0;
+        max-height: 85dvh;
+        padding: 24px 20px;
+    }
+    .modal--wide .export-fechas { flex-direction: column; }
 }
 @keyframes modalIn {
     from { transform: scale(0.92); opacity: 0; }
