@@ -160,9 +160,9 @@ class AsistenciaCursoView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Obtener IDs de estudiantes del curso (una sola query)
+        # Obtener IDs de estudiantes activos del curso (una sola query)
         estudiantes_reales_ids = set(
-            Estudiante.objects.filter(curso=curso).values_list("id", flat=True)
+            Estudiante.objects.filter(curso=curso, activo=True).values_list("id", flat=True)
         )
         total_estudiantes = len(estudiantes_reales_ids)
 

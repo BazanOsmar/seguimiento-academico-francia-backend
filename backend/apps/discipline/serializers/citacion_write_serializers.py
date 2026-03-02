@@ -20,6 +20,13 @@ class CitacionCreateSerializer(serializers.ModelSerializer):
             "fecha_limite_asistencia",
         ]
 
+    def validate_estudiante(self, value):
+        if not value.activo:
+            raise serializers.ValidationError(
+                "No se pueden crear citaciones para estudiantes inactivos."
+            )
+        return value
+
     def validate_fecha_limite_asistencia(self, value):
         """La fecha límite no puede ser en el pasado."""
         if value < timezone.now().date():
