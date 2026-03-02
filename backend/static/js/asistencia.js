@@ -496,7 +496,6 @@ btnReset.addEventListener('click', () => {
 
         errEl.style.display = 'none';
         backdrop.classList.add('visible');
-        exportDesde.focus();
     }
 
     function closeExport() {
