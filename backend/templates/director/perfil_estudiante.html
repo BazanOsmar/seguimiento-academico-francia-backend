@@ -342,8 +342,8 @@
                     <p class="perfil-section-title">Datos del estudiante</p>
                     <div class="perfil-field-list">
                         <div class="perfil-field">
-                            <span class="perfil-field-label">Carnet</span>
-                            <span class="perfil-field-value" id="pCarnet"></span>
+                            <span class="perfil-field-label">Identificador</span>
+                            <span class="perfil-field-value" id="pIdentificador"></span>
                         </div>
                         <div class="perfil-field">
                             <span class="perfil-field-label">Estado</span>
@@ -480,7 +480,7 @@ function renderCitaciones(lista) {
         _activo = d.activo;
         document.getElementById('pNombre').textContent        = d.nombre_completo;
         document.getElementById('pCurso').textContent         = d.curso_nombre;
-        document.getElementById('pCarnet').textContent        = d.carnet || '—';
+        document.getElementById('pIdentificador').textContent  = d.identificador || '—';
         document.getElementById('pTutorNombre').textContent   = d.tutor_nombre || '—';
         document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
         renderEstado(_activo);

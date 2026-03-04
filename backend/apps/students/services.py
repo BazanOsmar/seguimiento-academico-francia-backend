@@ -28,7 +28,7 @@ def crear_estudiante_con_tutor(datos):
     estudiante = Estudiante.objects.create(
         nombre=datos['nombre'],
         apellidos=datos['apellidos'],
-        carnet=datos.get('carnet') or None,
+        identificador=datos.get('identificador') or None,
         curso=datos['curso'],
         tutor=tutor,
     )

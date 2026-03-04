@@ -9,11 +9,11 @@ class Estudiante(models.Model):
     nombre = models.CharField(max_length=100)
     apellidos = models.CharField(max_length=100)
 
-    carnet = models.CharField(
+    identificador = models.CharField(
         max_length=20,
         unique=True,
         null=True,
-        verbose_name="Número de carnet"
+        verbose_name="Identificador"
     )
 
     tutor = models.ForeignKey(
@@ -32,4 +32,4 @@ class Estudiante(models.Model):
     activo = models.BooleanField(default=True, verbose_name="Activo en la unidad educativa")
 
     def __str__(self):
-        return f"{self.carnet} - {self.nombre} {self.apellidos}"
+        return f"{self.identificador} - {self.nombre} {self.apellidos}"

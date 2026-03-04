@@ -909,34 +909,28 @@
                     <rect x="6" y="14" width="12" height="8"/>
                 </svg>
             </div>
-            <p class="modal-title">Exportar Registro de Asistencia</p>
-            <p class="modal-subtitle">Selecciona el curso y el rango de fechas a exportar.</p>
+            <p class="modal-title">Exportar Planilla de Asistencia</p>
+            <p class="modal-subtitle">Selecciona el curso y el mes a exportar.</p>
 
             <div class="form-group" style="width:100%;text-align:left">
                 <label class="form-label">Curso</label>
                 <select id="exportCurso" class="form-input"></select>
             </div>
 
-            <div class="export-fechas" style="display:flex;gap:12px;width:100%">
-                <div class="form-group" style="flex:1;text-align:left;min-width:0">
-                    <label class="form-label">Fecha desde</label>
-                    <input id="exportFechaDesde" class="form-input" type="date">
-                </div>
-                <div class="form-group" style="flex:1;text-align:left;min-width:0">
-                    <label class="form-label">Fecha hasta <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-                    <input id="exportFechaHasta" class="form-input" type="date">
-                </div>
+            <div class="form-group" style="width:100%;text-align:left">
+                <label class="form-label">Mes</label>
+                <select id="exportMes" class="form-input"></select>
             </div>
 
             <p style="font-size:11px;color:var(--text-muted);width:100%;text-align:left;margin-top:-6px">
-                Si no indicas fecha hasta, se exportará solo la fecha desde.
+                Se exportará la planilla completa del mes con todos los días hábiles.
             </p>
 
             <p id="exportError" class="form-error" style="display:none"></p>
 
             <div style="display:flex;gap:10px;width:100%;margin-top:6px">
                 <button id="exportCancelar" class="btn-secondary" style="flex:1;border-radius:20px;justify-content:center">Cancelar</button>
-                <button id="exportGenerar"  class="btn-primary"   style="flex:1;border-radius:20px;justify-content:center">Generar PDF</button>
+                <button id="exportGenerar"  class="btn-primary"   style="flex:1;border-radius:20px;justify-content:center">Generar planilla</button>
             </div>
         </div>
     </div>

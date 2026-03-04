@@ -94,7 +94,7 @@ function renderResultados(lista) {
         <tr>
             <td class="td-num">${i + 1}</td>
             <td class="td-name">${e.nombre_completo}</td>
-            <td class="td-mono">${e.carnet || '—'}</td>
+            <td class="td-mono">${e.identificador || '—'}</td>
             <td><span class="badge-curso">${e.curso_nombre}</span></td>
         </tr>
     `).join('');

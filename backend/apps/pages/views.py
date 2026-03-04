@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 
 
@@ -47,41 +48,77 @@ def director_asistencia_view(request):
     return render(request, 'director/asistencia.html')
 
 
-_ESTADO_LABEL = {
-    'PRESENTE': 'Presente', 'FALTA': 'Falta',
-    'ATRASO': 'Atraso', 'LICENCIA': 'Licencia',
-}
+def _autenticar_por_token(request):
+    """Valida JWT desde query param ?token= o header Authorization: Bearer."""
+    from rest_framework_simplejwt.tokens import AccessToken
+    from backend.apps.users.models import User
+
+    # 1. Intentar desde query param
+    raw = request.GET.get('token', '').strip()
+    # 2. Fallback: header Authorization (para fetchAPI del frontend web)
+    if not raw:
+        auth = request.META.get('HTTP_AUTHORIZATION', '')
+        if auth.startswith('Bearer '):
+            raw = auth[7:].strip()
+    if not raw:
+        return None
+    try:
+        validated = AccessToken(raw)
+        return User.objects.select_related('tipo_usuario').get(pk=validated['user_id'])
+    except Exception:
+        return None
+
+
+_ESTADO_LETRA = {'PRESENTE': 'P', 'FALTA': 'F', 'ATRASO': 'A', 'LICENCIA': 'L'}
 _DIAS_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+_MESES_ES = [
+    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
 
 
 def director_asistencia_exportar_view(request):
-    from django.db.models import Prefetch
+    import calendar
+    from datetime import date
     from backend.apps.academics.models import Curso
     from backend.apps.attendance.models import AsistenciaSesion, Asistencia
+    from backend.apps.students.models import Estudiante
 
-    curso_id    = request.GET.get('curso_id', '').strip()
+    # ── Autenticación: token JWT en query param ──────────────────
+    user = _autenticar_por_token(request)
+    if not user or not user.tipo_usuario or user.tipo_usuario.nombre not in ('Director', 'Regente'):
+        return JsonResponse({'errores': 'No autorizado.'}, status=403)
+
+    curso_id = request.GET.get('curso_id', '').strip()
+    mes_param = request.GET.get('mes', '').strip()  # formato YYYY-MM
     fecha_desde = request.GET.get('fecha_desde', '').strip()
-    fecha_hasta = request.GET.get('fecha_hasta', '').strip() or fecha_desde
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
 
-    def _fmt(s):
+    # Soportar tanto ?mes=YYYY-MM como ?fecha_desde=...&fecha_hasta=...
+    if mes_param and not fecha_desde:
+        fecha_desde = f"{mes_param}-01"
         try:
-            y, m, d = s.split('-')
-            return f"{d}/{m}/{y}"
-        except Exception:
-            return s
+            parts = mes_param.split('-')
+            y, m = int(parts[0]), int(parts[1])
+            _, ld = calendar.monthrange(y, m)
+            fecha_hasta = f"{mes_param}-{str(ld).zfill(2)}"
+        except (ValueError, IndexError):
+            fecha_hasta = fecha_desde
+
+    if not fecha_hasta:
+        fecha_hasta = fecha_desde
 
     ctx = {
         'error': None,
-        'sesiones_data': [],
         'curso': None,
-        'fecha_desde_fmt': _fmt(fecha_desde),
-        'fecha_hasta_fmt': _fmt(fecha_hasta),
-        'rango_unico': fecha_desde == fecha_hasta,
+        'mes_display': '',
+        'dias_habiles': [],
+        'estudiantes': [],
         'generado_en': datetime.now().strftime('%d/%m/%Y %H:%M'),
     }
 
     if not curso_id or not fecha_desde:
-        ctx['error'] = 'Faltan parámetros: se requiere curso y fecha de inicio.'
+        ctx['error'] = 'Faltan parámetros: se requiere curso y mes.'
         return render(request, 'director/asistencia_exportar.html', ctx)
 
     try:
@@ -90,7 +127,7 @@ def director_asistencia_exportar_view(request):
         ctx['error'] = 'Curso no encontrado.'
         return render(request, 'director/asistencia_exportar.html', ctx)
 
-    # Modo verificación: solo devuelve si hay datos, sin renderizar HTML
+    # Modo verificación rápida
     if request.GET.get('check') == '1':
         from django.http import JsonResponse
         count = AsistenciaSesion.objects.filter(
@@ -98,46 +135,77 @@ def director_asistencia_exportar_view(request):
         ).count()
         return JsonResponse({'tiene_datos': count > 0, 'total': count})
 
-    sesiones = (
-        AsistenciaSesion.objects
-        .filter(curso=curso, fecha__range=(fecha_desde, fecha_hasta))
-        .prefetch_related(
-            Prefetch(
-                'asistencias',
-                queryset=Asistencia.objects
-                    .select_related('estudiante')
-                    .order_by('estudiante__apellidos', 'estudiante__nombre'),
-            )
-        )
-        .order_by('fecha')
+    # Parsear mes del rango
+    try:
+        parts = fecha_desde.split('-')
+        year, month = int(parts[0]), int(parts[1])
+    except (ValueError, IndexError):
+        ctx['error'] = 'Formato de fecha inválido.'
+        return render(request, 'director/asistencia_exportar.html', ctx)
+
+    # Días hábiles (L-V)
+    _, last_day = calendar.monthrange(year, month)
+    dias_habiles = []
+    for d in range(1, last_day + 1):
+        dt = date(year, month, d)
+        if dt.weekday() < 5:
+            dias_habiles.append({
+                'fecha': dt,
+                'dia_nombre': _DIAS_ES[dt.weekday()],
+                'dia_num': str(d).zfill(2),
+            })
+
+    fecha_ini = date(year, month, 1)
+    fecha_fin = date(year, month, last_day)
+
+    # Estudiantes activos del curso
+    estudiantes_qs = (
+        Estudiante.objects
+        .filter(curso=curso, activo=True)
+        .order_by('apellidos', 'nombre')
     )
 
-    sesiones_data = []
-    for sesion in sesiones:
-        asts = list(sesion.asistencias.all())
-        sesiones_data.append({
-            'fecha_display': sesion.fecha.strftime('%d/%m/%Y'),
-            'dia_semana': _DIAS_ES[sesion.fecha.weekday()],
-            'asistencias': [
-                {
-                    'numero': i + 1,
-                    'nombre': f"{a.estudiante.apellidos}, {a.estudiante.nombre}",
-                    'estado': _ESTADO_LABEL.get(a.estado, a.estado),
-                    'estado_cls': a.estado.lower(),
-                    'hora': a.hora.strftime('%H:%M'),
-                }
-                for i, a in enumerate(asts)
-            ],
-            'resumen': {
-                'total':    len(asts),
-                'presente': sum(1 for a in asts if a.estado == 'PRESENTE'),
-                'falta':    sum(1 for a in asts if a.estado == 'FALTA'),
-                'atraso':   sum(1 for a in asts if a.estado == 'ATRASO'),
-                'licencia': sum(1 for a in asts if a.estado == 'LICENCIA'),
-            },
+    # Asistencias del mes → mapa: estudiante_id → {fecha → letra}
+    asistencias = (
+        Asistencia.objects
+        .filter(sesion__curso=curso, sesion__fecha__range=(fecha_ini, fecha_fin))
+        .select_related('sesion')
+    )
+    mapa = {}
+    for a in asistencias:
+        mapa.setdefault(a.estudiante_id, {})[a.sesion.fecha] = _ESTADO_LETRA.get(a.estado, '')
+
+    # Construir datos por estudiante
+    estudiantes_data = []
+    for i, est in enumerate(estudiantes_qs, 1):
+        est_mapa = mapa.get(est.id, {})
+        celdas = []
+        resumen = {'presentes': 0, 'faltas': 0, 'atrasos': 0, 'licencias': 0}
+        for dh in dias_habiles:
+            letra = est_mapa.get(dh['fecha'], '')
+            celdas.append(letra)
+            if letra == 'P':
+                resumen['presentes'] += 1
+            elif letra == 'F':
+                resumen['faltas'] += 1
+            elif letra == 'A':
+                resumen['atrasos'] += 1
+            elif letra == 'L':
+                resumen['licencias'] += 1
+
+        estudiantes_data.append({
+            'numero': i,
+            'nombre': f"{est.apellidos}, {est.nombre}",
+            'celdas': celdas,
+            'resumen': resumen,
         })
 
-    ctx.update({'curso': curso, 'sesiones_data': sesiones_data})
+    ctx.update({
+        'curso': curso,
+        'mes_display': f"{_MESES_ES[month]} {year}",
+        'dias_habiles': dias_habiles,
+        'estudiantes': estudiantes_data,
+    })
     return render(request, 'director/asistencia_exportar.html', ctx)
 
 

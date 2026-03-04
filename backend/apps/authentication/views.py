@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer
 # Create your views here.
 class LoginView(APIView):
     """
@@ -120,3 +120,54 @@ class ChangePasswordView(APIView):
             'mensaje': 'Contraseña reseteada correctamente.',
             'password_nueva': nueva_password,
         })
+
+
+class RegistroTutorView(APIView):
+    """Registro público de tutores/padres desde la app móvil."""
+
+    permission_classes = []
+
+    def post(self, request):
+        serializer = RegistroTutorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        estudiante = data['_estudiante']
+
+        from django.db import transaction
+        from backend.apps.users.models import User, TipoUsuario
+
+        tipo_tutor = TipoUsuario.objects.get(nombre='Tutor')
+
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=data['username'],
+                first_name=data['nombre'],
+                last_name=data['apellidos'],
+                password=data['password'],
+                tipo_usuario=tipo_tutor,
+                primer_ingreso=False,
+            )
+            estudiante.tutor = user
+            estudiante.save(update_fields=['tutor'])
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'tipo_usuario': 'Tutor',
+                'primer_ingreso': False,
+            },
+            'estudiante': {
+                'id': estudiante.id,
+                'nombre': estudiante.nombre,
+                'apellidos': estudiante.apellidos,
+                'curso': str(estudiante.curso),
+            },
+        }, status=status.HTTP_201_CREATED)

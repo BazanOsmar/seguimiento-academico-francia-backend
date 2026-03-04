@@ -34,7 +34,7 @@ class EstudianteDirectorListView(APIView):
         q = request.query_params.get('q', '').strip()
         if q:
             if q.isdigit():
-                qs = qs.filter(carnet__icontains=q)
+                qs = qs.filter(identificador__icontains=q)
             else:
                 qs = qs.filter(Q(apellidos__icontains=q) | Q(nombre__icontains=q))
             qs = qs[:10]

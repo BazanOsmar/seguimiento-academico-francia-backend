@@ -30,7 +30,7 @@ class UserDetailView(APIView):
             data['estudiantes'] = list(
                 Estudiante.objects.filter(tutor=user)
                 .select_related('curso')
-                .values('id', 'nombre', 'apellidos', 'carnet',
+                .values('id', 'nombre', 'apellidos', 'identificador',
                         'curso__grado', 'curso__paralelo', 'curso__id')
             )
             data['citaciones_recientes'] = list(

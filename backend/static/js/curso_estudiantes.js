@@ -74,7 +74,7 @@ function renderTabla(lista) {
         <tr class="tr-clickable" data-href="/director/estudiantes/${CURSO_ID}/${e.id}/">
             <td class="td-num">${i + 1}</td>
             <td class="td-name">${escHtml(e.nombre_completo)}</td>
-            <td class="td-muted">${e.carnet ? escHtml(e.carnet) : '<span class="no-data">—</span>'}</td>
+            <td class="td-muted">${e.identificador ? escHtml(e.identificador) : '<span class="no-data">—</span>'}</td>
             <td>${escHtml(e.tutor_nombre)}</td>
             <td class="td-mono">${escHtml(e.tutor_username)}</td>
             <td>${e.activo
@@ -93,14 +93,14 @@ searchInput.addEventListener('input', () => {
     const q = searchInput.value.toLowerCase().trim();
     renderTabla(!q ? _estudiantes : _estudiantes.filter(e =>
         e.nombre_completo.toLowerCase().includes(q) ||
-        (e.carnet || '').toLowerCase().includes(q)
+        (e.identificador || '').toLowerCase().includes(q)
     ));
 });
 
 // ── Drawer ────────────────────────────────────────────────────────
 function abrirDrawer() {
     clearErrors();
-    ['fNombre','fApellidos','fCarnet','fTutorNombre','fTutorApellidos','fTutorCarnet'].forEach(id => {
+    ['fNombre','fApellidos','fIdentificador','fTutorNombre','fTutorApellidos','fTutorCarnet'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -125,7 +125,7 @@ btnGuardar.addEventListener('click', async () => {
 
     const nombre         = document.getElementById('fNombre').value.trim();
     const apellidos      = document.getElementById('fApellidos').value.trim();
-    const carnet         = document.getElementById('fCarnet').value.trim();
+    const identificador  = document.getElementById('fIdentificador').value.trim();
     const tutorNombre    = document.getElementById('fTutorNombre').value.trim();
     const tutorApellidos = document.getElementById('fTutorApellidos').value.trim();
     const tutorCarnet    = document.getElementById('fTutorCarnet').value.trim();
@@ -144,7 +144,7 @@ btnGuardar.addEventListener('click', async () => {
         method: 'POST',
         body: JSON.stringify({
             nombre, apellidos,
-            carnet: carnet || '',
+            identificador: identificador || '',
             curso: CURSO_ID,
             tutor_nombre:    tutorNombre,
             tutor_apellidos: tutorApellidos,

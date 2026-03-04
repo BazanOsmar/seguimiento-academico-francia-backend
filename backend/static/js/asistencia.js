@@ -479,21 +479,44 @@ btnReset.addEventListener('click', () => {
     const btnExportar  = document.getElementById('btnExportar');
     const backdrop     = document.getElementById('exportBackdrop');
     const exportCurso  = document.getElementById('exportCurso');
-    const exportDesde  = document.getElementById('exportFechaDesde');
-    const exportHasta  = document.getElementById('exportFechaHasta');
+    const exportMes    = document.getElementById('exportMes');
     const btnCancelar  = document.getElementById('exportCancelar');
     const btnGenerar   = document.getElementById('exportGenerar');
     const errEl        = document.getElementById('exportError');
 
+    function _poblarMeses() {
+        exportMes.innerHTML = '';
+        const hoy = new Date();
+        const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const anio      = hoy.getFullYear();
+        const mesActual = hoy.getMonth() + 1;          // 1-12
+        // Desde febrero (inicio escolar) hasta el mes actual
+        for (let m = 2; m <= mesActual; m++) {
+            const val = `${anio}-${String(m).padStart(2, '0')}`;
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = `${meses[m - 1]} ${anio}`;
+            exportMes.appendChild(opt);
+        }
+        exportMes.value = `${anio}-${String(mesActual).padStart(2, '0')}`;
+    }
+
+    function _mesARango(mesStr) {
+        // "YYYY-MM" → { desde: "YYYY-MM-01", hasta: "YYYY-MM-DD" }
+        const [y, m] = mesStr.split('-').map(Number);
+        const ultimo = new Date(y, m, 0).getDate();
+        const pad = n => String(n).padStart(2, '0');
+        return {
+            desde: `${y}-${pad(m)}-01`,
+            hasta: `${y}-${pad(m)}-${pad(ultimo)}`,
+        };
+    }
+
     function openExport() {
-        // Clonar opciones del selector de cursos principal
         exportCurso.innerHTML = selectCurso.innerHTML;
         if (_cursoId) exportCurso.value = String(_cursoId);
-
-        // Pre-llenar fechas con el filtro activo
-        exportDesde.value = _fecha || '';
-        exportHasta.value = _fecha || '';
-
+        _poblarMeses();
         errEl.style.display = 'none';
         backdrop.classList.add('visible');
     }
@@ -504,8 +527,7 @@ btnReset.addEventListener('click', () => {
 
     async function generarPDF() {
         const cursoId = exportCurso.value;
-        const desde   = exportDesde.value;
-        const hasta   = exportHasta.value;
+        const mesVal  = exportMes.value;
 
         errEl.style.display = 'none';
 
@@ -514,21 +536,18 @@ btnReset.addEventListener('click', () => {
             errEl.style.display = 'block';
             return;
         }
-        if (!desde) {
-            errEl.textContent = 'Indica al menos la fecha de inicio.';
-            errEl.style.display = 'block';
-            return;
-        }
-        if (hasta && hasta < desde) {
-            errEl.textContent = 'La fecha hasta no puede ser anterior a la fecha desde.';
+        if (!mesVal) {
+            errEl.textContent = 'Selecciona un mes.';
             errEl.style.display = 'block';
             return;
         }
 
-        const params = new URLSearchParams({ curso_id: cursoId, fecha_desde: desde });
-        if (hasta && hasta !== desde) params.set('fecha_hasta', hasta);
+        const { desde, hasta } = _mesARango(mesVal);
+        const tkn = localStorage.getItem('access_token') || '';
+        const params = new URLSearchParams({
+            curso_id: cursoId, fecha_desde: desde, fecha_hasta: hasta, token: tkn,
+        });
 
-        // Pre-verificar que existan registros antes de abrir la pestaña
         btnGenerar.disabled = true;
         btnGenerar.textContent = 'Verificando...';
 
@@ -538,10 +557,10 @@ btnReset.addEventListener('click', () => {
         const { ok, data } = await fetchAPI(`/director/asistencia/exportar/?${checkParams}`);
 
         btnGenerar.disabled = false;
-        btnGenerar.textContent = 'Generar PDF';
+        btnGenerar.textContent = 'Generar planilla';
 
         if (!ok || !data?.tiene_datos) {
-            errEl.textContent = 'No hay registros de asistencia para el período seleccionado.';
+            errEl.textContent = 'No hay registros de asistencia para el mes seleccionado.';
             errEl.style.display = 'block';
             return;
         }

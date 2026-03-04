@@ -151,14 +151,14 @@ let _cachedData = null;
                 (e.nombre?.[0] || '') + (e.apellidos?.[0] || '')
             ).toUpperCase();
             const curso  = `${e.curso__grado} ${e.curso__paralelo}`;
-            const carnet = e.carnet ? `Carnet: ${e.carnet}` : 'Sin carnet';
+            const identificador = e.identificador ? `ID: ${e.identificador}` : 'Sin identificador';
             return `
                 <a class="estudiante-card"
                    href="/director/estudiantes/${e.curso__id}/?highlight=${e.id}">
                     <div class="estudiante-avatar">${iniciales}</div>
                     <div class="estudiante-info">
                         <div class="estudiante-nombre">${e.apellidos}, ${e.nombre}</div>
-                        <div class="estudiante-meta">${curso} &middot; ${carnet}</div>
+                        <div class="estudiante-meta">${curso} &middot; ${identificador}</div>
                     </div>
                     <svg class="estudiante-arrow" width="16" height="16" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"

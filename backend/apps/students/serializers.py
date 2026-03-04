@@ -27,7 +27,7 @@ class EstudianteBusquedaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Estudiante
-        fields = ("id", "nombre", "apellidos", "carnet", "curso")
+        fields = ("id", "nombre", "apellidos", "identificador", "curso")
 
 
 # ── Panel Director ────────────────────────────────────────────────
@@ -44,7 +44,7 @@ class EstudianteDirectorSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "nombre_completo",
-            "carnet",
+            "identificador",
             "curso_nombre",
             "tutor_nombre",
             "tutor_username",
@@ -71,21 +71,21 @@ class EstudianteCreateSerializer(serializers.Serializer):
     """Escritura: crea estudiante + tutor en una transacción."""
     nombre          = serializers.CharField(max_length=100)
     apellidos       = serializers.CharField(max_length=100)
-    carnet          = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    identificador   = serializers.CharField(max_length=20, required=False, allow_blank=True)
     curso           = serializers.PrimaryKeyRelatedField(queryset=Curso.objects.all())
     tutor_nombre    = serializers.CharField(max_length=100)
     tutor_apellidos = serializers.CharField(max_length=100)
     tutor_carnet    = serializers.CharField(max_length=20)
 
-    def validate_carnet(self, value):
+    def validate_identificador(self, value):
         if not value:
             return None
-        if Estudiante.objects.filter(carnet=value).exists():
-            raise serializers.ValidationError("Ya existe un estudiante con ese número de carnet.")
+        if Estudiante.objects.filter(identificador=value).exists():
+            raise serializers.ValidationError("Ya existe un estudiante con ese identificador.")
         return value
 
     def validate_tutor_carnet(self, value):
         from backend.apps.users.models import User
         if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Ya existe un usuario con ese número de carnet.")
+            raise serializers.ValidationError("Ya existe un usuario con ese número de CI.")
         return value
