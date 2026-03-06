@@ -12,7 +12,7 @@ services:
     restart: always
 
   web:
-    build: .
+    image: ghcr.io/bazanosmar/seguimiento-francia-backend:staging
     env_file: .env
     environment:
       - DJANGO_SETTINGS_MODULE=backend.config.settings.production
