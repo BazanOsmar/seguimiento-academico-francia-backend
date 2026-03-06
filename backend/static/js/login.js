@@ -21,7 +21,7 @@ const TIPOS_PERMITIDOS = ['Director', 'Profesor'];
 // ─── Reglas de validación ────────────────────────────────────────────────────
 const USERNAME_MAX = 10;
 const PASSWORD_MIN = 8;
-const PASSWORD_MAX = 12;
+const PASSWORD_MAX = 20;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
 const form            = document.getElementById('loginForm');
@@ -36,7 +36,6 @@ const btnSpinner      = document.getElementById('btnSpinner');
 const usernameGroup   = document.getElementById('usernameGroup');
 const passwordGroup   = document.getElementById('passwordGroup');
 const usernameCounter = document.getElementById('usernameCounter');
-const passwordCounter = document.getElementById('passwordCounter');
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function showError(msg) {
@@ -74,12 +73,7 @@ usernameInput.addEventListener('input', () => {
     clearError();
 });
 
-// ─── Contador contraseña: 8–10 caracteres ────────────────────────────────────
-passwordInput.addEventListener('input', () => {
-    const len = passwordInput.value.length;
-    updateCounter(passwordCounter, len, PASSWORD_MAX, PASSWORD_MIN);
-    clearError();
-});
+passwordInput.addEventListener('input', clearError);
 
 // ─── Toggle contraseña ────────────────────────────────────────────────────────
 toggleBtn.addEventListener('click', () => {

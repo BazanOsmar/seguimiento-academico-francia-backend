@@ -9,3 +9,5 @@ class ControlCarga(models.Model):
 
     def __str__(self):
         return f"Carga - {self.profesor_curso}"
+
+

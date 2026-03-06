@@ -6,8 +6,14 @@ from backend.apps.students.views.student_director_views import (
     EstudianteDetailView,
 )
 from backend.apps.students.views.student_search_views import EstudianteBusquedaView
+from backend.apps.students.views.student_import_views import ImportarEstudiantesExcelView
 
 urlpatterns = [
+    path(
+        "importar-excel/",
+        ImportarEstudiantesExcelView.as_view(),
+        name="estudiantes-importar-excel",
+    ),
     path(
         "curso/<int:curso_id>/estudiantes/",
         EstudiantesPorCursoView.as_view(),

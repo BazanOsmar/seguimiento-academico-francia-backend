@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..models import Citacion
 from ..serializers import CitacionListSerializer
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
 from ..services.citacion_vencimiento import marcar_citaciones_vencidas
 
 
@@ -39,7 +39,7 @@ class CitacionListView(APIView):
     ]
     """
 
-    permission_classes = [IsAuthenticated, IsDirectorOrRegente]
+    permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
 
     def get(self, request):
         marcar_citaciones_vencidas()
@@ -48,6 +48,11 @@ class CitacionListView(APIView):
             "estudiante",
             "estudiante__curso",
         ).all()  # El modelo ya tiene ordering = ["-fecha_envio"]
+
+        # Si es Profesor, solo ve sus propias citaciones
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+        if tipo == "Profesor":
+            queryset = queryset.filter(emisor=request.user)
 
         # Filtrar por estado de asistencia, ej: ?asistencia=PENDIENTE
         asistencia = request.query_params.get("asistencia")

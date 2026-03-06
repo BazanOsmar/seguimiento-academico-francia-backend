@@ -47,6 +47,28 @@ class IsDirectorOrRegente(BasePermission):
         )
 
 
+class IsProfesor(BasePermission):
+    """Permite el acceso únicamente a usuarios cuyo tipo sea Profesor."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.tipo_usuario is not None
+            and request.user.tipo_usuario.nombre == "Profesor"
+        )
+
+
+class IsDirectorOrRegenteOrProfesor(BasePermission):
+    """Permite el acceso a Director, Regente o Profesor."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.tipo_usuario is not None
+            and request.user.tipo_usuario.nombre in ("Director", "Regente", "Profesor")
+        )
+
+
 class IsTutor(BasePermission):
     """Permite el acceso únicamente a usuarios cuyo tipo sea Tutor (app móvil)."""
 

@@ -1,32 +1,26 @@
-import re
 from rest_framework import serializers
 
 
 def validar_password(value):
     """
-    Validación de contraseña con reglas ISO:
+    Reglas de contraseña para registro de tutores:
     - Mínimo 8 caracteres
-    - Al menos 1 mayúscula, 1 minúscula, 1 número, 1 carácter especial
-    - Sin espacios
+    - Al menos una letra minúscula
+    - Al menos un número
+    - Al menos un carácter especial (no letra, no dígito, no espacio)
     """
     errores = []
 
-    if len(value) < 8:
-        errores.append("Debe tener al menos 8 caracteres.")
+    if len(value) < 8 or len(value) > 20:
+        errores.append("Debe tener entre 8 y 20 caracteres.")
 
-    if ' ' in value:
-        errores.append("No debe contener espacios.")
-
-    if not re.search(r'[A-Z]', value):
-        errores.append("Debe incluir al menos una letra mayúscula.")
-
-    if not re.search(r'[a-z]', value):
+    if not any(c.islower() for c in value):
         errores.append("Debe incluir al menos una letra minúscula.")
 
-    if not re.search(r'[0-9]', value):
+    if not any(c.isdigit() for c in value):
         errores.append("Debe incluir al menos un número.")
 
-    if not re.search(r'[^A-Za-z0-9]', value):
+    if not any(not c.isalpha() and not c.isdigit() and not c.isspace() for c in value):
         errores.append("Debe incluir al menos un carácter especial.")
 
     if errores:

@@ -45,9 +45,9 @@ class ChangePasswordSerializer(serializers.Serializer):
     password_nueva  = serializers.CharField(required=True)
 
     def validate_password_nueva(self, value):
-        if not (8 <= len(value) <= 16):
+        if not (8 <= len(value) <= 20):
             raise serializers.ValidationError(
-                "La contraseña debe tener entre 8 y 16 caracteres."
+                "La contraseña debe tener entre 8 y 20 caracteres."
             )
         return value
 

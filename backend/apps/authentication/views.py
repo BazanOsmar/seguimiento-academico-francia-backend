@@ -129,7 +129,8 @@ class RegistroTutorView(APIView):
 
     def post(self, request):
         serializer = RegistroTutorSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         estudiante = data['_estudiante']

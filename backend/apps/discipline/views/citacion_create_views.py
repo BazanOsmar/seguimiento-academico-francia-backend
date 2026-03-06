@@ -5,7 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..serializers.citacion_write_serializers import CitacionCreateSerializer
 from ..serializers.citacion_read_serializers import CitacionListSerializer
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
+from backend.apps.academics.models import ProfesorCurso
 
 
 class CitacionCreateView(APIView):
@@ -15,7 +16,8 @@ class CitacionCreateView(APIView):
     Crea una nueva citación para el padre de un estudiante.
     El emisor se asigna automáticamente desde el usuario autenticado.
 
-    Permisos: Solo Director o Regente.
+    Permisos: Director, Regente o Profesor.
+    Si es Profesor, el estudiante debe pertenecer a uno de sus cursos asignados.
 
     Body esperado:
     {
@@ -40,13 +42,33 @@ class CitacionCreateView(APIView):
     }
     """
 
-    permission_classes = [IsAuthenticated, IsDirectorOrRegente]
+    permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
 
     def post(self, request):
         serializer = CitacionCreateSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Si es Profesor, validar que el estudiante pertenece a uno de sus cursos
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+        if tipo == "Profesor":
+            estudiante = serializer.validated_data['estudiante']
+            curso_del_estudiante = getattr(estudiante, 'curso', None)
+            if curso_del_estudiante is None:
+                return Response(
+                    {"errores": "El estudiante no tiene curso asignado."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            es_su_curso = ProfesorCurso.objects.filter(
+                profesor=request.user,
+                curso=curso_del_estudiante,
+            ).exists()
+            if not es_su_curso:
+                return Response(
+                    {"errores": "No puedes crear una citación para un estudiante de otro curso."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         # El emisor es el usuario autenticado, no viene del payload
         citacion = serializer.save(emisor=request.user)

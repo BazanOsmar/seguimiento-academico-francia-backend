@@ -13,6 +13,7 @@ urlpatterns = [
     path('director/usuarios/<int:user_id>/',      views.director_perfil_usuario_view,  name='director-perfil-usuario'),
     path('director/asistencia/',          views.director_asistencia_view,          name='director-asistencia'),
     path('director/asistencia/exportar/', views.director_asistencia_exportar_view, name='director-asistencia-exportar'),
+    path('director/asistencia/exportar/excel/', views.director_asistencia_exportar_excel_view, name='director-asistencia-exportar-excel'),
     path('director/estadisticas/',   views.director_estadisticas_view, name='director-estadisticas'),
     path('director/actividad/',      views.director_actividad_view,   name='director-actividad'),
     path('director/comunicados/',    views.director_comunicados_view, name='director-comunicados'),

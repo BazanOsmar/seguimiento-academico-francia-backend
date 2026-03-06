@@ -17,7 +17,10 @@ def director_view(request):
 
 
 def director_estudiantes_view(request):
-    return render(request, 'director/estudiantes.html')
+    from backend.apps.students.models import Estudiante
+    return render(request, 'director/estudiantes.html', {
+        'importar_excel_habilitado': not Estudiante.objects.exists(),
+    })
 
 
 def director_curso_estudiantes_view(request, curso_id):
@@ -207,6 +210,224 @@ def director_asistencia_exportar_view(request):
         'estudiantes': estudiantes_data,
     })
     return render(request, 'director/asistencia_exportar.html', ctx)
+
+
+def director_asistencia_exportar_excel_view(request):
+    import calendar
+    import io
+    from datetime import date
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import (
+        PatternFill, Font, Alignment, Border, Side, GradientFill
+    )
+    from openpyxl.utils import get_column_letter
+    from backend.apps.academics.models import Curso
+    from backend.apps.attendance.models import AsistenciaSesion, Asistencia
+    from backend.apps.students.models import Estudiante
+
+    # ── Autenticación ────────────────────────────────────────────
+    user = _autenticar_por_token(request)
+    if not user or not user.tipo_usuario or user.tipo_usuario.nombre not in ('Director', 'Regente'):
+        return JsonResponse({'errores': 'No autorizado.'}, status=403)
+
+    curso_id   = request.GET.get('curso_id', '').strip()
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+
+    if not curso_id or not fecha_desde:
+        return JsonResponse({'errores': 'Faltan parámetros.'}, status=400)
+
+    try:
+        curso = Curso.objects.get(pk=int(curso_id))
+    except (Curso.DoesNotExist, ValueError):
+        return JsonResponse({'errores': 'Curso no encontrado.'}, status=404)
+
+    try:
+        parts = fecha_desde.split('-')
+        year, month = int(parts[0]), int(parts[1])
+    except (ValueError, IndexError):
+        return JsonResponse({'errores': 'Formato de fecha inválido.'}, status=400)
+
+    # Días hábiles del mes
+    _, last_day = calendar.monthrange(year, month)
+    dias_habiles = []
+    for d in range(1, last_day + 1):
+        dt = date(year, month, d)
+        if dt.weekday() < 5:
+            dias_habiles.append({'fecha': dt, 'dia_nombre': _DIAS_ES[dt.weekday()], 'dia_num': d})
+
+    fecha_ini = date(year, month, 1)
+    fecha_fin = date(year, month, last_day)
+
+    estudiantes_qs = (
+        Estudiante.objects
+        .filter(curso=curso, activo=True)
+        .order_by('apellidos', 'nombre')
+    )
+
+    asistencias = (
+        Asistencia.objects
+        .filter(sesion__curso=curso, sesion__fecha__range=(fecha_ini, fecha_fin))
+        .select_related('sesion')
+    )
+    mapa = {}
+    for a in asistencias:
+        mapa.setdefault(a.estudiante_id, {})[a.sesion.fecha] = _ESTADO_LETRA.get(a.estado, '')
+
+    # ── Construir Excel ──────────────────────────────────────────
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Asistencia {_MESES_ES[month]}"
+
+    # Estilos
+    COLOR_HEADER  = '1E293B'
+    COLOR_FALTA   = 'DC2626'
+    COLOR_ATRASO  = 'D97706'
+    COLOR_LIC     = '2563EB'
+    COLOR_PRES    = '16A34A'
+    COLOR_F_BG    = 'FECACA'
+    COLOR_A_BG    = 'FDE68A'
+    COLOR_L_BG    = 'BFDBFE'
+    COLOR_P_BG    = 'BBF7D0'
+
+    thin = Side(style='thin', color='CBD5E1')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    def hdr_font(color='FFFFFF', bold=True, size=10):
+        return Font(name='Calibri', bold=bold, color=color, size=size)
+
+    def cell_font(color='1A1A2E', bold=False, size=10):
+        return Font(name='Calibri', bold=bold, color=color, size=size)
+
+    def fill(hex_color):
+        return PatternFill(fill_type='solid', fgColor=hex_color)
+
+    center = Alignment(horizontal='center', vertical='center', wrap_text=False)
+    left   = Alignment(horizontal='left',   vertical='center')
+    rotate = Alignment(horizontal='center', vertical='bottom', text_rotation=90)
+
+    # ── Fila 1: título escuela ───────────────────────────────────
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=3 + len(dias_habiles) + 4)
+    c = ws.cell(row=1, column=1, value='Unidad Educativa "Francia A" — Sucre, Chuquisaca')
+    c.font = Font(name='Calibri', bold=True, size=13, color=COLOR_HEADER)
+    c.alignment = center
+    ws.row_dimensions[1].height = 22
+
+    # ── Fila 2: subtítulo planilla ───────────────────────────────
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=3 + len(dias_habiles) + 4)
+    mes_str = f"{_MESES_ES[month]} {year}"
+    c = ws.cell(row=2, column=1, value=f"Planilla de Asistencia — Curso: {curso} — {mes_str}")
+    c.font = Font(name='Calibri', bold=True, size=11, color='334155')
+    c.alignment = center
+    ws.row_dimensions[2].height = 18
+
+    # ── Fila 3: cabecera de columnas ─────────────────────────────
+    ROW_HDR = 3
+    ws.cell(row=ROW_HDR, column=1, value='N°').font        = hdr_font()
+    ws.cell(row=ROW_HDR, column=1).fill                    = fill(COLOR_HEADER)
+    ws.cell(row=ROW_HDR, column=1).alignment               = center
+    ws.cell(row=ROW_HDR, column=1).border                  = border
+
+    ws.cell(row=ROW_HDR, column=2, value='Apellidos y Nombre').font = hdr_font()
+    ws.cell(row=ROW_HDR, column=2).fill                    = fill(COLOR_HEADER)
+    ws.cell(row=ROW_HDR, column=2).alignment               = left
+    ws.cell(row=ROW_HDR, column=2).border                  = border
+
+    # Días hábiles
+    for col_idx, dh in enumerate(dias_habiles, start=3):
+        lbl = f"{dh['dia_nombre'][:3]}\n{str(dh['dia_num']).zfill(2)}"
+        c = ws.cell(row=ROW_HDR, column=col_idx, value=lbl)
+        c.font      = hdr_font(size=8)
+        c.fill      = fill(COLOR_HEADER)
+        c.alignment = Alignment(horizontal='center', vertical='bottom', wrap_text=True)
+        c.border    = border
+
+    # Columnas de resumen
+    resumen_cols = [
+        ('Faltas',     COLOR_FALTA),
+        ('Atrasos',    COLOR_ATRASO),
+        ('Licencias',  COLOR_LIC),
+        ('Asistencia', COLOR_PRES),
+    ]
+    col_res_start = 3 + len(dias_habiles)
+    for i, (lbl, color) in enumerate(resumen_cols):
+        c = ws.cell(row=ROW_HDR, column=col_res_start + i, value=lbl)
+        c.font      = hdr_font(size=8)
+        c.fill      = fill(color)
+        c.alignment = Alignment(horizontal='center', vertical='bottom', wrap_text=True)
+        c.border    = border
+
+    ws.row_dimensions[ROW_HDR].height = 46
+
+    # ── Filas de datos ───────────────────────────────────────────
+    LETRAS_COLOR = {'P': COLOR_PRES, 'F': COLOR_FALTA, 'A': COLOR_ATRASO, 'L': COLOR_LIC}
+    LETRAS_BG    = {'P': COLOR_P_BG, 'F': COLOR_F_BG,  'A': COLOR_A_BG,   'L': COLOR_L_BG}
+
+    for row_i, est in enumerate(estudiantes_qs, start=1):
+        row = ROW_HDR + row_i
+        est_mapa = mapa.get(est.id, {})
+        resumen  = {'P': 0, 'F': 0, 'A': 0, 'L': 0}
+        bg_row   = 'F8FAFC' if row_i % 2 == 0 else 'FFFFFF'
+
+        # N°
+        c = ws.cell(row=row, column=1, value=row_i)
+        c.font = cell_font(size=9, color='94A3B8'); c.alignment = center; c.border = border
+        c.fill = fill(bg_row)
+
+        # Nombre
+        c = ws.cell(row=row, column=2, value=f"{est.apellidos}, {est.nombre}")
+        c.font = cell_font(); c.alignment = left; c.border = border; c.fill = fill(bg_row)
+
+        # Celdas de días
+        for col_idx, dh in enumerate(dias_habiles, start=3):
+            letra = est_mapa.get(dh['fecha'], '')
+            c = ws.cell(row=row, column=col_idx, value=letra)
+            c.alignment = center; c.border = border
+            if letra in LETRAS_COLOR:
+                c.font = Font(name='Calibri', bold=True, color=LETRAS_COLOR[letra], size=10)
+                c.fill = fill(LETRAS_BG[letra])
+                resumen[letra] += 1
+            else:
+                c.font = cell_font(color='CBD5E1'); c.fill = fill(bg_row)
+
+        # Resumen
+        RES_BG = [COLOR_F_BG, COLOR_A_BG, COLOR_L_BG, COLOR_P_BG]
+        RES_FG = [COLOR_FALTA, COLOR_ATRASO, COLOR_LIC, COLOR_PRES]
+        RES_KEYS = ['F', 'A', 'L', 'P']
+        for i, key in enumerate(RES_KEYS):
+            val = resumen[key]
+            c = ws.cell(row=row, column=col_res_start + i, value=val)
+            c.font      = Font(name='Calibri', bold=True, color=RES_FG[i], size=10)
+            c.fill      = fill(RES_BG[i])
+            c.alignment = center
+            c.border    = border
+
+        ws.row_dimensions[row].height = 16
+
+    # ── Anchos de columna ────────────────────────────────────────
+    ws.column_dimensions['A'].width = 5
+    ws.column_dimensions['B'].width = 28
+    for col_idx in range(3, 3 + len(dias_habiles)):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 5
+    for i in range(4):
+        ws.column_dimensions[get_column_letter(col_res_start + i)].width = 9
+
+    # Congelar encabezado y columnas N°/Nombre
+    ws.freeze_panes = 'C4'
+
+    # ── Respuesta HTTP ───────────────────────────────────────────
+    nombre_archivo = f"Asistencia_{curso}_{_MESES_ES[month]}_{year}.xlsx".replace(' ', '_')
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    response = HttpResponse(
+        buf.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+    return response
 
 
 def director_estadisticas_view(request):
