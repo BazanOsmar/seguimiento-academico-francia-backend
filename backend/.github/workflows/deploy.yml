@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Definir variables según el branch
+        id: vars
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "TAG=latest" >> $GITHUB_OUTPUT
+            echo "FOLDER=produccion" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=staging" >> $GITHUB_OUTPUT
+            echo "FOLDER=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build y Push imagen a GHCR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/bazanosmar/seguimiento-backend:${{ steps.vars.outputs.TAG }}
+
+      - name: Deploy en VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/seguimiento/${{ steps.vars.outputs.FOLDER }}
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u bazanosmar --password-stdin
+            docker compose pull
+            docker compose up -d
+            docker compose exec -T web python manage.py migrate --noinput
+            docker image prune -f
