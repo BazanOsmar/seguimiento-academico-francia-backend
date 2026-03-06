@@ -273,10 +273,10 @@
             {% for letra in est.celdas %}
                 <td class="celda-{{ letra }}">{{ letra }}</td>
             {% endfor %}
-            <td class="td-resumen td-resumen--faltas">{% if est.resumen.faltas %}{{ est.resumen.faltas }}{% endif %}</td>
-            <td class="td-resumen td-resumen--atrasos">{% if est.resumen.atrasos %}{{ est.resumen.atrasos }}{% endif %}</td>
-            <td class="td-resumen td-resumen--licencias">{% if est.resumen.licencias %}{{ est.resumen.licencias }}{% endif %}</td>
-            <td class="td-resumen td-resumen--asist">{% if est.resumen.presentes %}{{ est.resumen.presentes }}{% endif %}</td>
+            <td class="td-resumen td-resumen--faltas">{{ est.resumen.faltas }}</td>
+            <td class="td-resumen td-resumen--atrasos">{{ est.resumen.atrasos }}</td>
+            <td class="td-resumen td-resumen--licencias">{{ est.resumen.licencias }}</td>
+            <td class="td-resumen td-resumen--asist">{{ est.resumen.presentes }}</td>
         </tr>
         {% endfor %}
     </tbody>

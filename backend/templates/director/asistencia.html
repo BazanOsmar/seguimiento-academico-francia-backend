@@ -723,11 +723,12 @@
                     </button>
                     <button class="btn-exportar" id="btnExportar">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 6 2 18 2 18 9"/>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                            <rect x="6" y="14" width="12" height="8"/>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="11" x2="12" y2="17"/>
+                            <polyline points="9 14 12 17 15 14"/>
                         </svg>
-                        Exportar PDF
+                        Exportar Asistencias
                     </button>
                 </div>
             </div>
@@ -899,7 +900,7 @@
     </div><!-- /.page-inner -->
     </main>
 
-    <!-- ── Modal Exportar PDF ───────────────────────────────────── -->
+    <!-- ── Modal Exportar ───────────────────────────────────────── -->
     <div class="modal-backdrop" id="exportBackdrop">
         <div class="modal modal--wide">
             <div class="modal-icon" style="background:var(--success-dim);color:var(--success)">
@@ -910,7 +911,7 @@
                 </svg>
             </div>
             <p class="modal-title">Exportar Planilla de Asistencia</p>
-            <p class="modal-subtitle">Selecciona el curso y el mes a exportar.</p>
+            <p class="modal-subtitle">Selecciona el curso, el mes y el formato.</p>
 
             <div class="form-group" style="width:100%;text-align:left">
                 <label class="form-label">Curso</label>
@@ -922,9 +923,13 @@
                 <select id="exportMes" class="form-input"></select>
             </div>
 
-            <p style="font-size:11px;color:var(--text-muted);width:100%;text-align:left;margin-top:-6px">
-                Se exportará la planilla completa del mes con todos los días hábiles.
-            </p>
+            <div class="form-group" style="width:100%;text-align:left">
+                <label class="form-label">Formato</label>
+                <select id="exportFormato" class="form-input">
+                    <option value="pdf">PDF (para imprimir)</option>
+                    <option value="excel">Excel (.xlsx)</option>
+                </select>
+            </div>
 
             <p id="exportError" class="form-error" style="display:none"></p>
 

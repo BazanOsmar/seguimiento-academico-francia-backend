@@ -474,12 +474,13 @@ btnReset.addEventListener('click', () => {
         </div>`;
 });
 
-// ── Exportar PDF ──────────────────────────────────────────────────
+// ── Exportar planilla ─────────────────────────────────────────────
 (function () {
     const btnExportar  = document.getElementById('btnExportar');
     const backdrop     = document.getElementById('exportBackdrop');
     const exportCurso  = document.getElementById('exportCurso');
     const exportMes    = document.getElementById('exportMes');
+    const exportFormato = document.getElementById('exportFormato');
     const btnCancelar  = document.getElementById('exportCancelar');
     const btnGenerar   = document.getElementById('exportGenerar');
     const errEl        = document.getElementById('exportError');
@@ -525,9 +526,29 @@ btnReset.addEventListener('click', () => {
         backdrop.classList.remove('visible');
     }
 
-    async function generarPDF() {
-        const cursoId = exportCurso.value;
-        const mesVal  = exportMes.value;
+    async function _refrescarToken() {
+        const refresh = localStorage.getItem('refresh_token');
+        if (!refresh) return null;
+        try {
+            const res = await fetch('/api/auth/refresh/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh }),
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data.access) {
+                localStorage.setItem('access_token', data.access);
+                return data.access;
+            }
+        } catch (_) { /* silenciar */ }
+        return null;
+    }
+
+    async function generarPlanilla() {
+        const cursoId  = exportCurso.value;
+        const mesVal   = exportMes.value;
+        const formato  = exportFormato.value;   // 'pdf' | 'excel'
 
         errEl.style.display = 'none';
 
@@ -543,36 +564,57 @@ btnReset.addEventListener('click', () => {
         }
 
         const { desde, hasta } = _mesARango(mesVal);
-        const tkn = localStorage.getItem('access_token') || '';
-        const params = new URLSearchParams({
-            curso_id: cursoId, fecha_desde: desde, fecha_hasta: hasta, token: tkn,
-        });
 
         btnGenerar.disabled = true;
         btnGenerar.textContent = 'Verificando...';
 
-        const checkParams = new URLSearchParams(params);
+        // Verificar que hay datos (reutiliza el endpoint PDF con check=1)
+        const checkParams = new URLSearchParams({
+            curso_id: cursoId, fecha_desde: desde, fecha_hasta: hasta,
+        });
         checkParams.set('check', '1');
 
         const { ok, data } = await fetchAPI(`/director/asistencia/exportar/?${checkParams}`);
 
-        btnGenerar.disabled = false;
-        btnGenerar.textContent = 'Generar planilla';
-
         if (!ok || !data?.tiene_datos) {
+            btnGenerar.disabled = false;
+            btnGenerar.textContent = 'Generar planilla';
             errEl.textContent = 'No hay registros de asistencia para el mes seleccionado.';
             errEl.style.display = 'block';
             return;
         }
 
-        window.open(`/director/asistencia/exportar/?${params}`, '_blank');
+        // Refrescar token justo antes de descargar para evitar expiración
+        const tkn = await _refrescarToken() || localStorage.getItem('access_token') || '';
+
+        btnGenerar.disabled = false;
+        btnGenerar.textContent = 'Generar planilla';
+
+        if (formato === 'excel') {
+            // Descarga directa via <a> para que el navegador dispare el archivo
+            const params = new URLSearchParams({
+                curso_id: cursoId, fecha_desde: desde, fecha_hasta: hasta, token: tkn,
+            });
+            const a = document.createElement('a');
+            a.href = `/director/asistencia/exportar/excel/?${params}`;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            const params = new URLSearchParams({
+                curso_id: cursoId, fecha_desde: desde, fecha_hasta: hasta, token: tkn,
+            });
+            window.open(`/director/asistencia/exportar/?${params}`, '_blank');
+        }
+
         closeExport();
     }
 
     btnExportar.addEventListener('click', openExport);
     btnCancelar.addEventListener('click', closeExport);
     backdrop.addEventListener('click', e => { if (e.target === backdrop) closeExport(); });
-    btnGenerar.addEventListener('click', () => generarPDF());
+    btnGenerar.addEventListener('click', () => generarPlanilla());
 })();
 
 // ── Inicialización ────────────────────────────────────────────────
