@@ -1,0 +1,626 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Académico — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+
+    <style>
+        .page-inner { max-width: 1020px; margin: 0 auto; }
+
+        /* ── Tabs ─────────────────────────────────────────────────── */
+        .acad-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 6px;
+            gap: 6px;
+        }
+        .acad-tab {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: .9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            letter-spacing: .01em;
+        }
+        .acad-tab svg { width: 17px; height: 17px; flex-shrink: 0; }
+        .acad-tab:hover:not(.active) {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+        .acad-tab.active {
+            background: var(--accent-dim);
+            border-color: rgba(59,130,246,.3);
+            color: var(--accent-text);
+            box-shadow: 0 2px 8px rgba(59,130,246,.15);
+        }
+        .acad-tab__badge {
+            background: rgba(59,130,246,.2);
+            color: var(--accent-text);
+            font-size: .72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            min-width: 22px;
+            text-align: center;
+        }
+        .acad-tab:not(.active) .acad-tab__badge {
+            background: rgba(148,163,184,.12);
+            color: var(--text-secondary);
+        }
+
+        /* ── Paneles ──────────────────────────────────────────────── */
+        .acad-panel { display: none; }
+        .acad-panel.active { display: block; }
+
+        /* ── Tarjeta ──────────────────────────────────────────────── */
+        .acad-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .acad-card__header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 24px;
+            background: linear-gradient(135deg,
+                rgba(59,130,246,.1) 0%,
+                rgba(99,102,241,.06) 100%);
+            border-bottom: 1px solid rgba(59,130,246,.15);
+        }
+        .acad-card__icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: rgba(59,130,246,.15);
+            border: 1px solid rgba(59,130,246,.25);
+            color: var(--accent-text);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .acad-card__icon svg { width: 19px; height: 19px; }
+        .acad-card__meta { flex: 1; }
+        .acad-card__title {
+            font-size: .98rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .acad-card__sub {
+            font-size: .78rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .acad-card__count {
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,130,246,.25);
+            color: var(--accent-text);
+            font-size: .8rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .acad-card__body { padding: 22px 24px; }
+
+        /* ── Formulario ───────────────────────────────────────────── */
+        .acad-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .acad-form .form-group { flex: 1; min-width: 180px; }
+        .acad-form .form-group--sm { flex: 0 0 auto; min-width: 0; }
+
+        .acad-error {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(239,68,68,.08);
+            border: 1px solid rgba(239,68,68,.25);
+            border-radius: 8px;
+            color: #f87171;
+            font-size: .83rem;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        .acad-error svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+        /* ── Botón agregar ────────────────────────────────────────── */
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 20px;
+            height: 42px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: .88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s, box-shadow .15s;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(59,130,246,.3);
+        }
+        .btn-add svg { width: 16px; height: 16px; }
+        .btn-add:hover { background: var(--accent-hover); box-shadow: 0 4px 14px rgba(59,130,246,.4); }
+        .btn-add:disabled { opacity: .55; cursor: default; box-shadow: none; }
+
+        /* ── Tabla ────────────────────────────────────────────────── */
+        .acad-table-wrap { overflow-x: auto; }
+        .acad-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88rem;
+        }
+        .acad-table thead tr {
+            background: var(--bg-app);
+        }
+        .acad-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: 11px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .acad-table td {
+            padding: 13px 18px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+        .acad-table tr:last-child td { border-bottom: none; }
+        .acad-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+        .acad-table .num-cell {
+            color: var(--text-secondary);
+            font-size: .8rem;
+            width: 40px;
+            text-align: center;
+        }
+        .acad-table .name-cell {
+            font-weight: 500;
+        }
+
+        /* ── Chip de materia / curso ──────────────────────────────── */
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+        .chip--blue {
+            background: rgba(59,130,246,.12);
+            color: var(--accent-text);
+            border: 1px solid rgba(59,130,246,.2);
+        }
+        .chip--purple {
+            background: rgba(139,92,246,.12);
+            color: #a78bfa;
+            border: 1px solid rgba(139,92,246,.2);
+        }
+        .chip--teal {
+            background: rgba(20,184,166,.12);
+            color: #2dd4bf;
+            border: 1px solid rgba(20,184,166,.2);
+        }
+
+        /* ── Botón eliminar ───────────────────────────────────────── */
+        .btn-del {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid rgba(239,68,68,.25);
+            color: #f87171;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: .78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-del svg { width: 13px; height: 13px; }
+        .btn-del:hover {
+            background: rgba(239,68,68,.1);
+            border-color: rgba(239,68,68,.5);
+            color: #ef4444;
+        }
+
+        /* ── Estado vacío ─────────────────────────────────────────── */
+        .acad-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+        .acad-empty svg {
+            width: 42px; height: 42px;
+            opacity: .3;
+        }
+        .acad-empty__title {
+            font-size: .95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .acad-empty__sub {
+            font-size: .82rem;
+            opacity: .7;
+        }
+
+        /* ── Spinner ──────────────────────────────────────────────── */
+        .acad-spinner {
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+        .spinner-ring {
+            width: 28px; height: 28px;
+            border: 3px solid var(--border-subtle);
+            border-top-color: var(--accent-text);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Divider ──────────────────────────────────────────────── */
+        .acad-divider {
+            height: 1px;
+            background: var(--border-subtle);
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/academico/" class="nav-item active" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ───────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Gestión Académica</h1>
+        </div>
+        <div class="topbar-actions"></div>
+    </header>
+
+    <!-- ── Contenido principal ───────────────────────────────────── -->
+    <main class="main-content">
+        <div class="page-inner">
+
+            <!-- ── Tabs ─────────────────────────────────────────── -->
+            <div class="acad-tabs">
+                <button class="acad-tab active" id="tabMaterias">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    Materias
+                    <span class="acad-tab__badge" id="badgeMaterias">—</span>
+                </button>
+                <button class="acad-tab" id="tabAsignaciones">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Asignaciones
+                    <span class="acad-tab__badge" id="badgeAsignaciones">—</span>
+                </button>
+            </div>
+
+            <!-- ══ Panel Materias ══════════════════════════════════ -->
+            <div class="acad-panel active" id="panelMaterias">
+
+                <!-- Formulario nueva materia -->
+                <div class="acad-card">
+                    <div class="acad-card__header">
+                        <div class="acad-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                <line x1="8" y1="12" x2="16" y2="12"/>
+                            </svg>
+                        </div>
+                        <div class="acad-card__meta">
+                            <div class="acad-card__title">Agregar materia</div>
+                            <div class="acad-card__sub">Registra una nueva materia en el sistema</div>
+                        </div>
+                    </div>
+                    <div class="acad-card__body">
+                        <div class="acad-form">
+                            <div class="form-group">
+                                <label class="form-label" for="inputNombreMateria">Nombre de la materia</label>
+                                <input id="inputNombreMateria" class="form-input"
+                                       type="text" maxlength="100"
+                                       placeholder="Ej: Matemáticas, Lenguaje, Ciencias...">
+                            </div>
+                            <div class="form-group form-group--sm">
+                                <label class="form-label" style="visibility:hidden;">-</label>
+                                <button class="btn-add" id="btnCrearMateria">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Agregar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="acad-error" id="errorMateria">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span id="errorMateriaMsg"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de materias -->
+                <div class="acad-card">
+                    <div class="acad-card__header">
+                        <div class="acad-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
+                        </div>
+                        <div class="acad-card__meta">
+                            <div class="acad-card__title">Materias registradas</div>
+                            <div class="acad-card__sub">Todas las materias del sistema</div>
+                        </div>
+                        <span class="acad-card__count" id="countMaterias">—</span>
+                    </div>
+                    <div id="spinnerMaterias" class="acad-spinner">
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <div class="acad-table-wrap" id="wrapMaterias" style="display:none;">
+                        <table class="acad-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px;text-align:center;">#</th>
+                                    <th>Materia</th>
+                                    <th style="width:110px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyMaterias"></tbody>
+                        </table>
+                    </div>
+                    <div class="acad-empty" id="emptyMaterias" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                        <span class="acad-empty__title">Sin materias registradas</span>
+                        <span class="acad-empty__sub">Agrega la primera materia usando el formulario de arriba</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ Panel Asignaciones ══════════════════════════════ -->
+            <div class="acad-panel" id="panelAsignaciones">
+
+                <!-- Formulario nueva asignación -->
+                <div class="acad-card">
+                    <div class="acad-card__header">
+                        <div class="acad-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <line x1="19" y1="8" x2="19" y2="14"/>
+                                <line x1="22" y1="11" x2="16" y2="11"/>
+                            </svg>
+                        </div>
+                        <div class="acad-card__meta">
+                            <div class="acad-card__title">Nueva asignación</div>
+                            <div class="acad-card__sub">Vincula un profesor a un curso y materia</div>
+                        </div>
+                    </div>
+                    <div class="acad-card__body">
+                        <div class="acad-form">
+                            <div class="form-group">
+                                <label class="form-label" for="selProfesor">Profesor</label>
+                                <select id="selProfesor" class="form-input">
+                                    <option value="">— Selecciona —</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="selCurso">Curso</label>
+                                <select id="selCurso" class="form-input">
+                                    <option value="">— Selecciona —</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="selMateria">Materia</label>
+                                <select id="selMateria" class="form-input">
+                                    <option value="">— Selecciona —</option>
+                                </select>
+                            </div>
+                            <div class="form-group form-group--sm">
+                                <label class="form-label" style="visibility:hidden;">-</label>
+                                <button class="btn-add" id="btnCrearAsignacion">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Asignar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="acad-error" id="errorAsignacion">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span id="errorAsignacionMsg"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de asignaciones -->
+                <div class="acad-card">
+                    <div class="acad-card__header">
+                        <div class="acad-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                        <div class="acad-card__meta">
+                            <div class="acad-card__title">Asignaciones registradas</div>
+                            <div class="acad-card__sub">Relaciones Profesor — Curso — Materia</div>
+                        </div>
+                        <span class="acad-card__count" id="countAsignaciones">—</span>
+                    </div>
+                    <div id="spinnerAsignaciones" class="acad-spinner">
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <div class="acad-table-wrap" id="wrapAsignaciones" style="display:none;">
+                        <table class="acad-table">
+                            <thead>
+                                <tr>
+                                    <th>Profesor</th>
+                                    <th>Curso</th>
+                                    <th>Materia</th>
+                                    <th style="width:110px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyAsignaciones"></tbody>
+                        </table>
+                    </div>
+                    <div class="acad-empty" id="emptyAsignaciones" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        <span class="acad-empty__title">Sin asignaciones registradas</span>
+                        <span class="acad-empty__sub">Usa el formulario de arriba para vincular profesores a sus cursos</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="{% static 'js/academico.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg:               #ece7da;
+    --panel-right:      #192444;
+    --deco-circle:      #1d2c57;
+    --text-navy:        #192444;
+    --white:            #ffffff;
+    --label:            rgba(255, 255, 255, 0.55);
+    --input-border:     rgba(255, 255, 255, 0.32);
+    --input-border-f:   rgba(255, 255, 255, 0.85);
+    --input-border-err: #e05050;
+    --error-bg:         #e05050;
+    --btn-bg:           #f0ece0;
+    --radius-card:      22px;
+    --radius-input:     50px;
+    --shadow:           0 28px 72px rgba(25, 36, 68, 0.30);
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+/* ─── CARD ─────────────────────────────────────────────────────── */
+.card {
+    display: flex;
+    width: 100%;
+    max-width: 940px;
+    min-height: 550px;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+/* ─── LEFT PANEL ────────────────────────────────────────────────── */
+.card-left {
+    flex: 0 0 40%;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 44px 36px;
+    gap: 22px;
+}
+
+.logo-wrapper {
+    width: 210px;
+    height: 210px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.logo-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.school-info {
+    text-align: center;
+}
+
+.school-name {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--text-navy);
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+}
+
+.school-subtitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-navy);
+    letter-spacing: 0.22em;
+    margin-top: 6px;
+    opacity: 0.65;
+}
+
+/* ─── RIGHT PANEL ───────────────────────────────────────────────── */
+.card-right {
+    flex: 1;
+    background: var(--panel-right);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 52px 52px;
+}
+
+.deco {
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    background: var(--deco-circle);
+}
+.deco-tr { top: -85px;    right: -85px;  }
+.deco-bl { bottom: -85px; left:  -85px;  }
+
+.form-wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 380px;
+}
+
+/* ─── WELCOME TITLE ─────────────────────────────────────────────── */
+.welcome {
+    color: var(--white);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 26px;
+}
+
+/* ─── ERROR BOX ─────────────────────────────────────────────────── */
+.error-box {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--error-bg);
+    color: var(--white);
+    border-radius: 50px;
+    padding: 13px 20px;
+    margin-bottom: 22px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.3;
+    animation: fadeIn 0.2s ease;
+}
+
+.error-box.visible {
+    display: flex;
+}
+
+.error-box svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── INPUT GROUPS ──────────────────────────────────────────────── */
+.input-group {
+    position: relative;
+    margin-bottom: 28px;
+}
+
+.input-group input {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid var(--input-border);
+    border-radius: var(--radius-input);
+    padding: 15px 50px 15px 22px;
+    color: var(--white);
+    font-size: 0.9375rem;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.01em;
+}
+
+.input-group input::placeholder {
+    color: transparent;
+    user-select: none;
+}
+
+.input-group input:focus {
+    border-color: var(--input-border-f);
+}
+
+.input-group label {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--label);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    padding: 0 6px;
+    background: transparent;
+    white-space: nowrap;
+}
+
+/* Floating label: focus OR has content */
+.input-group input:focus ~ label,
+.input-group input:not(:placeholder-shown) ~ label {
+    top: 0;
+    font-size: 0.7rem;
+    background: var(--panel-right);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Error state */
+.input-group.error input {
+    border-color: var(--input-border-err);
+}
+
+/* ─── COUNTER ───────────────────────────────────────────────────── */
+.field-counter {
+    position: absolute;
+    right: 4px;
+    bottom: -18px;
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.35);
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+    user-select: none;
+}
+
+.input-group:focus-within .field-counter {
+    opacity: 1;
+}
+
+.field-counter.warn  { color: #f0a030; }
+.field-counter.limit { color: var(--input-border-err); }
+
+/* ─── PASSWORD TOGGLE ───────────────────────────────────────────── */
+.toggle-pwd {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--label);
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    line-height: 0;
+}
+
+.toggle-pwd:hover { color: var(--white); }
+
+.toggle-pwd .icon-eye-off { display: none; }
+.toggle-pwd.visible .icon-eye     { display: none; }
+.toggle-pwd.visible .icon-eye-off { display: block; }
+
+/* ─── LOGIN BUTTON ──────────────────────────────────────────────── */
+.btn-login {
+    width: 100%;
+    margin-top: 10px;
+    background: var(--btn-bg);
+    border: none;
+    border-radius: 50px;
+    padding: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-navy);
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 54px;
+}
+
+.btn-login:hover:not(:disabled) { opacity: 0.91; }
+.btn-login:active:not(:disabled) { transform: scale(0.985); }
+.btn-login:disabled { opacity: 0.65; cursor: not-allowed; }
+
+/* ─── SPINNER ───────────────────────────────────────────────────── */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(25, 36, 68, 0.2);
+    border-top-color: var(--text-navy);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hidden { display: none !important; }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+    html {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    body {
+        height: 100%;
+        min-height: unset;
+        padding: 0;
+        align-items: flex-start;
+        overflow: hidden;
+    }
+
+    .card {
+        flex-direction: column;
+        border-radius: 0;
+        height: 100%;
+        min-height: unset;
+        max-width: 100%;
+        box-shadow: none;
+        overflow-y: auto;
+    }
+
+    .card-left {
+        flex: 0 0 auto;
+        flex-direction: row;
+        gap: 16px;
+        padding: 28px 24px;
+        justify-content: center;
+        border-bottom: 1px solid rgba(25, 36, 68, 0.12);
+    }
+
+    .logo-wrapper {
+        width: 68px;
+        height: 68px;
+        border-radius: 6px;
+    }
+
+    .school-info { text-align: left; }
+
+    .school-name     { font-size: 1.1rem; }
+    .school-subtitle { font-size: 0.6rem; margin-top: 4px; }
+
+    .card-right {
+        flex: 1;
+        padding: 36px 24px;
+    }
+
+    .deco { width: 150px; height: 150px; }
+    .deco-tr { top: -60px;    right: -60px;  }
+    .deco-bl { bottom: -60px; left:  -60px;  }
+}
+
+@media (max-width: 400px) {
+    .card-right { padding: 28px 18px; }
+    .welcome { font-size: 1.45rem; margin-bottom: 20px; }
+}

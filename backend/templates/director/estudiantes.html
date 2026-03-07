@@ -1,0 +1,446 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Estudiantes — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director', 'Regente'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+</head>
+<body>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item active" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/academico/" class="nav-item" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ────────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Estudiantes</h1>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn-primary" id="btnImportarExcel" style="display:flex;align-items:center;gap:8px;font-size:.85rem;padding:8px 14px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="12" y2="12"/>
+                    <line x1="15" y1="15" x2="12" y2="12"/>
+                </svg>
+                Importar Excel
+            </button>
+            <button class="btn-icon" aria-label="Notificaciones">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span class="notif-badge"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ── Contenido ─────────────────────────────────────────────── -->
+    <main class="main-content">
+
+        <!-- Búsqueda -->
+        <div class="course-search-wrap">
+            <div class="search-wrapper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="searchInput" class="search-input"
+                       placeholder="Buscar por nombre, apellidos o identificador…"
+                       autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Resultados de búsqueda de estudiantes -->
+        <div id="searchResults" class="hidden">
+            <div class="table-card">
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nombre completo</th>
+                                <th>Identificador</th>
+                                <th>Curso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="searchTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <span class="table-count" id="searchCount"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas (solo si hay estudiantes) -->
+        <div id="metricsRow" style="display:none;max-width:1100px;margin:0 auto 28px;display:none;">
+            <div id="metricsInner" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
+        </div>
+
+        <!-- Grid de cursos -->
+        <div id="coursesGrid" class="courses-grid">
+            <!-- cargando... -->
+            <div class="courses-loading" id="coursesLoading">
+                <div class="table-spinner"></div>
+                Cargando cursos…
+            </div>
+        </div>
+
+    </main>
+
+<!-- ── Modal Importar Excel ──────────────────────────────────────── -->
+<div class="modal-backdrop" id="importarBackdrop">
+    <div class="modal modal--wide" style="max-width:560px;width:100%;">
+
+        <!-- Cabecera -->
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="modal-icon" style="background:rgba(34,197,94,.12);color:var(--success);flex-shrink:0;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="12" y1="18" x2="12" y2="12"/>
+                        <line x1="9" y1="15" x2="12" y2="12"/>
+                        <line x1="15" y1="15" x2="12" y2="12"/>
+                    </svg>
+                </div>
+                <div style="text-align:left;">
+                    <p class="modal-title" style="margin:0;">Importar Estudiantes</p>
+                    <p style="margin:0;font-size:.8rem;color:var(--text-muted);">Sube un archivo Excel con la lista de estudiantes</p>
+                </div>
+            </div>
+            <button id="btnCerrarImportar" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;" aria-label="Cerrar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+
+        <hr style="width:100%;border:none;border-top:1px solid var(--border);margin:12px 0 20px;">
+
+        <!-- Drop zone -->
+        <div id="importDropZone" style="
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            width: 100%;
+            box-sizing: border-box;
+        ">
+            <div style="color:var(--text-muted);margin-bottom:14px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </div>
+            <p style="margin:0 0 6px;font-weight:600;color:var(--text);">Arrastra tu archivo Excel aquí</p>
+            <p style="margin:0;font-size:.85rem;color:var(--text-muted);">o haz clic para seleccionar — .xlsx, .xls</p>
+            <p id="importNombreArchivo" style="display:none;margin-top:12px;font-size:.82rem;font-weight:600;color:var(--success);word-break:break-all;"></p>
+        </div>
+        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
+
+        <!-- Info columnas esperadas -->
+        <div style="margin-top:20px;background:var(--bg-hover);border-radius:var(--radius);padding:14px 16px;width:100%;box-sizing:border-box;text-align:left;">
+            <p style="margin:0 0 8px;font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Columnas esperadas en el Excel</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <span style="font-size:.82rem;color:var(--text);">• Apellido paterno</span>
+                <span style="font-size:.82rem;color:var(--text);">• Apellido materno</span>
+                <span style="font-size:.82rem;color:var(--text);">• Nombre(s)</span>
+                <span style="font-size:.82rem;color:var(--text);">• Grado (ej: 3ro)</span>
+                <span style="font-size:.82rem;color:var(--text);">• Paralelo (ej: A)</span>
+                <span style="font-size:.82rem;color:var(--text);">• Nro. de lista</span>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <p id="importError" style="display:none;margin-top:12px;font-size:.85rem;color:var(--error,#ef4444);width:100%;text-align:left;"></p>
+
+        <!-- Acciones -->
+        <div style="display:flex;gap:10px;width:100%;margin-top:20px;">
+            <button id="btnCancelarImportar" class="btn-secondary" style="flex:1;">Cancelar</button>
+            <button id="btnProcesarImportar" class="btn-primary" style="flex:1;" disabled>
+                Importar Estudiantes
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    #importDropZone:hover,
+    #importDropZone.over  { border-color: var(--accent); background: var(--accent-dim, rgba(99,102,241,.06)); }
+    #importDropZone.ready { border-color: var(--success); background: rgba(34,197,94,.05); }
+</style>
+
+<script>
+(function () {
+    const backdrop   = document.getElementById('importarBackdrop');
+    const btnAbrir   = document.getElementById('btnImportarExcel');
+    const btnCerrar  = document.getElementById('btnCerrarImportar');
+    const btnCancel  = document.getElementById('btnCancelarImportar');
+    const btnProcesar = document.getElementById('btnProcesarImportar');
+    const dropZone   = document.getElementById('importDropZone');
+    const fileInput  = document.getElementById('importExcelInput');
+    const nombreEl   = document.getElementById('importNombreArchivo');
+    const errorEl    = document.getElementById('importError');
+
+    let archivoSeleccionado = null;
+
+    function abrirModal()  { backdrop.classList.add('visible'); }
+    function cerrarModal() {
+        backdrop.classList.remove('visible');
+        resetModal();
+    }
+    function resetModal() {
+        fileInput.value = '';
+        archivoSeleccionado = null;
+        nombreEl.style.display = 'none';
+        nombreEl.textContent   = '';
+        dropZone.classList.remove('ready', 'over');
+        btnProcesar.disabled = true;
+        errorEl.style.display = 'none';
+    }
+
+    function setArchivo(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(ext)) {
+            errorEl.textContent  = 'Solo se aceptan archivos .xlsx o .xls';
+            errorEl.style.display = 'block';
+            return;
+        }
+        archivoSeleccionado = file;
+        errorEl.style.display = 'none';
+        nombreEl.textContent  = '📄 ' + file.name;
+        nombreEl.style.display = 'block';
+        dropZone.classList.add('ready');
+        btnProcesar.disabled = false;
+    }
+
+    btnAbrir.addEventListener('click', abrirModal);
+    btnCerrar.addEventListener('click', cerrarModal);
+    btnCancel.addEventListener('click', cerrarModal);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) cerrarModal(); });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) setArchivo(fileInput.files[0]); });
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('over');
+        if (e.dataTransfer.files[0]) setArchivo(e.dataTransfer.files[0]);
+    });
+
+    btnProcesar.addEventListener('click', async () => {
+        const archivo = archivoSeleccionado;
+        if (!archivo) return;
+
+        btnProcesar.disabled = true;
+        btnProcesar.textContent = 'Importando...';
+        errorEl.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('archivo', archivo);
+
+        // Usamos fetch nativo: fetchAPI fuerza Content-Type:application/json
+        // lo que rompe el boundary de multipart/form-data
+        const token = localStorage.getItem('access_token');
+        let ok, data;
+        try {
+            const res = await fetch('/api/students/importar-excel/', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData,
+            });
+            data = await res.json();
+            ok   = res.ok;
+        } catch {
+            data = { errores: 'Error de conexión.' };
+            ok   = false;
+        }
+
+        btnProcesar.disabled = false;
+        btnProcesar.textContent = 'Importar Estudiantes';
+
+        if (!ok) {
+            errorEl.textContent  = data?.errores || 'Error al procesar el archivo.';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        cerrarModal();
+
+        const msg = `${data.importados} estudiante(s) importados.` +
+            (data.omitidos ? ` ${data.omitidos} omitidos por duplicado.` : '');
+        showAppToast(data.importados > 0 ? 'success' : 'warning', 'Importación completada', msg);
+
+        // Recargar la página para mostrar los cursos actualizados
+        setTimeout(() => window.location.reload(), 1800);
+    });
+})();
+</script>
+
+<script src="{% static 'js/estudiantes.js' %}"></script>
+<script>
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    const _user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (_user) {
+        const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
+        document.getElementById('profileName').textContent = nombre;
+        document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
+    }
+
+    const sidebar  = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const btnMenu  = document.getElementById('btnMenu');
+
+    const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
+    let _leaveTimer;
+    sidebar.addEventListener('mouseenter', () => {
+        clearTimeout(_leaveTimer);
+        if (isDesktop()) sidebar.classList.add('sidebar--expanded');
+    });
+    sidebar.addEventListener('mouseleave', () => {
+        if (isDesktop()) _leaveTimer = setTimeout(() => sidebar.classList.remove('sidebar--expanded'), 200);
+    });
+    document.addEventListener('mousemove', function _checkSidebar(e) {
+        document.removeEventListener('mousemove', _checkSidebar);
+        if (!isDesktop()) return;
+        const r = sidebar.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            sidebar.classList.add('sidebar--expanded');
+        }
+    });
+
+    function openSidebar()  { sidebar.classList.add('sidebar--open');    backdrop.classList.add('visible'); }
+    function closeSidebar() { sidebar.classList.remove('sidebar--open'); backdrop.classList.remove('visible'); }
+
+    btnMenu.addEventListener('click', () =>
+        sidebar.classList.contains('sidebar--open') ? closeSidebar() : openSidebar()
+    );
+    backdrop.addEventListener('click', closeSidebar);
+
+    // Bloquear links "#" (pantallas aún no implementadas)
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', e => {
+            const href = item.getAttribute('href');
+            if (!href || href === '#') e.preventDefault();
+        });
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.replace('/login/');
+    });
+</script>
+
+</body>
+</html>

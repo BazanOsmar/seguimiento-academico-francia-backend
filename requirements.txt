@@ -1,0 +1,24 @@
+# ── Core ──────────────────────────────────────────────────────────
+Django==6.0.1
+djangorestframework==3.16.1
+djangorestframework-simplejwt==5.5.1
+asgiref==3.11.0
+sqlparse==0.5.5
+tzdata==2025.3
+
+# ── Autenticación / Tokens ────────────────────────────────────────
+PyJWT==2.10.1
+
+# ── Firebase (FCM — notificaciones push) ──────────────────────────
+firebase-admin==7.1.0
+
+# ── Excel (importación de estudiantes) ───────────────────────────
+openpyxl==3.1.5
+
+# ── Base de datos ─────────────────────────────────────────────────
+psycopg2-binary==2.9.9
+
+# ── Producción ────────────────────────────────────────────────────
+whitenoise==6.9.0
+django-cors-headers==4.7.0
+gunicorn==23.0.0

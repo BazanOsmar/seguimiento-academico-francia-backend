@@ -1,0 +1,33 @@
+from django.db.models import Q
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from backend.apps.users.permissions import IsRegente
+from backend.apps.students.models import Estudiante
+from backend.apps.students.serializers import EstudianteBusquedaSerializer
+
+
+class EstudianteBusquedaView(APIView):
+    """
+    GET /api/students/buscar/?q=<texto>
+
+    Búsqueda de estudiantes por nombre o apellido.
+    Retorna hasta 10 coincidencias. Solo Regente.
+    """
+    permission_classes = (IsAuthenticated, IsRegente)
+
+    def get(self, request):
+        q = request.query_params.get('q', '').strip()
+        if not q:
+            return Response([])
+
+        qs = (
+            Estudiante.objects
+            .select_related('curso')
+            .filter(activo=True)
+            .filter(Q(nombre__icontains=q) | Q(apellido_paterno__icontains=q) | Q(apellido_materno__icontains=q))
+            .order_by('apellido_paterno', 'apellido_materno', 'nombre')[:10]
+        )
+        serializer = EstudianteBusquedaSerializer(qs, many=True)
+        return Response(serializer.data)

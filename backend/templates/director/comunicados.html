@@ -1,0 +1,534 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Citaciones — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+
+    <style>
+        /* ── Layout ──────────────────────────────────────────────── */
+        .page-inner { max-width: 1100px; margin: 0 auto; }
+
+        /* ── Formulario inline ────────────────────────────────────── */
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 28px;
+        }
+        .form-card__header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 24px 16px;
+            background: linear-gradient(135deg,
+                rgba(59,130,246,0.12) 0%,
+                rgba(99,102,241,0.08) 100%);
+            border-bottom: 1px solid rgba(59,130,246,0.15);
+        }
+        .form-card__icon {
+            width: 44px; height: 44px;
+            border-radius: 11px;
+            background: rgba(59,130,246,0.15);
+            border: 1px solid rgba(59,130,246,0.3);
+            color: var(--accent-text);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .form-card__title {
+            font-size: 1rem; font-weight: 700;
+            color: var(--text-primary); line-height: 1.2;
+        }
+        .form-card__subtitle {
+            font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;
+        }
+        .form-card__body { padding: 20px 24px 22px; }
+
+        /* ── Fila 2 columnas ─────────────────────────────────────── */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        @media (max-width: 620px) { .form-row { grid-template-columns: 1fr; } }
+
+        /* ── Radios ──────────────────────────────────────────────── */
+        .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .radio-option {
+            display: flex; align-items: center; gap: 7px;
+            cursor: pointer; font-size: 0.875rem; color: var(--text-secondary);
+            padding: 8px 16px;
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            transition: border-color .17s, color .17s, background .17s;
+            user-select: none;
+        }
+        .radio-option input { accent-color: var(--accent); }
+        .radio-option:has(input:checked) {
+            border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim);
+        }
+        .form-textarea {
+            height: auto; resize: vertical;
+            padding-top: 10px; padding-bottom: 10px; line-height: 1.5;
+        }
+
+        /* ── Progreso ────────────────────────────────────────────── */
+        .progress-msg {
+            padding: 10px 14px;
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem; color: var(--accent-text); font-weight: 500;
+            margin-top: 14px;
+        }
+
+        /* ── Sección citaciones ───────────────────────────────────── */
+        .section-header {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: 1rem; font-weight: 700; color: var(--text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .action-row {
+            display: flex; align-items: center;
+            gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .chips-group { display: flex; gap: 7px; flex-wrap: wrap; }
+
+        /* ── Chips ───────────────────────────────────────────────── */
+        .chip-filtro {
+            display: inline-flex; align-items: center;
+            height: 32px; padding: 0 14px;
+            border-radius: 50px; font-size: 0.8rem; font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-secondary);
+            transition: background .17s, color .17s, border-color .17s;
+            white-space: nowrap;
+        }
+        .chip-filtro:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .chip-filtro--active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .chip-filtro--active:hover { background: var(--accent-hover); }
+
+        /* ── Tarjetas citaciones ──────────────────────────────────── */
+        .citaciones-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+        @media (max-width: 700px) { .citaciones-grid { grid-template-columns: 1fr; } }
+
+        .citacion-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 18px 18px 16px;
+            display: flex; flex-direction: column; gap: 14px;
+            transition: box-shadow .18s, transform .18s;
+        }
+        .citacion-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.3); transform: translateY(-1px); }
+
+        /* Borde izquierdo por estado */
+        .citacion-card[data-status="PENDIENTE"]   { border-left-color: #f59e0b; }
+        .citacion-card[data-status="VISTO"]       { border-left-color: #a78bfa; }
+        .citacion-card[data-status="ASISTIO"]     { border-left-color: #22c55e; }
+        .citacion-card[data-status="NO_ASISTIO"]  { border-left-color: #ef4444; }
+        .citacion-card[data-status="ATRASO"]      { border-left-color: #dc2626; }
+        .citacion-card[data-status="Informativo"] { border-left-color: #06b6d4; }
+
+        .citacion-card__top {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 10px;
+        }
+        .citacion-card__nombre {
+            font-size: .93rem; font-weight: 700;
+            color: var(--text-primary); line-height: 1.25; margin-bottom: 6px;
+        }
+        .citacion-card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .citacion-card__motivo { font-size: .75rem; color: var(--text-muted); font-weight: 500; }
+        .citacion-card__dates {
+            display: flex; gap: 14px;
+            padding-top: 10px; border-top: 1px solid var(--border-subtle);
+        }
+        .citacion-card__date-item { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+        .citacion-card__date-label {
+            font-size: .68rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .06em;
+        }
+        .citacion-card__date-val { font-size: .82rem; color: var(--text-secondary); font-weight: 500; }
+        .citacion-card__footer { padding-top: 2px; }
+
+        /* ── Badges estado ───────────────────────────────────────── */
+        .estado-badge {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 50px; font-size: .72rem; font-weight: 700;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .estado-badge--pendiente   { background: rgba(245,158,11,.15);  color: #f59e0b; }
+        .estado-badge--visto       { background: rgba(167,139,250,.15); color: #a78bfa; }
+        .estado-badge--asistio     { background: rgba(34,197,94,.15);   color: #22c55e; }
+        .estado-badge--no_asistio  { background: rgba(239,68,68,.15);   color: #ef4444; }
+        .estado-badge--atraso      { background: rgba(220,38,38,.15);   color: #dc2626; }
+        .estado-badge--informativo { background: rgba(6,182,212,.15);   color: #06b6d4; }
+
+        /* ── Skeleton ────────────────────────────────────────────── */
+        .skel-cell {
+            border-radius: 4px;
+            background: linear-gradient(90deg,
+                var(--bg-card-hover) 25%,
+                var(--bg-surface)    50%,
+                var(--bg-card-hover) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease infinite;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .citacion-card--skeleton { pointer-events: none; }
+
+        /* ── Empty state ─────────────────────────────────────────── */
+        .empty-cards {
+            grid-column: 1 / -1;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 12px;
+            padding: 56px 16px;
+            color: var(--text-muted); font-size: .875rem;
+        }
+
+        /* ── Footer grid ─────────────────────────────────────────── */
+        .grid-footer {
+            text-align: right; font-size: .78rem;
+            color: var(--text-muted); margin-top: 10px;
+        }
+
+        /* ── Flatpickr dark theme ────────────────────────────────── */
+        .flatpickr-calendar {
+            background: #1a2d45; border: 1px solid #243d5e;
+            border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.6);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: .875rem; color: #94a3b8;
+        }
+        .flatpickr-calendar.arrowTop:before  { border-bottom-color: #243d5e; }
+        .flatpickr-calendar.arrowTop:after   { border-bottom-color: #132034; }
+        .flatpickr-calendar.arrowBottom:before { border-top-color: #243d5e; }
+        .flatpickr-calendar.arrowBottom:after  { border-top-color: #1a2d45; }
+        .flatpickr-months   { background: #132034; border-radius: 13px 13px 0 0; }
+        .flatpickr-month    { color: #f1f5f9; fill: #f1f5f9; height: 42px; }
+        .flatpickr-prev-month, .flatpickr-next-month { color: #64748b; fill: #64748b; padding: 10px; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #f1f5f9; }
+        .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: inherit; }
+        .flatpickr-current-month { color: #f1f5f9; font-size: .95rem; font-weight: 700; padding-top: 10px; }
+        .flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { color: #f1f5f9; background: transparent; font-weight: 700; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
+        .numInputWrapper:hover { background: rgba(255,255,255,.04); }
+        .numInputWrapper span.arrowUp:after   { border-bottom-color: #64748b; }
+        .numInputWrapper span.arrowDown:after { border-top-color:    #64748b; }
+        .flatpickr-weekdays { background: #132034; }
+        .flatpickr-weekday  { background: transparent; color: #64748b; font-size: .72rem; font-weight: 700; letter-spacing: .05em; }
+        .flatpickr-days  { border: none; padding: 6px 8px 10px; }
+        .dayContainer    { padding: 0; }
+        .flatpickr-day {
+            color: #94a3b8; border: 1px solid transparent;
+            border-radius: 8px; height: 36px; line-height: 35px;
+            max-width: 36px; font-size: .85rem;
+        }
+        .flatpickr-day:hover, .flatpickr-day:focus { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
+        .flatpickr-day.today { border-color: #3b82f6; color: #60a5fa; font-weight: 700; }
+        .flatpickr-day.today:hover { background: rgba(59,130,246,.15); border-color: #3b82f6; color: #60a5fa; }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 700;
+        }
+        .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover { background: #2563eb; border-color: #2563eb; }
+        .flatpickr-day.inRange {
+            background: rgba(59,130,246,.15); border-color: transparent; color: #60a5fa;
+            box-shadow: -5px 0 0 rgba(59,130,246,.15), 5px 0 0 rgba(59,130,246,.15);
+        }
+        .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover,
+        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: #243d5e; background: transparent; border-color: transparent;
+        }
+        .flatpickr-day.flatpickr-disabled:hover { cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item active" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/academico/" class="nav-item" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ── Backdrop móvil ───────────────────────────────────────── -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ───────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Citaciones y Comunicados</h1>
+        </div>
+        <div class="topbar-actions"></div>
+    </header>
+
+    <!-- ── Contenido principal ──────────────────────────────────── -->
+    <main class="main-content">
+        <div class="page-inner">
+
+            <!-- ── Formulario nueva citación (inline) ───────────── -->
+            <div class="form-card">
+                <div class="form-card__header">
+                    <div class="form-card__icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9"  y1="15" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="form-card__title">Nueva Citación</p>
+                        <p class="form-card__subtitle">
+                            Convoca al tutor de un estudiante, todo un curso o todo el colegio.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-card__body">
+                    <form id="formNuevaCitacion" onsubmit="return false;">
+
+                        <!-- Tipo -->
+                        <div>
+                            <label class="form-label" style="margin-bottom:8px;display:block;">Tipo de citación</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="tipoCitacion" value="individual" checked>
+                                    Individual
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="tipoCitacion" value="curso">
+                                    Todo el curso
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="tipoCitacion" value="colegio">
+                                    Todo el colegio
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Fila: Curso + Estudiante -->
+                        <div class="form-row" id="rowCursoEstud">
+                            <div class="form-group" id="wrapCurso" style="margin-bottom:0;">
+                                <label class="form-label">Curso <span class="req">*</span></label>
+                                <select id="nuevaCurso" class="form-input form-select">
+                                    <option value="">Cargando...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="wrapEstudiante"
+                                 style="margin-bottom:0;opacity:.45;transition:opacity .2s;">
+                                <label class="form-label">Estudiante <span class="req">*</span></label>
+                                <select id="nuevaEstudiante" class="form-input form-select" disabled>
+                                    <option value="">— Selecciona estudiante —</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Fila: Motivo + Fecha -->
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Motivo <span class="req">*</span></label>
+                                <select id="nuevaMotivo" class="form-input form-select">
+                                    <option value="">— Selecciona motivo —</option>
+                                    <option value="FALTAS">Faltas</option>
+                                    <option value="CONDUCTA">Conducta</option>
+                                    <option value="RENDIMIENTO">Rendimiento</option>
+                                    <option value="DOCUMENTOS">Documentos</option>
+                                    <option value="REUNION">Reunión</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Fecha límite <span class="req">*</span></label>
+                                <input id="nuevaFechaLimite" type="text" class="form-input"
+                                       placeholder="Selecciona una fecha..." readonly>
+                            </div>
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Descripción <span class="req">*</span></label>
+                            <textarea id="nuevaDescripcion" class="form-input form-textarea"
+                                      rows="3" maxlength="500"
+                                      placeholder="Describe el motivo de la citación..."></textarea>
+                        </div>
+
+                    </form>
+
+                    <div id="progressMsg" class="progress-msg" style="display:none;"></div>
+                    <p id="errorNueva" class="form-error" style="display:none;margin-top:10px;"></p>
+
+                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+                        <button id="btnLimpiarForm" class="btn-secondary" style="display:none;">
+                            Limpiar formulario
+                        </button>
+                        <button id="btnEnviarNueva" class="btn-primary" style="height:42px;padding:0 24px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2.5"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                            <span id="btnEnviarTexto">Enviar citación</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Citaciones registradas ────────────────────────── -->
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Citaciones registradas
+                </h2>
+            </div>
+
+            <div class="action-row">
+                <div class="chips-group">
+                    <button class="chip-filtro chip-filtro--active" data-filtro="">Todos</button>
+                    <button class="chip-filtro" data-filtro="PENDIENTE">Pendientes</button>
+                    <button class="chip-filtro" data-filtro="VISTO">Visto</button>
+                    <button class="chip-filtro" data-filtro="ASISTIO">Asistidas</button>
+                    <button class="chip-filtro" data-filtro="NO_ASISTIO">No asistidas</button>
+                    <button class="chip-filtro" data-filtro="ATRASO">Atraso</button>
+                </div>
+            </div>
+
+            <div class="citaciones-grid" id="citacionesGrid"></div>
+            <p class="grid-footer" id="gridFooter"></p>
+
+        </div>
+    </main>
+
+    <!-- ── Modal: Marcar asistencia ──────────────────────────────── -->
+    <div class="modal-backdrop" id="modalMarcarAsistencia">
+        <div class="modal">
+            <div class="modal-icon" style="background:var(--success-dim);color:var(--success)">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+            <p class="modal-title">Confirmar asistencia</p>
+            <p class="modal-subtitle" style="text-align:center;">
+                ¿El tutor de <strong id="marcarNombreEstudiante"></strong> se presentó a la citación?
+            </p>
+            <div style="display:flex;gap:10px;width:100%;margin-top:8px;">
+                <button id="btnCancelarMarcar"  class="btn-secondary" style="flex:1;">Cancelar</button>
+                <button id="btnConfirmarMarcar" class="btn-primary"   style="flex:1;">Confirmar asistencia</button>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+<script src="{% static 'js/fcm.js' %}"></script>
+<script src="{% static 'js/comunicados.js' %}"></script>
+
+</body>
+</html>
