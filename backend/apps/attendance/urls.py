@@ -2,7 +2,9 @@ from django.urls import path
 
 from backend.apps.attendance.views.attendance_combined_views import AsistenciaCursoView
 from backend.apps.attendance.views.resumen_mensual_views import ResumenMensualCursoView
+from backend.apps.attendance.views.resumen_global_views import ResumenGlobalView
 from backend.apps.attendance.views.calendario_mensual_views import CalendarioMensualView
+from backend.apps.attendance.views.calendario_estudiante_views import CalendarioEstudianteView
 from .views import EstadoAsistenciaDiariaView, RegistrosRecientesView, HistorialEstudianteView, HistorialCursoView
 
 urlpatterns = [
@@ -22,6 +24,11 @@ urlpatterns = [
         name="resumen-mensual-curso",
     ),
     path(
+        "resumen-global/",
+        ResumenGlobalView.as_view(),
+        name="resumen-global",
+    ),
+    path(
         "calendario-mensual/",
         CalendarioMensualView.as_view(),
         name="calendario-mensual",
@@ -35,6 +42,11 @@ urlpatterns = [
         "estudiantes/<int:estudiante_id>/historial/",
         HistorialEstudianteView.as_view(),
         name="historial-estudiante",
+    ),
+    path(
+        "estudiantes/<int:estudiante_id>/calendario/",
+        CalendarioEstudianteView.as_view(),
+        name="calendario-estudiante",
     ),
     path(
         "cursos/<int:curso_id>/historial/",

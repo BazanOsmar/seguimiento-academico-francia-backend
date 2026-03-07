@@ -215,11 +215,9 @@
             padding: 20px 22px;
         }
         .stat-card__label {
-            font-size: 10px;
+            font-size: 13px;
             font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .09em;
+            color: var(--text-secondary);
             margin-bottom: 12px;
         }
         .stat-card__main {
@@ -642,7 +640,7 @@
                 <span class="nav-label">Comunicados</span>
             </a>
 
-            <a href="#" class="nav-item" data-title="Calificaciones" aria-label="Calificaciones">
+            <a href="/director/academico/" class="nav-item" data-title="Académico" aria-label="Académico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
@@ -831,9 +829,9 @@
         <!-- Stats row — siempre visible, inicia con guiones -->
         <div class="stats-row" id="statsRow">
 
-            <!-- Tarjeta izquierda: % mensual (carga con curso seleccionado) -->
+            <!-- Tarjeta izquierda: % mensual (global por defecto; por curso al seleccionar) -->
             <div class="stat-card">
-                <div class="stat-card__label">Asistencia general del curso en el mes</div>
+                <div class="stat-card__label" id="statCardLabel">Asistencia general del mes</div>
                 <div id="monthlyContent">
                     <!-- se rellena por JS -->
                     <div class="stat-card__main">
@@ -844,9 +842,9 @@
                 </div>
             </div>
 
-            <!-- Tarjeta derecha: resumen del día (carga con curso + fecha) -->
+            <!-- Tarjeta derecha: resumen global del mes (por defecto); diario al seleccionar curso+fecha -->
             <div class="stat-card">
-                <div class="stat-card__label">Resumen de estados</div>
+                <div class="stat-card__label" id="resumenCardLabel">Resumen de estados del mes</div>
                 <div id="resumenDiaContent">
                     <div class="estados-grid" id="estadosGrid" style="display:none">
                         <div class="estado-item estado-item--presente">

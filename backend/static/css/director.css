@@ -558,12 +558,12 @@ body {
 .course-card__header {
     display: flex;
     align-items: center;
-    gap: 14px;
+    justify-content: center;
     position: relative;
 }
 
 .course-badge {
-    width: 46px;
+    width: 100%;
     height: 46px;
     border-radius: 10px;
     background: color-mix(in srgb, var(--card-color, #3b82f6) 18%, transparent);
@@ -574,8 +574,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    text-align: center;
     letter-spacing: -0.03em;
+    padding: 0 16px;
 }
 
 .course-name {

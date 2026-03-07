@@ -59,6 +59,55 @@
             gap: 12px;
         }
 
+        /* ── Tarjetas como filtros ────────────────────────────────── */
+        .stat-card--clickable {
+            cursor: pointer;
+            transition: border-color .15s, box-shadow .15s, transform .12s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card--clickable::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 3px;
+            background: transparent;
+            transition: background .15s;
+        }
+        .stat-card--clickable:hover {
+            border-color: rgba(59,130,246,.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,.12);
+        }
+        .stat-card--clickable.stat-card--active {
+            border-color: rgba(59,130,246,.45);
+            box-shadow: 0 0 0 1px rgba(59,130,246,.2), 0 4px 16px rgba(59,130,246,.12);
+        }
+        .stat-card--clickable.stat-card--active::after {
+            background: var(--accent);
+        }
+        .stat-filter-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .68rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: 4px;
+        }
+        .stat-filter-label svg {
+            width: 11px; height: 11px;
+            opacity: .6;
+        }
+        .stat-card--active .stat-filter-label {
+            color: var(--accent-text);
+        }
+        .stat-card--active .stat-filter-label svg {
+            opacity: 1;
+        }
+
         .search-add-row {
             display: flex;
             align-items: center;
@@ -198,7 +247,10 @@
                 <div class="stat-card stat-card--clickable stat-card--active" style="padding:18px 20px;" data-filter="all">
                     <div class="stat-card-inner">
                         <div>
-                            <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;">Total Usuarios</p>
+                            <div class="stat-filter-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                                Total Usuarios
+                            </div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statTotal">—</p>
                         </div>
                         <div class="stat-icon stat-icon--blue">
@@ -215,7 +267,10 @@
                 <div class="stat-card stat-card--clickable" style="padding:18px 20px;" data-filter="Profesor">
                     <div class="stat-card-inner">
                         <div>
-                            <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;">Docentes</p>
+                            <div class="stat-filter-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                                Docentes
+                            </div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statDocentes">—</p>
                         </div>
                         <div class="stat-icon stat-icon--green">
@@ -230,7 +285,10 @@
                 <div class="stat-card stat-card--clickable" style="padding:18px 20px;" data-filter="Tutor">
                     <div class="stat-card-inner">
                         <div>
-                            <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;">Padres</p>
+                            <div class="stat-filter-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                                Padres
+                            </div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statPadres">—</p>
                         </div>
                         <div class="stat-icon stat-icon--indigo">
@@ -245,7 +303,10 @@
                 <div class="stat-card stat-card--clickable" style="padding:18px 20px;" data-filter="Regente">
                     <div class="stat-card-inner">
                         <div>
-                            <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;">Regentes</p>
+                            <div class="stat-filter-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                                Regentes
+                            </div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statRegentes">—</p>
                         </div>
                         <div class="stat-icon stat-icon--orange">

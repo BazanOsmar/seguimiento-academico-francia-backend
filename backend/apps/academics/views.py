@@ -98,6 +98,39 @@ class MateriaDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class MateriasXCursoView(APIView):
+    """
+    GET /api/academics/cursos/{curso_id}/materias/
+
+    Devuelve las materias asignadas a un curso con el nombre del profesor.
+    Permiso: Director o Regente.
+    """
+    permission_classes = [IsAuthenticated, IsDirectorOrRegente]
+
+    def get(self, request, curso_id):
+        from django.shortcuts import get_object_or_404
+        from .models import Curso
+        get_object_or_404(Curso, pk=curso_id)
+
+        qs = (
+            ProfesorCurso.objects
+            .filter(curso_id=curso_id)
+            .select_related('materia', 'profesor')
+            .order_by('materia__nombre')
+        )
+        data = [
+            {
+                'materia_id':   pc.materia.id,
+                'materia':      pc.materia.nombre,
+                'profesor_id':  pc.profesor.id,
+                'profesor':     (f"{pc.profesor.first_name} {pc.profesor.last_name}".strip()
+                                 or pc.profesor.username),
+            }
+            for pc in qs
+        ]
+        return Response(data)
+
+
 class AsignacionListCreateView(APIView):
     """
     GET  /api/academics/asignaciones/  — lista todas las asignaciones Profesor-Curso-Materia (IsDirector)

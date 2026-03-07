@@ -16,6 +16,7 @@ let _fecha             = null;
 let _allRows           = [];
 let _calendarioAbierto = false;
 let _calMes            = null;  // mes mostrado en el calendario (independiente del filtro)
+let _globalData        = null;  // datos globales cargados al inicio/reset
 
 // ── Referencias DOM ───────────────────────────────────────────────
 const selectCurso    = document.getElementById('selectCurso');
@@ -38,9 +39,11 @@ const calendarioMesLabel = document.getElementById('calendarioMesLabel');
 const calGrid            = document.getElementById('calGrid');
 
 // Stats mensuales
-const statPct    = document.getElementById('statPct');
-const statBadge  = document.getElementById('statBadge');
-const statSub    = document.getElementById('statSub');
+const statPct       = document.getElementById('statPct');
+const statBadge     = document.getElementById('statBadge');
+const statSub       = document.getElementById('statSub');
+const statCardLabel = document.getElementById('statCardLabel');
+const resumenCardLabel = document.getElementById('resumenCardLabel');
 
 // Stats diarios
 const estadosGrid            = document.getElementById('estadosGrid');
@@ -54,6 +57,16 @@ const cntLicencia            = document.getElementById('cntLicencia');
 const recordTitle      = document.getElementById('recordTitle');
 const recordCursoBadge = document.getElementById('recordCursoBadge');
 const recordSub        = document.getElementById('recordSub');
+
+// ── Nombres de meses en JS (para labels) ──────────────────────────
+const _MESES_JS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function _periodoLabel(mesStr) {
+    // "2026-03" → "Marzo 2026"
+    const [y, m] = mesStr.split('-').map(Number);
+    return `${_MESES_JS[m - 1]} ${y}`;
+}
 
 // ── Utilidades ────────────────────────────────────────────────────
 const _ESTADO_LABEL = { PRESENTE: 'Presente', FALTA: 'Falta', ATRASO: 'Retraso', LICENCIA: 'Licencia' };
@@ -105,13 +118,85 @@ async function loadCursos() {
         ).join('');
 }
 
-// ── Reset de stats a estado inicial (guiones) ─────────────────────
+// ── Reset de stats: vuelve a mostrar datos globales ───────────────
 function _resetStats() {
     statPct.textContent   = '—';
     statBadge.textContent = '—';
     statBadge.className   = 'stat-badge stat-badge--neutral';
-    statSub.textContent   = 'Selecciona un curso';
-    _resetResumenDia();
+    statSub.textContent   = 'Cargando...';
+    // Mostrar datos globales en lugar de guiones
+    if (_globalData) {
+        _renderGlobalStats();
+    } else {
+        loadGlobal();
+    }
+}
+
+// ── Carga y render de estadísticas globales (todos los cursos) ────
+async function loadGlobal() {
+    const mes = _todayISO().substring(0, 7);
+    const { ok, data } = await fetchAPI(`/api/attendance/resumen-global/?mes=${mes}`);
+    if (!ok || !data) {
+        // Sin datos: mostrar guiones neutros
+        statPct.textContent   = '—';
+        statBadge.textContent = '—';
+        statBadge.className   = 'stat-badge stat-badge--neutral';
+        statSub.textContent   = 'Sin datos de asistencia';
+        _resetResumenDia();
+        return;
+    }
+    _globalData = data;
+    _renderGlobalStats();
+}
+
+function _renderGlobalStats() {
+    const data = _globalData;
+    const mesSufijo = data.es_mes_anterior ? ' (mes anterior)' : '';
+
+    // Tarjeta izquierda — porcentaje global
+    const periodo = _periodoLabel(data.mes) + (data.es_mes_anterior ? ' *' : '');
+    statCardLabel.textContent = `Asistencia General — ${periodo}`;
+    const pct  = data.porcentaje;
+    const diff = data.diferencia;
+    if (pct === null || pct === undefined) {
+        statPct.textContent   = '—';
+        statBadge.textContent = 'Sin datos';
+        statBadge.className   = 'stat-badge stat-badge--neutral';
+        statSub.textContent   = `Sin registros de asistencia${mesSufijo ? ' (mostrando mes anterior)' : ''}`;
+    } else {
+        statPct.textContent = `${pct}%`;
+        if (diff === null || diff === undefined) {
+            statBadge.textContent = '—';
+            statBadge.className   = 'stat-badge stat-badge--neutral';
+        } else if (diff > 0) {
+            statBadge.textContent = `↑ +${diff}%`;
+            statBadge.className   = 'stat-badge stat-badge--up';
+        } else if (diff < 0) {
+            statBadge.textContent = `↓ ${diff}%`;
+            statBadge.className   = 'stat-badge stat-badge--down';
+        } else {
+            statBadge.textContent = '= 0%';
+            statBadge.className   = 'stat-badge stat-badge--neutral';
+        }
+        statSub.textContent = `Promedio global · todos los cursos${mesSufijo ? ' · mes anterior' : ''}`;
+    }
+
+    // Tarjeta derecha — breakdown global del mes
+    resumenCardLabel.textContent = `Resumen de Estados — ${periodo}`;
+    const r = data.resumen_total;
+    const total = r.presente + r.falta + r.atraso + r.licencia;
+    if (total > 0) {
+        cntPresente.textContent = r.presente;
+        cntFalta.textContent    = r.falta;
+        cntAtraso.textContent   = r.atraso;
+        cntLicencia.textContent = r.licencia;
+        estadosGrid.style.display          = 'grid';
+        resumenDiaPlaceholder.style.display = 'none';
+    } else {
+        resumenDiaPlaceholder.textContent   = `No hay registros de asistencia en ${data.mes_nombre}`;
+        resumenDiaPlaceholder.style.display = 'block';
+        estadosGrid.style.display           = 'none';
+    }
 }
 
 // ── Carga mensual (solo requiere curso) ───────────────────────────
@@ -129,9 +214,11 @@ async function loadMonthly() {
     const diff = data.diferencia;
     const cursoNombre = selectCurso.options[selectCurso.selectedIndex]?.text || '';
 
+    statCardLabel.textContent = `${cursoNombre} — ${_periodoLabel(mes)}`;
+
     if (pct === null || pct === undefined) {
         statPct.textContent = '—';
-        statBadge.textContent = '—';
+        statBadge.textContent = 'Sin datos';
         statBadge.className = 'stat-badge stat-badge--neutral';
     } else {
         statPct.textContent = `${pct}%`;
@@ -149,7 +236,9 @@ async function loadMonthly() {
             statBadge.className = 'stat-badge stat-badge--neutral';
         }
     }
-    statSub.textContent = `Promedio de asistencia para ${cursoNombre} en ${data.mes_nombre}`;
+    statSub.textContent = pct !== null && pct !== undefined
+        ? `Promedio de asistencia del curso`
+        : `Sin registros de asistencia este mes`;
 }
 
 // ── Carga diaria (requiere curso + fecha) ─────────────────────────
@@ -184,6 +273,7 @@ function _resetResumenDia() {
 
 function _renderResumenDia(resumen) {
     if (!resumen) return;
+    resumenCardLabel.textContent = `Resumen del Día — ${_fechaDisplay(_fecha)}`;
     cntPresente.textContent = resumen.presente ?? '—';
     cntFalta.textContent    = resumen.falta    ?? '—';
     cntAtraso.textContent   = resumen.atraso   ?? '—';
@@ -455,7 +545,7 @@ btnReset.addEventListener('click', () => {
     _allRows = [];
     btnClear.style.display = 'none';
 
-    // Volver stats a guiones
+    // Volver stats a datos globales
     _resetStats();
 
     // Volver tabla al estado inicial
@@ -619,8 +709,6 @@ btnReset.addEventListener('click', () => {
 
 // ── Inicialización ────────────────────────────────────────────────
 (async function init() {
-    // Mostrar guiones en stats desde el inicio
-    _resetStats();
-    // Cargar lista de cursos (sin auto-selección)
-    await loadCursos();
+    // Cargar cursos y datos globales en paralelo
+    await Promise.all([loadCursos(), loadGlobal()]);
 })();

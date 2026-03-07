@@ -16,6 +16,87 @@
             window.location.replace('/login/');
         }
     </script>
+    <style>
+        /* ── Sección materias ── */
+        .materias-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 18px 22px 20px;
+            margin-bottom: 20px;
+        }
+        .materias-card__header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .materias-card__title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .materias-card__count {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            border-radius: 20px;
+            padding: 2px 9px;
+        }
+        .materias-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .materia-chip {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: border-color .15s, background .15s;
+        }
+        .materia-chip:hover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .materia-chip__nombre {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        .materia-chip__profesor {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .materia-chip__profesor svg {
+            flex-shrink: 0;
+            opacity: .6;
+        }
+        .materia-chip--skeleton .materia-chip__nombre {
+            height: 13px;
+            width: 70%;
+            background: linear-gradient(90deg,var(--bg-input) 25%,var(--border) 50%,var(--bg-input) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 4px;
+        }
+        .materia-chip--skeleton .materia-chip__profesor {
+            height: 10px;
+            width: 55%;
+            background: linear-gradient(90deg,var(--bg-input) 25%,var(--border) 50%,var(--bg-input) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 4px;
+        }
+        @keyframes shimmer { to { background-position: -200% 0; } }
+    </style>
 </head>
 <body>
 
@@ -167,6 +248,26 @@
                 </div>
             </div>
 
+            <!-- ── Materias del curso ── -->
+            <div class="materias-card" id="materiasCard" style="margin-top:20px;margin-bottom:0;">
+                <div class="materias-card__header">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    <span class="materias-card__title">Materias del Curso</span>
+                    <span class="materias-card__count" id="materiasCount">—</span>
+                </div>
+                <div class="materias-grid" id="materiasGrid">
+                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
+                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
+                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
+                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
+                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
+                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -302,6 +403,31 @@
     const CURSO_NOMBRE = "{{ curso_nombre }}";
 </script>
 <script src="{% static_v 'js/curso_estudiantes.js' %}"></script>
+<script>
+'use strict';
+(async () => {
+    const { ok, data } = await fetchAPI(`/api/academics/cursos/${CURSO_ID}/materias/`);
+    const grid  = document.getElementById('materiasGrid');
+    const count = document.getElementById('materiasCount');
+    if (!ok || !data?.length) {
+        grid.innerHTML = '<p style="font-size:13px;color:var(--text-muted);grid-column:1/-1">Sin materias asignadas a este curso.</p>';
+        count.textContent = '0 materias';
+        return;
+    }
+    count.textContent = `${data.length} materia${data.length !== 1 ? 's' : ''}`;
+    grid.innerHTML = data.map(m => `
+        <div class="materia-chip">
+            <span class="materia-chip__nombre">${m.materia}</span>
+            <span class="materia-chip__profesor">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                ${m.profesor}
+            </span>
+        </div>`).join('');
+})();
+</script>
 <script>
     /* ── Sidebar ─────────────────────────────────────────────── */
     const _user = JSON.parse(localStorage.getItem('user') || 'null');

@@ -308,6 +308,563 @@
             background: var(--border-subtle);
             margin: 0;
         }
+
+        /* ── Buscador tabla asignaciones ─────────────────────────── */
+        .acad-table-search {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-app);
+        }
+        .acad-table-search .search-wrapper {
+            flex: 1;
+            max-width: 380px;
+            position: relative;
+        }
+        .acad-table-search .search-icon {
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            width: 15px; height: 15px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+        .acad-table-search .search-input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: .85rem;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s;
+        }
+        .acad-table-search .search-input:focus { border-color: var(--accent); }
+        .acad-table-search .search-input::placeholder { color: var(--text-muted); }
+        .asig-search-count {
+            font-size: .78rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* ── Toggle vistas ────────────────────────────────────────── */
+        .vp-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .vp-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: .84rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .vp-toggle-btn svg { width: 15px; height: 15px; }
+        .vp-toggle-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .vp-toggle-btn.active {
+            background: var(--accent-dim);
+            border-color: rgba(59,130,246,.3);
+            color: var(--accent-text);
+        }
+
+        /* ── Vista por Profesor ───────────────────────────────────── */
+        .vp-layout {
+            display: grid;
+            grid-template-columns: 270px 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        @media (max-width: 700px) { .vp-layout { grid-template-columns: 1fr; } }
+
+        .vp-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+        .vp-sidebar-header {
+            padding: 12px 16px;
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-app);
+        }
+        .vp-prof-list {
+            max-height: 540px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59,130,246,.25) transparent;
+        }
+        .vp-prof-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .vp-prof-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .vp-prof-list::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,.25);
+            border-radius: 99px;
+        }
+        .vp-prof-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(59,130,246,.5);
+        }
+        .vp-prof-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background .13s;
+        }
+        .vp-prof-item:last-child { border-bottom: none; }
+        .vp-prof-item:hover { background: var(--bg-card-hover); }
+        .vp-prof-item.active {
+            background: var(--accent-dim);
+            border-left: 3px solid var(--accent);
+        }
+        .vp-prof-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,130,246,.25);
+            color: var(--accent-text);
+            font-size: .75rem;
+            font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            letter-spacing: -.02em;
+        }
+        .vp-prof-info { flex: 1; min-width: 0; }
+        .vp-prof-name {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .vp-prof-badge {
+            font-size: .7rem;
+            font-weight: 700;
+            background: rgba(59,130,246,.12);
+            color: var(--accent-text);
+            border-radius: 20px;
+            padding: 2px 8px;
+            flex-shrink: 0;
+        }
+
+        .vp-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            min-height: 200px;
+        }
+        .vp-content-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-app);
+            border-radius: var(--radius-card) var(--radius-card) 0 0;
+        }
+        .vp-content-title {
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .vp-content-sub {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        .vp-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+            gap: 12px;
+            padding: 18px;
+        }
+        .vp-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 56px 24px;
+            color: var(--text-muted);
+        }
+        .vp-placeholder svg { width: 38px; height: 38px; opacity: .25; }
+        .vp-placeholder p { font-size: .85rem; }
+
+        /* ── Tarjeta de asignación ────────────────────────────────── */
+        .asig-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color .15s;
+        }
+        .asig-card:hover { border-color: rgba(59,130,246,.35); }
+        .asig-card__materia {
+            font-size: .88rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        .asig-card__curso {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .75rem;
+            font-weight: 600;
+            background: rgba(139,92,246,.12);
+            color: #a78bfa;
+            border: 1px solid rgba(139,92,246,.2);
+            border-radius: 20px;
+            padding: 3px 10px;
+            width: fit-content;
+        }
+        .asig-card__actions {
+            display: flex;
+            gap: 7px;
+            margin-top: auto;
+        }
+        .asig-card__btn {
+            flex: 1;
+            padding: 6px 0;
+            border-radius: 8px;
+            font-size: .75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: all .15s;
+        }
+        .asig-card__btn svg { width: 12px; height: 12px; }
+        .asig-card__btn--del {
+            background: transparent;
+            border: 1px solid rgba(239,68,68,.25);
+            color: #f87171;
+        }
+        .asig-card__btn--del:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.5); }
+        .asig-card__btn--edit {
+            background: transparent;
+            border: 1px solid rgba(59,130,246,.25);
+            color: var(--accent-text);
+        }
+        .asig-card__btn--edit:hover { background: var(--accent-dim); }
+
+        /* ── Modo edición de la tarjeta ──────────────────────────── */
+        .asig-card.editing { border-color: var(--accent); background: var(--bg-card); }
+        .asig-edit-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .asig-edit-close {
+            flex-shrink: 0;
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-muted);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background .13s, color .13s, border-color .13s;
+            padding: 0;
+        }
+        .asig-edit-close svg { width: 14px; height: 14px; }
+        .asig-edit-close:hover {
+            background: rgba(239,68,68,.12);
+            border-color: rgba(239,68,68,.35);
+            color: #f87171;
+        }
+        .asig-edit-label {
+            font-size: .72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .asig-edit-select {
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: .82rem;
+            outline: none;
+        }
+        .asig-edit-select:focus { border-color: var(--accent); }
+        .asig-edit-actions {
+            display: flex;
+            gap: 7px;
+        }
+        .asig-edit-actions .asig-card__btn { font-size: .78rem; }
+
+        /* ── Tarjeta nueva asignación ────────────────────────────── */
+        .nueva-asig-card {
+            border-color: rgba(59,130,246,.4);
+            box-shadow: 0 0 0 1px rgba(59,130,246,.12), 0 6px 24px rgba(59,130,246,.15);
+        }
+        .nueva-asig-header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 26px;
+            background: linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(99,102,241,.1) 100%);
+            border-bottom: 1px solid rgba(59,130,246,.25);
+        }
+        .nueva-asig-icon {
+            width: 54px; height: 54px;
+            border-radius: 14px;
+            background: rgba(59,130,246,.22);
+            border: 1px solid rgba(59,130,246,.4);
+            color: var(--accent-text);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .nueva-asig-icon svg { width: 27px; height: 27px; }
+        .nueva-asig-eyebrow {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--accent-text);
+            letter-spacing: .01em;
+            margin-bottom: 4px;
+        }
+        .nueva-asig-title {
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: .01em;
+        }
+        .nueva-asig-sub {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+        .btn-crear-asig {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 26px;
+            height: 44px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: .9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, box-shadow .15s, transform .1s;
+            white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(59,130,246,.45);
+            letter-spacing: .01em;
+        }
+        .btn-crear-asig svg { width: 17px; height: 17px; }
+        .btn-crear-asig:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 6px 20px rgba(59,130,246,.55);
+            transform: translateY(-1px);
+        }
+        .btn-crear-asig:active { transform: translateY(0); }
+        .btn-crear-asig:disabled { opacity: .55; cursor: default; box-shadow: none; transform: none; }
+
+        /* ── Modal eliminar materia ───────────────────────────────── */
+        .del-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.55);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            opacity: 0; pointer-events: none;
+            transition: opacity .2s;
+        }
+        .del-backdrop.visible { opacity: 1; pointer-events: all; }
+
+        .del-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px 28px 28px;
+            width: 100%;
+            max-width: 420px;
+            margin: 16px;
+            transform: translateY(10px);
+            transition: transform .2s;
+        }
+        .del-backdrop.visible .del-modal { transform: translateY(0); }
+
+        .del-icon {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 18px;
+        }
+        .del-icon--warn {
+            background: rgba(239,68,68,.12);
+            border: 1px solid rgba(239,68,68,.25);
+            color: #ef4444;
+        }
+        .del-icon--lock {
+            background: rgba(245,158,11,.12);
+            border: 1px solid rgba(245,158,11,.25);
+            color: #f59e0b;
+        }
+        .del-icon svg { width: 26px; height: 26px; }
+
+        .del-title {
+            text-align: center;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .del-subtitle {
+            text-align: center;
+            font-size: .82rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .del-materia-name {
+            text-align: center;
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--accent-text);
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,130,246,.2);
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 20px;
+        }
+        .del-warn-list {
+            background: rgba(239,68,68,.06);
+            border: 1px solid rgba(239,68,68,.18);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .del-warn-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            font-size: .82rem;
+            color: #fca5a5;
+            line-height: 1.4;
+        }
+        .del-warn-item svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; color: #ef4444; }
+
+        .del-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .del-btn-cancel {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-size: .88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .del-btn-cancel:hover { background: var(--bg-card-hover); }
+
+        .del-btn-confirm {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            background: #ef4444;
+            color: #fff;
+            font-size: .88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s, opacity .15s;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .del-btn-confirm:hover { background: #dc2626; }
+        .del-btn-confirm:disabled { opacity: .6; cursor: default; }
+
+        .del-step { display: none; }
+        .del-step.active { display: block; }
+
+        .del-pass-label {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .del-pass-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .del-pass-input {
+            width: 100%;
+            padding: 10px 42px 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: .9rem;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s;
+        }
+        .del-pass-input:focus { border-color: var(--accent); }
+        .del-pass-input.input-error { border-color: #ef4444; }
+        .del-pass-toggle {
+            position: absolute;
+            right: 11px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none;
+            color: var(--text-muted);
+            cursor: pointer; padding: 2px;
+        }
+        .del-pass-toggle svg { width: 17px; height: 17px; display: block; }
+        .del-pass-error {
+            font-size: .78rem;
+            color: #f87171;
+            min-height: 18px;
+            margin-bottom: 18px;
+        }
+        .btn-spinner-sm {
+            width: 15px; height: 15px;
+            border: 2px solid rgba(255,255,255,.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -515,9 +1072,9 @@
             <div class="acad-panel" id="panelAsignaciones">
 
                 <!-- Formulario nueva asignación -->
-                <div class="acad-card">
-                    <div class="acad-card__header">
-                        <div class="acad-card__icon">
+                <div class="acad-card nueva-asig-card">
+                    <div class="nueva-asig-header">
+                        <div class="nueva-asig-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                                 <circle cx="9" cy="7" r="4"/>
@@ -525,9 +1082,10 @@
                                 <line x1="22" y1="11" x2="16" y2="11"/>
                             </svg>
                         </div>
-                        <div class="acad-card__meta">
-                            <div class="acad-card__title">Nueva asignación</div>
-                            <div class="acad-card__sub">Vincula un profesor a un curso y materia</div>
+                        <div>
+                            <div class="nueva-asig-eyebrow">Nueva asignación</div>
+                            <div class="nueva-asig-title">Vincular Profesor — Curso — Materia</div>
+                            <div class="nueva-asig-sub">Selecciona los tres campos y confirma con tu contraseña</div>
                         </div>
                     </div>
                     <div class="acad-card__body">
@@ -552,12 +1110,12 @@
                             </div>
                             <div class="form-group form-group--sm">
                                 <label class="form-label" style="visibility:hidden;">-</label>
-                                <button class="btn-add" id="btnCrearAsignacion">
+                                <button class="btn-crear-asig" id="btnCrearAsignacion">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="12" y1="5" x2="12" y2="19"/>
                                         <line x1="5" y1="12" x2="19" y2="12"/>
                                     </svg>
-                                    Asignar
+                                    Crear asignación
                                 </button>
                             </div>
                         </div>
@@ -572,8 +1130,26 @@
                     </div>
                 </div>
 
+                <!-- Toggle vistas -->
+                <div class="vp-toggle">
+                    <button class="vp-toggle-btn" id="btnVistaTabla">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                        Vista tabla
+                    </button>
+                    <button class="vp-toggle-btn active" id="btnVistaProfesor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Vista por profesor
+                    </button>
+                </div>
+
                 <!-- Lista de asignaciones -->
-                <div class="acad-card">
+                <div class="acad-card" id="cardTablaAsignaciones" style="display:none;">
                     <div class="acad-card__header">
                         <div class="acad-card__icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -589,6 +1165,16 @@
                         </div>
                         <span class="acad-card__count" id="countAsignaciones">—</span>
                     </div>
+                    <div class="acad-table-search" id="asigSearchWrap" style="display:none;">
+                        <div class="search-wrapper">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <input id="asigSearchInput" class="search-input" type="text" placeholder="Buscar por profesor, curso o materia…" autocomplete="off">
+                        </div>
+                        <span class="asig-search-count" id="asigSearchCount"></span>
+                    </div>
+
                     <div id="spinnerAsignaciones" class="acad-spinner">
                         <div class="spinner-ring"></div>
                     </div>
@@ -616,10 +1202,88 @@
                         <span class="acad-empty__sub">Usa el formulario de arriba para vincular profesores a sus cursos</span>
                     </div>
                 </div>
+                <!-- Vista por Profesor -->
+                <div id="vistaProfesor">
+                    <div class="vp-layout">
+                        <div class="vp-sidebar">
+                            <div class="vp-sidebar-header">Profesores</div>
+                            <div class="vp-prof-list" id="vpProfList">
+                                <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:.85rem;">Cargando…</div>
+                            </div>
+                        </div>
+                        <div class="vp-content" id="vpContent">
+                            <div class="vp-placeholder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                <p>Selecciona un profesor para ver sus asignaciones</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
         </div>
     </main>
+
+    <!-- ── Modal: Eliminar materia ───────────────────────────────── -->
+    <div class="del-backdrop" id="delBackdrop">
+        <div class="del-modal" role="dialog" aria-modal="true">
+
+            <!-- Paso 1: Advertencia -->
+            <div class="del-step active" id="delStep1">
+                <div class="del-icon del-icon--warn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="del-title" id="delStep1Title">¿Eliminar materia?</div>
+                <div class="del-subtitle" id="delStep1Subtitle">Estás a punto de eliminar permanentemente esta materia del sistema.</div>
+                <div class="del-materia-name" id="delMateriaNombre"></div>
+                <div class="del-warn-list" id="delWarnList"></div>
+                <div class="del-actions">
+                    <button class="del-btn-cancel" id="delCancel1">Cancelar</button>
+                    <button class="del-btn-confirm" id="delContinuar">
+                        Continuar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Paso 2: Confirmación con contraseña -->
+            <div class="del-step" id="delStep2">
+                <div class="del-icon del-icon--lock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <div class="del-title">Confirma tu identidad</div>
+                <div class="del-subtitle" id="delStep2Subtitle">Ingresa tu contraseña para autorizar la eliminación de <strong id="delMateriaNombre2"></strong>.</div>
+                <p class="del-pass-label">Tu contraseña</p>
+                <div class="del-pass-wrap">
+                    <input type="password" class="del-pass-input" id="delPassInput" placeholder="Contraseña" autocomplete="current-password">
+                    <button type="button" class="del-pass-toggle" id="delPassToggle" tabindex="-1" aria-label="Mostrar/ocultar">
+                        <svg id="delEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="del-pass-error" id="delPassError"></p>
+                <div class="del-actions">
+                    <button class="del-btn-cancel" id="delCancel2">Cancelar</button>
+                    <button class="del-btn-confirm del-btn-confirm--red" id="delConfirmar">
+                        <span id="delConfirmarText">Confirmar</span>
+                        <span id="delConfirmarSpinner" class="btn-spinner-sm" style="display:none;"></span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 
     <script src="{% static 'js/academico.js' %}"></script>
 </body>

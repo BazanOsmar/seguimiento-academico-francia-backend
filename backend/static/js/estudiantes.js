@@ -109,10 +109,9 @@ function renderCursos(lista) {
         card.style.cssText = `--card-color:${pal.color};--card-bg:${pal.bg};--card-border:${pal.border};`;
 
         card.innerHTML = `
-            <div class="course-card__deco">${code}</div>
+            <div class="course-card__deco">${curso.grado} ${curso.paralelo}</div>
             <div class="course-card__header">
-                <div class="course-badge">${code}</div>
-                <span class="course-name">${curso.grado} ${curso.paralelo}</span>
+                <div class="course-badge">${curso.grado} ${curso.paralelo}</div>
             </div>
             <div class="course-card__footer">
                 <span class="course-label">ESTUDIANTES</span>
