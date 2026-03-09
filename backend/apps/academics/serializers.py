@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Curso, Materia, ProfesorCurso
+from .models import Curso, Materia, ProfesorCurso, ProfesorPlan
 
 
 class CursoSerializer(serializers.ModelSerializer):
@@ -34,3 +34,21 @@ class AsignacionSerializer(serializers.ModelSerializer):
 
     def get_curso_nombre(self, obj):
         return f"{obj.curso.grado} {obj.curso.paralelo}"
+
+
+class ProfesorPlanSerializer(serializers.ModelSerializer):
+    descripcion  = serializers.CharField(source='plan.descripcion')
+    fecha_inicio = serializers.DateField(source='plan.fecha_inicio')
+    fecha_fin    = serializers.DateField(source='plan.fecha_fin')
+    semana       = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = ProfesorPlan
+        fields = ('id', 'mes', 'semana', 'descripcion', 'fecha_inicio', 'fecha_fin', 'fecha_creacion')
+
+    def get_semana(self, obj):
+        day = obj.plan.fecha_inicio.day
+        if day <= 7:  return 1
+        if day <= 14: return 2
+        if day <= 21: return 3
+        return 4

@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
 from backend.apps.users.permissions import IsDirectorOrRegente, IsProfesor, IsDirector
-from .models import Curso, Materia, ProfesorCurso
-from .serializers import CursoSerializer, MateriaSerializer, AsignacionSerializer
+from .models import Curso, Materia, ProfesorCurso, PlanDeTrabajo, ProfesorPlan
+from .serializers import CursoSerializer, MateriaSerializer, AsignacionSerializer, ProfesorPlanSerializer
 
 
 class CursoListView(ListAPIView):
@@ -165,6 +165,82 @@ class AsignacionListCreateView(APIView):
 
         asignacion = serializer.save()
         return Response(AsignacionSerializer(asignacion).data, status=status.HTTP_201_CREATED)
+
+
+class ProfesorPlanListCreateView(APIView):
+    """
+    GET  /api/academics/profesor/planes/?mes=N  — planes del mes (1-12) del profesor autenticado
+    POST /api/academics/profesor/planes/        — registra un nuevo plan (máx. 4 por mes)
+    """
+
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        mes = request.query_params.get('mes')
+        qs  = ProfesorPlan.objects.filter(profesor=request.user).select_related('plan')
+        if mes:
+            try:
+                mes = int(mes)
+            except (ValueError, TypeError):
+                return Response({'errores': 'El parámetro mes debe ser un número entre 1 y 12.'}, status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(mes=mes)
+        return Response(ProfesorPlanSerializer(qs.order_by('fecha_creacion'), many=True).data)
+
+    def post(self, request):
+        import calendar
+        from datetime import date
+
+        try:
+            mes = int(request.data.get('mes', 0))
+            if not (1 <= mes <= 12):
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({'errores': 'El mes debe ser un número entre 1 y 12.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            semana = int(request.data.get('semana', 0))
+            if not (1 <= semana <= 4):
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({'errores': 'La semana debe ser un número entre 1 y 4.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        descripcion = (request.data.get('descripcion') or '').strip()
+        if not descripcion:
+            return Response({'errores': 'La descripción es requerida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        año = date.today().year
+        dias_en_mes = calendar.monthrange(año, mes)[1]
+        rangos = {1: (1, 7), 2: (8, 14), 3: (15, 21), 4: (22, dias_en_mes)}
+        inicio_dia, fin_dia = rangos[semana]
+        fecha_inicio = date(año, mes, inicio_dia)
+        fecha_fin    = date(año, mes, fin_dia)
+
+        if ProfesorPlan.objects.filter(profesor=request.user, mes=mes, plan__fecha_inicio=fecha_inicio).exists():
+            return Response({'errores': f'Ya tienes un plan registrado para la Semana {semana} de este mes.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = PlanDeTrabajo.objects.create(descripcion=descripcion, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
+        pp   = ProfesorPlan.objects.create(profesor=request.user, plan=plan, mes=mes)
+        return Response(ProfesorPlanSerializer(pp).data, status=status.HTTP_201_CREATED)
+
+
+class ProfesorPlanDetailView(APIView):
+    """
+    DELETE /api/academics/profesor/planes/{plan_id}/  — elimina un plan del profesor autenticado
+    """
+
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def delete(self, request, plan_id):
+        try:
+            pp = ProfesorPlan.objects.select_related('plan').get(pk=plan_id, profesor=request.user)
+        except ProfesorPlan.DoesNotExist:
+            return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        plan = pp.plan
+        pp.delete()
+        if not ProfesorPlan.objects.filter(plan=plan).exists():
+            plan.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AsignacionDetailView(APIView):

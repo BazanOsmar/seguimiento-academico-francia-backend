@@ -39,6 +39,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
 
     def validate_username(self, value):
+        if len(value) < 6:
+            raise serializers.ValidationError("El nombre de usuario debe tener al menos 6 caracteres.")
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Ya existe un usuario con ese nombre de usuario.")
         return value

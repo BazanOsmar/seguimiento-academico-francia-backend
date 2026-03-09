@@ -39,21 +39,30 @@ document.addEventListener('DOMContentLoaded', () => {
     _initTabs();
     _initDragDrop();
     _initCitacionForm();
+    _initPlanForm();
     cargarCursos();
+    _verificarDotPlan();  // dot de notificación en background
 });
 
 // ── Tabs ──────────────────────────────────────────────────────────
+const _TABS = ['panelNotas', 'panelCitaciones', 'panelPlan'];
+const _TAB_BTNS = { panelNotas: 'sideNotas', panelCitaciones: 'sideCitaciones', panelPlan: 'sidePlan' };
+
 function _activarTab(panelId) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.getElementById(panelId).classList.add('active');
-    document.getElementById('sideNotas').classList.toggle('active', panelId === 'panelNotas');
-    document.getElementById('sideCitaciones').classList.toggle('active', panelId === 'panelCitaciones');
+    _TABS.forEach(id => {
+        const btn = document.getElementById(_TAB_BTNS[id]);
+        if (btn) btn.classList.toggle('active', id === panelId);
+    });
     if (panelId === 'panelCitaciones') cargarHistorial();
+    if (panelId === 'panelPlan') cargarPlanes();
 }
 
 function _initTabs() {
     document.getElementById('sideNotas').addEventListener('click', () => _activarTab('panelNotas'));
     document.getElementById('sideCitaciones').addEventListener('click', () => _activarTab('panelCitaciones'));
+    document.getElementById('sidePlan').addEventListener('click', () => _activarTab('panelPlan'));
 }
 
 // ── Sidebar (hamburguesa) ─────────────────────────────────────────
@@ -264,6 +273,214 @@ async function enviarCitacion() {
     document.getElementById('citEstudiante').disabled = true;
     document.getElementById('nombreArchivo').style.display = 'none';
     await cargarHistorial();
+}
+
+// ── Plan de Trabajo ───────────────────────────────────────────────
+const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+               'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+</svg>`;
+
+function _initPlanForm() {
+    const selMes    = document.getElementById('planMes');
+    const meActual  = new Date().getMonth() + 1;
+
+    // Solo mostrar meses hasta el actual
+    selMes.innerHTML = '';
+    for (let m = 1; m <= meActual; m++) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = MESES[m];
+        selMes.appendChild(opt);
+    }
+    selMes.value = meActual;
+    selMes.addEventListener('change', cargarPlanes);
+}
+
+// Calcula fechas y texto de período para una semana de un mes
+function _periodoSemana(mes, semana) {
+    const año = new Date().getFullYear();
+    const diasEnMes = new Date(año, mes, 0).getDate();
+    const rangos = { 1: [1, 7], 2: [8, 14], 3: [15, 21], 4: [22, diasEnMes] };
+    const [d1, d2] = rangos[semana];
+    const pad = n => String(n).padStart(2, '0');
+    const fi = `${año}-${pad(mes)}-${pad(d1)}`;
+    const ff = `${año}-${pad(mes)}-${pad(d2)}`;
+    const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('es-BO', { day: 'numeric', month: 'short' });
+    return { fi, ff, display: `${fmt(fi)} – ${fmt(ff)}` };
+}
+
+// Deriva la semana (1-4) del día de fecha_inicio
+function _semanaDesde(fechaInicio) {
+    const dia = parseInt(fechaInicio.split('-')[2]);
+    if (dia <= 7)  return 1;
+    if (dia <= 14) return 2;
+    if (dia <= 21) return 3;
+    return 4;
+}
+
+async function cargarPlanes() {
+    const wrap    = document.getElementById('planTableWrap');
+    const spinner = document.getElementById('planSpinner');
+    wrap.style.display = 'none';
+    spinner.style.display = 'flex';
+
+    const mes      = parseInt(document.getElementById('planMes').value);
+    const mesActual = new Date().getMonth() + 1;
+    const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mes}`);
+
+    spinner.style.display = 'none';
+    if (!ok) { showAppToast('error', 'Error', 'No se pudieron cargar los planes.'); return; }
+
+    _renderPlanTable(data, mes, mes === mesActual);
+    _actualizarNotificaciones(data, mes, mesActual);
+    wrap.style.display = 'block';
+}
+
+// Verifica el mes actual en background (para el dot al cargar la app)
+async function _verificarDotPlan() {
+    const mesActual = new Date().getMonth() + 1;
+    const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mesActual}`);
+    if (!ok) return;
+    const incompleto = data.length < 4;
+    document.getElementById('planDot').classList.toggle('visible', incompleto);
+}
+
+function _actualizarNotificaciones(planes, mes, mesActual) {
+    const dot          = document.getElementById('planDot');
+    const banner       = document.getElementById('planBanner');
+    const bannerMes    = document.getElementById('planBannerMes');
+    const readonlyBadge = document.getElementById('planReadonlyBadge');
+    const esActual     = mes === mesActual;
+    const incompleto   = planes.length < 4;
+
+    // El dot solo refleja el mes actual
+    if (esActual) dot.classList.toggle('visible', incompleto);
+
+    // Banner solo cuando estamos en el mes actual e incompleto
+    banner.classList.toggle('visible', esActual && incompleto);
+    if (esActual && incompleto) bannerMes.textContent = MESES[mesActual];
+
+    // Badge solo lectura para meses pasados
+    readonlyBadge.classList.toggle('visible', !esActual);
+}
+
+function _renderPlanTable(planes, mes, editable) {
+    const tbody = document.getElementById('planTbody');
+    tbody.innerHTML = '';
+
+    // Mapear semana → plan
+    const mapa = {};
+    planes.forEach(p => { mapa[_semanaDesde(p.fecha_inicio)] = p; });
+
+    for (let semana = 1; semana <= 4; semana++) {
+        const plan = mapa[semana] || null;
+        const { display } = _periodoSemana(mes, semana);
+        const tr = document.createElement('tr');
+        if (!editable) tr.classList.add('plan-row--locked');
+
+        const dotCls = plan ? 'plan-semana-dot' : 'plan-semana-dot plan-semana-dot--empty';
+        const semanaCell = `<td data-label="Semana">
+            <span class="plan-semana-badge">
+                <span class="${dotCls}"></span>Semana ${semana}
+            </span>
+        </td>`;
+        const periodoCell = `<td data-label="Período"><span class="plan-periodo">${display}</span></td>`;
+
+        if (plan) {
+            tr.innerHTML = `
+                ${semanaCell}
+                ${periodoCell}
+                <td data-label="Plan de Trabajo">
+                    <span class="plan-desc-text">${_escapeHtml(plan.descripcion)}</span>
+                </td>
+                <td>${editable ? `<button class="btn-icon-sm" title="Eliminar plan">${SVG_TRASH}</button>` : ''}</td>`;
+            if (editable) tr.querySelector('.btn-icon-sm').addEventListener('click', () => eliminarPlan(plan.id));
+        } else {
+            tr.innerHTML = `
+                ${semanaCell}
+                ${periodoCell}
+                <td data-label="Plan de Trabajo">
+                    <span class="plan-desc-vacia">${editable ? 'Sin plan registrado' : '—'}</span>
+                </td>
+                <td>${editable ? `<button class="plan-btn-add">+ Agregar</button>` : ''}</td>`;
+            if (editable) tr.querySelector('.plan-btn-add').addEventListener('click', () => _mostrarFormInline(tr, semana, mes));
+        }
+        tbody.appendChild(tr);
+    }
+}
+
+function _mostrarFormInline(tr, semana, mes) {
+    const descCell   = tr.querySelectorAll('td')[2];
+    const actionCell = tr.querySelectorAll('td')[3];
+
+    descCell.innerHTML = `
+        <div class="plan-inline-form">
+            <textarea placeholder="Escribe el plan de trabajo para esta semana…"
+                      maxlength="500"></textarea>
+            <span class="plan-inline-error"></span>
+        </div>`;
+    actionCell.innerHTML = `
+        <div class="plan-inline-btns">
+            <button class="plan-btn-save">Guardar</button>
+            <button class="plan-btn-cancel">Cancelar</button>
+        </div>`;
+
+    const textarea = descCell.querySelector('textarea');
+    const errorEl  = descCell.querySelector('.plan-inline-error');
+    const saveBtn  = actionCell.querySelector('.plan-btn-save');
+    textarea.focus();
+
+    actionCell.querySelector('.plan-btn-cancel').addEventListener('click', cargarPlanes);
+
+    saveBtn.addEventListener('click', async () => {
+        const desc = textarea.value.trim();
+        errorEl.style.display = 'none';
+        textarea.classList.remove('invalid');
+
+        if (!desc) {
+            errorEl.textContent = 'Escribe el plan antes de guardar.';
+            errorEl.style.display = 'block';
+            textarea.classList.add('invalid');
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando…';
+
+        const { ok, data } = await fetchAPI('/api/academics/profesor/planes/', {
+            method: 'POST',
+            body: JSON.stringify({ mes, semana, descripcion: desc }),
+        });
+
+        if (!ok) {
+            errorEl.textContent = data?.errores || 'Error al guardar.';
+            errorEl.style.display = 'block';
+            textarea.classList.add('invalid');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Guardar';
+            return;
+        }
+
+        showAppToast('success', 'Plan guardado', `Semana ${semana} — ${MESES[mes]}`);
+        await cargarPlanes();
+    });
+}
+
+async function eliminarPlan(id) {
+    const { ok } = await fetchAPI(`/api/academics/profesor/planes/${id}/`, { method: 'DELETE' });
+    if (!ok) { showAppToast('error', 'Error', 'No se pudo eliminar el plan.'); return; }
+    showAppToast('success', 'Eliminado', 'Plan eliminado correctamente.');
+    await cargarPlanes();
+}
+
+function _escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ── Historial de citaciones ───────────────────────────────────────

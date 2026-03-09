@@ -74,6 +74,8 @@ class RegistroTutorSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         from backend.apps.users.models import User
+        if len(value) < 6:
+            raise serializers.ValidationError("El nombre de usuario debe tener al menos 6 caracteres.")
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Este nombre de usuario ya está en uso.")
         return value
