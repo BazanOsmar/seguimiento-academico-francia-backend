@@ -22,11 +22,21 @@ class EstudianteBusquedaView(APIView):
         if not q:
             return Response([])
 
+        # Dividir por espacios para que "Juan Perez" encuentre nombre="Juan" + apellido="Perez"
+        terminos = q.split()
+        filtro = Q()
+        for t in terminos:
+            filtro &= (
+                Q(nombre__icontains=t) |
+                Q(apellido_paterno__icontains=t) |
+                Q(apellido_materno__icontains=t)
+            )
+
         qs = (
             Estudiante.objects
             .select_related('curso')
             .filter(activo=True)
-            .filter(Q(nombre__icontains=q) | Q(apellido_paterno__icontains=q) | Q(apellido_materno__icontains=q))
+            .filter(filtro)
             .order_by('apellido_paterno', 'apellido_materno', 'nombre')[:10]
         )
         serializer = EstudianteBusquedaSerializer(qs, many=True)
