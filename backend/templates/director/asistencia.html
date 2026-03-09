@@ -129,7 +129,7 @@
         .dayContainer   { padding: 0; }
         .flatpickr-day {
             color: #94a3b8; border: 1px solid transparent;
-            border-radius: 8px; height: 36px; line-height: 35px; max-width: 36px; font-size: 0.85rem;
+            border-radius: 8px; height: 36px; line-height: 35px; max-width: 39px; font-size: 0.85rem;
             text-align: center !important;
         }
         .flatpickr-day:hover, .flatpickr-day:focus { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
@@ -489,6 +489,127 @@
         }
         .btn-cal-close:hover { color: var(--text-primary); background: var(--bg-input); }
 
+        /* ── Botón Resumen Día ───────────────────────────────────── */
+        .btn-resumen-dia {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: background .18s, color .18s, border-color .18s;
+            white-space: nowrap;
+        }
+        .btn-resumen-dia:hover,
+        .btn-resumen-dia.active {
+            background: rgba(249,115,22,0.12);
+            border-color: #f97316;
+            color: #fb923c;
+        }
+
+        /* ── Sidebar Resumen Día ─────────────────────────────────── */
+        .nav-item--toggle {
+            width: 100%;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: inherit;
+            transition: background .15s, color .15s;
+            position: relative;
+        }
+        .nav-item--toggle svg { width: 20px; height: 20px; flex-shrink: 0; }
+        .nav-item--toggle:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+        .nav-item--toggle.open { background: rgba(249,115,22,0.1); color: #fb923c; }
+        .nav-toggle-chevron {
+            margin-left: auto;
+            width: 14px;
+            height: 14px;
+            transition: transform .2s;
+            opacity: 0.6;
+        }
+        .nav-item--toggle.open .nav-toggle-chevron { transform: rotate(180deg); opacity: 1; }
+        .resumen-dia-panel {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height .25s ease;
+            padding: 0 8px;
+        }
+        .resumen-dia-panel.open { max-height: 520px; }
+        .resumen-dia-panel__inner {
+            padding: 8px 0 10px;
+            border-left: 2px solid rgba(249,115,22,0.25);
+            margin-left: 10px;
+            padding-left: 12px;
+        }
+        .resumen-dia-date-wrap {
+            margin-bottom: 10px;
+        }
+        .resumen-dia-date-input {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            padding: 7px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s;
+        }
+        .resumen-dia-date-input:hover { border-color: rgba(249,115,22,0.4); }
+        .resumen-dia-date-input:focus { border-color: #f97316; }
+        .resumen-cursos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 340px;
+            overflow-y: auto;
+        }
+        .resumen-cursos-list::-webkit-scrollbar { width: 4px; }
+        .resumen-cursos-list::-webkit-scrollbar-track { background: transparent; }
+        .resumen-cursos-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+        .resumen-curso-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 7px;
+            border-left: 3px solid transparent;
+            transition: background .15s;
+        }
+        .resumen-curso-item:hover { background: rgba(255,255,255,0.06); }
+        .resumen-curso-item--verde   { border-left-color: #22c55e; }
+        .resumen-curso-item--naranja { border-left-color: #f97316; }
+        .resumen-curso-nombre { flex: 1; color: var(--text-primary); font-size: 0.8rem; font-weight: 600; }
+        .resumen-curso-status--verde   { color: #22c55e; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+        .resumen-curso-status--naranja { color: #f97316; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+        .resumen-dia-empty { text-align: center; color: var(--text-muted); font-size: 0.78rem; padding: 10px 0 4px; }
+        .resumen-dia-fecha-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #fb923c;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 5px;
+        }
+
         /* ── Responsive calendario ───────────────────────────────── */
         @media (max-width: 480px) {
             .cal-cell      { min-height: 36px; padding: 4px 1px 3px; }
@@ -630,6 +751,15 @@
                     <path d="M9 16l2 2 4-4"/>
                 </svg>
                 <span class="nav-label">Asistencia</span>
+            </a>
+
+            <a href="/director/control-diario/" class="nav-item" data-title="Control Diario" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
             </a>
 
             <a href="/director/comunicados/" class="nav-item" data-title="Comunicados" aria-label="Comunicados">
@@ -966,7 +1096,23 @@
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+<script>
+/* Locale español incrustado — sin depender del CDN l10n/es.js */
+flatpickr.l10ns.es = {
+    firstDayOfWeek: 1,
+    weekdays: {
+        shorthand: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+        longhand:  ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+    },
+    months: {
+        shorthand: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+        longhand:  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+    },
+    ordinal:       () => "º",
+    rangeSeparator: " a ",
+    time_24hr:     true,
+};
+</script>
 <script src="{% static 'js/asistencia.js' %}"></script>
 
 <script>
@@ -1047,9 +1193,23 @@
 (function () {
     if (typeof flatpickr === 'undefined') return;
 
+    const LOCALE_ES = {
+        firstDayOfWeek: 1,
+        weekdays: {
+            shorthand: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+            longhand:  ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+        },
+        months: {
+            shorthand: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+            longhand:  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+        },
+        rangeSeparator: " a ",
+        time_24hr: true,
+    };
+
     // Filtro principal
     flatpickr('#inputFecha', {
-        locale:        'es',
+        locale:        LOCALE_ES,
         dateFormat:    'Y-m-d',
         maxDate:       'today',
         disableMobile: true,
@@ -1062,16 +1222,29 @@
 
     // Export: posición automática relativa al viewport (default)
     flatpickr('#exportFechaDesde', {
-        locale:        'es',
+        locale:        LOCALE_ES,
         dateFormat:    'Y-m-d',
         disableMobile: true,
         allowInput:    false,
     });
     flatpickr('#exportFechaHasta', {
-        locale:        'es',
+        locale:        LOCALE_ES,
         dateFormat:    'Y-m-d',
         disableMobile: true,
         allowInput:    false,
+    });
+
+    // Resumen día — selector de fecha
+    flatpickr('#inputResumenFecha', {
+        locale:        LOCALE_ES,
+        dateFormat:    'Y-m-d',
+        maxDate:       'today',
+        disableMobile: true,
+        allowInput:    false,
+        onChange: function (_, dateStr) {
+            const el = document.getElementById('inputResumenFecha');
+            if (el) el.dispatchEvent(new Event('change'));
+        },
     });
 })();
 </script>

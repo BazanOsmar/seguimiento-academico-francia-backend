@@ -69,5 +69,15 @@ class CitacionListView(APIView):
         if estudiante_id:
             queryset = queryset.filter(estudiante_id=estudiante_id)
 
+        # Filtrar por fecha de creación, ej: ?fecha_creacion=2026-03-09
+        fecha_creacion = request.query_params.get("fecha_creacion")
+        if fecha_creacion:
+            queryset = queryset.filter(fecha_envio__date=fecha_creacion)
+
+        # Filtrar por fecha de actualización de asistencia, ej: ?fecha_actualizacion=2026-03-09
+        fecha_actualizacion = request.query_params.get("fecha_actualizacion")
+        if fecha_actualizacion:
+            queryset = queryset.filter(fecha_asistencia=fecha_actualizacion)
+
         serializer = CitacionListSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

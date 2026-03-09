@@ -253,7 +253,7 @@
         .flatpickr-day {
             color: #94a3b8; border: 1px solid transparent;
             border-radius: 8px; height: 36px; line-height: 35px;
-            max-width: 36px; font-size: .85rem;
+            max-width: 39px; font-size: .85rem;
         }
         .flatpickr-day:hover, .flatpickr-day:focus { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
         .flatpickr-day.today { border-color: #3b82f6; color: #60a5fa; font-weight: 700; }
@@ -308,6 +308,14 @@
                     <line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>
                 </svg>
                 <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
             </a>
             <a href="/director/comunicados/" class="nav-item active" aria-label="Comunicados">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -526,7 +534,23 @@
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+<script>
+/* Locale español incrustado — sin depender del CDN l10n/es.js */
+flatpickr.l10ns.es = {
+    firstDayOfWeek: 1,
+    weekdays: {
+        shorthand: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+        longhand:  ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+    },
+    months: {
+        shorthand: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+        longhand:  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+    },
+    ordinal:       () => "º",
+    rangeSeparator: " a ",
+    time_24hr:     true,
+};
+</script>
 <script src="{% static 'js/fcm.js' %}"></script>
 <script src="{% static 'js/comunicados.js' %}"></script>
 

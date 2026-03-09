@@ -23,6 +23,10 @@ class CitacionListSerializer(CitacionBaseSerializer):
     Serializer de LECTURA para listar citaciones.
     Expone los datos relevantes para la vista del regente/director.
     """
+    emisor_nombre = serializers.SerializerMethodField()
+
+    def get_emisor_nombre(self, obj):
+        return f"{obj.emisor.first_name} {obj.emisor.last_name}".strip() or obj.emisor.username
 
     class Meta:
         model = Citacion
@@ -36,6 +40,7 @@ class CitacionListSerializer(CitacionBaseSerializer):
             "motivo",
             "estado",
             "fecha_asistencia",
+            "emisor_nombre",
         ]
 
 

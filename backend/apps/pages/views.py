@@ -435,6 +435,10 @@ def director_actividad_view(request):
     return render(request, 'director/actividad.html')
 
 
+def director_control_diario_view(request):
+    return render(request, 'director/control_diario.html')
+
+
 def director_comunicados_view(request):
     return render(request, 'director/comunicados.html')
 

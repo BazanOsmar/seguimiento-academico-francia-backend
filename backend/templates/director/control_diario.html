@@ -1,0 +1,1011 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Control Diario — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director', 'Regente'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+    <style>
+        /* ── Hero de fecha ─────────────────────────────────────────── */
+        .fecha-hero {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 20px 24px 18px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .fecha-hero__left { flex: 1; min-width: 200px; }
+        .fecha-hero__label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--accent-text);
+            margin-bottom: 6px;
+        }
+        .fecha-hero__dia-semana {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 2px;
+        }
+        .fecha-hero__texto {
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+        .fecha-hero__right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .fecha-hero__btn-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-text);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            cursor: pointer;
+        }
+        .fecha-hero__btn-label svg { flex-shrink: 0; }
+        .fecha-hero__input {
+            background: var(--bg-app);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 9px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            outline: none;
+            cursor: pointer;
+            transition: border-color .2s, box-shadow .2s;
+            min-width: 150px;
+            text-align: center;
+        }
+        .fecha-hero__input:hover { box-shadow: 0 0 0 3px var(--accent-dim); }
+
+        /* ── Flatpickr dark theme ────────────────────────────────── */
+        .flatpickr-calendar {
+            background: #1a2d45; border: 1px solid #243d5e;
+            border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 0.875rem; color: #94a3b8;
+        }
+        .flatpickr-calendar.arrowTop:before { border-bottom-color: #243d5e; }
+        .flatpickr-calendar.arrowTop:after  { border-bottom-color: #132034; }
+        .flatpickr-calendar.arrowBottom:before { border-top-color: #243d5e; }
+        .flatpickr-calendar.arrowBottom:after  { border-top-color: #1a2d45; }
+        .flatpickr-months { background: #132034; border-radius: 13px 13px 0 0; }
+        .flatpickr-month  { color: #f1f5f9; fill: #f1f5f9; height: 42px; }
+        .flatpickr-prev-month, .flatpickr-next-month { color: #94a3b8 !important; fill: #94a3b8 !important; padding: 10px; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #f1f5f9 !important; }
+        .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: inherit !important; }
+        .flatpickr-current-month { color: #f1f5f9; font-size: 0.95rem; font-weight: 700; padding-top: 10px; }
+        .flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { color: #f1f5f9; background: transparent; font-weight: 700; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
+        .numInputWrapper { background: transparent; }
+        .numInputWrapper:hover { background: rgba(255,255,255,0.06); }
+        .numInputWrapper span { background: transparent; border-color: transparent; }
+        .numInputWrapper span:hover { background: rgba(255,255,255,0.1); }
+        .numInputWrapper span.arrowUp:after   { border-bottom-color: #f1f5f9; }
+        .numInputWrapper span.arrowDown:after { border-top-color:    #f1f5f9; }
+        .flatpickr-innerContainer,
+        .flatpickr-rContainer { background: #1a2d45; }
+        .flatpickr-weekdays { background: #132034; }
+        .flatpickr-weekday  { background: transparent !important; color: #e2e8f0 !important; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; }
+        .flatpickr-days { border: none; padding: 6px 0 10px; }
+        .dayContainer { padding: 0; }
+        .flatpickr-day {
+            color: #94a3b8; border: 1px solid transparent;
+            border-radius: 8px; height: 36px; line-height: 35px; max-width: 39px; font-size: 0.85rem;
+            text-align: center !important;
+        }
+        .flatpickr-day:hover, .flatpickr-day:focus { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
+        .flatpickr-day.today { border-color: #3b82f6; color: #60a5fa; font-weight: 700; }
+        .flatpickr-day.today:hover { background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #60a5fa; }
+        .flatpickr-day.selected { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 700; }
+        .flatpickr-day.selected:hover { background: #2563eb; border-color: #2563eb; }
+        .flatpickr-day.flatpickr-disabled, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: #334155 !important; cursor: default;
+        }
+
+        /* ── Sección ───────────────────────────────────────────────── */
+        .seccion {
+            margin-bottom: 40px;
+        }
+        .seccion__header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--accent);
+            border-radius: var(--radius-sm);
+        }
+        .seccion__titulo {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-primary);
+        }
+        .seccion__linea {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .seccion__badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            color: var(--accent-text);
+        }
+
+        /* ── Chips resumen ─────────────────────────────────────────── */
+        .resumen-strip {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .resumen-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+        }
+        .rc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .rc-dot--ok  { background: var(--success); }
+        .rc-dot--no  { background: #fb923c; }
+        .resumen-chip--ok { color: var(--success); }
+        .resumen-chip--no { color: #fb923c; }
+
+        /* ── Grid de tarjetas de curso ─────────────────────────────── */
+        .cursos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
+        }
+        .curso-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow .2s, transform .15s;
+        }
+        .curso-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.28); transform: translateY(-1px); }
+        .curso-card__bar { height: 4px; width: 100%; }
+        .curso-card--ok .curso-card__bar { background: var(--success); }
+        .curso-card--no .curso-card__bar { background: #fb923c; }
+        .curso-card__body { padding: 16px 18px 14px; }
+        .curso-card__nombre {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.1;
+            margin-bottom: 3px;
+        }
+        .curso-card__alumnos { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+        .curso-card__divider { height: 1px; background: var(--border-subtle); margin-bottom: 10px; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .06em; padding: 2px 8px; border-radius: 20px;
+            width: fit-content;
+        }
+        .status-badge--ok { background: rgba(34,197,94,.12); color: var(--success); }
+        .status-badge--no { background: rgba(251,146,60,.12); color: #fb923c; }
+        .curso-card__by { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* ── Tarjetas de citación ──────────────────────────────────── */
+        .cit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .cit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .cit-card__top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .cit-card__estudiante { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+        .cit-card__curso { font-size: 11px; color: var(--text-muted); }
+        .cit-card__motivo {
+            font-size: 12px; color: var(--text-secondary);
+            font-style: italic;
+        }
+        .cit-card__footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2px;
+        }
+        .cit-card__emisor { font-size: 11px; color: var(--text-muted); }
+        .cit-badge {
+            display: inline-block; padding: 2px 9px; border-radius: 20px;
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .05em; white-space: nowrap;
+        }
+        .cb-pendiente   { background: rgba(148,163,184,.12); color: #94a3b8; }
+        .cb-visto       { background: rgba(96,165,250,.12);  color: #60a5fa; }
+        .cb-asistio     { background: rgba(34,197,94,.12);   color: var(--success); }
+        .cb-no_asistio  { background: rgba(239,68,68,.12);   color: #ef4444; }
+        .cb-atraso      { background: rgba(251,146,60,.12);  color: #fb923c; }
+        .cb-informativo { background: rgba(192,132,252,.12); color: #c084fc; }
+        .cb-vencida     { background: rgba(239,68,68,.12);   color: #ef4444; }
+
+        /* ── Estado vacío / carga ──────────────────────────────────── */
+        .grid-loading, .grid-empty {
+            grid-column: 1 / -1;
+            display: flex; justify-content: center; align-items: center;
+            gap: 10px; padding: 36px 0; color: var(--text-muted); font-size: 13px;
+        }
+        .grid-spinner {
+            width: 18px; height: 18px;
+            border: 2px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Panel flotante de asistencia ──────────────────────────── */
+        .panel-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,.45);
+            display: none; justify-content: flex-end;
+        }
+        .panel-overlay.open { display: flex; }
+        .panel-drawer {
+            width: min(420px, 100vw);
+            height: 100%;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            animation: slideIn .22s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .panel-header {
+            padding: 18px 20px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .panel-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-secondary); padding: 4px;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center;
+            transition: color .15s;
+        }
+        .panel-close:hover { color: var(--text-primary); }
+        .panel-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+        .panel-subtitle { font-size: 12px; color: var(--text-muted); }
+        .panel-resumen {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .pr-chip {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 600; padding: 3px 10px;
+            border-radius: 20px; border: 1px solid var(--border-subtle);
+        }
+        .pr-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .pr-dot--P { background: var(--success); }
+        .pr-dot--F { background: #ef4444; }
+        .pr-dot--A { background: #fb923c; }
+        .pr-dot--L { background: #60a5fa; }
+        .panel-body {
+            flex: 1; overflow-y: auto; padding: 12px 20px;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .est-item {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .est-num {
+            width: 30px; height: 30px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius-sm);
+            font-size: 13px; font-weight: 800;
+            color: var(--accent-text);
+            background: var(--accent-dim);
+        }
+        .est-row {
+            flex: 1; display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+        }
+        .est-estado-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .dot-P { background: var(--success); }
+        .dot-F { background: #ef4444; }
+        .dot-A { background: #fb923c; }
+        .dot-L { background: #60a5fa; }
+        .est-nombre { flex: 1; font-size: 13px; color: var(--text-primary); font-weight: 500; }
+        .est-estado-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .el-P { color: var(--success); }
+        .el-F { color: #ef4444; }
+        .el-A { color: #fb923c; }
+        .el-L { color: #60a5fa; }
+        .est-hora { font-size: 11px; color: var(--text-muted); min-width: 42px; text-align: right; }
+        .panel-loading {
+            display: flex; justify-content: center; align-items: center;
+            gap: 10px; padding: 40px 0; color: var(--text-muted); font-size: 13px;
+        }
+        .panel-no-session {
+            text-align: center; padding: 40px 20px;
+            color: var(--text-muted); font-size: 13px;
+        }
+
+        /* ── Sub-sección dentro de Citaciones ──────────────────────── */
+        .sub-seccion { margin-bottom: 20px; }
+        .sub-seccion__titulo {
+            font-size: 12px; font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .sub-badge {
+            font-size: 11px; font-weight: 700; padding: 1px 7px;
+            border-radius: 20px; background: var(--bg-app);
+            border: 1px solid var(--border); color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/control-diario/" class="nav-item active" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/academico/" class="nav-item" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ────────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Control Diario</h1>
+        </div>
+    </header>
+
+    <!-- ── Contenido ─────────────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="content-wrap" style="max-width:1100px;margin:0 auto;">
+
+            <!-- Hero de fecha -->
+            <div class="fecha-hero">
+                <div class="fecha-hero__left">
+                    <div class="fecha-hero__label">Ver resumen de un día</div>
+                    <div class="fecha-hero__dia-semana" id="heroDiaSemana"></div>
+                    <div class="fecha-hero__texto" id="heroFecha">—</div>
+                </div>
+                <div class="fecha-hero__right">
+                    <label class="fecha-hero__btn-label" for="inputFecha">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Cambiar fecha
+                    </label>
+                    <input type="text" id="inputFecha" class="fecha-hero__input" placeholder="Seleccionar fecha..." readonly>
+                </div>
+            </div>
+
+            <!-- ── Sección Asistencia del Día ──────────────────────── -->
+            <div class="seccion" id="seccionAsistencia">
+                <div class="seccion__header">
+                    <span class="seccion__titulo">Asistencia del Día</span>
+                    <div class="seccion__linea"></div>
+                </div>
+
+                <!-- Chips resumen -->
+                <div class="resumen-strip" id="resumenStrip" style="display:none;">
+                    <div class="resumen-chip resumen-chip--ok">
+                        <div class="rc-dot rc-dot--ok"></div>
+                        <span id="countOk">0</span> registradas
+                    </div>
+                    <div class="resumen-chip resumen-chip--no">
+                        <div class="rc-dot rc-dot--no"></div>
+                        <span id="countNo">0</span> sin controlar
+                    </div>
+                </div>
+
+                <!-- Grid -->
+                <div class="cursos-grid" id="cursosGrid">
+                    <div class="grid-loading">
+                        <div class="grid-spinner"></div> Cargando cursos...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Sección Citaciones del Día ─────────────────────── -->
+            <div class="seccion" id="seccionCitaciones">
+                <div class="seccion__header">
+                    <span class="seccion__titulo">Citaciones del Día</span>
+                    <div class="seccion__linea"></div>
+                </div>
+
+                <!-- Creadas hoy -->
+                <div class="sub-seccion">
+                    <div class="sub-seccion__titulo">
+                        Creadas hoy
+                        <span class="sub-badge" id="badgeCitCreadas">—</span>
+                    </div>
+                    <div class="cit-grid" id="gridCitCreadas">
+                        <div class="grid-loading">
+                            <div class="grid-spinner"></div> Cargando...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actualizadas hoy -->
+                <div class="sub-seccion">
+                    <div class="sub-seccion__titulo">
+                        Estado actualizado hoy
+                        <span class="sub-badge" id="badgeCitActualizadas">—</span>
+                    </div>
+                    <div class="cit-grid" id="gridCitActualizadas">
+                        <div class="grid-loading">
+                            <div class="grid-spinner"></div> Cargando...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ── Toast ────────────────────────────────────────────────── -->
+    <div class="app-toast app-toast--warning" id="appToast">
+        <div class="app-toast__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <div class="app-toast__body">
+            <div class="app-toast__title" id="toastTitle">Sin registro</div>
+            <div class="app-toast__msg" id="toastMsg">No hay asistencia registrada para este curso en la fecha seleccionada.</div>
+            <button class="app-toast__btn" id="toastBtn">Entendido</button>
+        </div>
+    </div>
+
+    <!-- ── Panel flotante de estudiantes ────────────────────────── -->
+    <div class="panel-overlay" id="panelOverlay">
+        <div class="panel-drawer" id="panelDrawer">
+            <div class="panel-header">
+                <button class="panel-close" id="panelClose" aria-label="Cerrar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                <div>
+                    <div class="panel-title" id="panelTitulo">—</div>
+                    <div class="panel-subtitle" id="panelSubtitulo">—</div>
+                </div>
+            </div>
+            <div class="panel-resumen" id="panelResumen" style="display:none;"></div>
+            <div class="panel-body" id="panelBody">
+                <div class="panel-loading">
+                    <div class="grid-spinner"></div> Cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    /* ── Utilidades de fecha ─────────────────────────────────────── */
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+    function hoyBolivia() {
+        return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/La_Paz' });
+    }
+    function fechaHeroTexto(fechaStr) {
+        const [y, m, d] = fechaStr.split('-').map(Number);
+        return `${d} de ${MESES[m - 1]} - ${y}`;
+    }
+    function diaSemana(fechaStr) {
+        const [y, m, d] = fechaStr.split('-').map(Number);
+        return DIAS[new Date(y, m - 1, d).getDay()];
+    }
+    function formatHora(horaStr) {
+        if (!horaStr) return '—';
+        return horaStr.substring(0, 5); // "HH:MM"
+    }
+
+    /* ── Estado de asistencia ────────────────────────────────────── */
+    const ESTADO_CFG = {
+        PRESENTE:  { label: 'Presente',  dotCls: 'dot-P', lblCls: 'el-P' },
+        FALTA:     { label: 'Falta',     dotCls: 'dot-F', lblCls: 'el-F' },
+        ATRASO:    { label: 'Atraso',    dotCls: 'dot-A', lblCls: 'el-A' },
+        LICENCIA:  { label: 'Licencia',  dotCls: 'dot-L', lblCls: 'el-L' },
+    };
+
+    /* ── Perfil ──────────────────────────────────────────────────── */
+    const _user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (_user) {
+        const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
+        document.getElementById('profileName').textContent = nombre;
+        document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    const sidebar  = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const btnMenu  = document.getElementById('btnMenu');
+    const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
+    let _lt;
+    sidebar.addEventListener('mouseenter', () => { clearTimeout(_lt); if (isDesktop()) sidebar.classList.add('sidebar--expanded'); });
+    sidebar.addEventListener('mouseleave', () => { if (isDesktop()) _lt = setTimeout(() => sidebar.classList.remove('sidebar--expanded'), 200); });
+    document.addEventListener('mousemove', function _c(e) {
+        document.removeEventListener('mousemove', _c);
+        const r = sidebar.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right) sidebar.classList.add('sidebar--expanded');
+    }, { once: false });
+    btnMenu.addEventListener('click', () => {
+        sidebar.classList.contains('sidebar--open')
+            ? (sidebar.classList.remove('sidebar--open'), backdrop.classList.remove('visible'))
+            : (sidebar.classList.add('sidebar--open'),   backdrop.classList.add('visible'));
+    });
+    backdrop.addEventListener('click', () => { sidebar.classList.remove('sidebar--open'); backdrop.classList.remove('visible'); });
+
+    /* ── Logout ──────────────────────────────────────────────────── */
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        localStorage.clear(); window.location.replace('/login/');
+    });
+
+    /* ── Fecha (flatpickr) ───────────────────────────────────────── */
+    const inputFecha = document.getElementById('inputFecha');
+
+    function actualizarHero(fechaStr) {
+        document.getElementById('heroFecha').textContent     = fechaHeroTexto(fechaStr);
+        document.getElementById('heroDiaSemana').textContent = diaSemana(fechaStr);
+    }
+
+    // Se inicializa tras cargar flatpickr (al final del body)
+    function initFlatpickr() {
+        const hoy = hoyBolivia();
+        actualizarHero(hoy);
+        flatpickr('#inputFecha', {
+            locale:        'es',
+            dateFormat:    'Y-m-d',
+            defaultDate:   hoy,
+            maxDate:       hoy,
+            disableMobile: true,
+            allowInput:    false,
+            onChange: function(selectedDates, dateStr) {
+                if (!dateStr) return;
+                actualizarHero(dateStr);
+                cargarTodo();
+                // Aviso si es domingo
+                const [y, m, d] = dateStr.split('-').map(Number);
+                if (new Date(y, m - 1, d).getDay() === 0) {
+                    mostrarToast(
+                        'Día no lectivo',
+                        'Los domingos no son días de clases. No debería haber registros de asistencia ni citaciones para esta fecha.'
+                    );
+                }
+            },
+        });
+    }
+
+    /* ── Carga de datos ──────────────────────────────────────────── */
+    let _cursosCache = [];
+
+    async function cargarTodo() {
+        const fecha = inputFecha.value;
+        cargarAsistencia(fecha);
+        cargarCitaciones(fecha);
+    }
+
+    async function cargarAsistencia(fecha) {
+        document.getElementById('cursosGrid').innerHTML =
+            '<div class="grid-loading"><div class="grid-spinner"></div> Cargando...</div>';
+        document.getElementById('resumenStrip').style.display = 'none';
+
+        const [cursosRes, estadoRes] = await Promise.all([
+            fetchAPI('/api/academics/cursos/'),
+            fetchAPI(`/api/attendance/estado-diario/?fecha=${fecha}`),
+        ]);
+
+        if (!cursosRes.ok || !estadoRes.ok) {
+            document.getElementById('cursosGrid').innerHTML =
+                '<div class="grid-empty">No se pudo cargar la información de asistencia.</div>';
+            return;
+        }
+
+        _cursosCache = cursosRes.data;
+        const sesiones   = estadoRes.data.sesiones || [];
+        const sesionMap  = {};
+        for (const s of sesiones) sesionMap[s.curso_id] = s;
+
+        renderCursos(_cursosCache, sesionMap);
+    }
+
+    function renderCursos(cursos, sesionMap) {
+        if (cursos.length === 0) {
+            document.getElementById('cursosGrid').innerHTML =
+                '<div class="grid-empty">No hay cursos registrados.</div>';
+            return;
+        }
+        let ok = 0, no = 0;
+        const html = cursos.map(c => {
+            const nombre  = `${c.grado}° "${c.paralelo}"`;
+            const alumnos = `${c.estudiantes_count} est.`;
+            const sesion  = sesionMap[c.id];
+            if (sesion) {
+                ok++;
+                const hora = new Date(sesion.created_at).toLocaleTimeString('es-BO', {
+                    timeZone: 'America/La_Paz', hour: '2-digit', minute: '2-digit'
+                });
+                return `<div class="curso-card curso-card--ok" data-curso-id="${c.id}">
+                    <div class="curso-card__bar"></div>
+                    <div class="curso-card__body">
+                        <div class="curso-card__nombre">${nombre}</div>
+                        <div class="curso-card__alumnos">${alumnos}</div>
+                        <div class="curso-card__divider"></div>
+                        <span class="status-badge status-badge--ok">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            Registrada
+                        </span>
+                        <div class="curso-card__by">Por: ${sesion.registrado_por.nombre}</div>
+                        <div class="curso-card__by" style="color:var(--text-muted);">a las ${hora}</div>
+                    </div>
+                </div>`;
+            } else {
+                no++;
+                return `<div class="curso-card curso-card--no" data-curso-id="${c.id}" data-sin-sesion="1">
+                    <div class="curso-card__bar"></div>
+                    <div class="curso-card__body">
+                        <div class="curso-card__nombre">${nombre}</div>
+                        <div class="curso-card__alumnos">${alumnos}</div>
+                        <div class="curso-card__divider"></div>
+                        <span class="status-badge status-badge--no">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            No controlada
+                        </span>
+                    </div>
+                </div>`;
+            }
+        }).join('');
+
+        document.getElementById('cursosGrid').innerHTML = html;
+        document.getElementById('countOk').textContent = ok;
+        document.getElementById('countNo').textContent = no;
+        document.getElementById('resumenStrip').style.display = 'flex';
+
+        // Eventos click en tarjetas
+        document.querySelectorAll('#cursosGrid .curso-card').forEach(card => {
+            card.addEventListener('click', () => abrirPanel(card));
+        });
+    }
+
+    async function cargarCitaciones(fecha) {
+        // Creadas hoy
+        document.getElementById('gridCitCreadas').innerHTML =
+            '<div class="grid-loading"><div class="grid-spinner"></div> Cargando...</div>';
+        // Actualizadas hoy
+        document.getElementById('gridCitActualizadas').innerHTML =
+            '<div class="grid-loading"><div class="grid-spinner"></div> Cargando...</div>';
+
+        const [creadasRes, actualizadasRes] = await Promise.all([
+            fetchAPI(`/api/discipline/citaciones/?fecha_creacion=${fecha}`),
+            fetchAPI(`/api/discipline/citaciones/?fecha_actualizacion=${fecha}`),
+        ]);
+
+        renderCitaciones(
+            creadasRes.ok ? creadasRes.data : [],
+            'gridCitCreadas', 'badgeCitCreadas'
+        );
+        renderCitaciones(
+            actualizadasRes.ok ? actualizadasRes.data : [],
+            'gridCitActualizadas', 'badgeCitActualizadas'
+        );
+    }
+
+    function badgeCls(asistencia) {
+        const map = {
+            PENDIENTE: 'cb-pendiente', VISTO: 'cb-visto', ASISTIO: 'cb-asistio',
+            NO_ASISTIO: 'cb-no_asistio', ATRASO: 'cb-atraso',
+            Informativo: 'cb-informativo', VENCIDA: 'cb-vencida',
+        };
+        return map[asistencia] || 'cb-pendiente';
+    }
+    function asistenciaLabel(a) {
+        const map = {
+            PENDIENTE: 'Pendiente', VISTO: 'Visto', ASISTIO: 'Asistió',
+            NO_ASISTIO: 'No asistió', ATRASO: 'Atraso',
+            Informativo: 'Informativo', VENCIDA: 'Vencida',
+        };
+        return map[a] || a;
+    }
+
+    function renderCitaciones(lista, gridId, badgeId) {
+        document.getElementById(badgeId).textContent = lista.length;
+        if (lista.length === 0) {
+            document.getElementById(gridId).innerHTML =
+                '<div class="grid-empty" style="padding:20px 0;">Ninguna</div>';
+            return;
+        }
+        const html = lista.map(c => `
+            <div class="cit-card">
+                <div class="cit-card__top">
+                    <div>
+                        <div class="cit-card__estudiante">${c.estudiante_nombre}</div>
+                        <div class="cit-card__curso">${c.curso}</div>
+                    </div>
+                    <span class="cit-badge ${badgeCls(c.asistencia)}">${asistenciaLabel(c.asistencia)}</span>
+                </div>
+                <div class="cit-card__motivo">${c.motivo}</div>
+                <div class="cit-card__footer">
+                    <span class="cit-card__emisor">Por: ${c.emisor_nombre || '—'}</span>
+                    <span style="font-size:11px;color:var(--text-muted);">Límite: ${c.fecha_limite_asistencia}</span>
+                </div>
+            </div>`).join('');
+        document.getElementById(gridId).innerHTML = html;
+    }
+
+    /* ── Toast ───────────────────────────────────────────────────── */
+    const appToast  = document.getElementById('appToast');
+    let   _toastTmr = null;
+
+    document.getElementById('toastBtn').addEventListener('click', ocultarToast);
+
+    function mostrarToast(titulo, msg) {
+        document.getElementById('toastTitle').textContent = titulo;
+        document.getElementById('toastMsg').textContent   = msg;
+        appToast.classList.add('app-toast--visible');
+        clearTimeout(_toastTmr);
+        _toastTmr = setTimeout(ocultarToast, 4000);
+    }
+    function ocultarToast() {
+        appToast.classList.remove('app-toast--visible');
+        clearTimeout(_toastTmr);
+    }
+
+    /* ── Panel flotante ──────────────────────────────────────────── */
+    const panelOverlay = document.getElementById('panelOverlay');
+    const panelClose   = document.getElementById('panelClose');
+
+    panelClose.addEventListener('click', cerrarPanel);
+    panelOverlay.addEventListener('click', e => {
+        if (e.target === panelOverlay) cerrarPanel();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarPanel(); });
+
+    function cerrarPanel() {
+        panelOverlay.classList.remove('open');
+    }
+
+    async function abrirPanel(card) {
+        const cursoId   = card.dataset.cursoId;
+        const sinSesion = card.dataset.sinSesion === '1';
+        const c = _cursosCache.find(x => x.id == cursoId) || {};
+        const cursoNombre = c.grado && c.paralelo ? `${c.grado}° ${c.paralelo}` : `Curso ${cursoId}`;
+        const fecha      = inputFecha.value;
+
+        if (sinSesion) {
+            mostrarToast(
+                'Sin registro de asistencia',
+                `El curso ${cursoNombre} no tiene asistencia registrada para ${fechaHeroTexto(fecha)}.`
+            );
+            return;
+        }
+
+        document.getElementById('panelTitulo').textContent    = cursoNombre;
+        document.getElementById('panelSubtitulo').textContent = fechaHeroTexto(fecha);
+        document.getElementById('panelResumen').style.display = 'none';
+        document.getElementById('panelBody').innerHTML =
+            '<div class="panel-loading"><div class="grid-spinner"></div> Cargando...</div>';
+
+        panelOverlay.classList.add('open');
+
+        const res = await fetchAPI(`/api/attendance/cursos/${cursoId}/asistencia/?fecha=${fecha}`);
+
+        if (!res.ok) {
+            document.getElementById('panelBody').innerHTML =
+                '<div class="panel-no-session">No se pudo cargar la asistencia.</div>';
+            return;
+        }
+
+        const sesion = res.data;
+        renderPanelEstudiantes(sesion);
+    }
+
+    function renderPanelEstudiantes(sesion) {
+        const r = sesion.resumen || {};
+
+        // Resumen chips
+        const chips = [
+            { key: 'presente', label: 'P', dotCls: 'pr-dot--P', val: r.presente || 0 },
+            { key: 'falta',    label: 'F', dotCls: 'pr-dot--F', val: r.falta    || 0 },
+            { key: 'atraso',   label: 'A', dotCls: 'pr-dot--A', val: r.atraso   || 0 },
+            { key: 'licencia', label: 'L', dotCls: 'pr-dot--L', val: r.licencia || 0 },
+        ];
+        document.getElementById('panelResumen').innerHTML = chips.map(c =>
+            `<div class="pr-chip"><div class="pr-dot ${c.dotCls}"></div>${c.val} ${c.label}</div>`
+        ).join('');
+        document.getElementById('panelResumen').style.display = 'flex';
+
+        // Lista de estudiantes
+        const lista = sesion.asistencias || [];
+        if (lista.length === 0) {
+            document.getElementById('panelBody').innerHTML =
+                '<div class="panel-no-session">Sin registros de estudiantes.</div>';
+            return;
+        }
+
+        const html = lista.map((a, i) => {
+            const cfg    = ESTADO_CFG[a.estado] || { label: a.estado, dotCls: 'dot-P', lblCls: 'el-P' };
+            const hora   = formatHora(a.hora);
+            const nombre = a.nombre_completo.replace(', ', ' ');
+            return `<div class="est-item">
+                <div class="est-num">${i + 1}</div>
+                <div class="est-row">
+                    <div class="est-estado-dot ${cfg.dotCls}"></div>
+                    <span class="est-nombre">${nombre}</span>
+                    <span class="est-estado-label ${cfg.lblCls}">${cfg.label}</span>
+                    <span class="est-hora">${hora}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('panelBody').innerHTML = html;
+    }
+
+    /* ── Iniciar (se llama desde initFlatpickr tras cargar el script) */
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script>
+flatpickr.l10ns.es = {
+    firstDayOfWeek: 1,
+    weekdays: {
+        shorthand: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+        longhand:  ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+    },
+    months: {
+        shorthand: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+        longhand:  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+    },
+    ordinal: () => "º",
+    rangeSeparator: " a ",
+    time_24hr: true,
+};
+initFlatpickr();
+cargarTodo();
+</script>
+</body>
+</html>
