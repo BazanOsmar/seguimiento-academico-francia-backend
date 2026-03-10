@@ -17,6 +17,9 @@ let _allRows           = [];
 let _calendarioAbierto = false;
 let _calMes            = null;  // mes mostrado en el calendario (independiente del filtro)
 let _globalData        = null;  // datos globales cargados al inicio/reset
+let _cursosData        = [];    // lista de cursos (para resumen día)
+let _resumenDiaAbierto = false;
+let _resumenFecha      = null;  // fecha activa en resumen día (YYYY-MM-DD)
 
 // ── Referencias DOM ───────────────────────────────────────────────
 const selectCurso    = document.getElementById('selectCurso');
@@ -37,6 +40,12 @@ const btnCalNext         = document.getElementById('btnCalNext');
 const calendarioCard     = document.getElementById('calendarioCard');
 const calendarioMesLabel = document.getElementById('calendarioMesLabel');
 const calGrid            = document.getElementById('calGrid');
+
+// Resumen Día (sidebar accordion)
+const navResumenDia     = document.getElementById('navResumenDia');
+const resumenDiaPanel   = document.getElementById('resumenDiaPanel');
+const resumenCursosList = document.getElementById('resumenCursosList');
+const inputResumenFecha = document.getElementById('inputResumenFecha');
 
 // Stats mensuales
 const statPct       = document.getElementById('statPct');
@@ -110,6 +119,7 @@ async function loadCursos() {
         selectCurso.innerHTML = '<option value="">Sin cursos disponibles</option>';
         return;
     }
+    _cursosData = data;
     // Opción vacía inicial + opciones reales; sin auto-selección
     selectCurso.innerHTML =
         '<option value="">— Seleccionar —</option>' +
@@ -420,6 +430,52 @@ function _moveMes(delta) {
     _loadCalendario();
 }
 
+// ── Resumen Día (sidebar accordion) ───────────────────────────────
+function _openResumenDia() {
+    _resumenDiaAbierto = true;
+    navResumenDia.classList.add('open');
+    resumenDiaPanel.classList.add('open');
+    if (!_resumenFecha) _resumenFecha = _todayISO();
+    _loadResumenDia();
+}
+
+function _closeResumenDia() {
+    _resumenDiaAbierto = false;
+    navResumenDia.classList.remove('open');
+    resumenDiaPanel.classList.remove('open');
+}
+
+async function _loadResumenDia() {
+    if (!_resumenFecha) return;
+    const labelEl = document.getElementById('resumenDiaFechaLabel');
+    if (labelEl) labelEl.textContent = _fechaDisplay(_resumenFecha);
+    resumenCursosList.innerHTML = '<div class="resumen-dia-empty">Cargando...</div>';
+    const { ok, data } = await fetchAPI(`/api/attendance/estado-diario/?fecha=${_resumenFecha}`);
+    if (!ok || !data) {
+        resumenCursosList.innerHTML = '<div class="resumen-dia-empty">No se pudieron cargar los datos.</div>';
+        return;
+    }
+    const registrados = new Set((data.sesiones || []).map(s => s.curso_id));
+    _renderResumenDiaCursos(registrados);
+}
+
+function _renderResumenDiaCursos(registrados) {
+    if (!_cursosData.length) {
+        resumenCursosList.innerHTML = '<div class="resumen-dia-empty">Sin cursos disponibles.</div>';
+        return;
+    }
+    const html = _cursosData.map(c => {
+        const nombre = c.nombre || `${c.grado} ${c.paralelo}`;
+        const ok     = registrados.has(c.id);
+        const color  = ok ? 'verde' : 'naranja';
+        return `<div class="resumen-curso-item resumen-curso-item--${color}">
+            <span class="resumen-curso-nombre">${nombre}</span>
+            <span class="resumen-curso-status--${color}">${ok ? 'Registrada' : 'Sin registro'}</span>
+        </div>`;
+    }).join('');
+    resumenCursosList.innerHTML = html;
+}
+
 async function _loadCalendario() {
     // Skeleton mientras carga
     _showCalSkeleton();
@@ -503,11 +559,19 @@ btnCalClose.addEventListener('click', _closeCalendario);
 btnCalPrev.addEventListener('click', () => _moveMes(-1));
 btnCalNext.addEventListener('click', () => _moveMes(+1));
 
-// Click fuera de la tarjeta → cerrar
+navResumenDia.addEventListener('click', () => {
+    _resumenDiaAbierto ? _closeResumenDia() : _openResumenDia();
+});
+inputResumenFecha.addEventListener('change', () => {
+    _resumenFecha = inputResumenFecha.value || null;
+    if (_resumenFecha) _loadResumenDia();
+});
+
+// Click fuera del calendario → cerrar
 document.addEventListener('click', (e) => {
-    if (!_calendarioAbierto) return;
-    if (calendarioCard.contains(e.target) || btnCalendario.contains(e.target)) return;
-    _closeCalendario();
+    if (_calendarioAbierto) {
+        if (!calendarioCard.contains(e.target) && !btnCalendario.contains(e.target)) _closeCalendario();
+    }
 });
 
 selectCurso.addEventListener('change', async () => {

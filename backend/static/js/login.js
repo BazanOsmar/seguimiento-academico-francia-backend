@@ -137,8 +137,8 @@ form.addEventListener('submit', async (e) => {
         localStorage.setItem('refresh_token', data.refresh);
         localStorage.setItem('user',          JSON.stringify(data.user));
 
-        // Redirigir según tipo
-        window.location.href = REDIRECT[tipo];
+        // Redirigir según tipo (replace elimina el login del historial)
+        window.location.replace(REDIRECT[tipo]);
 
     } catch {
         showError('Error de conexión. Verifique su red e intente nuevamente.');

@@ -268,13 +268,27 @@ selectCurso.addEventListener('change', async () => {
 });
 
 // ── Flatpickr para fecha límite ───────────────────────────────────
+const _FP_LOCALE_ES = {
+    firstDayOfWeek: 1,
+    weekdays: {
+        shorthand: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+        longhand:  ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+    },
+    months: {
+        shorthand: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+        longhand:  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+    },
+    rangeSeparator: " a ",
+    time_24hr: true,
+};
+
 function initFpFechaLimite() {
     const input = document.getElementById('nuevaFechaLimite');
     if (!input || typeof flatpickr === 'undefined') return;
     const manana = new Date();
     manana.setDate(manana.getDate() + 1);
     fpFechaLimite = flatpickr(input, {
-        locale:        'es',
+        locale:        _FP_LOCALE_ES,
         dateFormat:    'Y-m-d',
         minDate:       manana,
         disableMobile: true,

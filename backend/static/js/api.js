@@ -84,11 +84,47 @@ function showToast(message, type = 'error', onAccept = null) {
 }
 
 /* ----------------------------------------------------------------
+   _logout()
+   Limpia tokens y redirige al login.
+----------------------------------------------------------------- */
+function _logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.replace('/login/');
+}
+
+/* ----------------------------------------------------------------
+   _renovarToken()
+   Intenta renovar el access token usando el refresh token.
+   Retorna el nuevo access token o null si falló.
+----------------------------------------------------------------- */
+async function _renovarToken() {
+    const refresh = localStorage.getItem('refresh_token');
+    if (!refresh) return null;
+    try {
+        const res = await fetch('/api/auth/refresh/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.access) {
+            localStorage.setItem('access_token', data.access);
+            return data.access;
+        }
+    } catch (_) { /* sin conexión */ }
+    return null;
+}
+
+/* ----------------------------------------------------------------
    fetchAPI(url, options)
    Wrapper de fetch que:
    - Agrega el token JWT automáticamente
+   - En 401: intenta renovar el access token y reintenta la llamada
+   - Si la renovación falla: redirige a /login/
    - Intercepta y muestra errores con showToast
-   - Redirige a /login/ en 401
    Retorna: { ok: bool, status: int, data: object|null }
 ----------------------------------------------------------------- */
 async function fetchAPI(url, options = {}) {
@@ -109,15 +145,23 @@ async function fetchAPI(url, options = {}) {
 
         // ── Manejo por código de estado ───────────────────────
         if (res.status === 401) {
+            const nuevoToken = await _renovarToken();
+            if (nuevoToken) {
+                // Reintentar la petición original con el nuevo token
+                const reintento = await fetch(url, {
+                    ...options,
+                    headers: { ...headers, 'Authorization': `Bearer ${nuevoToken}` },
+                });
+                let dataReintento = null;
+                const ctR = reintento.headers.get('content-type') || '';
+                if (ctR.includes('application/json')) dataReintento = await reintento.json();
+                if (reintento.ok) return { ok: true, status: reintento.status, data: dataReintento };
+            }
+            // Renovación fallida → logout
             showToast(
-                'Tu sesión ha expirado o no tienes autorización. Serás redirigido al inicio de sesión.',
+                'Tu sesión ha expirado. Serás redirigido al inicio de sesión.',
                 'error',
-                () => {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('user');
-                    window.location.replace('/login/');
-                }
+                () => _logout()
             );
             return { ok: false, status: 401, data: null };
         }
