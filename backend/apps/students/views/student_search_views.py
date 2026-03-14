@@ -10,10 +10,11 @@ from backend.apps.students.serializers import EstudianteBusquedaSerializer
 
 class EstudianteBusquedaView(APIView):
     """
-    GET /api/students/buscar/?q=<texto>
+    GET /api/students/buscar/?q=<texto>&curso_id=<id>
 
     Búsqueda de estudiantes por nombre o apellido.
     Retorna hasta 10 coincidencias. Solo Regente.
+    El parámetro curso_id es opcional; si se provee filtra por curso.
     """
     permission_classes = (IsAuthenticated, IsRegente)
 
@@ -37,7 +38,12 @@ class EstudianteBusquedaView(APIView):
             .select_related('curso')
             .filter(activo=True)
             .filter(filtro)
-            .order_by('apellido_paterno', 'apellido_materno', 'nombre')[:10]
         )
+
+        curso_id = request.query_params.get('curso_id', '').strip()
+        if curso_id.isdigit():
+            qs = qs.filter(curso_id=int(curso_id))
+
+        qs = qs.order_by('apellido_paterno', 'apellido_materno', 'nombre')[:10]
         serializer = EstudianteBusquedaSerializer(qs, many=True)
         return Response(serializer.data)

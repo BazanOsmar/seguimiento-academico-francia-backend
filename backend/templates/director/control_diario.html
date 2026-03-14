@@ -398,6 +398,60 @@
             border-radius: 20px; background: var(--bg-app);
             border: 1px solid var(--border); color: var(--text-muted);
         }
+        /* ── Correcciones del Día (alerta) ─────────────────────────── */
+        #seccionActividadRegente {
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-card);
+            background: linear-gradient(135deg, rgba(239,68,68,0.07) 0%, var(--bg-card) 60%);
+            padding: 20px 22px 16px;
+            margin-bottom: 32px;
+            box-shadow: 0 0 18px rgba(239,68,68,0.15);
+        }
+        #seccionActividadRegente .seccion__titulo {
+            color: var(--danger);
+            display: flex; align-items: center; gap: 8px;
+        }
+        #seccionActividadRegente .seccion__linea {
+            background: var(--danger);
+            opacity: .35;
+        }
+        .alerta-icono-header {
+            width: 20px; height: 20px; flex-shrink: 0;
+            stroke: var(--danger);
+        }
+        .badge-danger {
+            font-size: 11px; font-weight: 700; padding: 2px 8px;
+            border-radius: 20px;
+            background: var(--danger-dim);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        .actividad-lista { display: flex; flex-direction: column; }
+        .actividad-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 12px 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            background: var(--danger-dim);
+            border: 1px solid rgba(239,68,68,0.25);
+        }
+        .actividad-item:last-child { margin-bottom: 0; }
+        .actividad-icono {
+            width: 34px; height: 34px; flex-shrink: 0;
+            border-radius: 50%;
+            background: rgba(239,68,68,0.2);
+            border: 1px solid rgba(239,68,68,0.4);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .actividad-icono svg { width: 15px; height: 15px; stroke: var(--danger); }
+        .actividad-body { flex: 1; min-width: 0; }
+        .actividad-desc {
+            font-size: 13px; color: var(--text-primary);
+            font-weight: 500; line-height: 1.4;
+        }
+        .actividad-meta {
+            font-size: 11px; color: rgba(239,68,68,0.8); margin-top: 3px;
+        }
     </style>
 </head>
 <body>
@@ -545,6 +599,27 @@
                 <div class="cursos-grid" id="cursosGrid">
                     <div class="grid-loading">
                         <div class="grid-spinner"></div> Cargando cursos...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Sección Correcciones del Día ───────────────────── -->
+            <div class="seccion" id="seccionActividadRegente">
+                <div class="seccion__header">
+                    <span class="seccion__titulo">
+                        <svg class="alerta-icono-header" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Correcciones del Día
+                        <span class="badge-danger" id="badgeActividadRegente">—</span>
+                    </span>
+                    <div class="seccion__linea"></div>
+                </div>
+                <div class="actividad-lista" id="gridActividadRegente">
+                    <div class="grid-loading">
+                        <div class="grid-spinner"></div> Cargando...
                     </div>
                 </div>
             </div>
@@ -728,6 +803,7 @@
     async function cargarTodo() {
         const fecha = inputFecha.value;
         cargarAsistencia(fecha);
+        cargarActividadRegente(fecha);
         cargarCitaciones(fecha);
     }
 
@@ -811,6 +887,41 @@
         document.querySelectorAll('#cursosGrid .curso-card').forEach(card => {
             card.addEventListener('click', () => abrirPanel(card));
         });
+    }
+
+    async function cargarActividadRegente(fecha) {
+        const grid  = document.getElementById('gridActividadRegente');
+        const badge = document.getElementById('badgeActividadRegente');
+        grid.innerHTML = '<div class="grid-loading"><div class="grid-spinner"></div> Cargando...</div>';
+
+        const { ok, data } = await fetchAPI(`/api/auditoria/actividad/?accion=RESTABLECER_ATRASO&fecha=${fecha}`);
+        const items = ok ? (data.results || []) : [];
+
+        badge.textContent = items.length ? items.length : '—';
+
+        if (!items.length) {
+            grid.innerHTML = '<div class="grid-empty" style="color:var(--text-muted);font-size:13px;padding:10px 0;">Sin correcciones registradas para esta fecha.</div>';
+            return;
+        }
+
+        const icono = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>`;
+
+        grid.innerHTML = items.map(item => {
+            const hora = new Date(item.fecha).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
+            const desc = item.descripcion || 'Corrección de estado';
+            const quien = item.usuario_nombre || 'Regente';
+            return `
+            <div class="actividad-item">
+                <div class="actividad-icono">${icono}</div>
+                <div class="actividad-body">
+                    <div class="actividad-desc">${desc}</div>
+                    <div class="actividad-meta">${quien} &middot; ${hora}</div>
+                </div>
+            </div>`;
+        }).join('');
     }
 
     async function cargarCitaciones(fecha) {

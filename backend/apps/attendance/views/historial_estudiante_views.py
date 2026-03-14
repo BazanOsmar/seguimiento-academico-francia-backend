@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
-from backend.apps.users.permissions import IsRegente
+from backend.apps.users.permissions import IsDirectorOrRegente
 from backend.apps.students.models import Estudiante
 from backend.apps.attendance.models import Asistencia
 from backend.apps.attendance.serializers.attendance_read_serializers import (
@@ -22,7 +22,7 @@ class HistorialEstudianteView(APIView):
         ?fecha_desde=YYYY-MM-DD
         ?fecha_hasta=YYYY-MM-DD
     """
-    permission_classes = (IsAuthenticated, IsRegente)
+    permission_classes = (IsAuthenticated, IsDirectorOrRegente)
 
     def get(self, request, estudiante_id):
         get_object_or_404(Estudiante, pk=estudiante_id)
