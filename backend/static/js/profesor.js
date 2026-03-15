@@ -286,201 +286,387 @@ const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
     <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
 </svg>`;
 
-function _initPlanForm() {
-    const selMes    = document.getElementById('planMes');
-    const meActual  = new Date().getMonth() + 1;
+// ── Estado del plan ────────────────────────────────────────────────
+let _planAsignaciones = [];         // ProfesorCurso[] del profesor
+let _planPlanesCache  = {};         // { mes: { pc_id: [plan, ...] } }
+let _planModalPcId    = null;
+let _planModalMes     = null;
+let _planModalEditable = true;
+let _planHistCargado  = false;
 
-    // Solo mostrar meses hasta el actual
-    selMes.innerHTML = '';
-    for (let m = 1; m <= meActual; m++) {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = MESES[m];
-        selMes.appendChild(opt);
-    }
-    selMes.value = meActual;
-    selMes.addEventListener('change', cargarPlanes);
+function _initPlanForm() {
+    // botón Ver historial
+    const btn  = document.getElementById('btnVerHistorial');
+    const wrap = document.getElementById('planHistorialWrap');
+
+    btn.addEventListener('click', async () => {
+        const visible = wrap.style.display !== 'none';
+        if (visible) {
+            wrap.style.display = 'none';
+            btn.classList.remove('active');
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ver planes pasados`;
+        } else {
+            wrap.style.display = 'block';
+            btn.classList.add('active');
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ocultar planes pasados`;
+            if (!_planHistCargado) {
+                await cargarHistorialPlanes();
+                _planHistCargado = true;
+            }
+        }
+    });
+
+    // modal plan — cerrar
+    document.getElementById('planModalClose').addEventListener('click', _cerrarPlanModal);
+    document.getElementById('planModalOverlay').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarPlanModal();
+    });
+
+    // modal advertencia sin guardar
+    document.getElementById('warnSinGuardarQuedarme').addEventListener('click', () => {
+        document.getElementById('warnSinGuardarOverlay').classList.remove('visible');
+    });
+    document.getElementById('warnSinGuardarSalir').addEventListener('click', () => {
+        document.getElementById('warnSinGuardarOverlay').classList.remove('visible');
+        _forzarCerrarPlanModal();
+    });
+
+    // modal plan — guardar todos
+    document.getElementById('planModalGuardar').addEventListener('click', _pedirConfirmGuardar);
+
+    // confirmación antes de guardar
+    const backdrop = document.getElementById('planConfirmBackdrop');
+    document.getElementById('planConfirmCancelar').addEventListener('click', () => {
+        backdrop.classList.remove('visible');
+    });
+    document.getElementById('planConfirmAceptar').addEventListener('click', async () => {
+        backdrop.classList.remove('visible');
+        await _guardarPlanesModal();
+    });
 }
 
-// Calcula fechas y texto de período para una semana de un mes
+// ── Utilidades de calendario ──────────────────────────────────────
+function _semanasMes(mes, año) {
+    const primerDia = new Date(año, mes - 1, 1);
+    const dowLun = (primerDia.getDay() + 6) % 7;
+    const diasHastaLunes = (7 - dowLun) % 7;
+    return [0, 1, 2, 3].map(i => {
+        const lunes  = new Date(año, mes - 1, 1 + diasHastaLunes + i * 7);
+        const domingo = new Date(lunes);
+        domingo.setDate(domingo.getDate() + 6);
+        return { inicio: lunes, fin: domingo };
+    });
+}
+
 function _periodoSemana(mes, semana) {
     const año = new Date().getFullYear();
-    const diasEnMes = new Date(año, mes, 0).getDate();
-    const rangos = { 1: [1, 7], 2: [8, 14], 3: [15, 21], 4: [22, diasEnMes] };
-    const [d1, d2] = rangos[semana];
-    const pad = n => String(n).padStart(2, '0');
-    const fi = `${año}-${pad(mes)}-${pad(d1)}`;
-    const ff = `${año}-${pad(mes)}-${pad(d2)}`;
-    const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('es-BO', { day: 'numeric', month: 'short' });
-    return { fi, ff, display: `${fmt(fi)} – ${fmt(ff)}` };
+    const { inicio, fin } = _semanasMes(mes, año)[semana - 1];
+    const fmt = d => d.toLocaleDateString('es-BO', { day: 'numeric', month: 'short' });
+    return { display: `${fmt(inicio)} – ${fmt(fin)}` };
 }
 
-// Deriva la semana (1-4) del día de fecha_inicio
-function _semanaDesde(fechaInicio) {
-    const dia = parseInt(fechaInicio.split('-')[2]);
-    if (dia <= 7)  return 1;
-    if (dia <= 14) return 2;
-    if (dia <= 21) return 3;
-    return 4;
-}
-
+// ── Carga principal del mes actual ────────────────────────────────
 async function cargarPlanes() {
-    const wrap    = document.getElementById('planTableWrap');
+    const grid    = document.getElementById('planAsigGrid');
     const spinner = document.getElementById('planSpinner');
-    wrap.style.display = 'none';
+    grid.style.display = 'none';
     spinner.style.display = 'flex';
 
-    const mes      = parseInt(document.getElementById('planMes').value);
-    const mesActual = new Date().getMonth() + 1;
-    const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mes}`);
+    // Cargar asignaciones una sola vez
+    if (!_planAsignaciones.length) {
+        const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+        if (!ok) {
+            spinner.style.display = 'none';
+            showAppToast('error', 'Error', 'No se pudieron cargar las asignaciones.');
+            return;
+        }
+        _planAsignaciones = data;
+    }
+
+    const mes = new Date().getMonth() + 1;
+    await _refrescarPlanesCache(mes);
 
     spinner.style.display = 'none';
-    if (!ok) { showAppToast('error', 'Error', 'No se pudieron cargar los planes.'); return; }
-
-    _renderPlanTable(data, mes, mes === mesActual);
-    _actualizarNotificaciones(data, mes, mesActual);
-    wrap.style.display = 'block';
+    grid.style.display = 'grid';
+    _renderPlanCards(mes);
+    _actualizarNotificaciones(mes);
 }
 
-// Verifica el mes actual en background (para el dot al cargar la app)
-async function _verificarDotPlan() {
-    const mesActual = new Date().getMonth() + 1;
-    const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mesActual}`);
+async function _refrescarPlanesCache(mes) {
+    const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mes}`);
     if (!ok) return;
-    const incompleto = data.length < 4;
-    document.getElementById('planDot').classList.toggle('visible', incompleto);
+    const pcMap = {};
+    _planAsignaciones.forEach(a => { pcMap[a.id] = []; });
+    data.forEach(p => { if (pcMap[p.profesor_curso_id] !== undefined) pcMap[p.profesor_curso_id].push(p); });
+    _planPlanesCache[mes] = pcMap;
 }
 
-function _actualizarNotificaciones(planes, mes, mesActual) {
-    const dot          = document.getElementById('planDot');
-    const banner       = document.getElementById('planBanner');
-    const bannerMes    = document.getElementById('planBannerMes');
-    const readonlyBadge = document.getElementById('planReadonlyBadge');
-    const esActual     = mes === mesActual;
-    const incompleto   = planes.length < 4;
+// ── Tarjetas de asignaciones ──────────────────────────────────────
+function _renderPlanCards(mes) {
+    const grid = document.getElementById('planAsigGrid');
+    const pcMap = _planPlanesCache[mes] || {};
 
-    // El dot solo refleja el mes actual
-    if (esActual) dot.classList.toggle('visible', incompleto);
+    grid.innerHTML = _planAsignaciones.map(asig => {
+        const plans = pcMap[asig.id] || [];
+        const dots  = [1, 2, 3, 4].map(s => {
+            const ok = plans.some(p => p.semana === s);
+            return `<span class="plan-asig-dot${ok ? '' : ' plan-asig-dot--empty'}"></span>`;
+        }).join('');
+        return `<div class="plan-asig-card" data-pc-id="${asig.id}" data-mes="${mes}">
+            <div>
+                <div class="plan-asig-card__materia">${_escapeHtml(asig.materia_nombre)}</div>
+                <div class="plan-asig-card__curso">${_escapeHtml(asig.curso_nombre)}</div>
+            </div>
+            <div class="plan-asig-dots">${dots}</div>
+            <div class="plan-asig-card__count">${plans.length} de 4 semanas</div>
+        </div>`;
+    }).join('');
 
-    // Banner solo cuando estamos en el mes actual e incompleto
-    banner.classList.toggle('visible', esActual && incompleto);
-    if (esActual && incompleto) bannerMes.textContent = MESES[mesActual];
-
-    // Badge solo lectura para meses pasados
-    readonlyBadge.classList.toggle('visible', !esActual);
+    grid.querySelectorAll('.plan-asig-card').forEach(card => {
+        card.addEventListener('click', () =>
+            _abrirPlanModal(parseInt(card.dataset.pcId), parseInt(card.dataset.mes), true)
+        );
+    });
 }
 
-function _renderPlanTable(planes, mes, editable) {
-    const tbody = document.getElementById('planTbody');
+// ── Modal de plan por asignación ──────────────────────────────────
+function _abrirPlanModal(pcId, mes, editable) {
+    _planModalPcId     = pcId;
+    _planModalMes      = mes;
+    _planModalEditable = editable;
+
+    const asig = _planAsignaciones.find(a => a.id === pcId);
+    if (!asig) return;
+
+    document.getElementById('planModalMateria').textContent = asig.materia_nombre;
+    document.getElementById('planModalCurso').textContent   = asig.curso_nombre;
+    _renderPlanModalTbody(pcId, mes, editable);
+    document.getElementById('planModalOverlay').classList.add('visible');
+}
+
+function _cerrarPlanModal() {
+    const hayContenido = [...document.querySelectorAll('#planModalTbody textarea')]
+        .some(ta => ta.value.trim());
+    if (hayContenido) {
+        document.getElementById('warnSinGuardarOverlay').classList.add('visible');
+        return;
+    }
+    _forzarCerrarPlanModal();
+}
+
+function _forzarCerrarPlanModal() {
+    document.getElementById('planModalOverlay').classList.remove('visible');
+    _planModalPcId = null;
+    _planModalMes  = null;
+}
+
+function _renderPlanModalTbody(pcId, mes, editable) {
+    const tbody  = document.getElementById('planModalTbody');
+    const footer = document.getElementById('planModalFooter');
+    const plans  = (_planPlanesCache[mes] || {})[pcId] || [];
+    const mapa   = {};
+    plans.forEach(p => { mapa[p.semana] = p; });
+
     tbody.innerHTML = '';
-
-    // Mapear semana → plan
-    const mapa = {};
-    planes.forEach(p => { mapa[_semanaDesde(p.fecha_inicio)] = p; });
+    let hayVacias = false;
 
     for (let semana = 1; semana <= 4; semana++) {
         const plan = mapa[semana] || null;
         const { display } = _periodoSemana(mes, semana);
         const tr = document.createElement('tr');
-        if (!editable) tr.classList.add('plan-row--locked');
 
-        const dotCls = plan ? 'plan-semana-dot' : 'plan-semana-dot plan-semana-dot--empty';
-        const semanaCell = `<td data-label="Semana">
-            <span class="plan-semana-badge">
-                <span class="${dotCls}"></span>Semana ${semana}
-            </span>
-        </td>`;
+        const dotCls      = plan ? 'plan-semana-dot' : 'plan-semana-dot plan-semana-dot--empty';
+        const semanaCell  = `<td data-label="Semana"><span class="plan-semana-badge"><span class="${dotCls}"></span>Semana ${semana}</span></td>`;
         const periodoCell = `<td data-label="Período"><span class="plan-periodo">${display}</span></td>`;
 
         if (plan) {
-            tr.innerHTML = `
-                ${semanaCell}
-                ${periodoCell}
-                <td data-label="Plan de Trabajo">
-                    <span class="plan-desc-text">${_escapeHtml(plan.descripcion)}</span>
-                </td>
-                <td>${editable ? `<button class="btn-icon-sm" title="Eliminar plan">${SVG_TRASH}</button>` : ''}</td>`;
-            if (editable) tr.querySelector('.btn-icon-sm').addEventListener('click', () => eliminarPlan(plan.id));
+            tr.innerHTML = `${semanaCell}${periodoCell}
+                <td data-label="Plan"><span class="plan-desc-text">${_escapeHtml(plan.descripcion)}</span></td>
+                <td></td>`;
         } else {
-            tr.innerHTML = `
-                ${semanaCell}
-                ${periodoCell}
-                <td data-label="Plan de Trabajo">
-                    <span class="plan-desc-vacia">${editable ? 'Sin plan registrado' : '—'}</span>
-                </td>
-                <td>${editable ? `<button class="plan-btn-add">+ Agregar</button>` : ''}</td>`;
-            if (editable) tr.querySelector('.plan-btn-add').addEventListener('click', () => _mostrarFormInline(tr, semana, mes));
+            hayVacias = true;
+            tr.innerHTML = `${semanaCell}${periodoCell}
+                <td data-label="Plan">${editable
+                    ? `<div class="plan-inline-form"><textarea data-semana="${semana}" placeholder="Plan de trabajo para la semana ${semana}… (mín. 20 caracteres)" maxlength="500" minlength="20"></textarea><span class="plan-inline-error"></span></div>`
+                    : '<span class="plan-desc-vacia">Sin plan registrado</span>'
+                }</td>
+                <td></td>`;
         }
         tbody.appendChild(tr);
     }
+
+    if (footer) footer.style.display = editable && hayVacias ? 'flex' : 'none';
+
+    // Habilitar botón solo cuando todos los textareas tengan ≥ 20 chars
+    if (editable && hayVacias) {
+        const btn = document.getElementById('planModalGuardar');
+        btn.disabled = true;
+        tbody.querySelectorAll('textarea').forEach(ta => {
+            ta.addEventListener('input', _actualizarBtnGuardar);
+        });
+    }
 }
 
-function _mostrarFormInline(tr, semana, mes) {
-    const descCell   = tr.querySelectorAll('td')[2];
-    const actionCell = tr.querySelectorAll('td')[3];
+function _actualizarBtnGuardar() {
+    const textareas = [...document.querySelectorAll('#planModalTbody textarea')];
+    const btn = document.getElementById('planModalGuardar');
+    if (!btn) return;
+    btn.disabled = textareas.length === 0 || !textareas.every(ta => ta.value.trim().length >= 20);
+}
 
-    descCell.innerHTML = `
-        <div class="plan-inline-form">
-            <textarea placeholder="Escribe el plan de trabajo para esta semana…"
-                      maxlength="500"></textarea>
-            <span class="plan-inline-error"></span>
-        </div>`;
-    actionCell.innerHTML = `
-        <div class="plan-inline-btns">
-            <button class="plan-btn-save">Guardar</button>
-            <button class="plan-btn-cancel">Cancelar</button>
-        </div>`;
+function _pedirConfirmGuardar() {
+    const asig  = _planAsignaciones.find(a => a.id === _planModalPcId);
+    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('planConfirmSub').textContent =
+        `Estás a punto de registrar los planes de trabajo de ${meses[_planModalMes]} para:`;
+    document.getElementById('planConfirmDetalle').innerHTML =
+        `<span class="plan-confirm-tag">${_escapeHtml(asig.materia_nombre)}</span> &mdash; <span class="plan-confirm-tag">${_escapeHtml(asig.curso_nombre)}</span>`;
+    document.getElementById('planConfirmBackdrop').classList.add('visible');
+}
 
-    const textarea = descCell.querySelector('textarea');
-    const errorEl  = descCell.querySelector('.plan-inline-error');
-    const saveBtn  = actionCell.querySelector('.plan-btn-save');
-    textarea.focus();
+async function _guardarPlanesModal() {
+    const textareas  = [...document.querySelectorAll('#planModalTbody textarea')];
+    const pendientes = textareas.map(ta => ({ semana: parseInt(ta.dataset.semana), desc: ta.value.trim(), ta }));
 
-    actionCell.querySelector('.plan-btn-cancel').addEventListener('click', cargarPlanes);
+    const btn = document.getElementById('planModalGuardar');
+    btn.disabled    = true;
+    btn.textContent = 'Guardando…';
 
-    saveBtn.addEventListener('click', async () => {
-        const desc = textarea.value.trim();
-        errorEl.style.display = 'none';
-        textarea.classList.remove('invalid');
-
-        if (!desc) {
-            errorEl.textContent = 'Escribe el plan antes de guardar.';
-            errorEl.style.display = 'block';
-            textarea.classList.add('invalid');
-            return;
-        }
-
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Guardando…';
-
+    let errores = 0;
+    for (const { semana, desc, ta } of pendientes) {
         const { ok, data } = await fetchAPI('/api/academics/profesor/planes/', {
             method: 'POST',
-            body: JSON.stringify({ mes, semana, descripcion: desc }),
+            body: JSON.stringify({ mes: _planModalMes, semana, descripcion: desc, profesor_curso_id: _planModalPcId }),
         });
-
         if (!ok) {
-            errorEl.textContent = data?.errores || 'Error al guardar.';
-            errorEl.style.display = 'block';
-            textarea.classList.add('invalid');
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Guardar';
-            return;
+            errores++;
+            ta.classList.add('invalid');
+            const err = ta.closest('.plan-inline-form')?.querySelector('.plan-inline-error');
+            if (err) { err.textContent = data?.errores || 'Error al guardar.'; err.style.display = 'block'; }
         }
+    }
 
-        showAppToast('success', 'Plan guardado', `Semana ${semana} — ${MESES[mes]}`);
-        await cargarPlanes();
-    });
+    btn.textContent = 'Guardar planes';
+
+    await _refrescarPlanesCache(_planModalMes);
+    _renderPlanModalTbody(_planModalPcId, _planModalMes, true);
+    _renderPlanCards(_planModalMes);
+    _actualizarNotificaciones(_planModalMes);
+
+    if (!errores) {
+        showAppToast('success', 'Guardado', `Plan de trabajo registrado correctamente.`);
+    }
 }
 
-async function eliminarPlan(id) {
-    const { ok } = await fetchAPI(`/api/academics/profesor/planes/${id}/`, { method: 'DELETE' });
-    if (!ok) { showAppToast('error', 'Error', 'No se pudo eliminar el plan.'); return; }
-    showAppToast('success', 'Eliminado', 'Plan eliminado correctamente.');
-    await cargarPlanes();
+
+
+// ── Verificación background (dot en sidebar) ──────────────────────
+async function _verificarDotPlan() {
+    // Necesita asignaciones para saber cuántos se esperan
+    if (!_planAsignaciones.length) {
+        const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+        if (!ok) return;
+        _planAsignaciones = data;
+    }
+    const mes = new Date().getMonth() + 1;
+    const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mes}`);
+    if (!ok) return;
+    // Si alguna asignación tiene < 4 planes → dot visible
+    const conteo = {};
+    _planAsignaciones.forEach(a => { conteo[a.id] = 0; });
+    data.forEach(p => { if (conteo[p.profesor_curso_id] !== undefined) conteo[p.profesor_curso_id]++; });
+    const incompleto = _planAsignaciones.some(a => conteo[a.id] < 4);
+    document.getElementById('planDot').classList.toggle('visible', incompleto);
+}
+
+function _actualizarNotificaciones(mes) {
+    const pcMap     = _planPlanesCache[mes] || {};
+    const incompleto = _planAsignaciones.some(a => (pcMap[a.id] || []).length < 4);
+    document.getElementById('planDot').classList.toggle('visible', incompleto);
+    document.getElementById('planBanner').classList.toggle('visible', incompleto);
+    if (incompleto) document.getElementById('planBannerMes').textContent = MESES[mes];
+}
+
+// ── Historial ─────────────────────────────────────────────────────
+async function cargarHistorialPlanes() {
+    const content = document.getElementById('planHistorialContent');
+    content.innerHTML = `<div class="historial-spinner" style="padding:32px 0;"><div class="spinner"></div></div>`;
+
+    const { ok, data } = await fetchAPI('/api/academics/profesor/planes/historial/');
+    if (!ok) {
+        content.innerHTML = `<p class="plan-historial-vacio">Error al cargar el historial.</p>`;
+        return;
+    }
+    if (!data.length) {
+        content.innerHTML = `<p class="plan-historial-vacio">No hay planes de trabajo anteriores registrados.</p>`;
+        return;
+    }
+
+    // Agrupar por mes → por pc_id
+    const porMes = {};
+    data.forEach(p => {
+        if (!porMes[p.mes]) porMes[p.mes] = {};
+        if (!porMes[p.mes][p.profesor_curso_id]) porMes[p.mes][p.profesor_curso_id] = [];
+        porMes[p.mes][p.profesor_curso_id].push(p);
+    });
+
+    // Guardar en cache para que el modal pueda mostrar el contenido
+    Object.entries(porMes).forEach(([mes, pcMap]) => {
+        _planAsignaciones.forEach(a => { if (!pcMap[a.id]) pcMap[a.id] = []; });
+        _planPlanesCache[parseInt(mes)] = pcMap;
+    });
+
+    const frag = document.createDocumentFragment();
+    Object.keys(porMes).sort((a, b) => b - a).forEach(mesStr => {
+        const mesNum = parseInt(mesStr);
+        const pcMap  = porMes[mesStr];
+
+        // Obtener pc_ids que tienen al menos 1 plan en este mes
+        const pcIds = Object.keys(pcMap).map(Number).filter(id => pcMap[id].length > 0);
+
+        const group = document.createElement('div');
+        group.className = 'plan-historial-mes-group';
+
+        const label = document.createElement('div');
+        label.className = 'plan-historial-mes-label';
+        label.textContent = MESES[mesNum];
+        group.appendChild(label);
+
+        const grid = document.createElement('div');
+        grid.className = 'plan-asig-grid';
+        grid.style.paddingTop = '8px';
+
+        pcIds.forEach(pcId => {
+            const plans = pcMap[pcId] || [];
+            const asig  = _planAsignaciones.find(a => a.id === pcId);
+            if (!asig) return;
+            const dots = [1, 2, 3, 4].map(s => {
+                const ok = plans.some(p => p.semana === s);
+                return `<span class="plan-asig-dot${ok ? '' : ' plan-asig-dot--empty'}"></span>`;
+            }).join('');
+            const card = document.createElement('div');
+            card.className = 'plan-asig-card';
+            card.innerHTML = `
+                <div>
+                    <div class="plan-asig-card__materia">${_escapeHtml(asig.materia_nombre)}</div>
+                    <div class="plan-asig-card__curso">${_escapeHtml(asig.curso_nombre)}</div>
+                </div>
+                <div class="plan-asig-dots">${dots}</div>
+                <div class="plan-asig-card__count">${plans.length} de 4 semanas</div>`;
+            card.addEventListener('click', () => _abrirPlanModal(pcId, mesNum, false));
+            grid.appendChild(card);
+        });
+
+        group.appendChild(grid);
+        frag.appendChild(group);
+    });
+
+    content.innerHTML = '';
+    content.appendChild(frag);
 }
 
 function _escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ── Historial de citaciones ───────────────────────────────────────

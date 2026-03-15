@@ -83,6 +83,21 @@ class CitacionCreateView(APIView):
             request,
         )
 
+        # Notificar al tutor del estudiante si tiene dispositivo vinculado
+        tutor = citacion.estudiante.tutor
+        if tutor is not None:
+            from backend.apps.notifications.services import enviar_notificacion
+            from django.conf import settings
+            nombre_estudiante_corto = f"{citacion.estudiante.apellido_paterno} {citacion.estudiante.nombre}".strip()
+            imagen_url = getattr(settings, 'FCM_NOTIFICATION_IMAGE', None)
+            enviar_notificacion(
+                tutor,
+                titulo="Nueva citación escolar",
+                cuerpo=f"Se ha emitido una citación para {nombre_estudiante_corto}. Motivo: {citacion.motivo}.",
+                datos={"citacion_id": str(citacion.id)},
+                imagen=imagen_url,
+            )
+
         # Devolvemos la citación creada con el serializer de lectura
         response_serializer = CitacionListSerializer(citacion)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)

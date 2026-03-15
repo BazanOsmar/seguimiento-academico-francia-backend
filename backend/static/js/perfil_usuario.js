@@ -199,6 +199,16 @@ let _cachedData = null;
             </span>`
         ).join('');
     }
+
+    // Planes de Trabajo (solo Profesores)
+    if (data.rol === 'Profesor') {
+        const planesSection = document.getElementById('planesSection');
+        const mesSel        = document.getElementById('perfilPlanesMes');
+        planesSection.classList.remove('hidden');
+        mesSel.value = String(new Date().getMonth() + 1);
+        await _cargarPerfilPlanes(USER_ID, mesSel.value);
+        mesSel.addEventListener('change', () => _cargarPerfilPlanes(USER_ID, mesSel.value));
+    }
 })();
 
 // ── Editar nombre/apellido ────────────────────────────────────────
@@ -322,6 +332,59 @@ btnConfirmSi.addEventListener('click', async () => {
 
 btnCredOk.addEventListener('click', () => {
     modalCred.classList.remove('visible');
+});
+
+// ── Planes de Trabajo (solo Profesores) ──────────────────────────
+let _perfilPlanesData = [];
+
+async function _cargarPerfilPlanes(profesorId, mes) {
+    const grid = document.getElementById('perfilPlanesGrid');
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--text-muted);font-size:.82rem;">Cargando…</div>';
+
+    const { ok, data } = await fetchAPI(`/api/academics/director/planes/?mes=${mes}&profesor_id=${profesorId}`);
+    _perfilPlanesData = ok ? (data || []) : [];
+
+    const semanas = { 1: null, 2: null, 3: null, 4: null };
+    for (const p of _perfilPlanesData) {
+        if (semanas[p.semana] === null) semanas[p.semana] = p;
+    }
+
+    grid.innerHTML = [1, 2, 3, 4].map(s => {
+        const plan = semanas[s];
+        return `
+            <div class="plan-slot-sm">
+                <div class="plan-slot-sm-label">Sem ${s}</div>
+                ${plan
+                    ? `<div class="plan-chip-sm" data-plan-id="${plan.id}">${_escPerf(plan.descripcion.substring(0, 60))}${plan.descripcion.length > 60 ? '…' : ''}</div>`
+                    : `<div class="plan-slot-sm-empty">—</div>`
+                }
+            </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.plan-chip-sm').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const plan = _perfilPlanesData.find(p => p.id === Number(chip.dataset.planId));
+            if (!plan) return;
+            const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            document.getElementById('planDetTitle').textContent = `Semana ${plan.semana}`;
+            document.getElementById('planDetSub').textContent   = meses[plan.mes] || '';
+            document.getElementById('planDetBody').textContent  = plan.descripcion;
+            document.getElementById('planDetDates').textContent = `${plan.fecha_inicio} al ${plan.fecha_fin}`;
+            document.getElementById('planDetOverlay').classList.add('visible');
+        });
+    });
+}
+
+function _escPerf(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('btnClosePlanDet').addEventListener('click', () => {
+    document.getElementById('planDetOverlay').classList.remove('visible');
+});
+document.getElementById('planDetOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('planDetOverlay'))
+        document.getElementById('planDetOverlay').classList.remove('visible');
 });
 
 // ── Copiar credenciales ───────────────────────────────────────────

@@ -333,6 +333,87 @@
         }
         .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
 
+        /* ── Planes de Trabajo (solo Profesores) ── */
+        .planes-section { margin-top: 20px; }
+        .planes-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        .planes-mes-sel-sm {
+            padding: 5px 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.78rem;
+            outline: none;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .planes-mes-sel-sm:focus { border-color: var(--accent); }
+        .planes-semanas-grid-sm {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        @media (max-width: 520px) { .planes-semanas-grid-sm { grid-template-columns: repeat(2, 1fr); } }
+        .plan-slot-sm {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            min-height: 70px;
+        }
+        .plan-slot-sm-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .plan-chip-sm {
+            background: rgba(34,197,94,.1);
+            border: 1px solid rgba(34,197,94,.2);
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 0.72rem;
+            color: #22c55e;
+            cursor: pointer;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.35;
+            transition: border-color .12s;
+        }
+        .plan-chip-sm:hover { border-color: rgba(34,197,94,.4); }
+        .plan-slot-sm-empty { color: var(--text-muted); font-size: 0.78rem; }
+
+        /* Modal plan detalle (perfil) */
+        .plan-det-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 300;
+            align-items: center; justify-content: center;
+        }
+        .plan-det-overlay.visible { display: flex; }
+        .plan-det-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-card); padding: 24px 22px;
+            width: 100%; max-width: 420px; margin: 16px;
+        }
+        .plan-det-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+        .plan-det-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+        .plan-det-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .plan-det-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 3px; transition: color .15s; }
+        .plan-det-close:hover { color: var(--text-primary); }
+        .plan-det-body { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-size: 0.875rem; color: var(--text-primary); line-height: 1.55; white-space: pre-wrap; max-height: 260px; overflow-y: auto; }
+        .plan-det-dates { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
+
         /* ── Secciones extra ── */
         .extra-section { margin-top: 20px; }
         .extra-section-title {
@@ -612,8 +693,50 @@
                 <div class="cursos-chips" id="cursosChips"></div>
             </div>
 
+            <!-- Planes de Trabajo (solo Profesores) -->
+            <div class="planes-section hidden" id="planesSection">
+                <p class="planes-section-title">Planes de Trabajo</p>
+                <select class="planes-mes-sel-sm" id="perfilPlanesMes">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+                <div class="planes-semanas-grid-sm" id="perfilPlanesGrid">
+                    <!-- cargado por JS -->
+                </div>
+            </div>
+
         </div>
     </main>
+
+    <!-- ── Modal: Detalle de Plan (perfil) ───────────────────────── -->
+    <div class="plan-det-overlay" id="planDetOverlay">
+        <div class="plan-det-box">
+            <div class="plan-det-header">
+                <div>
+                    <div class="plan-det-title" id="planDetTitle"></div>
+                    <div class="plan-det-sub" id="planDetSub"></div>
+                </div>
+                <button class="plan-det-close" id="btnClosePlanDet">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="plan-det-body" id="planDetBody"></div>
+            <div class="plan-det-dates" id="planDetDates"></div>
+        </div>
+    </div>
 
     <!-- ── Modal: Confirmar reseteo ───────────────────────────────── -->
     <div class="modal-overlay" id="modalConfirm" role="dialog" aria-modal="true">

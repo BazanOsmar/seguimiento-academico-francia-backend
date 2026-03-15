@@ -85,7 +85,131 @@
             font-size: .9rem;
         }
 
-        /* ── Plan de Trabajo — tabla ─────────────────────────────── */
+        /* ── Plan de Trabajo — tarjetas por asignación ───────────── */
+        .plan-asig-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 16px;
+            padding: 20px;
+        }
+        .plan-asig-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            cursor: pointer;
+            transition: border-color .15s, box-shadow .15s, transform .15s;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .plan-asig-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 20px rgba(0,0,0,.18);
+            transform: translateY(-2px);
+        }
+        .plan-asig-card__materia {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        .plan-asig-card__curso {
+            font-size: .8rem;
+            color: var(--text-muted);
+        }
+        .plan-asig-dots {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+        .plan-asig-dot {
+            width: 11px; height: 11px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        .plan-asig-dot--empty { background: var(--border); }
+        .plan-asig-card__count {
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Modal plan de trabajo ────────────────────────────────── */
+        .plan-modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(2px);
+        }
+        .plan-modal-overlay.visible { display: flex; }
+        .plan-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: min(920px, 100%);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+            animation: planModalIn .18s ease;
+        }
+        @keyframes planModalIn {
+            from { opacity: 0; transform: scale(.96) translateY(10px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .plan-modal-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .plan-modal-head h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin: 0 0 3px;
+            color: var(--text);
+        }
+        .plan-modal-head span {
+            font-size: .82rem;
+            color: var(--text-muted);
+        }
+        .plan-modal-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted);
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 1.25rem;
+            line-height: 1;
+            transition: color .15s, background .15s;
+            flex-shrink: 0;
+        }
+        .plan-modal-close:hover { color: var(--text); background: var(--bg-hover); }
+        .plan-modal-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 0;
+        }
+        .plan-modal-body::-webkit-scrollbar { width: 6px; }
+        .plan-modal-body::-webkit-scrollbar-track { background: var(--bg-hover); }
+        .plan-modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .plan-modal-body::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        .plan-modal-footer {
+            display: none;
+            justify-content: flex-end;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        /* ── Tabla dentro del modal ───────────────────────────────── */
         .plan-table-wrap { overflow-x: auto; }
 
         .plan-table {
@@ -187,7 +311,7 @@
         .plan-inline-form textarea {
             width: 100%;
             min-height: 90px;
-            resize: vertical;
+            resize: none;
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -265,22 +389,311 @@
         .plan-banner.visible { display: flex; }
         .plan-banner svg { flex-shrink: 0; color: #ca8a04; }
 
-        /* Badge solo lectura en el header */
-        .plan-readonly-badge {
-            display: none;
-            font-size: .72rem;
-            font-weight: 600;
-            padding: 3px 10px;
+        /* Botón ver historial */
+        .btn-ver-historial {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 20px;
+            border-radius: var(--radius);
+            border: 1px solid rgba(167,139,250,.35);
+            background: rgba(167,139,250,.08);
+            color: #a78bfa;
+            font-size: .82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, border-color .15s;
+            letter-spacing: .01em;
+        }
+        .btn-ver-historial svg { flex-shrink: 0; }
+        .btn-ver-historial:hover,
+        .btn-ver-historial.active {
+            background: rgba(167,139,250,.18);
+            border-color: rgba(167,139,250,.6);
+        }
+
+        /* Sección historial */
+        .plan-historial-wrap {
+            border-top: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+        .plan-historial-mes-group { margin-bottom: 8px; }
+        .plan-historial-mes-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 16px 10px;
+            padding: 10px 14px;
+            font-size: .78rem;
+            font-weight: 700;
+            color: #a78bfa;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            background: rgba(167,139,250,.07);
+            border: 1px solid rgba(167,139,250,.2);
+            border-left: 3px solid #a78bfa;
+            border-radius: var(--radius);
+        }
+        .plan-historial-vacio {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+            font-size: .88rem;
+        }
+
+        /* ── Vista tablero solo lectura ───────────────────────────── */
+        .plan-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 20px;
+        }
+        @media (max-width: 860px) { .plan-board { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px) { .plan-board { grid-template-columns: 1fr; } }
+
+        .plan-col {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 230px;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .plan-col--filled {
+            border-left: 3px solid var(--accent);
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+        }
+        .plan-col--empty {
+            border-left: 3px solid var(--border);
+        }
+        .plan-col:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,0,0,.18);
+            border-color: rgba(99,130,220,.45);
+        }
+
+        .plan-col-header {
+            position: relative;
+            padding: 20px 20px 18px;
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .plan-col--filled .plan-col-header {
+            background: linear-gradient(135deg, var(--accent-dim) 0%, var(--bg-hover) 75%);
+        }
+        .plan-col--empty .plan-col-header { background: var(--bg-hover); }
+
+        /* badge de estado */
+        .plan-col-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .65rem;
+            font-weight: 700;
+            padding: 3px 9px;
             border-radius: 99px;
-            background: var(--bg-hover);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: 10px;
+        }
+        .plan-col-badge--ok {
+            background: rgba(34,197,94,.15);
+            color: #22c55e;
+            border: 1px solid rgba(34,197,94,.3);
+        }
+        .plan-col-badge--vacio {
+            background: var(--bg-input);
             color: var(--text-muted);
             border: 1px solid var(--border);
-            white-space: nowrap;
         }
-        .plan-readonly-badge.visible { display: inline-flex; align-items: center; gap: 5px; }
 
-        /* Fila bloqueada (mes pasado) */
-        .plan-row--locked td { opacity: .65; }
+        .plan-col-label {
+            display: block;
+            font-size: .85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .plan-col-date {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .72rem;
+            color: var(--text-muted);
+        }
+
+        /* número grande arriba a la derecha */
+        .plan-col-bignum {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            font-size: 2.2rem;
+            font-weight: 900;
+            line-height: 1;
+            opacity: .12;
+            color: var(--accent);
+            user-select: none;
+            pointer-events: none;
+        }
+        .plan-col--empty .plan-col-bignum { color: var(--text-muted); opacity: .15; }
+
+        .plan-col-body {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .plan-col-text {
+            font-size: .875rem;
+            line-height: 1.65;
+            color: var(--text);
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+        .plan-col-vacia {
+            margin: auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+        }
+        .plan-col-vacia svg { opacity: .3; }
+        .plan-col-vacia-text { font-size: .82rem; font-style: italic; }
+
+        /* ── Modal advertencia salir sin guardar ─────────────────── */
+        .warn-modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 600;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(2px);
+        }
+        .warn-modal-overlay.visible { display: flex; }
+        .warn-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+            animation: planModalIn .18s ease;
+            overflow: hidden;
+        }
+        .warn-modal-strip {
+            height: 4px;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .warn-modal-body {
+            padding: 28px 24px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .warn-modal-icon {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: rgba(234,179,8,.12);
+            border: 1px solid rgba(234,179,8,.3);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 14px;
+            color: #f59e0b;
+        }
+        .warn-modal-body h3 {
+            font-size: .975rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 6px;
+        }
+        .warn-modal-body p {
+            font-size: .845rem;
+            color: var(--text-muted);
+            margin: 0 0 22px;
+            line-height: 1.5;
+        }
+        .warn-modal-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .warn-modal-actions button {
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* ── Modal doble confirmación plan ────────────────────────── */
+        .plan-confirm-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .plan-confirm-backdrop.visible { display: flex; }
+        .plan-confirm-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px 28px 24px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,.35);
+        }
+        .plan-confirm-modal h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 6px;
+        }
+        .plan-confirm-modal .plan-confirm-sub {
+            font-size: .8rem;
+            color: var(--text-muted);
+            margin: 0 0 16px;
+        }
+        .plan-confirm-preview {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-size: .84rem;
+            color: var(--text);
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 140px;
+            overflow-y: auto;
+            margin-bottom: 22px;
+        }
+        .plan-confirm-detalle {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-bottom: 22px;
+            font-size: .88rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .plan-confirm-tag {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .plan-confirm-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
 
         /* Mobile → cards */
         @media (max-width: 640px) {
@@ -543,21 +956,14 @@
         <div class="tab-panel" id="panelPlan" role="tabpanel">
             <div class="card">
                 <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <h2 class="card-title" style="margin:0;">Plan de Trabajo</h2>
-                        <span class="plan-readonly-badge" id="planReadonlyBadge">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="2.5"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                            </svg>
-                            Solo lectura
-                        </span>
-                    </div>
-                    <select id="planMes" class="form-input" style="width:auto;min-width:148px;">
-                        <!-- opciones generadas por JS (solo hasta el mes actual) -->
-                    </select>
+                    <h2 class="card-title" style="margin:0;">Plan de Trabajo</h2>
+                    <button class="btn-ver-historial" id="btnVerHistorial">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 8 12 12 14 14"/>
+                        </svg>
+                        Ver planes pasados
+                    </button>
                 </div>
                 <div class="card-body" style="padding:0;">
 
@@ -577,18 +983,12 @@
                         <div class="spinner"></div>
                     </div>
 
-                    <div class="plan-table-wrap" id="planTableWrap" style="display:none;">
-                        <table class="plan-table">
-                            <thead>
-                                <tr>
-                                    <th style="width:120px;">Semana</th>
-                                    <th style="width:160px;">Período</th>
-                                    <th>Plan de Trabajo</th>
-                                    <th style="width:80px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="planTbody"></tbody>
-                        </table>
+                    <!-- Tarjetas por asignación (mes actual) -->
+                    <div class="plan-asig-grid" id="planAsigGrid" style="display:none;"></div>
+
+                    <!-- Historial de planes pasados -->
+                    <div class="plan-historial-wrap" id="planHistorialWrap" style="display:none;">
+                        <div id="planHistorialContent"></div>
                     </div>
 
                 </div>
@@ -596,6 +996,75 @@
         </div>
 
     </main>
+
+    <!-- ── Modal detalle plan de trabajo ─────────────────────────── -->
+    <div class="plan-modal-overlay" id="planModalOverlay">
+        <div class="plan-modal">
+            <div class="plan-modal-head">
+                <div>
+                    <h3 id="planModalMateria"></h3>
+                    <span id="planModalCurso"></span>
+                </div>
+                <button class="plan-modal-close" id="planModalClose" aria-label="Cerrar">&#x2715;</button>
+            </div>
+            <div class="plan-modal-body">
+                <div class="plan-table-wrap">
+                    <table class="plan-table">
+                        <thead>
+                            <tr>
+                                <th style="width:120px;">Semana</th>
+                                <th style="width:160px;">Período</th>
+                                <th>Plan de Trabajo</th>
+                                <th style="width:50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="planModalTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="plan-modal-footer" id="planModalFooter">
+                <button class="btn-primary" id="planModalGuardar">Guardar planes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal advertencia salir sin guardar ───────────────────── -->
+    <div class="warn-modal-overlay" id="warnSinGuardarOverlay">
+        <div class="warn-modal">
+            <div class="warn-modal-strip"></div>
+            <div class="warn-modal-body">
+                <div class="warn-modal-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h3>¿Salir sin guardar?</h3>
+                <p>Tienes planes escritos que aún no se han guardado. Si cierras ahora, perderás esos cambios.</p>
+                <div class="warn-modal-actions">
+                    <button class="btn-ghost" id="warnSinGuardarQuedarme">Quedarme</button>
+                    <button class="btn-primary" id="warnSinGuardarSalir"
+                            style="background:var(--danger,#dc2626);">Salir de todas formas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal doble confirmación plan de trabajo ──────────────── -->
+    <div class="plan-confirm-backdrop" id="planConfirmBackdrop">
+        <div class="plan-confirm-modal">
+            <h3 id="planConfirmTitulo">¿Subir plan de trabajo?</h3>
+            <p class="plan-confirm-sub" id="planConfirmSub"></p>
+            <div class="plan-confirm-detalle" id="planConfirmDetalle"></div>
+            <div class="plan-confirm-actions">
+                <button class="btn-ghost" id="planConfirmCancelar">Cancelar</button>
+                <button class="btn-primary" id="planConfirmAceptar">Sí, subir plan</button>
+            </div>
+        </div>
+    </div>
 
     <script src="{% static 'js/profesor.js' %}"></script>
 

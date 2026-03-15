@@ -41,13 +41,13 @@ class PlanDeTrabajo(models.Model):
 
 
 class ProfesorPlan(models.Model):
-    profesor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='planes')
+    profesor_curso = models.ForeignKey(ProfesorCurso, on_delete=models.PROTECT, related_name='planes')
     plan = models.ForeignKey(PlanDeTrabajo, on_delete=models.PROTECT, related_name='asignaciones')
     mes = models.PositiveSmallIntegerField()  # 1–12
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('profesor', 'plan', 'mes')
+        unique_together = ('profesor_curso', 'plan')
 
     def __str__(self):
-        return f"{self.profesor} — {self.plan} (mes {self.mes})"
+        return f"{self.profesor_curso} — {self.plan} (mes {self.mes})"

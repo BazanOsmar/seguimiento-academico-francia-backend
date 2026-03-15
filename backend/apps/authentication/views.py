@@ -122,6 +122,23 @@ class ChangePasswordView(APIView):
         })
 
 
+class VerificarContrasenaView(APIView):
+    """
+    POST /api/auth/verificar-contrasena/
+    Verifica si la contraseña enviada corresponde al usuario autenticado.
+    No genera tokens ni modifica nada.
+    Body: { "password": "..." }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        password = request.data.get('password', '')
+        if request.user.check_password(password):
+            return Response({'ok': True})
+        return Response({'errores': 'Contraseña incorrecta'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class RegistroTutorView(APIView):
     """Registro público de tutores/padres desde la app móvil."""
 

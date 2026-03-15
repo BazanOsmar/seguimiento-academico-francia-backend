@@ -18,853 +18,483 @@
     </script>
 
     <style>
-        .page-inner { max-width: 1020px; margin: 0 auto; }
+        /* ── Layout principal ────────────────────────────────────── */
+        .acad-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .acad-layout { grid-template-columns: 1fr; }
+        }
 
-        /* ── Tabs ─────────────────────────────────────────────────── */
-        .acad-tabs {
-            display: flex;
-            gap: 0;
-            margin-bottom: 28px;
+        /* ── Sidebar académico ───────────────────────────────────── */
+        .acad-sidebar {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-card);
-            padding: 6px;
-            gap: 6px;
+            padding: 16px;
+            position: sticky;
+            top: 0;
         }
-        .acad-tab {
-            flex: 1;
-            padding: 12px 20px;
-            border: 1px solid transparent;
-            border-radius: 10px;
-            background: transparent;
-            color: var(--text-secondary);
-            font-size: .9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .18s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 9px;
-            letter-spacing: .01em;
-        }
-        .acad-tab svg { width: 17px; height: 17px; flex-shrink: 0; }
-        .acad-tab:hover:not(.active) {
-            background: var(--bg-card-hover);
-            color: var(--text-primary);
-        }
-        .acad-tab.active {
-            background: var(--accent-dim);
-            border-color: rgba(59,130,246,.3);
-            color: var(--accent-text);
-            box-shadow: 0 2px 8px rgba(59,130,246,.15);
-        }
-        .acad-tab__badge {
-            background: rgba(59,130,246,.2);
-            color: var(--accent-text);
-            font-size: .72rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 20px;
-            min-width: 22px;
-            text-align: center;
-        }
-        .acad-tab:not(.active) .acad-tab__badge {
-            background: rgba(148,163,184,.12);
-            color: var(--text-secondary);
-        }
-
-        /* ── Paneles ──────────────────────────────────────────────── */
-        .acad-panel { display: none; }
-        .acad-panel.active { display: block; }
-
-        /* ── Tarjeta ──────────────────────────────────────────────── */
-        .acad-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            box-shadow: var(--shadow-card);
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-        .acad-card__header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 18px 24px;
-            background: linear-gradient(135deg,
-                rgba(59,130,246,.1) 0%,
-                rgba(99,102,241,.06) 100%);
-            border-bottom: 1px solid rgba(59,130,246,.15);
-        }
-        .acad-card__icon {
-            width: 40px; height: 40px;
-            border-radius: 10px;
-            background: rgba(59,130,246,.15);
-            border: 1px solid rgba(59,130,246,.25);
-            color: var(--accent-text);
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .acad-card__icon svg { width: 19px; height: 19px; }
-        .acad-card__meta { flex: 1; }
-        .acad-card__title {
-            font-size: .98rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-        .acad-card__sub {
-            font-size: .78rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-        .acad-card__count {
-            background: var(--accent-dim);
-            border: 1px solid rgba(59,130,246,.25);
-            color: var(--accent-text);
-            font-size: .8rem;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-        .acad-card__body { padding: 22px 24px; }
-
-        /* ── Formulario ───────────────────────────────────────────── */
-        .acad-form {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-        .acad-form .form-group { flex: 1; min-width: 180px; }
-        .acad-form .form-group--sm { flex: 0 0 auto; min-width: 0; }
-
-        .acad-error {
-            display: none;
-            margin-top: 12px;
-            padding: 10px 14px;
-            background: rgba(239,68,68,.08);
-            border: 1px solid rgba(239,68,68,.25);
-            border-radius: 8px;
-            color: #f87171;
-            font-size: .83rem;
-            display: none;
-            align-items: center;
-            gap: 8px;
-        }
-        .acad-error svg { width: 15px; height: 15px; flex-shrink: 0; }
-
-        /* ── Botón agregar ────────────────────────────────────────── */
-        .btn-add {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 0 20px;
-            height: 42px;
+        .btn-nueva-asig {
+            width: 100%;
+            padding: 11px 16px;
             background: var(--accent);
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: .88rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background .15s, box-shadow .15s;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(59,130,246,.3);
-        }
-        .btn-add svg { width: 16px; height: 16px; }
-        .btn-add:hover { background: var(--accent-hover); box-shadow: 0 4px 14px rgba(59,130,246,.4); }
-        .btn-add:disabled { opacity: .55; cursor: default; box-shadow: none; }
-
-        /* ── Tabla ────────────────────────────────────────────────── */
-        .acad-table-wrap { overflow-x: auto; }
-        .acad-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .88rem;
-        }
-        .acad-table thead tr {
-            background: var(--bg-app);
-        }
-        .acad-table th {
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: .75rem;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            padding: 11px 18px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-        .acad-table td {
-            padding: 13px 18px;
-            border-bottom: 1px solid var(--border-subtle);
-            color: var(--text-primary);
-            vertical-align: middle;
-        }
-        .acad-table tr:last-child td { border-bottom: none; }
-        .acad-table tbody tr:hover td { background: var(--bg-card-hover); }
-
-        .acad-table .num-cell {
-            color: var(--text-secondary);
-            font-size: .8rem;
-            width: 40px;
-            text-align: center;
-        }
-        .acad-table .name-cell {
-            font-weight: 500;
-        }
-
-        /* ── Chip de materia / curso ──────────────────────────────── */
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: .78rem;
-            font-weight: 600;
-        }
-        .chip--blue {
-            background: rgba(59,130,246,.12);
-            color: var(--accent-text);
-            border: 1px solid rgba(59,130,246,.2);
-        }
-        .chip--purple {
-            background: rgba(139,92,246,.12);
-            color: #a78bfa;
-            border: 1px solid rgba(139,92,246,.2);
-        }
-        .chip--teal {
-            background: rgba(20,184,166,.12);
-            color: #2dd4bf;
-            border: 1px solid rgba(20,184,166,.2);
-        }
-
-        /* ── Botón eliminar ───────────────────────────────────────── */
-        .btn-del {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: transparent;
-            border: 1px solid rgba(239,68,68,.25);
-            color: #f87171;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: .78rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .btn-del svg { width: 13px; height: 13px; }
-        .btn-del:hover {
-            background: rgba(239,68,68,.1);
-            border-color: rgba(239,68,68,.5);
-            color: #ef4444;
-        }
-
-        /* ── Estado vacío ─────────────────────────────────────────── */
-        .acad-empty {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity .15s;
+            margin-bottom: 16px;
+        }
+        .btn-nueva-asig:hover { opacity: .85; }
+
+        .acad-pivot-nav { display: flex; flex-direction: column; gap: 4px; }
+        .acad-pivot {
+            width: 100%;
+            padding: 10px 14px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
             align-items: center;
             gap: 10px;
-            padding: 48px 24px;
-            color: var(--text-secondary);
+            transition: background .15s, color .15s;
         }
-        .acad-empty svg {
-            width: 42px; height: 42px;
-            opacity: .3;
-        }
-        .acad-empty__title {
-            font-size: .95rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-        .acad-empty__sub {
-            font-size: .82rem;
-            opacity: .7;
-        }
+        .acad-pivot:hover { background: var(--bg-surface); color: var(--text-primary); }
+        .acad-pivot.active { background: var(--accent-dim); color: var(--accent-text); font-weight: 600; }
+        .acad-pivot svg { flex-shrink: 0; opacity: .7; }
+        .acad-pivot.active svg { opacity: 1; }
 
-        /* ── Spinner ──────────────────────────────────────────────── */
-        .acad-spinner {
-            display: flex;
-            justify-content: center;
-            padding: 40px;
-        }
-        .spinner-ring {
-            width: 28px; height: 28px;
-            border: 3px solid var(--border-subtle);
-            border-top-color: var(--accent-text);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* ── Vistas ──────────────────────────────────────────────── */
+        .acad-vista { display: none; }
+        .acad-vista.active { display: block; }
 
-        /* ── Divider ──────────────────────────────────────────────── */
-        .acad-divider {
-            height: 1px;
-            background: var(--border-subtle);
-            margin: 0;
-        }
-
-        /* ── Buscador tabla asignaciones ─────────────────────────── */
-        .acad-table-search {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border-subtle);
-            background: var(--bg-app);
-        }
-        .acad-table-search .search-wrapper {
-            flex: 1;
-            max-width: 380px;
-            position: relative;
-        }
-        .acad-table-search .search-icon {
-            position: absolute;
-            left: 12px; top: 50%;
-            transform: translateY(-50%);
-            width: 15px; height: 15px;
-            color: var(--text-muted);
-            pointer-events: none;
-        }
-        .acad-table-search .search-input {
-            width: 100%;
-            padding: 8px 12px 8px 36px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: .85rem;
-            outline: none;
-            box-sizing: border-box;
-            transition: border-color .15s;
-        }
-        .acad-table-search .search-input:focus { border-color: var(--accent); }
-        .acad-table-search .search-input::placeholder { color: var(--text-muted); }
-        .asig-search-count {
-            font-size: .78rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        /* ── Toggle vistas ────────────────────────────────────────── */
-        .vp-toggle {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 18px;
-        }
-        .vp-toggle-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 8px 18px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            font-size: .84rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .vp-toggle-btn svg { width: 15px; height: 15px; }
-        .vp-toggle-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-        .vp-toggle-btn.active {
-            background: var(--accent-dim);
-            border-color: rgba(59,130,246,.3);
-            color: var(--accent-text);
-        }
-
-        /* ── Vista por Profesor ───────────────────────────────────── */
+        /* ── Vista Por Profesor ──────────────────────────────────── */
         .vp-layout {
             display: grid;
-            grid-template-columns: 270px 1fr;
+            grid-template-columns: 210px 1fr;
             gap: 16px;
-            align-items: start;
+            height: calc(100vh - 180px);
         }
-        @media (max-width: 700px) { .vp-layout { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .vp-layout { grid-template-columns: 1fr; height: auto; } }
 
-        .vp-sidebar {
+        .vp-list-wrap {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-card);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        .vp-sidebar-header {
-            padding: 12px 16px;
-            font-size: .72rem;
+        .vp-list-title {
+            padding: 10px 14px;
+            font-size: 0.7rem;
             font-weight: 700;
-            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: .06em;
+            letter-spacing: .05em;
+            color: var(--text-muted);
             border-bottom: 1px solid var(--border-subtle);
-            background: var(--bg-app);
+            flex-shrink: 0;
         }
-        .vp-prof-list {
-            max-height: 540px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(59,130,246,.25) transparent;
+        #vpProfList { overflow-y: auto; flex: 1; min-height: 0; }
+        #vpContent  {
+            overflow-y: auto; min-height: 0; padding: 4px 2px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 16px;
         }
-        .vp-prof-list::-webkit-scrollbar {
-            width: 4px;
-        }
-        .vp-prof-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .vp-prof-list::-webkit-scrollbar-thumb {
-            background: rgba(59,130,246,.25);
-            border-radius: 99px;
-        }
-        .vp-prof-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(59,130,246,.5);
-        }
+        #vpContent::-webkit-scrollbar { width: 4px; }
+        #vpContent::-webkit-scrollbar-track { background: transparent; }
+        #vpContent::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        #vpContent::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        #vpProfList::-webkit-scrollbar { width: 4px; }
+        #vpProfList::-webkit-scrollbar-track { background: transparent; }
+        #vpProfList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        #vpProfList::-webkit-scrollbar-thumb:hover { background: var(--accent); }
         .vp-prof-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
+            gap: 10px;
+            padding: 11px 14px;
             cursor: pointer;
             border-bottom: 1px solid var(--border-subtle);
-            transition: background .13s;
+            transition: background .12s;
         }
         .vp-prof-item:last-child { border-bottom: none; }
-        .vp-prof-item:hover { background: var(--bg-card-hover); }
-        .vp-prof-item.active {
-            background: var(--accent-dim);
-            border-left: 3px solid var(--accent);
-        }
+        .vp-prof-item:hover { background: var(--bg-surface); }
+        .vp-prof-item.active { background: var(--accent-dim); }
         .vp-prof-avatar {
-            width: 36px; height: 36px;
+            width: 32px; height: 32px;
             border-radius: 50%;
-            background: var(--accent-dim);
-            border: 1px solid rgba(59,130,246,.25);
-            color: var(--accent-text);
-            font-size: .75rem;
-            font-weight: 800;
+            background: var(--bg-surface);
+            border: 1.5px solid var(--border);
             display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 700;
+            color: var(--text-secondary);
             flex-shrink: 0;
-            letter-spacing: -.02em;
         }
+        .vp-prof-item.active .vp-prof-avatar { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-text); }
         .vp-prof-info { flex: 1; min-width: 0; }
-        .vp-prof-name {
-            font-size: .85rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .vp-prof-badge {
-            font-size: .7rem;
-            font-weight: 700;
-            background: rgba(59,130,246,.12);
-            color: var(--accent-text);
-            border-radius: 20px;
-            padding: 2px 8px;
-            flex-shrink: 0;
-        }
+        .vp-prof-name { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vp-prof-badge { background: var(--bg-surface); color: var(--text-muted); border-radius: 50px; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; flex-shrink: 0; }
+        .vp-prof-item.active .vp-prof-badge { background: var(--accent-dim); color: var(--accent-text); }
 
-        .vp-content {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            min-height: 200px;
-        }
-        .vp-content-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border-subtle);
-            background: var(--bg-app);
-            border-radius: var(--radius-card) var(--radius-card) 0 0;
-        }
-        .vp-content-title {
-            font-size: .9rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-        .vp-content-sub {
-            font-size: .75rem;
-            color: var(--text-muted);
-            margin-left: auto;
-        }
-        .vp-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
-            gap: 12px;
-            padding: 18px;
-        }
-        .vp-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 56px 24px;
-            color: var(--text-muted);
-        }
-        .vp-placeholder svg { width: 38px; height: 38px; opacity: .25; }
-        .vp-placeholder p { font-size: .85rem; }
+        .vp-content-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
+        .vp-content-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+        .vp-content-sub { font-size: 0.8rem; color: var(--text-muted); }
+        .vp-cards-grid { display: flex; flex-direction: column; gap: 10px; }
 
-        /* ── Tarjeta de asignación ────────────────────────────────── */
-        .asig-card {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: border-color .15s;
-        }
-        .asig-card:hover { border-color: rgba(59,130,246,.35); }
-        .asig-card__materia {
-            font-size: .88rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.3;
-        }
-        .asig-card__curso {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: .75rem;
-            font-weight: 600;
-            background: rgba(139,92,246,.12);
-            color: #a78bfa;
-            border: 1px solid rgba(139,92,246,.2);
-            border-radius: 20px;
-            padding: 3px 10px;
-            width: fit-content;
-        }
-        .asig-card__actions {
-            display: flex;
-            gap: 7px;
-            margin-top: auto;
-        }
+        .asig-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); padding: 16px; transition: border-color .15s; }
+        .asig-card:hover { border-color: var(--border); }
+        .asig-card__materia { font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; }
+        .asig-card__curso { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px; }
+        .asig-card__actions { display: flex; gap: 6px; }
         .asig-card__btn {
-            flex: 1;
-            padding: 6px 0;
-            border-radius: 8px;
-            font-size: .75rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            transition: all .15s;
+            flex: 1; padding: 6px 8px;
+            border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600;
+            cursor: pointer; border: 1px solid transparent;
+            display: flex; align-items: center; justify-content: center; gap: 4px;
+            transition: background .12s, border-color .12s;
         }
-        .asig-card__btn svg { width: 12px; height: 12px; }
-        .asig-card__btn--del {
-            background: transparent;
-            border: 1px solid rgba(239,68,68,.25);
-            color: #f87171;
-        }
-        .asig-card__btn--del:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.5); }
-        .asig-card__btn--edit {
-            background: transparent;
-            border: 1px solid rgba(59,130,246,.25);
-            color: var(--accent-text);
-        }
-        .asig-card__btn--edit:hover { background: var(--accent-dim); }
+        .asig-card__btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+        .asig-card__btn--del { background: var(--danger-dim); color: var(--danger); border-color: rgba(239,68,68,.2); }
+        .asig-card__btn--del:hover { background: rgba(239,68,68,.2); }
+        .asig-card__btn--edit { background: var(--bg-surface); color: var(--text-secondary); border-color: var(--border-subtle); }
+        .asig-card__btn--edit:hover { border-color: var(--border); color: var(--text-primary); }
 
-        /* ── Modo edición de la tarjeta ──────────────────────────── */
-        .asig-card.editing { border-color: var(--accent); background: var(--bg-card); }
-        .asig-edit-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 8px;
-        }
-        .asig-edit-close {
-            flex-shrink: 0;
-            width: 28px; height: 28px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text-muted);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: background .13s, color .13s, border-color .13s;
-            padding: 0;
-        }
+        .asig-edit-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .asig-edit-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; }
+        .asig-edit-close:hover { color: var(--danger); }
         .asig-edit-close svg { width: 14px; height: 14px; }
-        .asig-edit-close:hover {
-            background: rgba(239,68,68,.12);
-            border-color: rgba(239,68,68,.35);
-            color: #f87171;
-        }
-        .asig-edit-label {
-            font-size: .72rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .05em;
-        }
-        .asig-edit-select {
-            width: 100%;
-            padding: 7px 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text-primary);
-            font-size: .82rem;
-            outline: none;
-        }
-        .asig-edit-select:focus { border-color: var(--accent); }
-        .asig-edit-actions {
-            display: flex;
-            gap: 7px;
-        }
-        .asig-edit-actions .asig-card__btn { font-size: .78rem; }
+        .asig-edit-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+        .asig-edit-select { width: 100%; padding: 7px 10px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; margin-bottom: 8px; }
 
-        /* ── Tarjeta nueva asignación ────────────────────────────── */
-        .nueva-asig-card {
-            border-color: rgba(59,130,246,.4);
-            box-shadow: 0 0 0 1px rgba(59,130,246,.12), 0 6px 24px rgba(59,130,246,.15);
+        /* ── Vista Por Curso — Grid de tarjetas ──────────────────── */
+        .curso-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
         }
-        .nueva-asig-header {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            padding: 22px 26px;
-            background: linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(99,102,241,.1) 100%);
-            border-bottom: 1px solid rgba(59,130,246,.25);
-        }
-        .nueva-asig-icon {
-            width: 54px; height: 54px;
-            border-radius: 14px;
-            background: rgba(59,130,246,.22);
-            border: 1px solid rgba(59,130,246,.4);
-            color: var(--accent-text);
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .nueva-asig-icon svg { width: 27px; height: 27px; }
-        .nueva-asig-eyebrow {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--accent-text);
-            letter-spacing: .01em;
-            margin-bottom: 4px;
-        }
-        .nueva-asig-title {
-            font-size: .78rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            letter-spacing: .01em;
-        }
-        .nueva-asig-sub {
-            font-size: .75rem;
-            color: var(--text-muted);
-            margin-top: 3px;
-        }
-        .btn-crear-asig {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 26px;
-            height: 44px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: .9rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background .15s, box-shadow .15s, transform .1s;
-            white-space: nowrap;
-            box-shadow: 0 4px 14px rgba(59,130,246,.45);
-            letter-spacing: .01em;
-        }
-        .btn-crear-asig svg { width: 17px; height: 17px; }
-        .btn-crear-asig:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 6px 20px rgba(59,130,246,.55);
-            transform: translateY(-1px);
-        }
-        .btn-crear-asig:active { transform: translateY(0); }
-        .btn-crear-asig:disabled { opacity: .55; cursor: default; box-shadow: none; transform: none; }
-
-        /* ── Modal eliminar materia ───────────────────────────────── */
-        .del-backdrop {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,.55);
-            backdrop-filter: blur(4px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1000;
-            opacity: 0; pointer-events: none;
-            transition: opacity .2s;
-        }
-        .del-backdrop.visible { opacity: 1; pointer-events: all; }
-
-        .del-modal {
+        .curso-card {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 32px 28px 28px;
-            width: 100%;
-            max-width: 420px;
-            margin: 16px;
-            transform: translateY(10px);
-            transition: transform .2s;
-        }
-        .del-backdrop.visible .del-modal { transform: translateY(0); }
-
-        .del-icon {
-            width: 52px; height: 52px;
-            border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 18px;
-        }
-        .del-icon--warn {
-            background: rgba(239,68,68,.12);
-            border: 1px solid rgba(239,68,68,.25);
-            color: #ef4444;
-        }
-        .del-icon--lock {
-            background: rgba(245,158,11,.12);
-            border: 1px solid rgba(245,158,11,.25);
-            color: #f59e0b;
-        }
-        .del-icon svg { width: 26px; height: 26px; }
-
-        .del-title {
-            text-align: center;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-        }
-        .del-subtitle {
-            text-align: center;
-            font-size: .82rem;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .del-materia-name {
-            text-align: center;
-            font-size: .95rem;
-            font-weight: 700;
-            color: var(--accent-text);
-            background: var(--accent-dim);
-            border: 1px solid rgba(59,130,246,.2);
-            border-radius: 8px;
-            padding: 8px 14px;
-            margin-bottom: 20px;
-        }
-        .del-warn-list {
-            background: rgba(239,68,68,.06);
-            border: 1px solid rgba(239,68,68,.18);
-            border-radius: 10px;
-            padding: 14px 16px;
-            margin-bottom: 24px;
+            border: 1.5px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 16px 14px;
+            cursor: pointer;
+            transition: border-color .15s, transform .1s;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-        }
-        .del-warn-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 9px;
-            font-size: .82rem;
-            color: #fca5a5;
-            line-height: 1.4;
-        }
-        .del-warn-item svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; color: #ef4444; }
-
-        .del-actions {
-            display: flex;
             gap: 10px;
+            user-select: none;
         }
-        .del-btn-cancel {
-            flex: 1;
-            padding: 10px;
-            border-radius: 10px;
+        .curso-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+        .curso-card.active { border-color: var(--accent); background: var(--accent-dim); }
+        .curso-card__icon {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            background: var(--bg-surface);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .curso-card.active .curso-card__icon { background: var(--accent-dim); color: var(--accent-text); }
+        .curso-card__name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+        .curso-card__count { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+        .curso-card__count--warn { color: #fbbf24; }
+
+        /* ── Modal: detalle de curso ──────────────────────────────── */
+        .vc-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 250;
+            background: rgba(0,0,0,.55);
+            align-items: center;
+            justify-content: center;
+        }
+        .vc-modal-overlay.visible { display: flex; }
+        .vc-modal {
+            background: var(--bg-card);
             border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text-secondary);
-            font-size: .88rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .15s;
+            border-radius: var(--radius-card);
+            width: 100%;
+            max-width: 460px;
+            max-height: 80vh;
+            margin: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,.4);
+            animation: vcModalIn .18s ease;
         }
-        .del-btn-cancel:hover { background: var(--bg-card-hover); }
-
-        .del-btn-confirm {
-            flex: 1;
-            padding: 10px;
-            border-radius: 10px;
-            border: none;
-            background: #ef4444;
-            color: #fff;
-            font-size: .88rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .15s, opacity .15s;
-            display: flex; align-items: center; justify-content: center; gap: 7px;
+        @keyframes vcModalIn {
+            from { opacity: 0; transform: scale(.96) translateY(8px); }
+            to   { opacity: 1; transform: scale(1)  translateY(0); }
         }
-        .del-btn-confirm:hover { background: #dc2626; }
-        .del-btn-confirm:disabled { opacity: .6; cursor: default; }
+        .vc-modal-head {
+            display: flex; align-items: center; gap: 12px;
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+        .vc-modal-title { flex: 1; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+        .vc-modal-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 4px;
+            border-radius: var(--radius-sm);
+            transition: color .15s, background .15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .vc-modal-close:hover { color: var(--text-primary); background: var(--bg-surface); }
+        .vc-modal-body { overflow-y: auto; padding: 16px 20px; }
+        .vc-modal-body::-webkit-scrollbar { width: 4px; }
+        .vc-modal-body::-webkit-scrollbar-track { background: transparent; }
+        .vc-modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .vc-modal-body::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        .vc-drawer-count {
+            font-size: 0.7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .05em;
+            color: var(--text-muted); margin-bottom: 12px;
+        }
+        .vc-asig-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .vc-asig-row:last-child { border-bottom: none; }
+        .vc-asig-info { flex: 1; min-width: 0; }
+        .vc-asig-materia { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
+        .vc-asig-profesor { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+        /* ── Vista Materias ──────────────────────────────────────── */
+        .mat-form-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); padding: 20px; margin-bottom: 14px; }
+        .mat-form-row { display: flex; gap: 10px; }
+        .mat-form-row input { flex: 1; padding: 9px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; outline: none; }
+        .mat-form-row input:focus { border-color: var(--accent); }
+        .mat-table-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); overflow: hidden; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .data-table th { text-align: left; padding: 10px 18px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); border-bottom: 1px solid var(--border-subtle); }
+        .data-table td { padding: 12px 18px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); vertical-align: middle; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: var(--bg-surface); }
+        .num-cell { color: var(--text-muted); font-size: 0.78rem; width: 40px; }
+        .name-cell { font-weight: 500; }
+
+        .chip { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 0.78rem; font-weight: 600; }
+        .chip--blue   { background: rgba(96,165,250,.12);  color: #60a5fa; }
+        .chip--purple { background: rgba(167,139,250,.12); color: #a78bfa; }
+        .chip--teal   { background: rgba(45,212,191,.12);  color: #2dd4bf; }
+
+        .btn-del {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 10px; background: var(--danger-dim); color: var(--danger);
+            border: 1px solid rgba(239,68,68,.2); border-radius: var(--radius-sm);
+            font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background .12s;
+        }
+        .btn-del:hover { background: rgba(239,68,68,.2); }
+        .btn-del svg { width: 13px; height: 13px; }
+
+        .error-inline { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: var(--danger-dim); border: 1px solid rgba(239,68,68,.25); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--danger); margin-top: 8px; }
+
+        /* Spinners / empty */
+        .spinner-inline { display: flex; align-items: center; justify-content: center; padding: 40px; }
+        .spinner-inline::after { content: ''; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); font-size: 0.875rem; gap: 8px; }
+        .empty-state svg { opacity: .35; margin-bottom: 6px; }
+
+        /* ── Vista Planes de Trabajo ─────────────────────────────── */
+        .planes-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .planes-header h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0; flex: 1; }
+        .planes-mes-sel { padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; cursor: pointer; outline: none; }
+        .planes-mes-sel:focus { border-color: var(--accent); }
+        .btn-exportar-excel {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 7px 14px;
+            background: rgba(34,197,94,.12); color: #22c55e;
+            border: 1px solid rgba(34,197,94,.3);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            transition: background .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .btn-exportar-excel:hover { background: rgba(34,197,94,.2); border-color: rgba(34,197,94,.5); }
+        .btn-exportar-excel:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-exportar-excel svg { flex-shrink: 0; }
+
+        /* ── Vista Planes — tarjetas por profesor ─────────────────── */
+        .prof-planes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+        .prof-planes-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 18px 16px;
+            transition: border-color .15s, background .15s;
+            cursor: pointer;
+        }
+        .prof-planes-card:hover { border-color: var(--accent); }
+        .prof-planes-card--complete {
+            border-color: rgba(34,197,94,.5);
+            background: rgba(34,197,94,.03);
+        }
+        .prof-planes-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .prof-planes-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: var(--accent); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+            letter-spacing: .04em;
+        }
+        .prof-planes-card--complete .prof-planes-avatar {
+            background: rgba(34,197,94,.18); color: #22c55e;
+        }
+        .prof-planes-name { font-size: 0.84rem; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+        .prof-planes-sub  { font-size: 0.71rem; color: var(--text-muted); margin-top: 3px; }
+        .prof-planes-dots { display: flex; flex-wrap: wrap; gap: 7px; }
+        .prof-planes-dot  { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .prof-planes-dot--ok      { background: #22c55e; }
+        .prof-planes-dot--partial { background: #f59e0b; }
+        .prof-planes-dot--empty   { background: var(--border); }
+
+        /* ── Modal Nueva Asignación ──────────────────────────────── */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 300; align-items: center; justify-content: center; }
+        .modal-overlay.visible { display: flex; }
+        .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 24px; width: 100%; max-width: 400px; margin: 16px; }
+        .modal-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; }
+        .modal-field { margin-bottom: 14px; }
+        .modal-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+        .modal-select { width: 100%; padding: 9px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; outline: none; box-sizing: border-box; }
+        .modal-select:focus { border-color: var(--accent); }
+        .modal-actions-row { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions-row .btn-ghost { flex: 1; }
+        .modal-actions-row .btn-primary { flex: 1; }
+
+        /* ── Modal Ver Planes de un Profesor (solo lectura) ─────── */
+        .dir-plan-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 450; align-items: center; justify-content: center; }
+        .dir-plan-overlay.visible { display: flex; }
+        .dir-plan-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            width: 100%; max-width: 560px; max-height: 82vh;
+            margin: 16px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .dir-plan-head {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 20px 22px 14px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+        }
+        .dir-plan-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+        .dir-plan-sub   { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
+        .dir-plan-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; transition: color .15s; flex-shrink: 0; }
+        .dir-plan-close:hover { color: var(--text-primary); }
+        .dir-plan-body  { overflow-y: auto; padding: 16px 22px; flex: 1; }
+        .dir-plan-section { margin-bottom: 20px; }
+        .dir-plan-section:last-child { margin-bottom: 0; }
+        .dir-plan-section-head {
+            font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .05em; color: var(--accent-text);
+            margin-bottom: 10px; padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .dir-plan-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+        .dir-plan-row:last-child { border-bottom: none; }
+        .dir-plan-week {
+            font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .04em; color: var(--text-muted);
+            width: 54px; flex-shrink: 0; padding-top: 2px;
+        }
+        .dir-plan-text  { flex: 1; font-size: 0.82rem; color: var(--text-primary); line-height: 1.5; }
+        .dir-plan-text--empty { flex: 1; font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
+        .dir-plan-footer { padding: 12px 22px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; display: flex; justify-content: flex-end; }
+
+        /* ── Modal Advertencia Exportar ─────────────────────────── */
+        .export-warn-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.55); z-index: 500;
+            align-items: center; justify-content: center;
+        }
+        .export-warn-overlay.visible { display: flex; }
+        .export-warn-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            width: 100%; max-width: 380px;
+            margin: 16px;
+            overflow: hidden;
+        }
+        .export-warn-strip {
+            height: 5px;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .export-warn-body {
+            padding: 28px 24px 20px;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        .export-warn-icon {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: rgba(245,158,11,.12); color: #f59e0b;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 14px;
+        }
+        .export-warn-icon svg { width: 22px; height: 22px; }
+        .export-warn-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+        .export-warn-desc  { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 20px; }
+        .export-warn-actions { display: flex; gap: 10px; width: 100%; }
+        .export-warn-actions button { flex: 1; justify-content: center; }
+
+        /* ── Modal Plan Detalle ──────────────────────────────────── */
+        .plan-detail-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 24px; width: 100%; max-width: 440px; margin: 16px; }
+        .plan-detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .plan-detail-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+        .plan-detail-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+        .plan-detail-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; transition: color .15s; }
+        .plan-detail-close:hover { color: var(--text-primary); }
+        .plan-detail-body { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; font-size: 0.875rem; color: var(--text-primary); line-height: 1.55; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .plan-detail-dates { font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; }
+
+        /* ── Modal Confirmación/Eliminar ─────────────────────────── */
+        .del-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 400; align-items: center; justify-content: center; }
+        .del-backdrop.visible { display: flex; }
+        .del-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 24px; width: 100%; max-width: 400px; margin: 16px; }
         .del-step { display: none; }
         .del-step.active { display: block; }
-
-        .del-pass-label {
-            font-size: .82rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-        .del-pass-wrap {
-            position: relative;
-            margin-bottom: 10px;
-        }
-        .del-pass-input {
-            width: 100%;
-            padding: 10px 42px 10px 14px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text-primary);
-            font-size: .9rem;
-            outline: none;
-            box-sizing: border-box;
-            transition: border-color .15s;
-        }
+        .del-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--danger-dim); color: var(--danger); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+        .del-title { font-size: 1.05rem; font-weight: 700; text-align: center; color: var(--text-primary); margin-bottom: 6px; }
+        .del-subtitle { font-size: 0.82rem; color: var(--text-secondary); text-align: center; margin-bottom: 16px; }
+        .del-nombre { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); text-align: center; margin-bottom: 14px; }
+        .del-warn-list { margin-bottom: 14px; }
+        .del-warn-item { display: flex; align-items: flex-start; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); padding: 5px 0; }
+        .del-warn-item svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--warning); margin-top: 1px; }
+        .del-actions { display: flex; gap: 10px; }
+        .del-actions .btn-ghost,
+        .del-actions .btn-primary { flex: 1; justify-content: center; }
+        .del-actions .btn-ghost { flex: 1; }
+        .del-pass-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
+        .del-pass-wrap { position: relative; margin-bottom: 8px; }
+        .del-pass-input { width: 100%; padding: 9px 40px 9px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; outline: none; box-sizing: border-box; }
         .del-pass-input:focus { border-color: var(--accent); }
-        .del-pass-input.input-error { border-color: #ef4444; }
-        .del-pass-toggle {
-            position: absolute;
-            right: 11px; top: 50%;
-            transform: translateY(-50%);
-            background: none; border: none;
-            color: var(--text-muted);
-            cursor: pointer; padding: 2px;
-        }
-        .del-pass-toggle svg { width: 17px; height: 17px; display: block; }
-        .del-pass-error {
-            font-size: .78rem;
-            color: #f87171;
-            min-height: 18px;
-            margin-bottom: 18px;
-        }
-        .btn-spinner-sm {
-            width: 15px; height: 15px;
-            border: 2px solid rgba(255,255,255,.4);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-        }
+        .del-pass-input.input-error { border-color: var(--danger); }
+        .del-pass-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; }
+        .del-pass-toggle svg { width: 16px; height: 16px; }
+        .del-pass-error { font-size: 0.72rem; color: var(--danger); min-height: 14px; margin-bottom: 12px; }
+        .btn-confirm { width: 100%; padding: 10px 16px; border: none; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; color: #fff; }
+        .btn-confirm:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-confirm-spinner { display: none; }
+        .btn-confirm-spinner::after { content: ''; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: block; }
     </style>
 </head>
 <body>
@@ -880,10 +510,12 @@
                 <span class="profile-role" id="profileRole">Administración</span>
             </div>
         </div>
+
         <nav class="sidebar-nav" aria-label="Menú principal">
             <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
                 <span class="nav-label">Estudiantes</span>
             </a>
@@ -891,15 +523,18 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <span class="nav-label">Usuarios</span>
             </a>
             <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
                 </svg>
                 <span class="nav-label">Asistencia</span>
             </a>
@@ -913,7 +548,8 @@
             </a>
             <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 11l19-9v18L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                 </svg>
                 <span class="nav-label">Comunicados</span>
             </a>
@@ -932,11 +568,13 @@
                 <span class="nav-label">Estadísticas</span>
             </a>
         </nav>
+
         <div class="sidebar-bottom">
             <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
                 <span class="nav-label">Cerrar</span>
             </button>
@@ -945,12 +583,11 @@
 
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-    <!-- ── Top bar ───────────────────────────────────────────────── -->
+    <!-- ── Top bar ────────────────────────────────────────────────── -->
     <header class="topbar">
         <div style="display:flex;align-items:center;gap:12px;">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="6"  x2="21" y2="6"/>
                     <line x1="3" y1="12" x2="21" y2="12"/>
                     <line x1="3" y1="18" x2="21" y2="18"/>
@@ -958,338 +595,320 @@
             </button>
             <h1 class="page-title">Gestión Académica</h1>
         </div>
-        <div class="topbar-actions"></div>
     </header>
 
-    <!-- ── Contenido principal ───────────────────────────────────── -->
+    <!-- ── Contenido ─────────────────────────────────────────────── -->
     <main class="main-content">
-        <div class="page-inner">
+        <div class="content-wrap">
+            <div class="acad-layout">
 
-            <!-- ── Tabs ─────────────────────────────────────────── -->
-            <div class="acad-tabs">
-                <button class="acad-tab active" id="tabMaterias">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
-                    Materias
-                    <span class="acad-tab__badge" id="badgeMaterias">—</span>
-                </button>
-                <button class="acad-tab" id="tabAsignaciones">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                    Asignaciones
-                    <span class="acad-tab__badge" id="badgeAsignaciones">—</span>
-                </button>
-            </div>
-
-            <!-- ══ Panel Materias ══════════════════════════════════ -->
-            <div class="acad-panel active" id="panelMaterias">
-
-                <!-- Formulario nueva materia -->
-                <div class="acad-card">
-                    <div class="acad-card__header">
-                        <div class="acad-card__icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="16"/>
-                                <line x1="8" y1="12" x2="16" y2="12"/>
-                            </svg>
-                        </div>
-                        <div class="acad-card__meta">
-                            <div class="acad-card__title">Agregar materia</div>
-                            <div class="acad-card__sub">Registra una nueva materia en el sistema</div>
-                        </div>
-                    </div>
-                    <div class="acad-card__body">
-                        <div class="acad-form">
-                            <div class="form-group">
-                                <label class="form-label" for="inputNombreMateria">Nombre de la materia</label>
-                                <input id="inputNombreMateria" class="form-input"
-                                       type="text" maxlength="100"
-                                       placeholder="Ej: Matemáticas, Lenguaje, Ciencias...">
-                            </div>
-                            <div class="form-group form-group--sm">
-                                <label class="form-label" style="visibility:hidden;">-</label>
-                                <button class="btn-add" id="btnCrearMateria">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="5" x2="12" y2="19"/>
-                                        <line x1="5" y1="12" x2="19" y2="12"/>
-                                    </svg>
-                                    Agregar
-                                </button>
-                            </div>
-                        </div>
-                        <div class="acad-error" id="errorMateria">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                            <span id="errorMateriaMsg"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lista de materias -->
-                <div class="acad-card">
-                    <div class="acad-card__header">
-                        <div class="acad-card__icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                            </svg>
-                        </div>
-                        <div class="acad-card__meta">
-                            <div class="acad-card__title">Materias registradas</div>
-                            <div class="acad-card__sub">Todas las materias del sistema</div>
-                        </div>
-                        <span class="acad-card__count" id="countMaterias">—</span>
-                    </div>
-                    <div id="spinnerMaterias" class="acad-spinner">
-                        <div class="spinner-ring"></div>
-                    </div>
-                    <div class="acad-table-wrap" id="wrapMaterias" style="display:none;">
-                        <table class="acad-table">
-                            <thead>
-                                <tr>
-                                    <th style="width:50px;text-align:center;">#</th>
-                                    <th>Materia</th>
-                                    <th style="width:110px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbodyMaterias"></tbody>
-                        </table>
-                    </div>
-                    <div class="acad-empty" id="emptyMaterias" style="display:none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                <!-- ── Panel izquierdo ──────────────────────────── -->
+                <div class="acad-sidebar">
+                    <button class="btn-nueva-asig" id="btnNuevaAsig">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        <span class="acad-empty__title">Sin materias registradas</span>
-                        <span class="acad-empty__sub">Agrega la primera materia usando el formulario de arriba</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ══ Panel Asignaciones ══════════════════════════════ -->
-            <div class="acad-panel" id="panelAsignaciones">
-
-                <!-- Formulario nueva asignación -->
-                <div class="acad-card nueva-asig-card">
-                    <div class="nueva-asig-header">
-                        <div class="nueva-asig-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <line x1="19" y1="8" x2="19" y2="14"/>
-                                <line x1="22" y1="11" x2="16" y2="11"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="nueva-asig-eyebrow">Nueva asignación</div>
-                            <div class="nueva-asig-title">Vincular Profesor — Curso — Materia</div>
-                            <div class="nueva-asig-sub">Selecciona los tres campos y confirma con tu contraseña</div>
-                        </div>
-                    </div>
-                    <div class="acad-card__body">
-                        <div class="acad-form">
-                            <div class="form-group">
-                                <label class="form-label" for="selProfesor">Profesor</label>
-                                <select id="selProfesor" class="form-input">
-                                    <option value="">— Selecciona —</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="selCurso">Curso</label>
-                                <select id="selCurso" class="form-input">
-                                    <option value="">— Selecciona —</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="selMateria">Materia</label>
-                                <select id="selMateria" class="form-input">
-                                    <option value="">— Selecciona —</option>
-                                </select>
-                            </div>
-                            <div class="form-group form-group--sm">
-                                <label class="form-label" style="visibility:hidden;">-</label>
-                                <button class="btn-crear-asig" id="btnCrearAsignacion">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="5" x2="12" y2="19"/>
-                                        <line x1="5" y1="12" x2="19" y2="12"/>
-                                    </svg>
-                                    Crear asignación
-                                </button>
-                            </div>
-                        </div>
-                        <div class="acad-error" id="errorAsignacion">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                            <span id="errorAsignacionMsg"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Toggle vistas -->
-                <div class="vp-toggle">
-                    <button class="vp-toggle-btn" id="btnVistaTabla">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-                        </svg>
-                        Vista tabla
+                        Nueva Asignación
                     </button>
-                    <button class="vp-toggle-btn active" id="btnVistaProfesor">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                        Vista por profesor
-                    </button>
-                </div>
 
-                <!-- Lista de asignaciones -->
-                <div class="acad-card" id="cardTablaAsignaciones" style="display:none;">
-                    <div class="acad-card__header">
-                        <div class="acad-card__icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <nav class="acad-pivot-nav">
+                        <button class="acad-pivot active" data-pivot="profesores">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                                 <circle cx="9" cy="7" r="4"/>
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                             </svg>
-                        </div>
-                        <div class="acad-card__meta">
-                            <div class="acad-card__title">Asignaciones registradas</div>
-                            <div class="acad-card__sub">Relaciones Profesor — Curso — Materia</div>
-                        </div>
-                        <span class="acad-card__count" id="countAsignaciones">—</span>
-                    </div>
-                    <div class="acad-table-search" id="asigSearchWrap" style="display:none;">
-                        <div class="search-wrapper">
-                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            Por Profesor
+                        </button>
+                        <button class="acad-pivot" data-pivot="cursos">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                             </svg>
-                            <input id="asigSearchInput" class="search-input" type="text" placeholder="Buscar por profesor, curso o materia…" autocomplete="off">
-                        </div>
-                        <span class="asig-search-count" id="asigSearchCount"></span>
-                    </div>
-
-                    <div id="spinnerAsignaciones" class="acad-spinner">
-                        <div class="spinner-ring"></div>
-                    </div>
-                    <div class="acad-table-wrap" id="wrapAsignaciones" style="display:none;">
-                        <table class="acad-table">
-                            <thead>
-                                <tr>
-                                    <th>Profesor</th>
-                                    <th>Curso</th>
-                                    <th>Materia</th>
-                                    <th style="width:110px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbodyAsignaciones"></tbody>
-                        </table>
-                    </div>
-                    <div class="acad-empty" id="emptyAsignaciones" style="display:none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                        <span class="acad-empty__title">Sin asignaciones registradas</span>
-                        <span class="acad-empty__sub">Usa el formulario de arriba para vincular profesores a sus cursos</span>
-                    </div>
+                            Por Curso
+                        </button>
+                        <button class="acad-pivot" data-pivot="materias">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                            </svg>
+                            Materias
+                        </button>
+                        <button class="acad-pivot" data-pivot="planes">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                                <rect x="9" y="3" width="6" height="4" rx="1"/>
+                                <line x1="9" y1="12" x2="15" y2="12"/>
+                                <line x1="9" y1="16" x2="13" y2="16"/>
+                            </svg>
+                            Planes de Trabajo
+                        </button>
+                    </nav>
                 </div>
-                <!-- Vista por Profesor -->
-                <div id="vistaProfesor">
-                    <div class="vp-layout">
-                        <div class="vp-sidebar">
-                            <div class="vp-sidebar-header">Profesores</div>
-                            <div class="vp-prof-list" id="vpProfList">
-                                <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:.85rem;">Cargando…</div>
+
+                <!-- ── Panel derecho ─────────────────────────────── -->
+                <div class="acad-panel-right">
+
+                    <!-- Vista: Por Profesor (DEFAULT) -->
+                    <div class="acad-vista active" id="vistaProfesores">
+                        <div class="vp-layout">
+                            <div class="vp-list-wrap">
+                                <div class="vp-list-title">Profesores</div>
+                                <div id="vpProfList">
+                                    <div class="spinner-inline"></div>
+                                </div>
+                            </div>
+                            <div id="vpContent">
+                                <div class="empty-state">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                    </svg>
+                                    Selecciona un profesor
+                                </div>
                             </div>
                         </div>
-                        <div class="vp-content" id="vpContent">
-                            <div class="vp-placeholder">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </div>
+
+                    <!-- Vista: Por Curso -->
+                    <div class="acad-vista" id="vistaCursos">
+                        <div id="cursosAcordeon">
+                            <div class="spinner-inline"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vista: Materias -->
+                    <div class="acad-vista" id="vistaMaterias">
+                        <div class="mat-form-card">
+                            <div class="mat-form-row">
+                                <input type="text" id="inputNombreMateria" placeholder="Nombre de la materia" maxlength="80" autocomplete="off">
+                                <button class="btn-primary" id="btnCrearMateria">Agregar</button>
+                            </div>
+                            <div class="error-inline" id="errorMateria">
+                                <span id="errorMateriaMsg"></span>
+                            </div>
+                        </div>
+                        <div class="mat-table-card">
+                            <div id="spinnerMaterias" class="spinner-inline" style="display:none;"></div>
+                            <div id="emptyMaterias" class="empty-state" style="display:none;">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                                 </svg>
-                                <p>Selecciona un profesor para ver sus asignaciones</p>
+                                Sin materias registradas
+                            </div>
+                            <div id="wrapMaterias" style="display:none;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:40px;">#</th>
+                                            <th>Materia</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbodyMaterias"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-                </div>
 
-            </div>
+                    <!-- Vista: Planes de Trabajo -->
+                    <div class="acad-vista" id="vistaPlanes">
+                        <div class="planes-header">
+                            <h2>Planes de Trabajo</h2>
+                            <select class="planes-mes-sel" id="planesMesSel">
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                            <button class="btn-exportar-excel" id="btnExportarPlanes">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Descargar Excel
+                            </button>
+                        </div>
+                        <div id="planesContent">
+                            <div class="spinner-inline"></div>
+                        </div>
+                    </div>
 
+                </div><!-- /acad-panel-right -->
+            </div><!-- /acad-layout -->
         </div>
     </main>
 
-    <!-- ── Modal: Eliminar materia ───────────────────────────────── -->
-    <div class="del-backdrop" id="delBackdrop">
-        <div class="del-modal" role="dialog" aria-modal="true">
+    <!-- ── Modal: Nueva Asignación ──────────────────────────────── -->
+    <div class="modal-overlay" id="modalNuevaAsig">
+        <div class="modal-box">
+            <h3 class="modal-title">Nueva Asignación</h3>
+            <div class="modal-field">
+                <label class="modal-label">Profesor</label>
+                <select class="modal-select" id="selProfesor">
+                    <option value="">— Selecciona —</option>
+                </select>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Curso</label>
+                <select class="modal-select" id="selCurso">
+                    <option value="">— Selecciona —</option>
+                </select>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Materia</label>
+                <select class="modal-select" id="selMateria">
+                    <option value="">— Selecciona —</option>
+                </select>
+            </div>
+            <div class="error-inline" id="errorAsignacion">
+                <span id="errorAsignacionMsg"></span>
+            </div>
+            <div class="modal-actions-row">
+                <button class="btn-ghost" id="btnCancelNuevaAsig">Cancelar</button>
+                <button class="btn-primary" id="btnCrearAsignacion">Crear</button>
+            </div>
+        </div>
+    </div>
 
-            <!-- Paso 1: Advertencia -->
+    <!-- ── Modal: Confirmación/Eliminar ─────────────────────────── -->
+    <div class="del-backdrop" id="delBackdrop">
+        <div class="del-box">
+            <!-- Paso 1 -->
             <div class="del-step active" id="delStep1">
-                <div class="del-icon del-icon--warn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="del-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                         <line x1="12" y1="9" x2="12" y2="13"/>
                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                 </div>
-                <div class="del-title" id="delStep1Title">¿Eliminar materia?</div>
-                <div class="del-subtitle" id="delStep1Subtitle">Estás a punto de eliminar permanentemente esta materia del sistema.</div>
-                <div class="del-materia-name" id="delMateriaNombre"></div>
+                <p class="del-title" id="delStep1Title">¿Confirmar acción?</p>
+                <p class="del-subtitle" id="delStep1Subtitle">Revisa los detalles antes de continuar.</p>
+                <div class="del-nombre" id="delMateriaNombre"></div>
                 <div class="del-warn-list" id="delWarnList"></div>
                 <div class="del-actions">
-                    <button class="del-btn-cancel" id="delCancel1">Cancelar</button>
-                    <button class="del-btn-confirm" id="delContinuar">
-                        Continuar
-                    </button>
+                    <button class="btn-ghost" id="delCancel1">Cancelar</button>
+                    <button class="btn-primary" id="delContinuar">Continuar</button>
                 </div>
             </div>
-
-            <!-- Paso 2: Confirmación con contraseña -->
+            <!-- Paso 2 -->
             <div class="del-step" id="delStep2">
-                <div class="del-icon del-icon--lock">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                </div>
-                <div class="del-title">Confirma tu identidad</div>
-                <div class="del-subtitle" id="delStep2Subtitle">Ingresa tu contraseña para autorizar la eliminación de <strong id="delMateriaNombre2"></strong>.</div>
-                <p class="del-pass-label">Tu contraseña</p>
+                <p class="del-title">Confirmar identidad</p>
+                <p class="del-subtitle" id="delStep2Subtitle">Ingresa tu contraseña para autorizar esta acción.</p>
+                <div class="del-nombre" id="delMateriaNombre2"></div>
+                <p class="del-pass-label">Contraseña</p>
                 <div class="del-pass-wrap">
-                    <input type="password" class="del-pass-input" id="delPassInput" placeholder="Contraseña" autocomplete="current-password">
-                    <button type="button" class="del-pass-toggle" id="delPassToggle" tabindex="-1" aria-label="Mostrar/ocultar">
-                        <svg id="delEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    <input type="password" class="del-pass-input" id="delPassInput" placeholder="Tu contraseña" autocomplete="current-password">
+                    <button type="button" class="del-pass-toggle" id="delPassToggle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <g id="delEyeIcon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </g>
                         </svg>
                     </button>
                 </div>
                 <p class="del-pass-error" id="delPassError"></p>
-                <div class="del-actions">
-                    <button class="del-btn-cancel" id="delCancel2">Cancelar</button>
-                    <button class="del-btn-confirm del-btn-confirm--red" id="delConfirmar">
+                <div class="del-actions" style="margin-top:4px;">
+                    <button class="btn-ghost" id="delCancel2">Cancelar</button>
+                    <button class="btn-confirm" id="delConfirmar" style="background:#ef4444;flex:1;">
                         <span id="delConfirmarText">Confirmar</span>
-                        <span id="delConfirmarSpinner" class="btn-spinner-sm" style="display:none;"></span>
+                        <span class="btn-confirm-spinner" id="delConfirmarSpinner"></span>
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <!-- ── Modal: Detalle de Plan ─────────────────────────────────── -->
+    <div class="modal-overlay" id="modalPlanDetalle">
+        <div class="plan-detail-box">
+            <div class="plan-detail-header">
+                <div>
+                    <div class="plan-detail-title" id="planDetalleTitle"></div>
+                    <div class="plan-detail-sub" id="planDetalleSub"></div>
+                </div>
+                <button class="plan-detail-close" id="btnCerrarPlanDetalle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="plan-detail-body" id="planDetalleBody"></div>
+            <div class="plan-detail-dates" id="planDetalleDates"></div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Detalle de Curso ──────────────────────────────── -->
+    <div class="vc-modal-overlay" id="vcDrawerBackdrop">
+        <div class="vc-modal">
+            <div class="vc-modal-head">
+                <div class="vc-modal-title" id="vcDrawerTitle">Curso</div>
+                <button class="vc-modal-close" id="vcDrawerClose">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="vc-modal-body" id="vcDrawerBody"></div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Ver planes de un profesor (solo lectura) ─────── -->
+    <div class="dir-plan-overlay" id="dirPlanOverlay">
+        <div class="dir-plan-box">
+            <div class="dir-plan-head">
+                <div>
+                    <div class="dir-plan-title" id="dirPlanTitle"></div>
+                    <div class="dir-plan-sub"   id="dirPlanSub"></div>
+                </div>
+                <button class="dir-plan-close" id="btnCerrarDirPlan">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="dir-plan-body" id="dirPlanBody"></div>
+            <div class="dir-plan-footer">
+                <button class="btn-ghost" id="btnCerrarDirPlan2">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Advertencia al exportar planes ────────────────── -->
+    <div class="export-warn-overlay" id="exportWarnOverlay">
+        <div class="export-warn-box">
+            <div class="export-warn-strip"></div>
+            <div class="export-warn-body">
+                <div class="export-warn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="export-warn-title">Planes incompletos</div>
+                <div class="export-warn-desc" id="exportWarnDesc"></div>
+                <div class="export-warn-actions">
+                    <button class="btn-ghost" id="btnExportWarnCancelar">Cancelar</button>
+                    <button class="btn-primary" id="btnExportWarnConfirmar">Descargar de todas formas</button>
+                </div>
+            </div>
         </div>
     </div>
 
