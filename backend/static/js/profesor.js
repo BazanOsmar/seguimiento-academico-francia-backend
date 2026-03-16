@@ -40,13 +40,19 @@ document.addEventListener('DOMContentLoaded', () => {
     _initDragDrop();
     _initCitacionForm();
     _initPlanForm();
+    _initPrimerIngreso();
     cargarCursos();
     _verificarDotPlan();  // dot de notificación en background
 });
 
 // ── Tabs ──────────────────────────────────────────────────────────
-const _TABS = ['panelNotas', 'panelCitaciones', 'panelPlan'];
-const _TAB_BTNS = { panelNotas: 'sideNotas', panelCitaciones: 'sideCitaciones', panelPlan: 'sidePlan' };
+const _TABS    = ['panelNotas', 'panelCitaciones', 'panelPlan', 'panelCuenta'];
+const _TAB_BTNS = {
+    panelNotas:      'sideNotas',
+    panelCitaciones: 'sideCitaciones',
+    panelPlan:       'sidePlan',
+    panelCuenta:     'sideCuenta',
+};
 
 function _activarTab(panelId) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -56,13 +62,15 @@ function _activarTab(panelId) {
         if (btn) btn.classList.toggle('active', id === panelId);
     });
     if (panelId === 'panelCitaciones') cargarHistorial();
-    if (panelId === 'panelPlan') cargarPlanes();
+    if (panelId === 'panelPlan')       cargarPlanes();
+    if (panelId === 'panelCuenta')     _initCuentaTab();
 }
 
 function _initTabs() {
-    document.getElementById('sideNotas').addEventListener('click', () => _activarTab('panelNotas'));
+    document.getElementById('sideNotas').addEventListener('click',      () => _activarTab('panelNotas'));
     document.getElementById('sideCitaciones').addEventListener('click', () => _activarTab('panelCitaciones'));
-    document.getElementById('sidePlan').addEventListener('click', () => _activarTab('panelPlan'));
+    document.getElementById('sidePlan').addEventListener('click',       () => _activarTab('panelPlan'));
+    document.getElementById('sideCuenta').addEventListener('click',     () => _activarTab('panelCuenta'));
 }
 
 // ── Sidebar (hamburguesa) ─────────────────────────────────────────
@@ -707,4 +715,169 @@ async function cargarHistorial() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// ── Checklist de contraseña en tiempo real ────────────────────────
+function _actualizarChecks(password, prefix) {
+    const wrap = document.getElementById(`${prefix}PassChecks`);
+    if (!wrap) return;
+    wrap.classList.toggle('visible', password.length > 0);
+
+    const reglas = [
+        { id: `${prefix}Check8`,     fn: v => v.length >= 8 },
+        { id: `${prefix}CheckUpper`, fn: v => /[A-Z]/.test(v) },
+        { id: `${prefix}CheckLower`, fn: v => /[a-z]/.test(v) },
+        { id: `${prefix}CheckNum`,   fn: v => /[0-9]/.test(v) },
+        { id: `${prefix}CheckSpec`,  fn: v => /[^a-zA-Z0-9\s]/.test(v) },
+        { id: `${prefix}CheckSpace`, fn: v => v.length > 0 && !v.includes(' ') },
+    ];
+    reglas.forEach(({ id, fn }) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('ok', fn(password));
+    });
+}
+
+// ── Primer ingreso — modal forzado ────────────────────────────────
+function _initPrimerIngreso() {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user || !user.primer_ingreso) return;
+
+    const overlay = document.getElementById('primerIngresoOverlay');
+    overlay.classList.add('visible');
+
+    document.getElementById('piPassNueva').addEventListener('input', e => {
+        _actualizarChecks(e.target.value, 'pi');
+    });
+
+    document.getElementById('formPrimerIngreso').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errEl   = document.getElementById('piError');
+        const btn     = document.getElementById('btnPrimerIngreso');
+        const uNuevo  = document.getElementById('piUsernameNuevo').value.trim();
+        const pActual = document.getElementById('piPassActual').value;
+        const pNueva  = document.getElementById('piPassNueva').value;
+
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Guardando…';
+
+        const { ok, data } = await fetchAPI('/api/auth/cambiar-credenciales/', {
+            method: 'POST',
+            body: JSON.stringify({
+                password_actual: pActual,
+                username_nuevo:  uNuevo,
+                password_nueva:  pNueva,
+            }),
+        });
+
+        if (!ok) {
+            const msg = data?.errores || data?.username_nuevo?.[0] || data?.password_nueva?.[0]
+                || 'Error al guardar. Intenta de nuevo.';
+            errEl.textContent   = msg;
+            errEl.style.display = 'block';
+            btn.disabled    = false;
+            btn.textContent = 'Guardar y continuar';
+            return;
+        }
+
+        // Actualizar localStorage con los nuevos datos
+        localStorage.setItem('user', JSON.stringify(data.user));
+        overlay.classList.remove('visible');
+
+        // Actualizar nombre en sidebar
+        const nombre = `${data.user.first_name || ''} ${data.user.last_name || ''}`.trim() || data.user.username;
+        document.getElementById('profileName').textContent = nombre;
+    });
+}
+
+// ── Tab Cuenta — cambiar credenciales voluntario ──────────────────
+let _cuentaIniciada = false;
+
+function _initCuentaTab() {
+    // Rellenar username actual
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (user) document.getElementById('cuentaUsernameActual').value = user.username || '';
+
+    if (_cuentaIniciada) return;
+    _cuentaIniciada = true;
+
+    document.getElementById('cuentaPassNueva').addEventListener('input', e => {
+        _actualizarChecks(e.target.value, 'cuenta');
+    });
+
+    document.getElementById('formCuenta').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errEl   = document.getElementById('cuentaError');
+        const uNuevo  = document.getElementById('cuentaUsernameNuevo').value.trim();
+        const pActual = document.getElementById('cuentaPassActual').value;
+        const pNueva  = document.getElementById('cuentaPassNueva').value;
+
+        errEl.style.display = 'none';
+
+        // Si cambia el username → pedir confirmación primero
+        if (uNuevo) {
+            document.getElementById('confirmCredUsername').textContent = uNuevo;
+            document.getElementById('confirmCredOverlay').classList.add('visible');
+
+            // Esperar decisión del usuario
+            await new Promise(resolve => {
+                document.getElementById('confirmCredAceptar').onclick = () => {
+                    document.getElementById('confirmCredOverlay').classList.remove('visible');
+                    resolve(true);
+                };
+                document.getElementById('confirmCredCancelar').onclick = () => {
+                    document.getElementById('confirmCredOverlay').classList.remove('visible');
+                    resolve(false);
+                };
+            }).then(async (confirmado) => {
+                if (!confirmado) return;
+                await _ejecutarCambioCuenta(uNuevo, pActual, pNueva, errEl);
+            });
+            return;
+        }
+
+        await _ejecutarCambioCuenta(uNuevo, pActual, pNueva, errEl);
+    });
+}
+
+async function _ejecutarCambioCuenta(uNuevo, pActual, pNueva, errEl) {
+    const sucEl = document.getElementById('cuentaSuccess');
+    const btn   = document.getElementById('btnGuardarCuenta');
+
+    sucEl.classList.remove('visible');
+    btn.disabled    = true;
+    btn.textContent = 'Guardando…';
+
+    const { ok, data } = await fetchAPI('/api/auth/cambiar-credenciales/', {
+        method: 'POST',
+        body: JSON.stringify({
+            password_actual: pActual,
+            username_nuevo:  uNuevo,
+            password_nueva:  pNueva,
+        }),
+    });
+
+    btn.disabled    = false;
+    btn.textContent = 'Guardar cambios';
+
+    if (!ok) {
+        const msg = data?.errores || data?.username_nuevo?.[0] || data?.password_nueva?.[0]
+            || 'Error al guardar. Revisa los campos.';
+        errEl.textContent   = msg;
+        errEl.style.display = 'block';
+        return;
+    }
+
+    localStorage.setItem('user', JSON.stringify(data.user));
+    document.getElementById('cuentaUsernameActual').value = data.user.username;
+    document.getElementById('cuentaUsernameNuevo').value  = '';
+    document.getElementById('cuentaPassActual').value     = '';
+    document.getElementById('cuentaPassNueva').value      = '';
+    _actualizarChecks('', 'cuenta');
+
+    const nombre = `${data.user.first_name || ''} ${data.user.last_name || ''}`.trim() || data.user.username;
+    document.getElementById('profileName').textContent = nombre;
+
+    sucEl.classList.add('visible');
+    setTimeout(() => sucEl.classList.remove('visible'), 4000);
 }

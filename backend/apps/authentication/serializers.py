@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
-from .validators import validar_password
+from .validators import validar_password, validar_username
 
 
 class LoginSerializer(serializers.Serializer):
@@ -45,11 +45,39 @@ class ChangePasswordSerializer(serializers.Serializer):
     password_nueva  = serializers.CharField(required=True)
 
     def validate_password_nueva(self, value):
-        if not (8 <= len(value) <= 20):
-            raise serializers.ValidationError(
-                "La contraseña debe tener entre 8 y 20 caracteres."
-            )
+        return validar_password(value)
+
+
+class CambiarCredencialesSerializer(serializers.Serializer):
+    """Cambio de usuario y/o contraseña por el propio profesor."""
+
+    password_actual  = serializers.CharField(required=True)
+    username_nuevo   = serializers.CharField(required=False, allow_blank=True)
+    password_nueva   = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_username_nuevo(self, value):
+        from backend.apps.users.models import User
+        value = value.strip()
+        if not value:
+            return value
+        validar_username(value)
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Ese nombre de usuario ya está en uso.")
         return value
+
+    def validate_password_nueva(self, value):
+        if not value:
+            return value
+        return validar_password(value)
+
+    def validate(self, data):
+        u = data.get('username_nuevo', '').strip()
+        p = data.get('password_nueva', '').strip()
+        if not u and not p:
+            raise serializers.ValidationError(
+                {"errores": "Debes cambiar al menos el usuario o la contraseña."}
+            )
+        return data
 
 
 class ResetPasswordSerializer(serializers.Serializer):
@@ -74,8 +102,7 @@ class RegistroTutorSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         from backend.apps.users.models import User
-        if len(value) < 6:
-            raise serializers.ValidationError("El nombre de usuario debe tener al menos 6 caracteres.")
+        validar_username(value)
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Este nombre de usuario ya está en uso.")
         return value

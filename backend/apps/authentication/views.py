@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer, CambiarCredencialesSerializer
 # Create your views here.
 class LoginView(APIView):
     """
@@ -119,6 +119,51 @@ class ChangePasswordView(APIView):
         return Response({
             'mensaje': 'Contraseña reseteada correctamente.',
             'password_nueva': nueva_password,
+        })
+
+
+class CambiarCredencialesView(APIView):
+    """
+    POST /api/auth/cambiar-credenciales/
+    Permite al profesor cambiar su usuario y/o contraseña.
+    Requiere password_actual para confirmar identidad.
+    Al completar marca primer_ingreso=False.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = CambiarCredencialesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        if not user.check_password(serializer.validated_data['password_actual']):
+            return Response(
+                {'errores': 'Contraseña actual incorrecta'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        username_nuevo  = serializer.validated_data.get('username_nuevo', '').strip()
+        password_nueva  = serializer.validated_data.get('password_nueva', '').strip()
+
+        if username_nuevo:
+            user.username = username_nuevo
+        if password_nueva:
+            user.set_password(password_nueva)
+
+        user.primer_ingreso = False
+        user.save()
+
+        return Response({
+            'mensaje': 'Credenciales actualizadas correctamente.',
+            'user': {
+                'id':             user.id,
+                'username':       user.username,
+                'first_name':     user.first_name,
+                'last_name':      user.last_name,
+                'primer_ingreso': user.primer_ingreso,
+                'tipo_usuario':   user.tipo_usuario.nombre if user.tipo_usuario else None,
+            }
         })
 
 
