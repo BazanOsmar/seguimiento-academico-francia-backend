@@ -3,6 +3,7 @@ from django.urls import path
 from backend.apps.attendance.views.attendance_combined_views import AsistenciaCursoView
 from backend.apps.attendance.views.resumen_mensual_views import ResumenMensualCursoView
 from backend.apps.attendance.views.resumen_global_views import ResumenGlobalView
+from backend.apps.attendance.views.resumen_cursos_views import ResumenCursosTodosView, ResumenEstudiantesCursoView
 from backend.apps.attendance.views.calendario_mensual_views import CalendarioMensualView
 from backend.apps.attendance.views.calendario_estudiante_views import CalendarioEstudianteView
 from .views import EstadoAsistenciaDiariaView, RegistrosRecientesView, HistorialEstudianteView, HistorialCursoView
@@ -27,6 +28,16 @@ urlpatterns = [
         "resumen-global/",
         ResumenGlobalView.as_view(),
         name="resumen-global",
+    ),
+    path(
+        "resumen-cursos/",
+        ResumenCursosTodosView.as_view(),
+        name="resumen-cursos",
+    ),
+    path(
+        "cursos/<int:curso_id>/resumen-estudiantes/",
+        ResumenEstudiantesCursoView.as_view(),
+        name="resumen-estudiantes-curso",
     ),
     path(
         "calendario-mensual/",

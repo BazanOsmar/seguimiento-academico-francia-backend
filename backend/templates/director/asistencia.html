@@ -30,43 +30,58 @@
         .filter-card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
+            border-top: 2px solid var(--accent);
             border-radius: var(--radius-card);
-            padding: 20px 24px;
             margin-bottom: 20px;
+            overflow: hidden;
         }
-        .filter-card__header {
+        .filter-bar {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-        .filter-card__header-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: .07em;
-        }
-        .filter-row {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
             align-items: flex-end;
+            gap: 0;
+            padding: 18px 20px;
+        }
+        .filter-bar__inputs {
+            display: flex;
+            gap: 14px;
+            flex: 1;
+            flex-wrap: wrap;
+        }
+        .filter-card__title {
+            padding: 14px 20px 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .filter-bar__divider {
+            width: 1px;
+            height: 42px;
+            background: var(--border);
+            margin: 0 18px;
+            flex-shrink: 0;
+            align-self: flex-end;
+        }
+        .filter-bar__actions {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            flex-shrink: 0;
         }
         .filter-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            flex: 1;
+            gap: 6px;
             min-width: 130px;
         }
         .filter-group label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 500;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .filter-group--lg {
+            flex: 0 0 210px;
         }
         .filter-input {
             background: var(--bg-input);
@@ -76,13 +91,19 @@
             padding: 8px 12px;
             font-size: 14px;
             outline: none;
-            transition: border-color .2s;
+            transition: border-color .2s, box-shadow .2s;
             width: 100%;
-            height: 36px;
+            height: 38px;
         }
-        .filter-input:focus { border-color: var(--accent); }
+        .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
         .filter-input::placeholder { color: var(--text-muted); }
         select.filter-input { cursor: pointer; }
+        .filter-input--lg {
+            height: 42px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .filter-input--lg:focus { border-color: var(--accent); }
 
         /* Date input con icono de calendario (flatpickr reemplaza el nativo) */
         .date-field-wrap { position: relative; }
@@ -151,55 +172,22 @@
         }
         .flatpickr-day.flatpickr-disabled:hover { cursor: not-allowed; }
 
-        /* Search input con icono */
-        .search-field-wrap {
-            flex: 2;
-            min-width: 180px;
-        }
-        /* Wrapper interno solo alrededor del input (no incluye el label) */
-        .search-input-inner {
-            position: relative;
-        }
-        .search-input-inner .search-icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
-        }
-        .search-input-inner .filter-input { padding-left: 32px; }
-        .btn-search-clear {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 2px;
-            display: none;
-            line-height: 0;
-        }
         .btn-reset {
-            background: var(--bg-input);
+            display: flex; align-items: center; gap: 6px;
+            background: transparent;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            padding: 0 16px;
-            font-size: 13px;
-            font-weight: 500;
+            color: var(--text-muted);
+            padding: 0 14px;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             white-space: nowrap;
-            transition: background .18s, color .18s;
-            height: 36px;
+            transition: background .18s, color .18s, border-color .18s;
+            height: 42px;
             flex-shrink: 0;
         }
-        .btn-reset:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .btn-reset:hover { background: var(--bg-input); color: var(--text-primary); border-color: var(--border); }
 
         /* ── Tarjetas de stats ───────────────────────────────────── */
         .stats-row {
@@ -283,6 +271,9 @@
             border-radius: var(--radius-card);
             overflow: hidden;
         }
+        #tableContainer { padding: 20px; }
+        /* La tabla ocupa el ancho completo sin padding lateral extra */
+        #tableContainer:has(.attendance-table) { padding: 0; }
         .record-card__header {
             padding: 16px 20px 12px;
             border-bottom: 1px solid var(--border-subtle);
@@ -380,6 +371,109 @@
         .empty-state__title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
         .empty-state__sub   { font-size: 13px; }
 
+        /* ── Cards de cursos / estudiantes ───────────────────────── */
+        .resumen-cards-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .resumen-cards-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+        }
+        .resumen-cards-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .resumen-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        @media (max-width: 600px) {
+            .resumen-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .rc-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 12px 14px 11px 18px;
+            cursor: default;
+            transition: transform .15s, box-shadow .15s;
+            position: relative;
+            overflow: hidden;
+        }
+        .rc-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+        /* Niveles de asistencia */
+        .rc-card--high  { border-color: rgba(34,197,94,.35); }
+        .rc-card--high::before  { background: #22c55e; }
+        .rc-card--mid   { border-color: rgba(34,197,94,.15); }
+        .rc-card--mid::before   { background: #4ade80; opacity: .7; }
+        .rc-card--low   { border-color: rgba(34,197,94,.06); }
+        .rc-card--low::before   { background: #86efac; opacity: .35; }
+        .rc-card--none  { border-color: var(--border); }
+        .rc-card--none::before  { background: var(--text-muted); opacity: .2; }
+
+        .rc-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+
+        .rc-card__name {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .rc-card__pct {
+            font-size: 1.7rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .rc-card--high .rc-card__pct  { color: #22c55e; }
+        .rc-card--mid  .rc-card__pct  { color: #4ade80; }
+        .rc-card--low  .rc-card__pct  { color: #86efac; }
+        .rc-card--none .rc-card__pct  { color: var(--text-muted); }
+
+        .rc-card__bar {
+            height: 4px;
+            background: var(--bg-input);
+            border-radius: 2px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .rc-card__bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width .4s ease;
+        }
+        .rc-card--high .rc-card__bar-fill { background: #22c55e; }
+        .rc-card--mid  .rc-card__bar-fill { background: #4ade80; }
+        .rc-card--low  .rc-card__bar-fill { background: #86efac; }
+        .rc-card--none .rc-card__bar-fill { background: var(--text-muted); width: 0 !important; }
+
+        .rc-card__stats {
+            display: flex;
+            gap: 8px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .rc-card__stat { display: flex; align-items: center; gap: 3px; }
+        .rc-card__stat-dot {
+            width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+        }
+
         .skeleton-block {
             height: 13px;
             background: linear-gradient(90deg, var(--bg-input) 25%, var(--border) 50%, var(--bg-input) 75%);
@@ -406,29 +500,8 @@
         }
         .btn-cal-nav:hover { background: var(--bg-card-hover); color: var(--text-primary); }
 
-        /* ── Botón exportar PDF ──────────────────────────────────── */
-        .btn-exportar {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            font-size: 12px;
-            font-weight: 600;
-            padding: 5px 12px;
-            cursor: pointer;
-            transition: background .18s, color .18s, border-color .18s;
-            white-space: nowrap;
-        }
-        .btn-exportar:hover {
-            background: var(--success-dim);
-            border-color: var(--success);
-            color: var(--success);
-        }
-
-        /* ── Botón calendario ────────────────────────────────────── */
+        /* ── Botones de acción (calendario / exportar) ───────────── */
+        .btn-exportar,
         .btn-calendario {
             display: flex;
             align-items: center;
@@ -439,10 +512,16 @@
             color: var(--text-secondary);
             font-size: 12px;
             font-weight: 600;
-            padding: 5px 12px;
+            padding: 0 14px;
+            height: 42px;
             cursor: pointer;
             transition: background .18s, color .18s, border-color .18s;
             white-space: nowrap;
+        }
+        .btn-exportar:hover {
+            background: var(--success-dim);
+            border-color: var(--success);
+            color: var(--success);
         }
         .btn-calendario:hover,
         .btn-calendario.active {
@@ -668,8 +747,12 @@
             border-radius: 50%;
             flex-shrink: 0;
         }
-        .cal-dot--completo { background: var(--success); box-shadow: 0 0 5px rgba(34,197,94,.5); }
-        .cal-dot--parcial  { background: var(--warning); box-shadow: 0 0 5px rgba(245,158,11,.5); }
+        .cal-dot--completo      { background: var(--success); box-shadow: 0 0 5px rgba(34,197,94,.5); }
+        .cal-dot--parcial       { background: var(--warning); box-shadow: 0 0 5px rgba(245,158,11,.5); }
+        .cal-dot--sin-asistencia{ background: #64748b; }
+        .cal-cell--weekend .cal-day-num { opacity: .3; }
+        .cal-cell--weekend { cursor: default; }
+        .cal-cell--weekend:hover { background: transparent; }
 
         /* Leyenda */
         .cal-legend {
@@ -701,10 +784,17 @@
             .stats-row { grid-template-columns: 1fr; }
             .estados-grid { grid-template-columns: repeat(2, 1fr); }
         }
+        @media (max-width: 640px) {
+            .filter-bar { flex-wrap: wrap; gap: 12px; }
+
+            .filter-bar__divider { display: none; }
+            .filter-bar__inputs { width: 100%; }
+            .filter-bar__actions { width: 100%; justify-content: flex-end; }
+            .filter-group--lg { flex: 1 1 140px; }
+        }
         @media (max-width: 560px) {
-            .filter-row { flex-direction: column; }
-            .search-field-wrap { min-width: unset; width: 100%; }
             .col-hora, .col-recientes { display: none; }
+            .filter-group--lg { flex: 1 1 100%; }
         }
     </style>
 </head>
@@ -830,18 +920,46 @@
 
         <!-- Filtros -->
         <div class="filter-card">
-            <div class="filter-card__header">
-                <div class="filter-card__header-left">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="4" y1="6" x2="20" y2="6"/>
-                        <line x1="8" y1="12" x2="16" y2="12"/>
-                        <line x1="11" y1="18" x2="13" y2="18"/>
-                    </svg>
-                    Filtros de Búsqueda
+            <div class="filter-card__title">Consulta de Asistencias</div>
+            <div class="filter-bar">
+
+                <!-- Inputs -->
+                <div class="filter-bar__inputs">
+                    <div class="filter-group filter-group--lg">
+                        <label for="selectCurso">Curso</label>
+                        <select id="selectCurso" class="filter-input filter-input--lg">
+                            <option value="">— Seleccionar —</option>
+                        </select>
+                    </div>
+                    <div class="filter-group filter-group--lg" id="fechaFilterGroup">
+                        <label for="inputFecha">Fecha</label>
+                        <div class="date-field-wrap">
+                            <input type="date" id="inputFecha" class="filter-input filter-input--lg" placeholder="Fecha asistencia">
+                            <svg class="date-cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8"  y1="2" x2="8"  y2="6"/>
+                                <line x1="3"  y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px">
+
+                <!-- Divisor -->
+                <div class="filter-bar__divider"></div>
+
+                <!-- Acciones -->
+                <div class="filter-bar__actions">
+                    <button class="btn-reset" id="btnReset" title="Limpiar filtros">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                        Limpiar
+                    </button>
                     <button class="btn-calendario" id="btnCalendario">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2"/>
                             <line x1="16" y1="2" x2="16" y2="6"/>
                             <line x1="8"  y1="2" x2="8"  y2="6"/>
@@ -850,68 +968,15 @@
                         Calendario
                     </button>
                     <button class="btn-exportar" id="btnExportar">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
                             <line x1="12" y1="11" x2="12" y2="17"/>
                             <polyline points="9 14 12 17 15 14"/>
                         </svg>
-                        Exportar Asistencias
+                        Exportar
                     </button>
                 </div>
-            </div>
-            <div class="filter-row">
-
-                <!-- Curso -->
-                <div class="filter-group" style="max-width:180px">
-                    <label for="selectCurso">Curso</label>
-                    <select id="selectCurso" class="filter-input">
-                        <option value="">— Seleccionar —</option>
-                    </select>
-                </div>
-
-                <!-- Fecha con ícono de calendario -->
-                <div class="filter-group" id="fechaFilterGroup" style="max-width:170px;position:relative">
-                    <label for="inputFecha">Fecha</label>
-                    <div class="date-field-wrap">
-                        <input type="date" id="inputFecha" class="filter-input" placeholder="Fecha asistencia">
-                        <svg class="date-cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/>
-                            <line x1="8"  y1="2" x2="8"  y2="6"/>
-                            <line x1="3"  y1="10" x2="21" y2="10"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <!-- Buscar estudiante -->
-                <div class="filter-group search-field-wrap">
-                    <label for="inputBuscar">Buscar Estudiante</label>
-                    <div class="search-input-inner">
-                        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                        <input type="text" id="inputBuscar" class="filter-input"
-                               placeholder="Nombre del estudiante...">
-                        <button class="btn-search-clear" id="btnClearSearch" title="Limpiar">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Resetear -->
-                <button class="btn-reset" id="btnReset">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                        <path d="M3 3v5h5"/>
-                    </svg>
-                    Resetear
-                </button>
 
             </div>
         </div>
@@ -952,6 +1017,10 @@
                 <div class="cal-legend-item" style="margin-left:12px">
                     <span class="cal-dot cal-dot--parcial"></span>
                     Registro parcial
+                </div>
+                <div class="cal-legend-item" style="margin-left:12px">
+                    <span class="cal-dot cal-dot--sin-asistencia"></span>
+                    Sin asistencia
                 </div>
             </div>
         </div>

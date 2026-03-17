@@ -24,8 +24,6 @@ let _resumenFecha      = null;  // fecha activa en resumen día (YYYY-MM-DD)
 // ── Referencias DOM ───────────────────────────────────────────────
 const selectCurso    = document.getElementById('selectCurso');
 const inputFecha     = document.getElementById('inputFecha');
-const inputBuscar    = document.getElementById('inputBuscar');
-const btnClear       = document.getElementById('btnClearSearch');
 const btnReset       = document.getElementById('btnReset');
 const statsRow       = document.getElementById('statsRow');
 const recordCard     = document.getElementById('recordCard') || document.querySelector('.record-card');
@@ -120,7 +118,6 @@ async function loadCursos() {
         return;
     }
     _cursosData = data;
-    // Opción vacía inicial + opciones reales; sin auto-selección
     selectCurso.innerHTML =
         '<option value="">— Seleccionar —</option>' +
         data.map(c =>
@@ -168,13 +165,12 @@ function _renderGlobalStats() {
     statCardLabel.textContent = `Asistencia General — ${periodo}`;
     const pct  = data.porcentaje;
     const diff = data.diferencia;
+    statPct.textContent = (pct !== null && pct !== undefined) ? `${pct}%` : '0%';
     if (pct === null || pct === undefined) {
-        statPct.textContent   = '—';
         statBadge.textContent = 'Sin datos';
         statBadge.className   = 'stat-badge stat-badge--neutral';
-        statSub.textContent   = `Sin registros de asistencia${mesSufijo ? ' (mostrando mes anterior)' : ''}`;
+        statSub.textContent   = `Sin registros${mesSufijo ? ' · mes anterior' : ''}`;
     } else {
-        statPct.textContent = `${pct}%`;
         if (diff === null || diff === undefined) {
             statBadge.textContent = '—';
             statBadge.className   = 'stat-badge stat-badge--neutral';
@@ -191,22 +187,15 @@ function _renderGlobalStats() {
         statSub.textContent = `Promedio global · todos los cursos${mesSufijo ? ' · mes anterior' : ''}`;
     }
 
-    // Tarjeta derecha — breakdown global del mes
+    // Tarjeta derecha — breakdown global del mes (siempre muestra conteos, aunque sean 0)
     resumenCardLabel.textContent = `Resumen de Estados — ${periodo}`;
     const r = data.resumen_total;
-    const total = r.presente + r.falta + r.atraso + r.licencia;
-    if (total > 0) {
-        cntPresente.textContent = r.presente;
-        cntFalta.textContent    = r.falta;
-        cntAtraso.textContent   = r.atraso;
-        cntLicencia.textContent = r.licencia;
-        estadosGrid.style.display          = 'grid';
-        resumenDiaPlaceholder.style.display = 'none';
-    } else {
-        resumenDiaPlaceholder.textContent   = `No hay registros de asistencia en ${data.mes_nombre}`;
-        resumenDiaPlaceholder.style.display = 'block';
-        estadosGrid.style.display           = 'none';
-    }
+    cntPresente.textContent = r.presente;
+    cntFalta.textContent    = r.falta;
+    cntAtraso.textContent   = r.atraso;
+    cntLicencia.textContent = r.licencia;
+    estadosGrid.style.display           = 'grid';
+    resumenDiaPlaceholder.style.display = 'none';
 }
 
 // ── Carga mensual (solo requiere curso) ───────────────────────────
@@ -222,16 +211,18 @@ async function loadMonthly() {
 
     const pct  = data.porcentaje;
     const diff = data.diferencia;
+    const mesMostrado = data.mes || mes;   // backend puede haber retrocedido al mes anterior
     const cursoNombre = selectCurso.options[selectCurso.selectedIndex]?.text || '';
+    const sufijo = data.es_mes_anterior ? ' *' : '';
 
-    statCardLabel.textContent = `${cursoNombre} — ${_periodoLabel(mes)}`;
+    statCardLabel.textContent = `${cursoNombre} — ${_periodoLabel(mesMostrado)}${sufijo}`;
 
+    statPct.textContent = (pct !== null && pct !== undefined) ? `${pct}%` : '0%';
     if (pct === null || pct === undefined) {
-        statPct.textContent = '—';
         statBadge.textContent = 'Sin datos';
         statBadge.className = 'stat-badge stat-badge--neutral';
+        statSub.textContent = 'Sin registros de asistencia';
     } else {
-        statPct.textContent = `${pct}%`;
         if (diff === null || diff === undefined) {
             statBadge.textContent = '—';
             statBadge.className = 'stat-badge stat-badge--neutral';
@@ -245,10 +236,20 @@ async function loadMonthly() {
             statBadge.textContent = '= 0%';
             statBadge.className = 'stat-badge stat-badge--neutral';
         }
+        statSub.textContent = data.es_mes_anterior
+            ? 'Promedio de asistencia del curso · mes anterior'
+            : 'Promedio de asistencia del curso';
     }
-    statSub.textContent = pct !== null && pct !== undefined
-        ? `Promedio de asistencia del curso`
-        : `Sin registros de asistencia este mes`;
+
+    // Tarjeta derecha — desglose mensual del curso
+    const r = data.resumen_total;
+    resumenCardLabel.textContent = `Resumen de Estados — ${_periodoLabel(mesMostrado)}${sufijo}`;
+    cntPresente.textContent = r.presente;
+    cntFalta.textContent    = r.falta;
+    cntAtraso.textContent   = r.atraso;
+    cntLicencia.textContent = r.licencia;
+    estadosGrid.style.display           = 'grid';
+    resumenDiaPlaceholder.style.display = 'none';
 }
 
 // ── Carga diaria (requiere curso + fecha) ─────────────────────────
@@ -268,8 +269,21 @@ async function loadDaily() {
         return;
     }
 
-    // Resumen del día (tarjeta derecha)
+    // Tarjeta derecha — conteos del día
     _renderResumenDia(data.resumen);
+
+    // Tarjeta izquierda — % de asistencia del día
+    if (data.resumen) {
+        const r = data.resumen;
+        const total = r.presente + r.falta + r.atraso + r.licencia;
+        const pct = total > 0 ? Math.round(r.presente / total * 1000) / 10 : 0;
+        const cursoNombre = selectCurso.options[selectCurso.selectedIndex]?.text || '';
+        statCardLabel.textContent = `${cursoNombre} — ${_fechaDisplay(_fecha)}`;
+        statPct.textContent = `${pct}%`;
+        statBadge.textContent = total > 0 ? `${r.presente} / ${total}` : 'Sin sesión';
+        statBadge.className   = 'stat-badge stat-badge--neutral';
+        statSub.textContent   = 'Asistencia del día';
+    }
 
     // Tabla
     _renderTable(data);
@@ -333,7 +347,6 @@ function _renderTable(d) {
         </table>`;
 
     _allRows = Array.from(document.querySelectorAll('#tbodyAsistencia tr'));
-    _applySearch(inputBuscar.value);
 }
 
 // ── Estados vacíos / skeleton ─────────────────────────────────────
@@ -372,33 +385,6 @@ function _showNoData(msg = 'No hay asistencia registrada para esta fecha.') {
             <div class="empty-state__sub">${msg}</div>
         </div>`;
     _allRows = [];
-}
-
-// ── Búsqueda en cliente ───────────────────────────────────────────
-function _applySearch(query) {
-    const q = query.trim().toLowerCase();
-    btnClear.style.display = q ? 'block' : 'none';
-
-    let visibles = 0;
-    _allRows.forEach(tr => {
-        const visible = !q || (tr.dataset.nombre || '').includes(q);
-        tr.style.display = visible ? '' : 'none';
-        if (visible) visibles++;
-    });
-
-    const existing = document.getElementById('_noResultsRow');
-    if (existing) existing.remove();
-
-    if (q && visibles === 0 && _allRows.length > 0) {
-        const tbody = document.getElementById('tbodyAsistencia');
-        if (tbody) {
-            const tr = document.createElement('tr');
-            tr.id = '_noResultsRow';
-            tr.innerHTML = `<td colspan="4" style="text-align:center;padding:28px;color:var(--text-muted)">
-                Sin resultados para "<strong>${query.trim()}</strong>"</td>`;
-            tbody.appendChild(tr);
-        }
-    }
 }
 
 // ── Calendario mensual ────────────────────────────────────────────
@@ -519,27 +505,36 @@ function _renderCalGrid(data) {
     }
 
     for (let d = 1; d <= lastDay; d++) {
-        const dateStr  = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const sesiones = diaMap[dateStr];           // undefined si no hay sesiones
-        const isToday  = dateStr === hoyISO;
-        const isFuture = dateStr > hoyISO;
+        const dateStr   = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dow       = new Date(year, month - 1, d).getDay();  // 0=Dom, 6=Sáb
+        const isWeekend = dow === 0 || dow === 6;
+        const sesiones  = diaMap[dateStr];
+        const isToday   = dateStr === hoyISO;
+        const isFuture  = dateStr > hoyISO;
 
-        // Calcular estado en cliente (evita campo redundante en backend)
         let dotHtml = '';
-        let title   = 'Sin registro';
-        if (sesiones !== undefined) {
+        let title   = '';
+
+        if (isWeekend) {
+            title = 'Sin clases';
+        } else if (isFuture) {
+            title = '';
+        } else if (sesiones !== undefined && sesiones > 0) {
             title = `${sesiones} de ${total} curso${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}`;
-            if (sesiones >= total) {
-                dotHtml = '<span class="cal-dot cal-dot--completo"></span>';
-            } else {
-                dotHtml = '<span class="cal-dot cal-dot--parcial"></span>';
-            }
+            dotHtml = sesiones >= total
+                ? '<span class="cal-dot cal-dot--completo"></span>'
+                : '<span class="cal-dot cal-dot--parcial"></span>';
+        } else {
+            // Día hábil pasado sin ninguna sesión registrada
+            title   = 'Sin asistencia registrada';
+            dotHtml = '<span class="cal-dot cal-dot--sin-asistencia"></span>';
         }
 
         const classes = [
             'cal-cell',
-            isToday  ? 'cal-cell--today'  : '',
-            isFuture ? 'cal-cell--future' : '',
+            isToday   ? 'cal-cell--today'   : '',
+            isFuture  ? 'cal-cell--future'  : '',
+            isWeekend ? 'cal-cell--weekend' : '',
         ].filter(Boolean).join(' ');
 
         html += `<div class="${classes}" title="${title}">
@@ -559,10 +554,10 @@ btnCalClose.addEventListener('click', _closeCalendario);
 btnCalPrev.addEventListener('click', () => _moveMes(-1));
 btnCalNext.addEventListener('click', () => _moveMes(+1));
 
-navResumenDia.addEventListener('click', () => {
+if (navResumenDia) navResumenDia.addEventListener('click', () => {
     _resumenDiaAbierto ? _closeResumenDia() : _openResumenDia();
 });
-inputResumenFecha.addEventListener('change', () => {
+if (inputResumenFecha) inputResumenFecha.addEventListener('change', () => {
     _resumenFecha = inputResumenFecha.value || null;
     if (_resumenFecha) _loadResumenDia();
 });
@@ -576,57 +571,127 @@ document.addEventListener('click', (e) => {
 
 selectCurso.addEventListener('change', async () => {
     _cursoId = selectCurso.value ? Number(selectCurso.value) : null;
-    // Mensual carga solo con el curso
+    if (!_cursoId) {
+        // Sin curso → stats globales + cards de cursos
+        _resetStats();
+        await loadCursosCards();
+        return;
+    }
     await loadMonthly();
-    // Diario solo si también hay fecha
-    if (_fecha) await loadDaily();
+    if (_fecha) {
+        await loadDaily();
+    } else {
+        await loadEstudiantesCards();
+    }
 });
 
 inputFecha.addEventListener('change', async () => {
     _fecha = inputFecha.value || null;
-    // Al cambiar fecha actualizamos mensual (puede cambiar el mes) y diario
     if (_cursoId) {
         await loadMonthly();
-        await loadDaily();
+        if (_fecha) {
+            await loadDaily();
+        } else {
+            await loadEstudiantesCards();
+        }
     }
 });
 
-inputBuscar.addEventListener('input', () => _applySearch(inputBuscar.value));
 
-btnClear.addEventListener('click', () => {
-    inputBuscar.value = '';
-    _applySearch('');
-});
-
-btnReset.addEventListener('click', () => {
+btnReset.addEventListener('click', async () => {
     if (_calendarioAbierto) _closeCalendario();
     // Limpiar inputs
     selectCurso.value = '';
     inputFecha._flatpickr ? inputFecha._flatpickr.clear() : (inputFecha.value = '');
-    inputBuscar.value = '';
     _cursoId = null;
     _fecha   = null;
     _allRows = [];
-    btnClear.style.display = 'none';
 
-    // Volver stats a datos globales
+    // Volver stats a datos globales + cards de cursos
     _resetStats();
-
-    // Volver tabla al estado inicial
     recordHeader.style.display = 'none';
-    tableContainer.innerHTML = `
-        <div class="empty-state">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8"  y1="2" x2="8"  y2="6"/>
-                <line x1="3"  y1="10" x2="21" y2="10"/>
-            </svg>
-            <div class="empty-state__title">Selecciona un curso y fecha</div>
-            <div class="empty-state__sub">Se mostrará el registro de asistencia del día</div>
-        </div>`;
+    await loadCursosCards();
 });
+
+// ── Cards de cursos y estudiantes ─────────────────────────────────
+
+/**
+ * Asigna tier relativo a cada ítem según su ranking en la lista.
+ * Top 25% → high, bottom 25% → low, resto → mid.
+ * Ítems sin datos → none.
+ */
+function _asignarTiers(items) {
+    const conDatos = items.filter(i => i.porcentaje !== null && i.porcentaje !== undefined);
+    conDatos.sort((a, b) => b.porcentaje - a.porcentaje);
+    const n = conDatos.length;
+    conDatos.forEach((item, idx) => {
+        const rank = n === 1 ? 0.5 : idx / (n - 1);   // 0 = mejor, 1 = peor
+        item._tier = rank <= 0.25 ? 'high' : rank >= 0.75 ? 'low' : 'mid';
+    });
+    items.filter(i => i.porcentaje === null || i.porcentaje === undefined)
+         .forEach(i => { i._tier = 'none'; });
+}
+
+function _renderCard(nombre, pct, stats, tier) {
+    const pctTxt = pct !== null && pct !== undefined ? `${pct}%` : '—';
+    const barW   = pct !== null && pct !== undefined ? pct : 0;
+    return `
+        <div class="rc-card rc-card--${tier}">
+            <div class="rc-card__name" title="${nombre}">${nombre}</div>
+            <div class="rc-card__pct">${pctTxt}</div>
+            <div class="rc-card__bar"><div class="rc-card__bar-fill" style="width:${barW}%"></div></div>
+            <div class="rc-card__stats">
+                <span class="rc-card__stat"><span class="rc-card__stat-dot" style="background:#22c55e"></span>${stats.presente}</span>
+                <span class="rc-card__stat"><span class="rc-card__stat-dot" style="background:#ef4444"></span>${stats.falta}</span>
+                <span class="rc-card__stat"><span class="rc-card__stat-dot" style="background:#f59e0b"></span>${stats.atraso}</span>
+            </div>
+        </div>`;
+}
+
+function _cardsHTML(items, keyNombre) {
+    _asignarTiers(items);
+    return items.map(i => _renderCard(i[keyNombre], i.porcentaje, i, i._tier)).join('');
+}
+
+async function loadCursosCards() {
+    const mes = _getMes();
+    tableContainer.innerHTML = '<div style="padding:8px 0"><span class="resumen-cards-title">Cargando...</span></div>';
+    const { ok, data } = await fetchAPI(`/api/attendance/resumen-cursos/?mes=${mes}`);
+    if (!ok || !data?.cursos?.length) {
+        _showNoData('No hay registros de asistencia.');
+        return;
+    }
+    const sufijo = data.es_mes_anterior ? ' <span style="color:var(--text-muted);font-weight:400">· mes anterior</span>' : '';
+    tableContainer.innerHTML = `
+        <div class="resumen-cards-header">
+            <span class="resumen-cards-title">Asistencia por Curso${sufijo}</span>
+            <span class="resumen-cards-meta">${_periodoLabel(data.mes)}</span>
+        </div>
+        <div class="resumen-cards-grid">${_cardsHTML(data.cursos, 'nombre')}</div>`;
+    recordHeader.style.display = 'none';
+    _allRows = [];
+}
+
+async function loadEstudiantesCards() {
+    if (!_cursoId) return;
+    const mes = _getMes();
+    tableContainer.innerHTML = '<div style="padding:8px 0"><span class="resumen-cards-title">Cargando...</span></div>';
+    const { ok, data } = await fetchAPI(`/api/attendance/cursos/${_cursoId}/resumen-estudiantes/?mes=${mes}`);
+    if (!ok || !data?.estudiantes?.length) {
+        _showNoData('No hay registros de asistencia para este curso.');
+        return;
+    }
+    const sufijo = data.es_mes_anterior ? ' <span style="color:var(--text-muted);font-weight:400">· mes anterior</span>' : '';
+    const cursoNombre = selectCurso.options[selectCurso.selectedIndex]?.text || '';
+    tableContainer.innerHTML = `
+        <div class="resumen-cards-header">
+            <span class="resumen-cards-title">${cursoNombre} — Estudiantes${sufijo}</span>
+            <span class="resumen-cards-meta">${_periodoLabel(data.mes)}</span>
+        </div>
+        <div class="resumen-cards-grid">${_cardsHTML(data.estudiantes, 'nombre')}</div>`;
+    recordHeader.style.display = 'none';
+    _allRows = [];
+}
 
 // ── Exportar planilla ─────────────────────────────────────────────
 (function () {
@@ -773,6 +838,6 @@ btnReset.addEventListener('click', () => {
 
 // ── Inicialización ────────────────────────────────────────────────
 (async function init() {
-    // Cargar cursos y datos globales en paralelo
     await Promise.all([loadCursos(), loadGlobal()]);
+    await loadCursosCards();
 })();
