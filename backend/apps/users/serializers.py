@@ -13,7 +13,7 @@ class UserListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'first_name', 'last_name', 'username', 'rol', 'last_login', 'tiene_fcm', 'primer_ingreso')
+        fields = ('id', 'first_name', 'last_name', 'username', 'rol', 'last_login', 'date_joined', 'tiene_fcm', 'primer_ingreso')
 
     def get_rol(self, obj):
         return obj.tipo_usuario.nombre if obj.tipo_usuario else '—'

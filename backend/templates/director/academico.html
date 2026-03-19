@@ -18,66 +18,103 @@
     </script>
 
     <style>
-        /* ── Layout principal ────────────────────────────────────── */
-        .acad-layout {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 20px;
-            align-items: start;
+        /* ── Subnav — tab bar ───────────────────────────────────── */
+        .acad-subnav {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 22px;
+            gap: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
         }
-        @media (max-width: 900px) {
-            .acad-layout { grid-template-columns: 1fr; }
+        .acad-subnav::-webkit-scrollbar { display: none; }
+
+        .acad-pivot {
+            padding: 0 18px;
+            height: 44px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color .15s, border-color .15s;
+            white-space: nowrap;
+            margin-bottom: -1px;
+            flex-shrink: 0;
+        }
+        .acad-pivot svg {
+            flex-shrink: 0; width: 15px; height: 15px;
+            opacity: .45; transition: opacity .15s;
+        }
+        .acad-pivot:hover { color: var(--text-secondary); }
+        .acad-pivot:hover svg { opacity: .7; }
+        .acad-pivot.active {
+            color: var(--accent-text);
+            font-weight: 600;
+            border-bottom-color: var(--accent);
+        }
+        .acad-pivot.active svg { opacity: 1; }
+
+        .acad-subnav-sep {
+            width: 1px;
+            background: var(--border-subtle);
+            margin: 10px 10px;
+            flex-shrink: 0;
+            align-self: stretch;
         }
 
-        /* ── Sidebar académico ───────────────────────────────────── */
-        .acad-sidebar {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            padding: 16px;
-            position: sticky;
-            top: 0;
+        .acad-subnav-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 14px;
+            flex-shrink: 0;
         }
+
+        /* base compartida para botones del nav */
+        .acad-subnav-actions button {
+            padding: 6px 13px;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem; font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            white-space: nowrap; flex-shrink: 0;
+            transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
+        }
+        .acad-subnav-actions button svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+        .btn-descargar-planes {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-descargar-planes:hover {
+            color: var(--accent-text);
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+        }
+        .btn-descargar-planes:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
         .btn-nueva-asig {
-            width: 100%;
-            padding: 11px 16px;
             background: var(--accent);
             color: #fff;
             border: none;
-            border-radius: var(--radius-sm);
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: opacity .15s;
-            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(59,130,246,.3);
         }
-        .btn-nueva-asig:hover { opacity: .85; }
-
-        .acad-pivot-nav { display: flex; flex-direction: column; gap: 4px; }
-        .acad-pivot {
-            width: 100%;
-            padding: 10px 14px;
-            background: transparent;
-            border: none;
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background .15s, color .15s;
+        .btn-nueva-asig:hover {
+            background: var(--accent-hover, var(--accent));
+            box-shadow: 0 4px 14px rgba(59,130,246,.45);
+            filter: brightness(1.08);
         }
-        .acad-pivot:hover { background: var(--bg-surface); color: var(--text-primary); }
-        .acad-pivot.active { background: var(--accent-dim); color: var(--accent-text); font-weight: 600; }
-        .acad-pivot svg { flex-shrink: 0; opacity: .7; }
-        .acad-pivot.active svg { opacity: 1; }
 
         /* ── Vistas ──────────────────────────────────────────────── */
         .acad-vista { display: none; }
@@ -86,11 +123,14 @@
         /* ── Vista Por Profesor ──────────────────────────────────── */
         .vp-layout {
             display: grid;
-            grid-template-columns: 210px 1fr;
+            grid-template-columns: 240px 1fr;
             gap: 16px;
-            height: calc(100vh - 180px);
+            height: calc(100dvh - var(--topbar-h) - 130px);
         }
-        @media (max-width: 700px) { .vp-layout { grid-template-columns: 1fr; height: auto; } }
+        @media (max-width: 700px) {
+            .vp-layout { grid-template-columns: 1fr; height: auto; }
+            .vp-list-wrap { max-height: 260px; }
+        }
 
         .vp-list-wrap {
             background: var(--bg-card);
@@ -111,17 +151,21 @@
             flex-shrink: 0;
         }
         #vpProfList { overflow-y: auto; flex: 1; min-height: 0; }
-        #vpContent  {
-            overflow-y: auto; min-height: 0; padding: 4px 2px;
+        #vpContent {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr;
+            gap: 14px;
+            overflow: hidden;
+        }
+        .vp-card {
+            display: flex; flex-direction: column;
+            min-height: 0; overflow: hidden;
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-card);
-            padding: 16px;
         }
-        #vpContent::-webkit-scrollbar { width: 4px; }
-        #vpContent::-webkit-scrollbar-track { background: transparent; }
-        #vpContent::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-        #vpContent::-webkit-scrollbar-thumb:hover { background: var(--accent); }
         #vpProfList::-webkit-scrollbar { width: 4px; }
         #vpProfList::-webkit-scrollbar-track { background: transparent; }
         #vpProfList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
@@ -130,6 +174,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            cursor: pointer;
             padding: 11px 14px;
             cursor: pointer;
             border-bottom: 1px solid var(--border-subtle);
@@ -150,32 +195,364 @@
         }
         .vp-prof-item.active .vp-prof-avatar { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-text); }
         .vp-prof-info { flex: 1; min-width: 0; }
-        .vp-prof-name { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .vp-prof-badge { background: var(--bg-surface); color: var(--text-muted); border-radius: 50px; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; flex-shrink: 0; }
-        .vp-prof-item.active .vp-prof-badge { background: var(--accent-dim); color: var(--accent-text); }
+        .vp-prof-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vp-prof-cargas { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+        .vp-prof-item.active .vp-prof-cargas { color: var(--accent-text); opacity: .8; }
+        .vp-prof-chevron { flex-shrink: 0; color: var(--text-muted); opacity: 0; transition: opacity .15s; width: 14px; height: 14px; }
+        .vp-prof-item:hover .vp-prof-chevron,
+        .vp-prof-item.active .vp-prof-chevron { opacity: 1; color: var(--accent-text); }
 
-        .vp-content-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
-        .vp-content-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
-        .vp-content-sub { font-size: 0.8rem; color: var(--text-muted); }
-        .vp-cards-grid { display: flex; flex-direction: column; gap: 10px; }
-
-        .asig-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); padding: 16px; transition: border-color .15s; }
-        .asig-card:hover { border-color: var(--border); }
-        .asig-card__materia { font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; }
-        .asig-card__curso { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px; }
-        .asig-card__actions { display: flex; gap: 6px; }
-        .asig-card__btn {
-            flex: 1; padding: 6px 8px;
-            border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600;
-            cursor: pointer; border: 1px solid transparent;
-            display: flex; align-items: center; justify-content: center; gap: 4px;
-            transition: background .12s, border-color .12s;
+        /* ── Indicador de planes ─────────────────────────── */
+        .vp-avatar-wrap { position: relative; flex-shrink: 0; }
+        .vp-plan-dot {
+            position: absolute;
+            top: -2px; right: -2px;
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-card);
+            transition: border-color .12s;
         }
-        .asig-card__btn svg { width: 11px; height: 11px; flex-shrink: 0; }
-        .asig-card__btn--del { background: var(--danger-dim); color: var(--danger); border-color: rgba(239,68,68,.2); }
-        .asig-card__btn--del:hover { background: rgba(239,68,68,.2); }
-        .asig-card__btn--edit { background: var(--bg-surface); color: var(--text-secondary); border-color: var(--border-subtle); }
-        .asig-card__btn--edit:hover { border-color: var(--border); color: var(--text-primary); }
+        .vp-prof-item.active .vp-plan-dot { border-color: var(--accent-dim); }
+        .vp-plan-dot--green  { background: #22c55e; }
+        .vp-plan-dot--orange { background: #eab308; box-shadow: 0 0 0 2px rgba(234,179,8,.25); }
+        .vp-plan-dot--red    { background: #ef4444; }
+
+        /* ══════════════════════════════════════════════════════
+           DETALLE DE PROFESOR
+           ══════════════════════════════════════════════════════ */
+        .vp-header-card-full {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* ── Cabecera ────────────────────────────────────────── */
+        .vp-prof-header-card {
+            background: linear-gradient(135deg,
+                rgba(59,130,246,.13) 0%,
+                rgba(129,140,248,.08) 55%,
+                transparent 100%
+            );
+            border: none;
+            border-bottom: 1px solid rgba(59,130,246,.2);
+            border-radius: 0;
+            padding: 20px 24px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* blob decorativo */
+        .vp-prof-header-card::before {
+            content: '';
+            position: absolute;
+            top: -40px; left: -30px;
+            width: 180px; height: 180px;
+            background: radial-gradient(circle, rgba(59,130,246,.2) 0%, transparent 68%);
+            pointer-events: none;
+        }
+        .vp-prof-header-card::after { display: none; }
+        .vp-avatar-lg {
+            width: 68px; height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem; font-weight: 800;
+            flex-shrink: 0;
+            letter-spacing: .02em;
+            box-shadow:
+                0 0 0 4px rgba(59,130,246,.22),
+                0 6px 22px rgba(59,130,246,.38);
+            position: relative; z-index: 1;
+        }
+        .vp-header-info { flex: 1; min-width: 0; position: relative; z-index: 1; }
+        .vp-header-name {
+            font-size: 1.15rem; font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .vp-header-meta {
+            font-size: 0.76rem; color: var(--text-muted);
+            margin-top: 6px;
+            display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+        }
+        .vp-header-meta-sep { opacity: .3; }
+        .vp-header-badge {
+            display: inline-flex; align-items: center;
+            padding: 3px 10px;
+            background: rgba(34,197,94,.14); color: #4ade80;
+            border: 1px solid rgba(34,197,94,.25);
+            border-radius: 50px; font-size: 0.64rem; font-weight: 700;
+            letter-spacing: .05em;
+        }
+
+        /* ── Lista agrupada por materia ──────────────────────── */
+        .vp-mat-section {
+            flex: 1; min-height: 0;
+            display: flex; flex-direction: column;
+            border-top: 1px solid var(--border-subtle);
+            overflow: hidden;
+        }
+        .vp-panel-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 18px;
+            font-size: 0.68rem; font-weight: 700; letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg-app);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+        .vp-card > .vp-panel-head:first-child {
+            border-radius: var(--radius-card) var(--radius-card) 0 0;
+        }
+        .vp-plan-count {
+            font-size: 0.65rem; font-weight: 700;
+            border-radius: 50px; padding: 2px 9px;
+            letter-spacing: .02em; text-transform: none;
+            white-space: nowrap;
+        }
+        .vp-plan-count--ok      { background: rgba(34,197,94,.15);  color: #4ade80; }
+        .vp-plan-count--miss    { background: rgba(239,68,68,.12);  color: #f87171; }
+        .vp-plan-count--partial { background: rgba(234,179,8,.15);  color: #facc15; }
+        .vp-panel-mes {
+            font-size: 0.65rem; font-weight: 700;
+            color: var(--accent-text);
+            background: var(--accent-dim);
+            border-radius: 50px; padding: 2px 8px;
+            letter-spacing: .02em; text-transform: none;
+        }
+
+        /* ── Header planes con controles ──────────────────────── */
+        .vp-planes-head { gap: 10px; }
+        .vp-planes-controls {
+            display: flex; align-items: center; gap: 7px;
+            margin-left: auto;
+        }
+        .vp-mes-select-wrap {
+            display: flex; align-items: center; gap: 5px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 3px 8px;
+            color: var(--text-muted);
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .vp-mes-select-wrap:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+            color: var(--accent-text);
+        }
+        .vp-mes-select {
+            background: var(--bg-input); border: none; outline: none;
+            font-size: 0.72rem; font-weight: 700;
+            color: var(--text-primary);
+            cursor: pointer;
+            text-transform: none; letter-spacing: 0;
+        }
+        .vp-mes-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .vp-export-btn {
+            display: flex; align-items: center; gap: 5px;
+            padding: 4px 10px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-size: 0.7rem; font-weight: 700;
+            cursor: pointer; text-transform: none; letter-spacing: 0;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .vp-export-btn:hover:not(:disabled) {
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            border-color: var(--accent);
+        }
+        .vp-export-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+        /* zona scrollable materias */
+        .vp-mat-rows { overflow-y: auto; flex: 1; min-height: 0; }
+        .vp-mat-rows::-webkit-scrollbar { width: 3px; }
+        .vp-mat-rows::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+        /* ── Planes de trabajo ───────────────────────────────── */
+        .vp-planes-rows { overflow-y: auto; flex: 1; min-height: 0; }
+        .vp-planes-rows::-webkit-scrollbar { width: 3px; }
+        .vp-planes-rows::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+        .vp-plan-row {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 11px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background .12s;
+        }
+        .vp-plan-row:last-child { border-bottom: none; }
+        .vp-plan-row:hover { background: rgba(59,130,246,.03); }
+        .vp-plan-semana-badge {
+            width: 28px; height: 28px; border-radius: 8px;
+            background: var(--accent-dim); color: var(--accent-text);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: 800; flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .vp-plan-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+        .vp-plan-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .vp-plan-materia {
+            font-size: 0.75rem; font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .vp-plan-curso-tag {
+            font-size: 0.62rem; font-weight: 700;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px; padding: 1px 5px;
+            white-space: nowrap;
+        }
+        .vp-plan-desc {
+            font-size: 0.74rem; color: var(--text-secondary);
+            line-height: 1.4;
+            display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .vp-plan-rango {
+            font-size: 0.65rem; color: var(--text-muted);
+            font-weight: 500; margin-top: 1px;
+        }
+        .vp-plan-empty {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 8px; height: 100%;
+            color: var(--text-muted);
+            padding: 32px 16px;
+        }
+        .vp-plan-empty svg { opacity: .35; }
+        .vp-plan-empty span { font-size: 0.8rem; font-weight: 600; }
+        .vp-plan-empty small { font-size: 0.7rem; opacity: .6; }
+
+        /* ── Grupo por materia ───────────────────────────────── */
+        .vp-mat-group { border-bottom: 1px solid var(--border-subtle); }
+        .vp-mat-group:last-child { border-bottom: none; }
+        .vp-mat-group-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 9px 20px;
+            background: var(--bg-surface);
+            user-select: none;
+        }
+        .vp-mat-group-icon {
+            width: 28px; height: 28px; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: 800; letter-spacing: .01em;
+            flex-shrink: 0;
+        }
+        .vp-mat-group-name {
+            font-size: 0.82rem; font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: .01em;
+        }
+        .vp-mat-group-count {
+            font-size: 0.65rem; font-weight: 700;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 50px;
+            padding: 1px 8px;
+            letter-spacing: .03em;
+        }
+
+        /* ── Grid de cursos ──────────────────────────────────── */
+        .vp-curso-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .vp-curso-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 8px; padding: 9px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            border-right: 1px solid var(--border-subtle);
+            transition: background .12s;
+        }
+        .vp-curso-row:nth-child(even) { border-right: none; }
+        .vp-curso-row[data-pc-id] { cursor: pointer; }
+        .vp-curso-row:hover { background: rgba(59,130,246,.05); }
+        .vp-curso-row.active {
+            background: var(--accent-dim);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+        .vp-curso-row.active .vp-curso-nombre { color: var(--accent-text); }
+
+        /* ── Dot indicador de plan ───────────────────────────── */
+        .vp-pc-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+        .vp-pc-dot--ok   { background: #22c55e; box-shadow: 0 0 4px rgba(34,197,94,.5); }
+        .vp-pc-dot--miss { background: #ef4444; box-shadow: 0 0 4px rgba(239,68,68,.4); }
+
+        .vp-curso-nombre {
+            font-size: 0.82rem; font-weight: 600;
+            color: var(--text-primary); flex: 1; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .vp-curso-del {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 10px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-size: 0.72rem; font-weight: 600;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity .15s, background .12s, color .12s, border-color .12s;
+        }
+        .vp-curso-del svg { width: 12px; height: 12px; flex-shrink: 0; }
+        .vp-curso-row:hover .vp-curso-del { opacity: 1; }
+        .vp-curso-del:hover {
+            background: var(--danger-dim); color: var(--danger);
+            border-color: rgba(239,68,68,.25);
+        }
+
+        /* fila añadir */
+        .vp-mat-add-row {
+            display: flex; align-items: center; gap: 9px;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.82rem; font-weight: 500;
+            flex-shrink: 0;
+            transition: background .12s, color .12s;
+        }
+        .vp-mat-add-row:hover { background: var(--accent-dim); color: var(--accent-text); }
+        .vp-mat-add-row svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+
+        /* ── Responsive ──────────────────────────────────────── */
+        @media (max-width: 860px) {
+            .vp-cards-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+        }
+        @media (max-width: 700px) {
+            #vpContent { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+        }
+        @media (max-width: 600px) {
+            .vp-prof-header-card { flex-wrap: wrap; }
+            .vp-header-info { min-width: 0; }
+            .vp-cards-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 420px) {
+            .vp-cards-grid { grid-template-columns: 1fr; }
+        }
 
         .asig-edit-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
         .asig-edit-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; }
@@ -184,101 +561,196 @@
         .asig-edit-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
         .asig-edit-select { width: 100%; padding: 7px 10px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; margin-bottom: 8px; }
 
-        /* ── Vista Por Curso — Grid de tarjetas ──────────────────── */
-        .curso-cards-grid {
+        /* ══════════════════════════════════════════════════════
+           VISTA POR CURSO
+           ══════════════════════════════════════════════════════ */
+
+        /* Layout split: grid | panel */
+        .vc-split {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            grid-template-columns: 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        .vc-split.has-panel { grid-template-columns: 1fr 295px; }
+
+        /* Grid de tarjetas */
+        .vc-courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
             gap: 12px;
         }
-        .curso-card {
+
+        /* Tarjeta de curso */
+        .vc-course-card {
             background: var(--bg-card);
             border: 1.5px solid var(--border-subtle);
             border-radius: var(--radius-card);
-            padding: 16px 14px;
+            padding: 18px 16px 16px;
             cursor: pointer;
-            transition: border-color .15s, transform .1s;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            transition: border-color .18s, box-shadow .18s, transform .14s;
+            display: flex; flex-direction: column; gap: 14px;
             user-select: none;
+            position: relative; overflow: hidden;
         }
-        .curso-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-        .curso-card.active { border-color: var(--accent); background: var(--accent-dim); }
-        .curso-card__icon {
-            width: 34px; height: 34px;
-            border-radius: 8px;
-            background: var(--bg-surface);
-            display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted);
-            flex-shrink: 0;
+        .vc-course-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(0,0,0,.22);
         }
-        .curso-card.active .curso-card__icon { background: var(--accent-dim); color: var(--accent-text); }
-        .curso-card__name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
-        .curso-card__count { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
-        .curso-card__count--warn { color: #fbbf24; }
+        .vc-course-card.active {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, rgba(59,130,246,.1) 0%, transparent 100%);
+            box-shadow: 0 4px 16px rgba(59,130,246,.2);
+        }
+        .vc-course-card.active::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent), #818cf8);
+        }
+        .vc-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .vc-card-name { font-size: 1.3rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+        .vc-card-badge {
+            font-size: 0.58rem; font-weight: 700; padding: 3px 8px;
+            border-radius: 50px; letter-spacing: .05em; white-space: nowrap;
+            flex-shrink: 0; margin-top: 2px;
+        }
+        .vc-card-badge--sel  { background: var(--accent-dim); color: var(--accent-text); }
+        .vc-card-badge--ok   { background: rgba(74,222,128,.12); color: #4ade80; }
+        .vc-card-badge--warn { background: rgba(251,191,36,.12); color: #fbbf24; }
+        .vc-card-divider { height: 1px; background: var(--border-subtle); }
+        .vc-card-stats { display: flex; flex-direction: column; gap: 7px; }
+        .vc-card-stat-row { display: flex; justify-content: space-between; align-items: center; }
+        .vc-card-stat-label { font-size: 0.72rem; color: var(--text-muted); }
+        .vc-card-stat-val   { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
+        .vc-card-stat-val--warn { color: #fbbf24; }
 
-        /* ── Modal: detalle de curso ──────────────────────────────── */
-        .vc-modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 250;
-            background: rgba(0,0,0,.55);
-            align-items: center;
-            justify-content: center;
-        }
-        .vc-modal-overlay.visible { display: flex; }
-        .vc-modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
+        /* Tarjeta "Añadir" */
+        .vc-add-card {
+            background: transparent;
+            border: 2px dashed var(--border);
             border-radius: var(--radius-card);
-            width: 100%;
-            max-width: 460px;
-            max-height: 80vh;
-            margin: 16px;
-            display: flex;
+            padding: 18px 16px;
+            min-height: 130px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 10px; cursor: pointer;
+            color: var(--text-muted); font-size: 0.8rem; font-weight: 500;
+            transition: border-color .18s, color .18s, background .18s;
+            text-align: center;
+        }
+        .vc-add-card:hover { border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim); }
+        .vc-add-card-icon {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            display: flex; align-items: center; justify-content: center;
+            transition: background .18s, border-color .18s;
+        }
+        .vc-add-card:hover .vc-add-card-icon { background: rgba(59,130,246,.18); border-color: var(--accent); }
+
+        /* Panel de detalle inline */
+        .vc-detail {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            display: none;
             flex-direction: column;
-            box-shadow: 0 24px 64px rgba(0,0,0,.4);
-            animation: vcModalIn .18s ease;
+            overflow: hidden;
+            position: sticky;
+            top: 16px;
+            max-height: calc(100dvh - var(--topbar-h) - 80px);
+            animation: vcDetailIn .2s ease;
         }
-        @keyframes vcModalIn {
-            from { opacity: 0; transform: scale(.96) translateY(8px); }
-            to   { opacity: 1; transform: scale(1)  translateY(0); }
+        @keyframes vcDetailIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to   { opacity: 1; transform: translateX(0); }
         }
-        .vc-modal-head {
-            display: flex; align-items: center; gap: 12px;
-            padding: 20px 20px 16px;
+        .vc-split.has-panel .vc-detail { display: flex; }
+
+        /* Header del panel */
+        .vc-detail-head {
+            padding: 16px 18px 14px;
             border-bottom: 1px solid var(--border-subtle);
             flex-shrink: 0;
+            position: relative; overflow: hidden;
+            background: linear-gradient(135deg, rgba(59,130,246,.1), transparent);
         }
-        .vc-modal-title { flex: 1; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
-        .vc-modal-close {
+        .vc-detail-head::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent), #818cf8);
+        }
+        .vc-detail-head::after {
+            content: '';
+            position: absolute; top: -30px; right: -20px;
+            width: 120px; height: 120px;
+            background: radial-gradient(circle, rgba(59,130,246,.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .vc-detail-head-row { display: flex; align-items: center; justify-content: space-between; }
+        .vc-detail-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 3px; }
+        .vc-detail-title { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); position: relative; z-index: 1; }
+        .vc-detail-close {
             background: none; border: none; cursor: pointer;
-            color: var(--text-muted); padding: 4px;
+            color: var(--text-muted); padding: 5px;
             border-radius: var(--radius-sm);
-            transition: color .15s, background .15s;
             display: flex; align-items: center; justify-content: center;
+            transition: color .15s, background .15s;
+            position: relative; z-index: 1; flex-shrink: 0;
         }
-        .vc-modal-close:hover { color: var(--text-primary); background: var(--bg-surface); }
-        .vc-modal-body { overflow-y: auto; padding: 16px 20px; }
-        .vc-modal-body::-webkit-scrollbar { width: 4px; }
-        .vc-modal-body::-webkit-scrollbar-track { background: transparent; }
-        .vc-modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-        .vc-modal-body::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-        .vc-drawer-count {
-            font-size: 0.7rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .05em;
-            color: var(--text-muted); margin-bottom: 12px;
+        .vc-detail-close:hover { color: var(--text-primary); background: var(--bg-surface); }
+        .vc-detail-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+        .vc-detail-tag {
+            padding: 3px 9px; border-radius: 50px;
+            font-size: 0.61rem; font-weight: 700; letter-spacing: .04em;
         }
-        .vc-asig-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 12px 0;
+        .vc-detail-tag--year { background: rgba(59,130,246,.14); color: var(--accent-text); }
+        .vc-detail-tag--stu  { background: rgba(74,222,128,.12); color: #4ade80; }
+
+        /* Lista de materias */
+        .vc-detail-body { overflow-y: auto; flex: 1; }
+        .vc-detail-body::-webkit-scrollbar { width: 3px; }
+        .vc-detail-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .vc-materia-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 18px;
             border-bottom: 1px solid var(--border-subtle);
+            transition: background .12s;
         }
-        .vc-asig-row:last-child { border-bottom: none; }
-        .vc-asig-info { flex: 1; min-width: 0; }
-        .vc-asig-materia { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
-        .vc-asig-profesor { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vc-materia-row:last-child { border-bottom: none; }
+        .vc-materia-row:hover { background: var(--bg-surface); }
+        .vc-materia-icon {
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 0.65rem; font-weight: 800;
+            letter-spacing: .01em;
+        }
+        .vc-materia-info { flex: 1; min-width: 0; }
+        .vc-materia-name { font-size: 0.84rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vc-materia-prof { font-size: 0.71rem; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Footer del panel */
+        .vc-detail-footer { padding: 12px 16px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
+        .vc-btn-planilla {
+            width: 100%; padding: 9px 14px;
+            background: var(--bg-surface); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-secondary);
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .vc-btn-planilla:hover { background: var(--bg-input); border-color: var(--border); color: var(--text-primary); }
+        .vc-btn-planilla svg { width: 14px; height: 14px; }
+
+        /* Responsive */
+        @media (max-width: 860px) {
+            .vc-split.has-panel { grid-template-columns: 1fr; }
+            .vc-detail { position: static; max-height: none; animation: none; }
+            .vc-split.has-panel .vc-detail { border-top: 2px solid var(--accent); }
+        }
+        @media (max-width: 520px) {
+            .vc-courses-grid { grid-template-columns: 1fr 1fr; }
+        }
 
         /* ── Vista Materias ──────────────────────────────────────── */
         .mat-form-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); padding: 20px; margin-bottom: 14px; }
@@ -422,6 +894,74 @@
         .dir-plan-footer { padding: 12px 22px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; display: flex; justify-content: flex-end; }
 
         /* ── Modal Advertencia Exportar ─────────────────────────── */
+        /* ── Modal exportar mes global ──────────────────────── */
+        .export-mes-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            width: 100%; max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.45);
+            overflow: hidden;
+        }
+        .export-mes-header {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .export-mes-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .export-mes-icon svg { width: 18px; height: 18px; }
+        .export-mes-title {
+            font-size: 0.95rem; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 3px;
+        }
+        .export-mes-sub {
+            font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;
+        }
+        .export-mes-close {
+            margin-left: auto; flex-shrink: 0;
+            background: transparent; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 2px;
+            border-radius: 6px; transition: background .12s, color .12s;
+        }
+        .export-mes-close:hover { background: var(--bg-surface); color: var(--text-primary); }
+        .export-mes-body { padding: 20px; }
+        .export-mes-label {
+            display: block; font-size: 0.72rem; font-weight: 700;
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em;
+            margin-bottom: 8px;
+        }
+        .export-mes-select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.88rem; font-weight: 600;
+            padding: 9px 12px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .export-mes-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+        }
+        .export-mes-select option {
+            background: var(--bg-card); color: var(--text-primary);
+        }
+        .export-mes-footer {
+            display: flex; justify-content: flex-end; gap: 8px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
+        }
+
         .export-warn-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,.55); z-index: 500;
@@ -570,6 +1110,10 @@
         </nav>
 
         <div class="sidebar-bottom">
+            <a href="/director/mi-perfil/" class="nav-item" aria-label="Mi Perfil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="nav-label">Mi Perfil</span>
+            </a>
             <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -593,62 +1137,60 @@
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
             </button>
-            <h1 class="page-title">Gestión Académica</h1>
+            <h1 class="page-title">Académico</h1>
         </div>
     </header>
 
     <!-- ── Contenido ─────────────────────────────────────────────── -->
     <main class="main-content">
         <div class="content-wrap">
-            <div class="acad-layout">
 
-                <!-- ── Panel izquierdo ──────────────────────────── -->
-                <div class="acad-sidebar">
+            <!-- ── Subnav secciones ──────────────────────────────── -->
+            <nav class="acad-subnav" aria-label="Secciones académicas">
+                <button class="acad-pivot active" data-pivot="profesores">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Por Profesor
+                </button>
+                <button class="acad-pivot" data-pivot="cursos">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                    Por Curso
+                </button>
+                <button class="acad-pivot" data-pivot="materias">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    Materias
+                </button>
+                <div class="acad-subnav-sep"></div>
+                <div class="acad-subnav-actions">
+                    <button class="btn-descargar-planes" id="btnNavDescargarPlanes">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Descargar Planes
+                    </button>
                     <button class="btn-nueva-asig" id="btnNuevaAsig">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                         Nueva Asignación
                     </button>
-
-                    <nav class="acad-pivot-nav">
-                        <button class="acad-pivot active" data-pivot="profesores">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
-                            Por Profesor
-                        </button>
-                        <button class="acad-pivot" data-pivot="cursos">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                            </svg>
-                            Por Curso
-                        </button>
-                        <button class="acad-pivot" data-pivot="materias">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                            </svg>
-                            Materias
-                        </button>
-                        <button class="acad-pivot" data-pivot="planes">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-                                <rect x="9" y="3" width="6" height="4" rx="1"/>
-                                <line x1="9" y1="12" x2="15" y2="12"/>
-                                <line x1="9" y1="16" x2="13" y2="16"/>
-                            </svg>
-                            Planes de Trabajo
-                        </button>
-                    </nav>
                 </div>
+            </nav>
 
-                <!-- ── Panel derecho ─────────────────────────────── -->
+                <!-- ── Contenido principal ───────────────────────── -->
                 <div class="acad-panel-right">
 
                     <!-- Vista: Por Profesor (DEFAULT) -->
@@ -674,8 +1216,11 @@
 
                     <!-- Vista: Por Curso -->
                     <div class="acad-vista" id="vistaCursos">
-                        <div id="cursosAcordeon">
-                            <div class="spinner-inline"></div>
+                        <div class="vc-split" id="vcSplit">
+                            <div id="cursosGrid">
+                                <div class="spinner-inline"></div>
+                            </div>
+                            <aside class="vc-detail" id="vcDetail"></aside>
                         </div>
                     </div>
 
@@ -747,8 +1292,7 @@
                     </div>
 
                 </div><!-- /acad-panel-right -->
-            </div><!-- /acad-layout -->
-        </div>
+        </div><!-- /content-wrap -->
     </main>
 
     <!-- ── Modal: Nueva Asignación ──────────────────────────────── -->
@@ -853,22 +1397,6 @@
         </div>
     </div>
 
-    <!-- ── Modal: Detalle de Curso ──────────────────────────────── -->
-    <div class="vc-modal-overlay" id="vcDrawerBackdrop">
-        <div class="vc-modal">
-            <div class="vc-modal-head">
-                <div class="vc-modal-title" id="vcDrawerTitle">Curso</div>
-                <button class="vc-modal-close" id="vcDrawerClose">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="vc-modal-body" id="vcDrawerBody"></div>
-        </div>
-    </div>
-
     <!-- ── Modal: Ver planes de un profesor (solo lectura) ─────── -->
     <div class="dir-plan-overlay" id="dirPlanOverlay">
         <div class="dir-plan-box">
@@ -908,6 +1436,58 @@
                     <button class="btn-ghost" id="btnExportWarnCancelar">Cancelar</button>
                     <button class="btn-primary" id="btnExportWarnConfirmar">Descargar de todas formas</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Exportar planes globales ──────────────────────── -->
+    <div class="modal-overlay" id="modalExportarPlanes">
+        <div class="export-mes-box">
+            <div class="export-mes-header">
+                <div class="export-mes-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="export-mes-title">Exportar Planes de Trabajo</div>
+                    <div class="export-mes-sub">Se descargará un Excel con los planes de todos los profesores del mes seleccionado.</div>
+                </div>
+                <button class="export-mes-close" id="btnCerrarExportMes">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="export-mes-body">
+                <label class="export-mes-label">Selecciona el mes</label>
+                <select class="export-mes-select" id="exportMesSel">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div class="export-mes-footer">
+                <button class="btn-ghost" id="btnCancelarExportMes">Cancelar</button>
+                <button class="btn-primary" id="btnConfirmarExportMes">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Descargar Excel
+                </button>
             </div>
         </div>
     </div>

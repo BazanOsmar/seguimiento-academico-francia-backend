@@ -372,14 +372,19 @@ class DirectorPlanesExportarView(APIView):
             ProfesorPlan.objects
             .filter(mes=mes)
             .select_related('plan', 'profesor_curso__profesor', 'profesor_curso__materia', 'profesor_curso__curso')
-            .order_by(
-                'profesor_curso__profesor__last_name',
-                'profesor_curso__profesor__first_name',
-                'profesor_curso__curso__grado',
-                'profesor_curso__curso__paralelo',
-                'profesor_curso__materia__nombre',
-                'plan__fecha_inicio',
-            )
+        )
+
+        profesor_id = request.query_params.get('profesor_id')
+        if profesor_id:
+            planes = planes.filter(profesor_curso__profesor_id=profesor_id)
+
+        planes = planes.order_by(
+            'profesor_curso__profesor__last_name',
+            'profesor_curso__profesor__first_name',
+            'profesor_curso__curso__grado',
+            'profesor_curso__curso__paralelo',
+            'profesor_curso__materia__nombre',
+            'plan__fecha_inicio',
         )
 
         # ── Agrupar por profesor manteniendo orden ────────────────────

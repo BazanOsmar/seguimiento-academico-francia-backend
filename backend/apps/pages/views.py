@@ -447,6 +447,10 @@ def director_academico_view(request):
     return render(request, 'director/academico.html')
 
 
+def director_mi_perfil_view(request):
+    return render(request, 'director/mi_perfil.html')
+
+
 def profesor_view(request):
     return render(request, 'profesor/dashboard.html')
 

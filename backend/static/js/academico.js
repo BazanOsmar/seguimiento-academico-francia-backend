@@ -9,6 +9,7 @@
 let _vpAsignaciones = [];
 let _vpProfesores   = [];
 let _vpProfSelId    = null;
+let _vpPlanesData   = [];   // planes del mes actual para indicadores
 let _pivotActivo    = 'profesores';
 let _vcAsigs        = [];
 let _vcPanelCursoId = null;
@@ -180,13 +181,16 @@ async function _cargarVistaProfesor() {
     const vpProfList = document.getElementById('vpProfList');
     vpProfList.innerHTML = '<div class="spinner-inline"></div>';
 
-    const [resAsig, resUsers] = await Promise.all([
+    const mesActual = new Date().getMonth() + 1;
+    const [resAsig, resUsers, resPlanes] = await Promise.all([
         fetchAPI('/api/academics/asignaciones/'),
         fetchAPI('/api/users/'),
+        fetchAPI(`/api/academics/director/planes/?mes=${mesActual}`),
     ]);
 
-    _vpAsignaciones = resAsig.data || [];
+    _vpAsignaciones = resAsig.data   || [];
     _vpProfesores   = (resUsers.data?.usuarios || []).filter(u => u.rol === 'Profesor');
+    _vpPlanesData   = resPlanes.data || [];
 
     const porProf = {};
     for (const a of _vpAsignaciones) {
@@ -200,6 +204,26 @@ async function _cargarVistaProfesor() {
     _renderVpSidebar(grupos);
 }
 
+function _planStatus(profAsigs) {
+    // semanasPorPc: cuántas semanas distintas tiene cada asignación
+    const totales = profAsigs.length;
+    if (!totales) return null;
+
+    let completas = 0;
+    let algunas   = 0;
+    for (const a of profAsigs) {
+        const semanas = new Set(
+            _vpPlanesData.filter(p => p.profesor_curso_id === a.id).map(p => p.semana)
+        ).size;
+        if (semanas >= 4) completas++;
+        else if (semanas > 0) algunas++;
+    }
+
+    if (completas === totales)           return 'green';   // todas completas
+    if (completas > 0 || algunas > 0)    return 'orange';  // algunas
+    return 'red';                                           // ninguna
+}
+
 function _renderVpSidebar(grupos) {
     const vpProfList = document.getElementById('vpProfList');
 
@@ -208,15 +232,26 @@ function _renderVpSidebar(grupos) {
         return;
     }
 
-    vpProfList.innerHTML = grupos.map(g => `
+    vpProfList.innerHTML = grupos.map(g => {
+        const status   = _planStatus(g.asigs);
+        const dotHtml  = status
+            ? `<span class="vp-plan-dot vp-plan-dot--${status}" title="${status === 'green' ? 'Planes completos' : status === 'orange' ? 'Planes incompletos' : 'Sin planes este mes'}"></span>`
+            : '';
+        return `
         <div class="vp-prof-item" data-prof-id="${g.id}">
-            <div class="vp-prof-avatar">${_iniciales(g.nombre)}</div>
-            <div class="vp-prof-info">
-                <div class="vp-prof-name">${g.nombre}</div>
+            <div class="vp-avatar-wrap">
+                <div class="vp-prof-avatar">${_iniciales(g.nombre)}</div>
+                ${dotHtml}
             </div>
-            <span class="vp-prof-badge">${g.asigs.length}</span>
-        </div>
-    `).join('');
+            <div class="vp-prof-info">
+                <div class="vp-prof-name">${_escapeHtml(g.nombre)}</div>
+                <div class="vp-prof-cargas">${g.asigs.length} carga${g.asigs.length !== 1 ? 's' : ''} académica${g.asigs.length !== 1 ? 's' : ''}</div>
+            </div>
+            <svg class="vp-prof-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        </div>`;
+    }).join('');
 
     vpProfList.querySelectorAll('.vp-prof-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -237,28 +272,306 @@ function _renderVpSidebar(grupos) {
 
 function _renderVpCards(grupo) {
     const vpContent = document.getElementById('vpContent');
+
+    const profUser    = _vpProfesores.find(p => p.id === grupo.id);
+    const username    = profUser?.username || '—';
+    const nCursos     = new Set(grupo.asigs.map(a => a.curso)).size;
+    const nMaterias   = new Set(grupo.asigs.map(a => a.materia)).size;
+
+    let anioIngreso = '—';
+    if (profUser?.date_joined) anioIngreso = new Date(profUser.date_joined).getFullYear();
+    let lastLogin = '—';
+    if (profUser?.last_login) {
+        lastLogin = new Date(profUser.last_login)
+            .toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // ── Planes de este profesor este mes ──────────────────────
+    const mesActual  = new Date().getMonth() + 1;
+    const mesesNombre = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const planesProf = _vpPlanesData.filter(p => p.profesor_id === grupo.id);
+    let planesHtml;
+    if (!planesProf.length) {
+        planesHtml = `<div class="vp-plan-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="9" y1="13" x2="15" y2="13"/>
+            </svg>
+            <span>Sin plan de trabajo aún</span>
+            <small>${mesesNombre[mesActual]}</small>
+        </div>`;
+    } else {
+        planesHtml = planesProf
+            .sort((a, b) => a.semana - b.semana || a.materia_nombre.localeCompare(b.materia_nombre))
+            .map(p => {
+                const fi = p.fecha_inicio ? new Date(p.fecha_inicio + 'T00:00:00').toLocaleDateString('es-BO', { day: '2-digit', month: 'short' }) : '';
+                const ff = p.fecha_fin   ? new Date(p.fecha_fin   + 'T00:00:00').toLocaleDateString('es-BO', { day: '2-digit', month: 'short' }) : '';
+                const rango = (fi && ff) ? `${fi} – ${ff}` : '';
+                return `
+                <div class="vp-plan-row">
+                    <div class="vp-plan-semana-badge">S${p.semana}</div>
+                    <div class="vp-plan-body">
+                        <div class="vp-plan-meta">
+                            <span class="vp-plan-materia">${_escapeHtml(p.materia_nombre)}</span>
+                            <span class="vp-plan-curso-tag">${_escapeHtml(p.curso_nombre)}</span>
+                        </div>
+                        <div class="vp-plan-desc">${_escapeHtml(p.descripcion)}</div>
+                        ${rango ? `<div class="vp-plan-rango">${rango}</div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+    }
+
+    // ── Agrupar asignaciones por materia ──────────────────────
+    const porMateria = {};
+    for (const a of grupo.asigs) {
+        if (!porMateria[a.materia]) {
+            porMateria[a.materia] = { nombre: a.materia_nombre, asigs: [] };
+        }
+        porMateria[a.materia].asigs.push(a);
+    }
+    const grupos = Object.values(porMateria).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    const filasHtml = grupos.map((m, idx) => {
+        const color = _MATERIA_COLORS[idx % _MATERIA_COLORS.length];
+        const initials = m.nombre.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+        const cursosHtml = m.asigs.map(a => {
+            const tienePlan = _vpPlanesData.some(p => p.profesor_curso_id === a.id);
+            const dotCls    = tienePlan ? 'vp-pc-dot--ok' : 'vp-pc-dot--miss';
+            return `
+            <div class="vp-curso-row" data-pc-id="${a.id}" data-curso-label="${_escapeHtml(a.curso_nombre)} — ${_escapeHtml(a.materia_nombre)}">
+                <span class="vp-pc-dot ${dotCls}"></span>
+                <span class="vp-curso-nombre">${_escapeHtml(a.curso_nombre)}</span>
+                <button class="vp-curso-del" data-asig-id="${a.id}"
+                    data-profesor="${_escapeHtml(a.profesor_nombre)}"
+                    data-curso="${_escapeHtml(a.curso_nombre)}"
+                    data-materia="${_escapeHtml(a.materia_nombre)}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Quitar
+                </button>
+            </div>`;
+        }).join('');
+        return `
+        <div class="vp-mat-group">
+            <div class="vp-mat-group-head">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="vp-mat-group-icon" style="background:${color}22;color:${color}">${initials}</div>
+                    <span class="vp-mat-group-name">${_escapeHtml(m.nombre)}</span>
+                </div>
+                <span class="vp-mat-group-count">${m.asigs.length} ${m.asigs.length === 1 ? 'curso' : 'cursos'}</span>
+            </div>
+            <div class="vp-curso-grid">${cursosHtml}</div>
+        </div>`;
+    }).join('');
+
     vpContent.innerHTML = `
-        <div class="vp-content-header">
-            <div class="vp-content-title">${grupo.nombre}</div>
-            <span class="vp-content-sub">${grupo.asigs.length} asignación${grupo.asigs.length !== 1 ? 'es' : ''}</span>
+        <!-- Cabecera — ocupa ambas columnas -->
+        <div class="vp-header-card-full">
+            <div class="vp-prof-header-card">
+                <div class="vp-avatar-lg">${_iniciales(grupo.nombre)}</div>
+                <div class="vp-header-info">
+                    <div class="vp-header-name">${_escapeHtml(grupo.nombre)}</div>
+                    <div class="vp-header-meta">
+                        <span class="vp-header-badge">Profesor</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="vp-cards-grid" id="vpCardsGrid"></div>`;
+        <!-- Tarjeta 1: Materias -->
+        <div class="vp-card">
+            <div class="vp-mat-section">
+                <div class="vp-panel-head">
+                    <span>Materias y cursos</span>
+                    <span class="vp-plan-count" id="vpPlanCount"></span>
+                </div>
+                <div class="vp-mat-rows">
+                    ${filasHtml.length ? filasHtml : `<div class="empty-state" style="padding:40px 16px;">Sin asignaciones registradas.</div>`}
+                </div>
+                <div class="vp-mat-add-row" id="btnAddAsigProf">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Añadir materia / curso
+                </div>
+            </div>
+        </div>
+        <!-- Tarjeta 2: Plan de trabajo -->
+        <div class="vp-card">
+            <div class="vp-panel-head vp-planes-head">
+                <span>Plan de trabajo</span>
+                <div class="vp-planes-controls">
+                    <div class="vp-mes-select-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <select class="vp-mes-select" id="vpMesSel">
+                            ${mesesNombre.slice(1).map((n,i) => `<option value="${i+1}"${i+1===mesActual?' selected':''}>${n}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button class="vp-export-btn" id="vpExportBtn" title="Exportar plan de este profesor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Exportar
+                    </button>
+                </div>
+            </div>
+            <div class="vp-planes-rows" id="vpPlanesRows">
+                ${planesHtml}
+            </div>
+        </div>`;
 
-    const grid = document.getElementById('vpCardsGrid');
-    grid.innerHTML = grupo.asigs.map(a => _asigCardHtml(a)).join('');
+    // ── Selector de mes + filtro por curso ────────────────────
+    const vpMesSel     = document.getElementById('vpMesSel');
+    const vpPlanesRows = document.getElementById('vpPlanesRows');
+    const vpExportBtn  = document.getElementById('vpExportBtn');
+    let _currentPlanes = [...planesProf];   // planes ya cargados del mes actual
+    let _activePcId    = null;              // fila de curso activa (filtro)
 
-    grid.querySelectorAll('.asig-card').forEach(card => {
-        const id   = Number(card.dataset.id);
-        const asig = grupo.asigs.find(a => a.id === id);
+    function _planRowHtml(p) {
+        const fi = p.fecha_inicio ? new Date(p.fecha_inicio+'T00:00:00').toLocaleDateString('es-BO',{day:'2-digit',month:'short'}) : '';
+        const ff = p.fecha_fin   ? new Date(p.fecha_fin  +'T00:00:00').toLocaleDateString('es-BO',{day:'2-digit',month:'short'}) : '';
+        const rango = (fi && ff) ? `${fi} – ${ff}` : '';
+        return `
+        <div class="vp-plan-row">
+            <div class="vp-plan-semana-badge">S${p.semana}</div>
+            <div class="vp-plan-body">
+                <div class="vp-plan-meta">
+                    <span class="vp-plan-materia">${_escapeHtml(p.materia_nombre)}</span>
+                    <span class="vp-plan-curso-tag">${_escapeHtml(p.curso_nombre)}</span>
+                </div>
+                <div class="vp-plan-desc">${_escapeHtml(p.descripcion)}</div>
+                ${rango ? `<div class="vp-plan-rango">${rango}</div>` : ''}
+            </div>
+        </div>`;
+    }
 
-        card.querySelector('.asig-btn-del').addEventListener('click', () => {
-            eliminarAsignacion(asig.id, asig.profesor_nombre, asig.curso_nombre, asig.materia_nombre, async () => {
-                await _cargarVistaProfesor();
-            });
+    function _renderPlanes(planes, pcId) {
+        const filtrados = pcId ? planes.filter(p => p.profesor_curso_id === pcId) : planes;
+        if (!filtrados.length) {
+            const label = pcId
+                ? vpContent.querySelector(`.vp-curso-row[data-pc-id="${pcId}"]`)?.dataset.cursoLabel || ''
+                : mesesNombre[Number(vpMesSel.value)];
+            vpPlanesRows.innerHTML = `
+                <div class="vp-plan-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="9" y1="13" x2="15" y2="13"/>
+                    </svg>
+                    <span>${pcId ? 'Sin plan para' : 'Sin plan de trabajo en'}</span>
+                    <small>${_escapeHtml(label)}</small>
+                </div>`;
+        } else {
+            vpPlanesRows.innerHTML = filtrados
+                .sort((a,b) => a.semana - b.semana || a.materia_nombre.localeCompare(b.materia_nombre))
+                .map(_planRowHtml).join('');
+        }
+    }
+
+    function _actualizarIndicadores() {
+        const mes    = Number(vpMesSel.value);
+        const total  = grupo.asigs.length;
+        let conPlan  = 0;
+        vpContent.querySelectorAll('.vp-curso-row[data-pc-id]').forEach(row => {
+            const pcId = Number(row.dataset.pcId);
+            const ok   = _currentPlanes.some(p => p.profesor_curso_id === pcId);
+            if (ok) conPlan++;
+            row.querySelector('.vp-pc-dot')?.classList.toggle('vp-pc-dot--ok',   ok);
+            row.querySelector('.vp-pc-dot')?.classList.toggle('vp-pc-dot--miss', !ok);
         });
+        const countEl = document.getElementById('vpPlanCount');
+        if (!countEl) return;
+        const cls = conPlan === total ? 'vp-plan-count--ok'
+                  : conPlan === 0    ? 'vp-plan-count--miss'
+                  :                    'vp-plan-count--partial';
+        countEl.className = `vp-plan-count ${cls}`;
+        countEl.textContent = `Planes ${mesesNombre[mes]}: ${conPlan}/${total}`;
+    }
 
-        card.querySelector('.asig-btn-edit').addEventListener('click', () => {
-            _activarModoEdicion(card, asig, grupo);
+    async function _recargarPlanesMes(mes) {
+        vpPlanesRows.innerHTML = '<div class="spinner-inline" style="padding:24px 0;justify-content:center;display:flex;"></div>';
+        vpExportBtn.disabled = true;
+        _activePcId = null;
+        vpContent.querySelectorAll('.vp-curso-row.active').forEach(r => r.classList.remove('active'));
+        const res = await fetchAPI(`/api/academics/director/planes/?mes=${mes}&profesor_id=${grupo.id}`);
+        _currentPlanes = res.ok ? (res.data || []) : [];
+        _actualizarIndicadores();
+        vpExportBtn.disabled = _currentPlanes.length === 0;
+        _renderPlanes(_currentPlanes, null);
+    }
+
+    // Clic en fila de curso → filtrar planes
+    vpContent.querySelectorAll('.vp-curso-row[data-pc-id]').forEach(row => {
+        row.addEventListener('click', e => {
+            if (e.target.closest('.vp-curso-del')) return;  // ignorar botón quitar
+            const pcId = Number(row.dataset.pcId);
+            if (_activePcId === pcId) {
+                // Deseleccionar → mostrar todos
+                _activePcId = null;
+                row.classList.remove('active');
+                _renderPlanes(_currentPlanes, null);
+            } else {
+                vpContent.querySelectorAll('.vp-curso-row.active').forEach(r => r.classList.remove('active'));
+                _activePcId = pcId;
+                row.classList.add('active');
+                _renderPlanes(_currentPlanes, pcId);
+            }
+        });
+    });
+
+    vpMesSel.addEventListener('change', () => _recargarPlanesMes(Number(vpMesSel.value)));
+
+    vpExportBtn.addEventListener('click', async () => {
+        const mes = Number(vpMesSel.value);
+        vpExportBtn.disabled = true;
+        const token = localStorage.getItem('access_token');
+        try {
+            const res = await fetch(`/api/academics/director/planes/exportar/?mes=${mes}&profesor_id=${grupo.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                showToast('No se pudo generar el Excel.', 'error');
+                return;
+            }
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = `plan_trabajo_${_escapeHtml(grupo.nombre).replace(/ /g,'_')}_${mesesNombre[mes].toLowerCase()}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } finally {
+            vpExportBtn.disabled = false;
+        }
+    });
+
+    // habilitar exportar solo si hay planes en el mes actual
+    vpExportBtn.disabled = planesProf.length === 0;
+    _actualizarIndicadores();
+
+    document.getElementById('btnAddAsigProf').addEventListener('click', async () => {
+        document.getElementById('modalNuevaAsig').classList.add('visible');
+        await cargarSelectores();
+        const sel = document.getElementById('selProfesor');
+        if (sel) sel.value = grupo.id;
+    });
+
+    vpContent.querySelectorAll('.vp-curso-del').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            eliminarAsignacion(
+                btn.dataset.asigId,
+                btn.dataset.profesor,
+                btn.dataset.curso,
+                btn.dataset.materia,
+                async () => { await _cargarVistaProfesor(); }
+            );
         });
     });
 }
@@ -266,8 +579,8 @@ function _renderVpCards(grupo) {
 function _asigCardHtml(a) {
     return `
         <div class="asig-card" data-id="${a.id}">
-            <div class="asig-card__materia">${a.materia_nombre}</div>
-            <div class="asig-card__curso">${a.curso_nombre}</div>
+            <span class="asig-badge-curso">${_escapeHtml(a.curso_nombre)}</span>
+            <div class="asig-card__materia">${_escapeHtml(a.materia_nombre)}</div>
             <div class="asig-card__actions">
                 <button class="asig-card__btn asig-card__btn--del asig-btn-del">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -348,12 +661,23 @@ function _activarModoEdicion(card, asig, grupo) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// VISTA POR CURSO (ACORDEÓN)
+// VISTA POR CURSO — Split layout
 // ════════════════════════════════════════════════════════════════
 
+// Paleta de colores para iconos de materias
+const _MATERIA_COLORS = [
+    { bg: 'rgba(59,130,246,.18)',  color: '#60a5fa' },
+    { bg: 'rgba(74,222,128,.15)',  color: '#4ade80' },
+    { bg: 'rgba(251,191,36,.15)',  color: '#fbbf24' },
+    { bg: 'rgba(239,68,68,.15)',   color: '#f87171' },
+    { bg: 'rgba(167,139,250,.18)', color: '#c4b5fd' },
+    { bg: 'rgba(45,212,191,.15)',  color: '#2dd4bf' },
+    { bg: 'rgba(251,113,133,.15)', color: '#fb7185' },
+];
+
 async function _cargarVistaCursos() {
-    const container = document.getElementById('cursosAcordeon');
-    container.innerHTML = '<div class="spinner-inline"></div>';
+    const grid = document.getElementById('cursosGrid');
+    grid.innerHTML = '<div class="spinner-inline"></div>';
 
     const [resCursos, resAsig] = await Promise.all([
         fetchAPI('/api/academics/cursos/'),
@@ -364,79 +688,136 @@ async function _cargarVistaCursos() {
     _vcAsigs     = resAsig.data  || [];
 
     if (!cursos.length) {
-        container.innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>Sin cursos registrados</div>';
+        grid.innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>Sin cursos registrados</div>';
         return;
     }
 
-    container.innerHTML = `<div class="curso-cards-grid">${cursos.map(c => {
-        const count       = _vcAsigs.filter(a => a.curso === c.id).length;
-        const cursoNombre = `${c.grado} "${c.paralelo}"`;
-        const warnCls     = count === 0 ? ' curso-card__count--warn' : '';
-        const countTxt    = count === 0 ? '⚠ Sin asignaciones' : `${count} asignación${count !== 1 ? 'es' : ''}`;
+    const cards = cursos.map(c => {
+        const nMaterias = _vcAsigs.filter(a => a.curso === c.id).length;
+        const nombre    = `${c.grado} "${c.paralelo}"`;
+        const isActive  = _vcPanelCursoId === c.id;
+        const badgeCls  = isActive ? 'vc-card-badge--sel' : (nMaterias ? 'vc-card-badge--ok' : 'vc-card-badge--warn');
+        const badgeTxt  = isActive ? 'SELECCIONADO' : (nMaterias ? 'DISPONIBLE' : 'SIN MATERIAS');
+        const valCls    = nMaterias === 0 ? ' vc-card-stat-val--warn' : '';
         return `
-            <div class="curso-card" data-curso-id="${c.id}" data-curso-nombre="${_escapeHtml(cursoNombre)}">
-                <div class="curso-card__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                    </svg>
+            <div class="vc-course-card${isActive ? ' active' : ''}" data-curso-id="${c.id}">
+                <div class="vc-card-head">
+                    <div class="vc-card-name">${_escapeHtml(nombre)}</div>
+                    <span class="vc-card-badge ${badgeCls}">${badgeTxt}</span>
                 </div>
-                <div class="curso-card__name">${_escapeHtml(cursoNombre)}</div>
-                <div class="curso-card__count${warnCls}">${countTxt}</div>
+                <div class="vc-card-divider"></div>
+                <div class="vc-card-stats">
+                    <div class="vc-card-stat-row">
+                        <span class="vc-card-stat-label">Estudiantes</span>
+                        <span class="vc-card-stat-val">${c.estudiantes_count ?? '—'}</span>
+                    </div>
+                    <div class="vc-card-stat-row">
+                        <span class="vc-card-stat-label">Materias</span>
+                        <span class="vc-card-stat-val${valCls}">${nMaterias}</span>
+                    </div>
+                </div>
             </div>`;
-    }).join('')}</div>`;
+    }).join('');
 
-    container.querySelectorAll('.curso-card').forEach(card => {
+    grid.innerHTML = `<div class="vc-courses-grid">${cards}</div>`;
+
+    grid.querySelectorAll('.vc-course-card').forEach(card => {
         card.addEventListener('click', () => {
-            container.querySelectorAll('.curso-card').forEach(c => c.classList.remove('active'));
+            grid.querySelectorAll('.vc-course-card').forEach(c => {
+                c.classList.remove('active');
+                c.querySelector('.vc-card-badge').className = 'vc-card-badge vc-card-badge--ok';
+                c.querySelector('.vc-card-badge').textContent = 'DISPONIBLE';
+            });
             card.classList.add('active');
-            _abrirVcDrawer(parseInt(card.dataset.cursoId), card.dataset.cursoNombre);
+            card.querySelector('.vc-card-badge').className = 'vc-card-badge vc-card-badge--sel';
+            card.querySelector('.vc-card-badge').textContent = 'SELECCIONADO';
+
+            const cursoId = parseInt(card.dataset.cursoId);
+            const nombre  = _escapeHtml(
+                cursos.find(c => c.id === cursoId)
+                    ? `${cursos.find(c => c.id === cursoId).grado} "${cursos.find(c => c.id === cursoId).paralelo}"`
+                    : card.querySelector('.vc-card-name').textContent
+            );
+            const nEstu   = cursos.find(c => c.id === cursoId)?.estudiantes_count ?? 0;
+            _abrirVcDetail(cursoId, nombre, nEstu);
         });
     });
-}
 
-// ════════════════════════════════════════════════════════════════
-// DRAWER — Detalle de Curso
-// ════════════════════════════════════════════════════════════════
-
-function _abrirVcDrawer(cursoId, nombre) {
-    _vcPanelCursoId = cursoId;
-    document.getElementById('vcDrawerTitle').textContent = nombre;
-    _renderVcDrawerBody(cursoId, nombre);
-    document.getElementById('vcDrawerBackdrop').classList.add('visible');
-}
-
-function _cerrarVcDrawer() {
-    document.getElementById('vcDrawerBackdrop').classList.remove('visible');
-    document.querySelectorAll('.curso-card').forEach(c => c.classList.remove('active'));
-    _vcPanelCursoId = null;
-}
-
-function _renderVcDrawerBody(cursoId, nombre) {
-    const body  = document.getElementById('vcDrawerBody');
-    const asigs = _vcAsigs.filter(a => a.curso === cursoId);
-
-    if (!asigs.length) {
-        body.innerHTML = `<div class="empty-state"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>Sin asignaciones</div>`;
-        return;
+    // Si ya había un curso seleccionado, re-seleccionarlo
+    if (_vcPanelCursoId) {
+        const prev = grid.querySelector(`[data-curso-id="${_vcPanelCursoId}"]`);
+        if (prev) prev.click();
     }
+}
 
-    body.innerHTML = `
-        <div class="vc-drawer-count">${asigs.length} asignación${asigs.length !== 1 ? 'es' : ''}</div>
-        ${asigs.map(a => `
-            <div class="vc-asig-row">
-                <div class="vc-asig-info">
-                    <div class="vc-asig-materia">${_escapeHtml(a.materia_nombre)}</div>
-                    <div class="vc-asig-profesor">${_escapeHtml(a.profesor_nombre)}</div>
+function _abrirVcDetail(cursoId, nombre, nEstu) {
+    _vcPanelCursoId = cursoId;
+    const split  = document.getElementById('vcSplit');
+    const panel  = document.getElementById('vcDetail');
+    const asigs  = _vcAsigs.filter(a => a.curso === cursoId);
+
+    const year = new Date().getFullYear();
+
+    const materiasHtml = asigs.length
+        ? asigs.map((a, i) => {
+            const col   = _MATERIA_COLORS[i % _MATERIA_COLORS.length];
+            const inits = a.materia_nombre.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+            return `
+                <div class="vc-materia-row">
+                    <div class="vc-materia-icon" style="background:${col.bg};color:${col.color};">${inits}</div>
+                    <div class="vc-materia-info">
+                        <div class="vc-materia-name">${_escapeHtml(a.materia_nombre)}</div>
+                        <div class="vc-materia-prof">Prof. ${_escapeHtml(a.profesor_nombre)}</div>
+                    </div>
+                    <button class="btn-del" style="flex-shrink:0;"
+                        data-asig-id="${a.id}"
+                        data-profesor="${_escapeHtml(a.profesor_nombre)}"
+                        data-curso="${nombre}"
+                        data-materia="${_escapeHtml(a.materia_nombre)}">
+                        ${_TRASH_ICON}
+                    </button>
+                </div>`;
+        }).join('')
+        : `<div class="empty-state" style="padding:32px 16px;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
+                Sin materias asignadas
+            </div>`;
+
+    panel.innerHTML = `
+        <div class="vc-detail-head">
+            <div class="vc-detail-head-row">
+                <div>
+                    <div class="vc-detail-label">Carga Académica</div>
+                    <div class="vc-detail-title">${nombre}</div>
                 </div>
-                <button class="btn-del" data-asig-id="${a.id}" data-profesor="${_escapeHtml(a.profesor_nombre)}" data-curso="${_escapeHtml(nombre)}" data-materia="${_escapeHtml(a.materia_nombre)}">
-                    ${_TRASH_ICON}
+                <button class="vc-detail-close" id="vcDetailClose">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
                 </button>
             </div>
-        `).join('')}
-    `;
+            <div class="vc-detail-tags">
+                <span class="vc-detail-tag vc-detail-tag--year">${year}</span>
+                ${nEstu ? `<span class="vc-detail-tag vc-detail-tag--stu">${nEstu} estudiante${nEstu !== 1 ? 's' : ''}</span>` : ''}
+                <span class="vc-detail-tag vc-detail-tag--year">${asigs.length} materia${asigs.length !== 1 ? 's' : ''}</span>
+            </div>
+        </div>
+        <div class="vc-detail-body">${materiasHtml}</div>
+        <div class="vc-detail-footer">
+            <button class="vc-btn-planilla" id="vcBtnPlanilla">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                    <rect x="6" y="14" width="12" height="8"/>
+                </svg>
+                Imprimir Planilla de Curso
+            </button>
+        </div>`;
 
-    body.querySelectorAll('.btn-del').forEach(btn => {
+    split.classList.add('has-panel');
+
+    document.getElementById('vcDetailClose').addEventListener('click', _cerrarVcDetail);
+
+    panel.querySelectorAll('.btn-del').forEach(btn => {
         btn.addEventListener('click', () => {
             eliminarAsignacion(
                 btn.dataset.asigId,
@@ -445,21 +826,25 @@ function _renderVcDrawerBody(cursoId, nombre) {
                 btn.dataset.materia,
                 async () => {
                     await _cargarVistaCursos();
-                    if (_vcPanelCursoId !== null) {
-                        const card = document.querySelector(`.curso-card[data-curso-id="${_vcPanelCursoId}"]`);
-                        if (card) card.click();
-                        else _cerrarVcDrawer();
-                    }
                 },
             );
         });
     });
 }
 
-document.getElementById('vcDrawerClose').addEventListener('click', _cerrarVcDrawer);
-document.getElementById('vcDrawerBackdrop').addEventListener('click', e => {
-    if (e.target === document.getElementById('vcDrawerBackdrop')) _cerrarVcDrawer();
-});
+function _cerrarVcDetail() {
+    document.getElementById('vcSplit').classList.remove('has-panel');
+    document.getElementById('vcDetail').innerHTML = '';
+    document.querySelectorAll('.vc-course-card').forEach(c => {
+        c.classList.remove('active');
+        const badge = c.querySelector('.vc-card-badge');
+        if (badge) {
+            badge.className = 'vc-card-badge vc-card-badge--ok';
+            badge.textContent = 'DISPONIBLE';
+        }
+    });
+    _vcPanelCursoId = null;
+}
 
 // ════════════════════════════════════════════════════════════════
 // VISTA MATERIAS
@@ -758,6 +1143,49 @@ async function _ejecutarDescargaExcel() {
         btn.innerHTML = SVG_DOWNLOAD;
     }
 }
+
+// ── Modal exportar mes global ──────────────────────────────────
+const _modalExportMes   = document.getElementById('modalExportarPlanes');
+const _exportMesSel     = document.getElementById('exportMesSel');
+const _btnConfExport    = document.getElementById('btnConfirmarExportMes');
+
+function _abrirModalExportMes() {
+    _exportMesSel.value = String(new Date().getMonth() + 1);
+    _modalExportMes.classList.add('visible');
+}
+function _cerrarModalExportMes() {
+    _modalExportMes.classList.remove('visible');
+}
+
+document.getElementById('btnNavDescargarPlanes').addEventListener('click', _abrirModalExportMes);
+document.getElementById('btnCerrarExportMes').addEventListener('click', _cerrarModalExportMes);
+document.getElementById('btnCancelarExportMes').addEventListener('click', _cerrarModalExportMes);
+_modalExportMes.addEventListener('click', e => { if (e.target === _modalExportMes) _cerrarModalExportMes(); });
+
+_btnConfExport.addEventListener('click', async () => {
+    const mes = Number(_exportMesSel.value);
+    _btnConfExport.disabled = true;
+    const meses = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const token = localStorage.getItem('access_token');
+    try {
+        const res = await fetch(`/api/academics/director/planes/exportar/?mes=${mes}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            showToast(data.errores || 'No hay planes para ese mes.', 'error');
+            return;
+        }
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = `planes_trabajo_${meses[mes]}.xlsx`;
+        a.click(); URL.revokeObjectURL(url);
+        _cerrarModalExportMes();
+    } finally {
+        _btnConfExport.disabled = false;
+    }
+});
 
 document.getElementById('btnExportarPlanes').addEventListener('click', () => {
     // Sin datos en absoluto → bloquear

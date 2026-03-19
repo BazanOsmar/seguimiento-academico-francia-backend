@@ -148,9 +148,14 @@
         }
         .cit-empty {
             text-align: center;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            padding: 24px 0;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            font-weight: 500;
+            padding: 28px 16px;
+            background: var(--bg-input);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-sm);
+            margin: 4px 0;
         }
 
         /* ── Calendario de asistencia ── */
@@ -444,6 +449,10 @@
             </a>
         </nav>
         <div class="sidebar-bottom">
+            <a href="/director/mi-perfil/" class="nav-item" aria-label="Mi Perfil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="nav-label">Mi Perfil</span>
+            </a>
             <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

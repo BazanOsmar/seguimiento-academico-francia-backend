@@ -1,0 +1,788 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Mi Perfil — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+    <style>
+        /* ── Layout 2 columnas ── */
+        .perfil-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 780px) {
+            .perfil-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── Card base ── */
+        .pcard {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+        .pcard + .pcard { margin-top: 20px; }
+
+        .pcard-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .pcard-title {
+            font-size: 0.8rem; font-weight: 700;
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .pcard-title svg { color: var(--accent); }
+        .pcard-body { padding: 20px; }
+
+        /* ── Encabezado perfil ── */
+        .perfil-head {
+            text-align: center;
+            padding: 28px 20px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .perfil-avatar {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: var(--accent-dim); border: 2px solid var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; font-weight: 700; color: var(--accent-text);
+            margin: 0 auto 12px;
+        }
+        .perfil-nombre {
+            font-size: 1.1rem; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 3px;
+        }
+        .perfil-username {
+            font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;
+        }
+        .role-badge {
+            display: inline-block; padding: 3px 12px;
+            border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+            background: rgba(192,132,252,.12); color: #c084fc;
+        }
+
+        /* ── Info rows ── */
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.84rem;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--text-muted); }
+        .info-value { color: var(--text-primary); font-weight: 500; text-align: right; }
+
+        /* ── Fila editable ── */
+        .edit-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; font-size: 0.84rem;
+        }
+        .edit-row-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .edit-row-sublabel { font-size: 0.72rem; color: var(--text-muted); }
+        .edit-row-val { color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .btn-edit-icon {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 5px;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            transition: color .15s, background .15s; flex-shrink: 0; margin-left: 8px;
+        }
+        .btn-edit-icon:hover { color: var(--accent); background: var(--accent-dim); }
+
+        /* ── Panel inline ── */
+        .edit-panel {
+            display: none; margin-top: 10px;
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 14px;
+        }
+        .edit-panel.open { display: block; }
+        .ep-group { margin-bottom: 10px; }
+        .ep-group label {
+            display: block; font-size: 0.73rem; font-weight: 600;
+            color: var(--text-muted); margin-bottom: 4px;
+        }
+        .ep-input {
+            width: 100%; padding: 8px 10px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-primary);
+            font-size: 0.84rem; box-sizing: border-box; transition: border-color .15s;
+        }
+        .ep-input:focus { outline: none; border-color: var(--accent); }
+        .ep-input.error { border-color: var(--danger); }
+        .ep-error { font-size: 0.72rem; color: var(--danger); margin-top: 3px; display: none; }
+        .ep-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+        .btn-save {
+            padding: 7px 16px;
+            background: var(--accent); color: var(--accent-text);
+            border: none; border-radius: var(--radius-sm);
+            font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity .15s;
+        }
+        .btn-save:hover { opacity: .88; }
+        .btn-save:disabled { opacity: .45; cursor: not-allowed; }
+        .btn-cancel-sm {
+            padding: 7px 13px;
+            background: none; color: var(--text-muted);
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.82rem; cursor: pointer; transition: border-color .15s, color .15s;
+        }
+        .btn-cancel-sm:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+        .btn-link {
+            background: none; border: none; cursor: pointer;
+            color: var(--accent); font-size: 0.78rem; font-weight: 600;
+            padding: 0; flex-shrink: 0; margin-left: 8px;
+            transition: opacity .15s;
+        }
+        .btn-link:hover { opacity: .75; }
+
+        /* ── Últimos accesos ── */
+        .acceso-item {
+            display: grid;
+            grid-template-columns: 6px 1fr auto auto;
+            align-items: center; gap: 10px;
+            padding: 9px 0; border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.82rem;
+        }
+        .acceso-item:last-child { border-bottom: none; }
+        .acceso-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--success);
+        }
+        .acceso-fecha { color: var(--text-primary); font-weight: 500; }
+        .acceso-hora  { color: var(--text-muted); font-size: 0.78rem; }
+        .acceso-ip    { color: var(--text-muted); font-size: 0.72rem; font-family: monospace; }
+
+        /* ── Actividad reciente ── */
+        .accion-badge {
+            display: inline-block; padding: 2px 8px;
+            border-radius: 4px; font-size: 0.68rem; font-weight: 600;
+            white-space: nowrap;
+        }
+        .accion--login       { background: rgba(34,197,94,.12);  color: #22c55e; }
+        .accion--crear       { background: rgba(59,130,246,.12);  color: #3b82f6; }
+        .accion--editar      { background: rgba(234,179, 8,.12);  color: #eab308; }
+        .accion--reset       { background: rgba(249,115,22,.12);  color: #f97316; }
+        .accion--password    { background: rgba(168,85,247,.12);  color: #a855f7; }
+        .accion--default     { background: rgba(148,163,184,.12); color: #94a3b8; }
+
+        .actividad-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.82rem;
+        }
+        .actividad-item:last-child { border-bottom: none; }
+        .actividad-desc {
+            flex: 1; color: var(--text-secondary); line-height: 1.4;
+            min-width: 0;
+        }
+        .actividad-fecha {
+            color: var(--text-muted); font-size: 0.72rem;
+            white-space: nowrap; flex-shrink: 0;
+        }
+
+        .empty-state { color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 16px 0; }
+
+        /* ── Modales ── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 300;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-card); padding: 32px 28px;
+            width: 100%; max-width: 380px; margin: 16px;
+        }
+        .modal-icon {
+            width: 52px; height: 52px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .modal-icon--warn    { background: var(--warning-dim); color: var(--warning); }
+        .modal-icon--lock    { background: var(--accent-dim);  color: var(--accent);  }
+        .modal-title    { font-size: 1.05rem; font-weight: 700; text-align: center; margin-bottom: 8px; }
+        .modal-subtitle { font-size: 0.85rem; color: var(--text-secondary); text-align: center; margin-bottom: 24px; }
+        .modal-actions  { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions > * { flex: 1; }
+        .modal-actions .btn-ghost {
+            padding: 11px 10px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            transition: background .15s, border-color .15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-actions .btn-ghost:hover { background: var(--bg-card-hover); border-color: var(--text-muted); }
+        .modal-actions .btn-confirm {
+            padding: 11px 10px;
+            background: var(--accent); color: #ffffff;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            transition: opacity .15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-actions .btn-confirm:hover    { opacity: .88; }
+        .modal-actions .btn-confirm:disabled { opacity: .38; cursor: not-allowed; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 11px 16px;
+            font-size: 0.82rem; color: var(--text-primary);
+            box-shadow: 0 4px 16px rgba(0,0,0,.3);
+            z-index: 500; opacity: 0; transform: translateY(8px);
+            transition: opacity .2s, transform .2s; pointer-events: none;
+        }
+        .toast.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .toast--success { border-left: 3px solid var(--success); }
+        .toast--error   { border-left: 3px solid var(--danger);  }
+    </style>
+</head>
+<body>
+
+    <!-- ── Sidebar ────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/academico/" class="nav-item" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <a href="/director/mi-perfil/" class="nav-item active" aria-label="Mi Perfil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="nav-label">Mi Perfil</span>
+            </a>
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ───────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Mi Perfil</h1>
+        </div>
+    </header>
+
+    <!-- ── Contenido ─────────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="content-wrap">
+            <div class="perfil-grid">
+
+                <!-- ══ Columna izquierda ══ -->
+                <div>
+                    <div class="pcard">
+                        <!-- Encabezado -->
+                        <div class="perfil-head">
+                            <div class="perfil-avatar" id="avatarInicial">—</div>
+                            <div class="perfil-nombre" id="perfilNombre">—</div>
+                            <div class="perfil-username" id="perfilUsername">@—</div>
+                            <span class="role-badge">Director</span>
+                        </div>
+
+                        <!-- Info cuenta -->
+                        <div class="pcard-body" style="padding-bottom:0;">
+                            <div class="pcard-title" style="margin-bottom:12px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Cuenta
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Usuario</span>
+                                <span class="info-value" id="perfilUser">—</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Miembro desde</span>
+                                <span class="info-value" id="perfilDesde">—</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Último acceso</span>
+                                <span class="info-value" id="perfilUltimoAcceso">—</span>
+                            </div>
+                        </div>
+
+                        <!-- Editar nombre -->
+                        <div class="pcard-body" style="padding-top:16px;padding-bottom:0;">
+                            <div class="pcard-title" style="margin-bottom:8px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                Nombre
+                            </div>
+                            <div class="edit-row">
+                                <div class="edit-row-left">
+                                    <span class="edit-row-val" id="perfilNombreRow">—</span>
+                                </div>
+                                <button class="btn-edit-icon" id="btnEditNombre" title="Editar nombre">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="edit-panel" id="panelEditNombre">
+                                <div class="ep-group">
+                                    <label for="inputNombre">Nombres</label>
+                                    <input type="text" id="inputNombre" class="ep-input" maxlength="100" autocomplete="off">
+                                    <div class="ep-error" id="errNombre"></div>
+                                </div>
+                                <div class="ep-group">
+                                    <label for="inputApellidos">Apellidos</label>
+                                    <input type="text" id="inputApellidos" class="ep-input" maxlength="100" autocomplete="off">
+                                    <div class="ep-error" id="errApellidos"></div>
+                                </div>
+                                <div class="ep-actions">
+                                    <button class="btn-cancel-sm" id="btnCancelarNombre">Cancelar</button>
+                                    <button class="btn-save"      id="btnGuardarNombre">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cambiar contraseña -->
+                        <div class="pcard-body" style="padding-top:16px;">
+                            <div class="pcard-title" style="margin-bottom:8px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                Seguridad
+                            </div>
+                            <div class="edit-row">
+                                <div class="edit-row-left">
+                                    <span class="edit-row-sublabel">Contraseña</span>
+                                    <span class="edit-row-val">••••••••</span>
+                                </div>
+                                <button class="btn-link" id="btnAbrirModalPass">Cambiar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ Columna derecha ══ -->
+                <div>
+                    <!-- Últimos accesos -->
+                    <div class="pcard">
+                        <div class="pcard-header">
+                            <div class="pcard-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Últimos accesos
+                            </div>
+                        </div>
+                        <div class="pcard-body" id="accesosLista">
+                            <div class="empty-state">Cargando...</div>
+                        </div>
+                    </div>
+
+                    <!-- Actividad reciente -->
+                    <div class="pcard">
+                        <div class="pcard-header">
+                            <div class="pcard-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                Actividad reciente
+                            </div>
+                        </div>
+                        <div class="pcard-body" id="actividadLista">
+                            <div class="empty-state">Cargando...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: cambiar contraseña -->
+    <div class="modal-overlay" id="modalPass" role="dialog" aria-modal="true">
+        <div class="modal-box">
+            <div class="modal-icon modal-icon--lock">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <p class="modal-title">Cambiar contraseña</p>
+            <p class="modal-subtitle">Ingresá tu contraseña actual y la nueva.</p>
+            <div class="ep-group">
+                <label for="inputPassActual">Contraseña actual</label>
+                <input type="password" id="inputPassActual" class="ep-input" maxlength="20" autocomplete="current-password">
+                <div class="ep-error" id="errPassActual"></div>
+            </div>
+            <div class="ep-group">
+                <label for="inputPassNueva">Nueva contraseña</label>
+                <input type="password" id="inputPassNueva" class="ep-input" maxlength="20" autocomplete="new-password">
+                <div class="ep-error" id="errPassNueva"></div>
+            </div>
+            <div class="ep-group">
+                <label for="inputPassConfirm">Confirmar contraseña</label>
+                <input type="password" id="inputPassConfirm" class="ep-input" maxlength="20" autocomplete="new-password">
+                <div class="ep-error" id="errPassConfirm"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-ghost"   id="btnCancelarPass">Cancelar</button>
+                <button class="btn-confirm" id="btnSiguientePass">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: confirmación cambio de contraseña -->
+    <div class="modal-overlay" id="modalConfirmPass" role="dialog" aria-modal="true">
+        <div class="modal-box">
+            <div class="modal-icon modal-icon--warn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <p class="modal-title">¿Cambiar contraseña?</p>
+            <p class="modal-subtitle">Se cerrará la sesión actual y tendrás que iniciar sesión con la nueva contraseña.</p>
+            <div class="modal-actions">
+                <button class="btn-ghost"   id="btnVolverPass">Volver</button>
+                <button class="btn-confirm" id="btnConfirmarPass">Sí, cambiar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="{% static 'js/main.js' %}"></script>
+    <script>
+    (function () {
+        const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        let _userId = null;
+
+        // ── Sidebar ──────────────────────────────────────────────
+        const userLocal = JSON.parse(localStorage.getItem('user') || 'null');
+        if (userLocal) {
+            const n = [userLocal.first_name, userLocal.last_name].filter(Boolean).join(' ') || userLocal.username;
+            document.getElementById('profileName').textContent = n;
+        }
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            localStorage.clear(); window.location.replace('/login/');
+        });
+
+        // ── Helpers ──────────────────────────────────────────────
+        function toast(msg, tipo = 'success') {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = `toast toast--${tipo} visible`;
+            clearTimeout(el._t);
+            el._t = setTimeout(() => el.classList.remove('visible'), 3200);
+        }
+        function fmt(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return `${String(d.getDate()).padStart(2,'0')} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+        }
+        function fmtHora(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+        function setErr(inputId, errId, msg) {
+            document.getElementById(inputId).classList.toggle('error', !!msg);
+            const e = document.getElementById(errId);
+            e.style.display = msg ? 'block' : 'none';
+            e.textContent   = msg || '';
+        }
+        function clearErrs(...pairs) { pairs.forEach(([i,e]) => setErr(i, e, '')); }
+
+        function accionClass(accion) {
+            if (!accion) return 'accion--default';
+            const a = accion.toUpperCase();
+            if (a === 'LOGIN')                       return 'accion--login';
+            if (a.startsWith('CREAR'))               return 'accion--crear';
+            if (a.startsWith('EDITAR'))              return 'accion--editar';
+            if (a.startsWith('RESET'))               return 'accion--reset';
+            if (a.includes('PASSWORD') || a.includes('CREDENCIAL')) return 'accion--password';
+            return 'accion--default';
+        }
+        function accionLabel(accion) {
+            const MAP = {
+                LOGIN: 'Login', CREAR_USUARIO: 'Creó usuario', EDITAR_USUARIO: 'Editó usuario',
+                RESET_PASSWORD: 'Reseteo contraseña', CAMBIO_PASSWORD: 'Cambió contraseña',
+                CREAR_CITACION: 'Creó citación', ACTUALIZAR_CITACION: 'Actualizó citación',
+            };
+            return MAP[accion] || accion;
+        }
+
+        // ── Cargar perfil ─────────────────────────────────────────
+        async function cargarPerfil() {
+            const res = await fetchAPI('/api/users/mi-perfil/');
+            if (!res.ok) return;
+            const d = res.data;
+            _userId = d.id;
+
+            const nombre    = [d.first_name, d.last_name].filter(Boolean).join(' ') || d.username;
+            const iniciales = [d.first_name?.[0], d.last_name?.[0]].filter(Boolean).join('').toUpperCase()
+                            || d.username[0].toUpperCase();
+
+            document.getElementById('avatarInicial').textContent   = iniciales;
+            document.getElementById('perfilNombre').textContent    = nombre;
+            document.getElementById('perfilNombreRow').textContent = nombre;
+            document.getElementById('perfilUsername').textContent  = `@${d.username}`;
+            document.getElementById('perfilUser').textContent      = d.username;
+            document.getElementById('perfilDesde').textContent     = fmt(d.date_joined);
+            document.getElementById('perfilUltimoAcceso').textContent = d.last_login
+                ? `${fmt(d.last_login)} · ${fmtHora(d.last_login)}` : '—';
+
+            document.getElementById('inputNombre').value    = d.first_name || '';
+            document.getElementById('inputApellidos').value = d.last_name  || '';
+        }
+
+        // ── Panel nombre ──────────────────────────────────────────
+        const panelNombre = document.getElementById('panelEditNombre');
+        document.getElementById('btnEditNombre').addEventListener('click', () => {
+            panelNombre.classList.toggle('open');
+            if (panelNombre.classList.contains('open')) document.getElementById('inputNombre').focus();
+        });
+        document.getElementById('btnCancelarNombre').addEventListener('click', () => {
+            panelNombre.classList.remove('open');
+            clearErrs(['inputNombre','errNombre'], ['inputApellidos','errApellidos']);
+        });
+        document.getElementById('btnGuardarNombre').addEventListener('click', async () => {
+            const btn        = document.getElementById('btnGuardarNombre');
+            const first_name = document.getElementById('inputNombre').value.trim();
+            const last_name  = document.getElementById('inputApellidos').value.trim();
+
+            clearErrs(['inputNombre','errNombre'], ['inputApellidos','errApellidos']);
+            if (!first_name) { setErr('inputNombre',    'errNombre',    'Obligatorio.'); return; }
+            if (!last_name)  { setErr('inputApellidos', 'errApellidos', 'Obligatorio.'); return; }
+
+            btn.disabled = true;
+            const res = await fetchAPI('/api/users/mi-perfil/', 'PATCH', { first_name, last_name });
+            btn.disabled = false;
+
+            if (res.ok) {
+                const nombre = `${res.data.first_name} ${res.data.last_name}`.trim();
+                document.getElementById('perfilNombre').textContent    = nombre;
+                document.getElementById('perfilNombreRow').textContent = nombre;
+                document.getElementById('profileName').textContent     = nombre;
+                document.getElementById('avatarInicial').textContent   =
+                    [res.data.first_name?.[0], res.data.last_name?.[0]].filter(Boolean).join('').toUpperCase();
+                const u = JSON.parse(localStorage.getItem('user') || '{}');
+                u.first_name = res.data.first_name; u.last_name = res.data.last_name;
+                localStorage.setItem('user', JSON.stringify(u));
+                panelNombre.classList.remove('open');
+                toast('Nombre actualizado.');
+            } else {
+                if (res.data?.first_name) setErr('inputNombre',    'errNombre',    res.data.first_name[0]);
+                if (res.data?.last_name)  setErr('inputApellidos', 'errApellidos', res.data.last_name[0]);
+                if (res.data?.errores)    toast(res.data.errores, 'error');
+            }
+        });
+
+        // ── Modales de contraseña ─────────────────────────────────
+        const modalPass        = document.getElementById('modalPass');
+        const modalConfirmPass = document.getElementById('modalConfirmPass');
+
+        function cerrarModalPass() {
+            modalPass.classList.remove('visible');
+            passInputs.forEach(inp => { inp.value = ''; });
+            clearErrs(['inputPassActual','errPassActual'], ['inputPassNueva','errPassNueva'], ['inputPassConfirm','errPassConfirm']);
+            btnSiguiente.disabled = true;
+        }
+
+        // Habilitar "Continuar" solo cuando los 3 campos tienen contenido real
+        const btnSiguiente = document.getElementById('btnSiguientePass');
+        const passInputs   = ['inputPassActual','inputPassNueva','inputPassConfirm'].map(id => document.getElementById(id));
+
+        function verificarCamposPass() {
+            const llenos = passInputs.every(inp => inp.value.trim().length > 0);
+            btnSiguiente.disabled = !llenos;
+        }
+        passInputs.forEach(inp => inp.addEventListener('input', verificarCamposPass));
+        btnSiguiente.disabled = true; // deshabilitado por defecto
+
+        document.getElementById('btnAbrirModalPass').addEventListener('click', () => {
+            modalPass.classList.add('visible');
+            document.getElementById('inputPassActual').focus();
+        });
+
+        document.getElementById('btnCancelarPass').addEventListener('click', cerrarModalPass);
+
+        // Cerrar al clicar el fondo
+        modalPass.addEventListener('click', e => { if (e.target === modalPass) cerrarModalPass(); });
+
+        // Validar y pasar a confirmación
+        document.getElementById('btnSiguientePass').addEventListener('click', () => {
+            const password_actual = document.getElementById('inputPassActual').value;
+            const password_nueva  = document.getElementById('inputPassNueva').value;
+            const confirm         = document.getElementById('inputPassConfirm').value;
+
+            clearErrs(['inputPassActual','errPassActual'], ['inputPassNueva','errPassNueva'], ['inputPassConfirm','errPassConfirm']);
+            let ok = true;
+            if (!password_actual) { setErr('inputPassActual', 'errPassActual', 'Obligatorio.'); ok = false; }
+            if (!password_nueva)  { setErr('inputPassNueva',  'errPassNueva',  'Obligatorio.'); ok = false; }
+            else if (password_nueva.length < 8 || password_nueva.length > 20) {
+                setErr('inputPassNueva', 'errPassNueva', 'Entre 8 y 20 caracteres.'); ok = false;
+            }
+            if (password_nueva && confirm !== password_nueva) {
+                setErr('inputPassConfirm', 'errPassConfirm', 'No coinciden.'); ok = false;
+            }
+            if (!ok) return;
+
+            // Pasa validación → mostrar confirmación
+            modalPass.classList.remove('visible');
+            modalConfirmPass.classList.add('visible');
+        });
+
+        // Volver al formulario
+        document.getElementById('btnVolverPass').addEventListener('click', () => {
+            modalConfirmPass.classList.remove('visible');
+            modalPass.classList.add('visible');
+        });
+
+        // Confirmar y enviar
+        document.getElementById('btnConfirmarPass').addEventListener('click', async () => {
+            const btn             = document.getElementById('btnConfirmarPass');
+            const password_actual = document.getElementById('inputPassActual').value;
+            const password_nueva  = document.getElementById('inputPassNueva').value;
+
+            btn.disabled = true;
+            const res = await fetchAPI('/api/users/mi-perfil/', 'POST', { password_actual, password_nueva });
+            btn.disabled = false;
+
+            if (res.ok) {
+                modalConfirmPass.classList.remove('visible');
+                toast('Contraseña actualizada. Redirigiendo...');
+                setTimeout(() => { localStorage.clear(); window.location.replace('/login/'); }, 2200);
+            } else {
+                // Error (ej: contraseña actual incorrecta) → volver al formulario con el error
+                modalConfirmPass.classList.remove('visible');
+                modalPass.classList.add('visible');
+                if (res.data?.errores) setErr('inputPassActual', 'errPassActual', res.data.errores);
+            }
+        });
+
+        // ── Últimos accesos ───────────────────────────────────────
+        async function cargarAccesos() {
+            if (!_userId) return;
+            const res   = await fetchAPI(`/api/auditoria/actividad/?accion=LOGIN&usuario_id=${_userId}&page=1`);
+            const lista = document.getElementById('accesosLista');
+            if (!res.ok || !res.data.results?.length) {
+                lista.innerHTML = '<div class="empty-state">Sin registros.</div>'; return;
+            }
+            lista.innerHTML = res.data.results.slice(0, 8).map(r => `
+                <div class="acceso-item">
+                    <span class="acceso-dot"></span>
+                    <span class="acceso-fecha">${fmt(r.fecha)}</span>
+                    <span class="acceso-hora">${fmtHora(r.fecha)}</span>
+                    <span class="acceso-ip">${r.ip || '—'}</span>
+                </div>
+            `).join('');
+        }
+
+        // ── Actividad reciente ────────────────────────────────────
+        async function cargarActividad() {
+            if (!_userId) return;
+            const res   = await fetchAPI(`/api/auditoria/actividad/?usuario_id=${_userId}&page=1`);
+            const lista = document.getElementById('actividadLista');
+            if (!res.ok || !res.data.results?.length) {
+                lista.innerHTML = '<div class="empty-state">Sin actividad registrada.</div>'; return;
+            }
+            lista.innerHTML = res.data.results.slice(0, 12).map(r => `
+                <div class="actividad-item">
+                    <span class="accion-badge ${accionClass(r.accion)}">${accionLabel(r.accion)}</span>
+                    <span class="actividad-desc">${r.descripcion}</span>
+                    <span class="actividad-fecha">${fmt(r.fecha)}&nbsp;${fmtHora(r.fecha)}</span>
+                </div>
+            `).join('');
+        }
+
+        // ── Init ─────────────────────────────────────────────────
+        cargarPerfil().then(() => {
+            cargarAccesos();
+            cargarActividad();
+        });
+
+    })();
+    </script>
+</body>
+</html>

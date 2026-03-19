@@ -100,6 +100,81 @@ class UserDetailView(APIView):
         return Response({'first_name': user.first_name, 'last_name': user.last_name})
 
 
+class MiPerfilView(APIView):
+    """
+    GET  /api/users/mi-perfil/  — datos del director autenticado
+    PATCH                       — editar nombre/apellidos propios
+    POST                        — cambiar contraseña propia (password_actual + password_nueva)
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        u = request.user
+        return Response({
+            'id':           u.id,
+            'username':     u.username,
+            'first_name':   u.first_name,
+            'last_name':    u.last_name,
+            'tipo_usuario': u.tipo_usuario.nombre if u.tipo_usuario else None,
+            'last_login':   u.last_login.isoformat() if u.last_login else None,
+            'date_joined':  u.date_joined.isoformat(),
+        })
+
+    def patch(self, request):
+        import re
+        first_name = request.data.get('first_name', '').strip()
+        last_name  = request.data.get('last_name',  '').strip()
+        errors = {}
+
+        if not first_name:
+            errors['first_name'] = ['Campo obligatorio.']
+        elif not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$', first_name):
+            errors['first_name'] = ['Solo letras y espacios.']
+
+        if not last_name:
+            errors['last_name'] = ['Campo obligatorio.']
+        elif not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$', last_name):
+            errors['last_name'] = ['Solo letras y espacios.']
+
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        u = request.user
+        u.first_name = first_name
+        u.last_name  = last_name
+        u.save(update_fields=['first_name', 'last_name'])
+
+        from backend.apps.auditoria.services import registrar
+        nombre = f"{u.first_name} {u.last_name}".strip() or u.username
+        registrar(u, 'EDITAR_USUARIO', f"{nombre} actualizó su propio nombre", request)
+
+        return Response({'first_name': u.first_name, 'last_name': u.last_name})
+
+    def post(self, request):
+        password_actual = request.data.get('password_actual', '')
+        password_nueva  = request.data.get('password_nueva',  '')
+
+        if not password_actual:
+            return Response({'errores': 'La contraseña actual es obligatoria.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not password_nueva:
+            return Response({'errores': 'La contraseña nueva es obligatoria.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(password_nueva) < 8 or len(password_nueva) > 20:
+            return Response({'errores': 'La contraseña debe tener entre 8 y 20 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        u = request.user
+        if not u.check_password(password_actual):
+            return Response({'errores': 'Contraseña actual incorrecta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        u.set_password(password_nueva)
+        u.save()
+
+        from backend.apps.auditoria.services import registrar
+        nombre = f"{u.first_name} {u.last_name}".strip() or u.username
+        registrar(u, 'CAMBIO_PASSWORD', f"{nombre} cambió su propia contraseña", request)
+
+        return Response({'mensaje': 'Contraseña actualizada correctamente.'})
+
+
 class UserView(APIView):
     permission_classes = [IsAuthenticated, IsDirector]
 
