@@ -119,16 +119,27 @@
 
         /* ── Citaciones ── */
         .cit-item {
-            padding: 14px 16px;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             margin-bottom: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color .18s;
         }
+        .cit-item:hover { border-color: var(--accent); }
+        .cit-item.open  { border-color: var(--accent); }
+        .cit-summary {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cit-summary__body { flex: 1; min-width: 0; }
         .cit-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             gap: 8px;
         }
         .cit-motivo {
@@ -146,6 +157,67 @@
             color: var(--text-secondary, var(--text-muted));
             line-height: 1.45;
         }
+        .cit-chevron {
+            flex-shrink: 0;
+            width: 15px; height: 15px;
+            stroke: var(--text-muted);
+            transition: transform .2s;
+        }
+        .cit-item.open .cit-chevron { transform: rotate(180deg); }
+        /* Panel expandible */
+        .cit-detail {
+            display: none;
+            border-top: 1px solid var(--border);
+            padding: 12px 16px 14px;
+        }
+        .cit-item.open .cit-detail { display: block; }
+        .cit-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+        }
+        .cit-di { display: flex; flex-direction: column; gap: 2px; }
+        .cit-di--full { grid-column: 1 / -1; }
+        .cit-di__label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; color: var(--text-muted);
+        }
+        .cit-di__value { font-size: 0.82rem; color: var(--text-primary); }
+        .cit-di__value--muted { color: var(--text-secondary); font-style: italic; }
+        /* ── Tabs de filtro ── */
+        .cit-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .cit-tab {
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .cit-tab:hover { border-color: var(--accent); color: var(--accent-text); }
+        .cit-tab.active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent-text);
+        }
+        .cit-tab__count {
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 10px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 0 6px;
+            color: var(--text-muted);
+        }
+        .cit-tab.active .cit-tab__count { background: var(--accent); color: #fff; }
         .cit-empty {
             text-align: center;
             color: var(--text-secondary);
@@ -208,6 +280,7 @@
             flex-shrink: 0;
         }
         .btn-cal-nav:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .btn-cal-nav:disabled { opacity: .3; cursor: not-allowed; pointer-events: none; }
         .cal-weekdays {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -525,7 +598,7 @@
                     <hr class="perfil-divider">
 
                     <p class="perfil-section-title">Tutor</p>
-                    <div class="perfil-field-list">
+                    <div class="perfil-field-list" id="tutorFieldList">
                         <div class="perfil-field">
                             <span class="perfil-field-label">Nombre</span>
                             <span class="perfil-field-value" id="pTutorNombre"></span>
@@ -583,6 +656,11 @@
             <!-- ── Citaciones (abajo, ancho completo) ── -->
             <div class="perfil-card" style="margin-top:20px">
                 <p class="perfil-section-title">Citaciones</p>
+                <div class="cit-tabs">
+                    <button class="cit-tab active" data-filtro="pendiente">Pendientes<span class="cit-tab__count" id="countPendiente">0</span></button>
+                    <button class="cit-tab" data-filtro="vencidas">Vencidas<span class="cit-tab__count" id="countVencidas">0</span></button>
+                    <button class="cit-tab" data-filtro="asistencia">Con asistencia<span class="cit-tab__count" id="countAsistencia">0</span></button>
+                </div>
                 <div id="citacionesContainer">
                     <div class="table-spinner" style="margin:0 auto;display:block;"></div>
                 </div>
@@ -605,7 +683,7 @@
             <p id="confirmDesc"></p>
             <div class="confirm-pass-wrap">
                 <label for="confirmPassword">Confirma tu contraseña</label>
-                <input type="password" id="confirmPassword" placeholder="Tu contraseña de acceso" autocomplete="current-password">
+                <input type="password" id="confirmPassword" placeholder="Tu contraseña de acceso" maxlength="64" autocomplete="current-password">
                 <p class="confirm-pass-error" id="confirmPasswordError"></p>
             </div>
             <div class="confirm-modal-actions">
@@ -657,28 +735,131 @@ function renderEstado(activo) {
     }
 }
 
+function fmtFecha(str) {
+    if (!str) return '—';
+    const [y, m, d] = str.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+let _todasCitaciones = [];
+let _filtroActivo = 'pendiente';
+
+const FILTROS = {
+    pendiente:  c => c.asistencia === 'PENDIENTE',
+    vencidas:   c => c.asistencia === 'VENCIDA',
+    asistencia: c => ['ASISTIO', 'ATRASO', 'NO_ASISTIO', 'VISTO'].includes(c.asistencia),
+};
+const FILTRO_EMPTY = {
+    pendiente:  'Sin citaciones pendientes.',
+    vencidas:   'Sin citaciones vencidas.',
+    asistencia: 'Sin citaciones con asistencia registrada.',
+};
+
 function renderCitaciones(lista) {
+    _todasCitaciones = lista;
+    // Actualizar contadores de tabs
+    document.getElementById('countPendiente').textContent  = lista.filter(FILTROS.pendiente).length;
+    document.getElementById('countVencidas').textContent   = lista.filter(FILTROS.vencidas).length;
+    document.getElementById('countAsistencia').textContent = lista.filter(FILTROS.asistencia).length;
+    renderFiltro(_filtroActivo);
+}
+
+function renderFiltro(filtro) {
+    _filtroActivo = filtro;
     const cont = document.getElementById('citacionesContainer');
+    const lista = _todasCitaciones.filter(FILTROS[filtro]);
+
     if (!lista.length) {
-        cont.innerHTML = '<p class="cit-empty">Este estudiante no tiene citaciones registradas.</p>';
+        cont.innerHTML = `<p class="cit-empty">${FILTRO_EMPTY[filtro]}</p>`;
         return;
     }
+    const chevron = `<svg class="cit-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     cont.innerHTML = lista.map(c => {
         const fecha = new Date(c.fecha_envio).toLocaleDateString('es-BO', { day:'2-digit', month:'short', year:'numeric' });
         const badgeClass = ASISTENCIA_CLASS[c.asistencia] || 'badge--default';
         const label      = ASISTENCIA_LABEL[c.asistencia] || c.asistencia;
         return `
-        <div class="cit-item">
-            <div class="cit-header">
-                <span class="cit-motivo">${c.motivo}</span>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span class="badge ${badgeClass}">${label}</span>
-                    <span class="cit-fecha">${fecha}</span>
+        <div class="cit-item" data-cit-id="${c.id}">
+            <div class="cit-summary">
+                <div class="cit-summary__body">
+                    <div class="cit-header">
+                        <span class="cit-motivo">${c.motivo}</span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="badge ${badgeClass}">${label}</span>
+                            <span class="cit-fecha">${fecha}</span>
+                        </div>
+                    </div>
+                    <p class="cit-desc" style="margin:0;">Límite: ${fmtFecha(c.fecha_limite_asistencia)}</p>
+                </div>
+                ${chevron}
+            </div>
+            <div class="cit-detail">
+                <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
+                    <div class="table-spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div> Cargando...
                 </div>
             </div>
-            <p class="cit-desc">${c.estado}</p>
         </div>`;
     }).join('');
+
+    cont.querySelectorAll('.cit-item').forEach(item => {
+        item.addEventListener('click', () => toggleCitacion(item));
+    });
+}
+
+// Tabs
+document.querySelectorAll('.cit-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.cit-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderFiltro(tab.dataset.filtro);
+    });
+});
+
+async function toggleCitacion(item) {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('#citacionesContainer .cit-item.open').forEach(i => i.classList.remove('open'));
+    if (isOpen) return;
+
+    item.classList.add('open');
+    const detail = item.querySelector('.cit-detail');
+    if (detail.dataset.loaded) return;
+
+    const res = await fetchAPI(`/api/discipline/citaciones/${item.dataset.citId}/`);
+    detail.dataset.loaded = '1';
+
+    if (!res.ok) {
+        detail.innerHTML = '<p style="font-size:12px;color:var(--danger);">No se pudo cargar el detalle.</p>';
+        return;
+    }
+    const d = res.data;
+    detail.innerHTML = `
+        <div class="cit-detail-grid">
+            <div class="cit-di">
+                <span class="cit-di__label">Emitido por</span>
+                <span class="cit-di__value">${d.emitido_por_nombre || '—'}</span>
+            </div>
+            <div class="cit-di">
+                <span class="cit-di__label">Cargo</span>
+                <span class="cit-di__value">${d.emitido_por_cargo || '—'}</span>
+            </div>
+            <div class="cit-di">
+                <span class="cit-di__label">Tutor</span>
+                <span class="cit-di__value">${d.tutor_nombre || 'Sin tutor'}</span>
+            </div>
+            <div class="cit-di">
+                <span class="cit-di__label">Fecha límite</span>
+                <span class="cit-di__value">${fmtFecha(d.fecha_limite_asistencia)}</span>
+            </div>
+            <div class="cit-di cit-di--full">
+                <span class="cit-di__label">Descripción</span>
+                <span class="cit-di__value">${d.motivo_descripcion || '<em style="color:var(--text-muted)">Sin descripción</em>'}</span>
+            </div>
+            ${d.actualizado_por_nombre ? `
+            <div class="cit-di cit-di--full">
+                <span class="cit-di__label">Actualizado por</span>
+                <span class="cit-di__value cit-di__value--muted">${d.actualizado_por_nombre}</span>
+            </div>` : ''}
+        </div>`;
 }
 
 /* ── Calendario de asistencia ──────────────────────────── */
@@ -737,17 +918,29 @@ async function loadCalendario() {
     document.getElementById('perfilCalGrid').innerHTML = html;
 }
 
+const _anioActual = new Date().getFullYear();
+
+function _actualizarBotonesCalendario() {
+    const [y, m] = _calMes.split('-').map(Number);
+    document.getElementById('perfilCalPrev').disabled = (y === _anioActual && m === 1);
+    document.getElementById('perfilCalNext').disabled = (y === _anioActual && m === 12);
+}
+
 document.getElementById('perfilCalPrev').addEventListener('click', () => {
     const [y, m] = _calMes.split('-').map(Number);
+    if (y === _anioActual && m === 1) return;
     const prev = new Date(y, m - 2, 1);
     _calMes = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    _actualizarBotonesCalendario();
     loadCalendario();
 });
 
 document.getElementById('perfilCalNext').addEventListener('click', () => {
     const [y, m] = _calMes.split('-').map(Number);
+    if (y === _anioActual && m === 12) return;
     const next = new Date(y, m, 1);
     _calMes = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+    _actualizarBotonesCalendario();
     loadCalendario();
 });
 
@@ -767,8 +960,13 @@ document.getElementById('perfilCalNext').addEventListener('click', () => {
         document.getElementById('pNombre').textContent        = d.nombre_completo;
         document.getElementById('pCurso').textContent         = d.curso_nombre;
         document.getElementById('pIdentificador').textContent  = d.identificador || '—';
-        document.getElementById('pTutorNombre').textContent   = d.tutor_nombre || '—';
-        document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
+        if (d.tutor_nombre) {
+            document.getElementById('pTutorNombre').textContent   = d.tutor_nombre;
+            document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
+        } else {
+            document.getElementById('tutorFieldList').innerHTML =
+                '<p style="font-size:0.82rem;color:var(--text-muted);font-style:italic;margin:0;">Sin tutor asignado aún.</p>';
+        }
         renderEstado(_activo);
     }
 
@@ -778,6 +976,7 @@ document.getElementById('perfilCalNext').addEventListener('click', () => {
 
     // Mostrar y cargar el calendario
     document.getElementById('perfilCalCard').style.display = '';
+    _actualizarBotonesCalendario();
     await loadCalendario();
 })();
 
@@ -806,17 +1005,36 @@ document.getElementById('btnCambiarEstado').addEventListener('click', () => {
     confirmBackdrop.classList.add('visible');
 });
 
-btnConfirmCancelar.addEventListener('click', () => confirmBackdrop.classList.remove('visible'));
-confirmBackdrop.addEventListener('click', e => { if (e.target === confirmBackdrop) confirmBackdrop.classList.remove('visible'); });
+function cerrarConfirm() {
+    confirmBackdrop.classList.remove('visible');
+    document.getElementById('confirmPassword').value = '';
+    document.getElementById('confirmPasswordError').textContent = '';
+}
+btnConfirmCancelar.addEventListener('click', cerrarConfirm);
+confirmBackdrop.addEventListener('click', e => { if (e.target === confirmBackdrop) cerrarConfirm(); });
 
 btnConfirmAceptar.addEventListener('click', async () => {
-    confirmBackdrop.classList.remove('visible');
+    const password = document.getElementById('confirmPassword').value.trim();
+    const errorEl  = document.getElementById('confirmPasswordError');
+
+    if (!password) {
+        errorEl.textContent = 'Ingresa tu contraseña para confirmar.';
+        return;
+    }
+    errorEl.textContent = '';
+    cerrarConfirm();
+
     const nuevoEstado = !_activo;
     const { ok, data } = await fetchAPI(`/api/students/${ESTUDIANTE_ID}/`, {
         method: 'PATCH',
-        body: JSON.stringify({ activo: nuevoEstado }),
+        body: JSON.stringify({ activo: nuevoEstado, password }),
     });
-    if (!ok) return;
+    if (!ok) {
+        // Reabrir el modal mostrando el error (ej: contraseña incorrecta)
+        confirmBackdrop.classList.add('visible');
+        document.getElementById('confirmPasswordError').textContent = data?.errores || 'Error al procesar la solicitud.';
+        return;
+    }
     _activo = data.activo;
     renderEstado(_activo);
 });

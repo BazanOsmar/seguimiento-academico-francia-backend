@@ -14,20 +14,11 @@ const estudianteSection   = document.getElementById('estudianteSection');
 const estudiantesLista    = document.getElementById('estudiantesLista');
 const citacionesSection   = document.getElementById('citacionesSection');
 const citacionesTbody     = document.getElementById('citacionesTbody');
-const cursosSection       = document.getElementById('cursosSection');
-const cursosChips         = document.getElementById('cursosChips');
+const cursosSection                = document.getElementById('cursosSection');
+const cursosChips                  = document.getElementById('cursosChips');
+const citacionesEmitidasSection    = document.getElementById('citacionesEmitidasSection');
+const citacionesEmitidasTbody      = document.getElementById('citacionesEmitidasTbody');
 
-// Editar nombre
-const btnEditarNombre     = document.getElementById('btnEditarNombre');
-const editNombreForm      = document.getElementById('editNombreForm');
-const editNombre          = document.getElementById('editNombre');
-const editApellidos       = document.getElementById('editApellidos');
-const editNombreErr       = document.getElementById('editNombreErr');
-const editApellidosErr    = document.getElementById('editApellidosErr');
-const btnEditarCancelar   = document.getElementById('btnEditarCancelar');
-const btnEditarGuardar    = document.getElementById('btnEditarGuardar');
-const editGuardarTexto    = document.getElementById('editGuardarTexto');
-const editGuardarSpinner  = document.getElementById('editGuardarSpinner');
 
 const btnReset         = document.getElementById('btnResetPassword');
 
@@ -132,9 +123,6 @@ let _cachedData = null;
         (data.first_name?.[0] || '') + (data.last_name?.[0] || '')
     ).toUpperCase() || data.username[0].toUpperCase();
 
-    // Mostrar botón de editar ahora que los datos cargaron
-    btnEditarNombre.classList.remove('hidden');
-
     // FCM
     perfilFcm.innerHTML = fcmBadgeHtml(data.tiene_fcm);
 
@@ -152,12 +140,18 @@ let _cachedData = null;
             ).toUpperCase();
             const curso  = `${e.curso__grado} ${e.curso__paralelo}`;
             const identificador = e.identificador ? `ID: ${e.identificador}` : 'Sin identificador';
+            const activoBadge = e.activo
+                ? `<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:rgba(34,197,94,.12);color:#22c55e;font-weight:600;">Activo</span>`
+                : `<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:rgba(239,68,68,.12);color:#ef4444;font-weight:600;">Baja</span>`;
             return `
                 <a class="estudiante-card"
                    href="/director/estudiantes/${e.curso__id}/?highlight=${e.id}">
                     <div class="estudiante-avatar">${iniciales}</div>
                     <div class="estudiante-info">
-                        <div class="estudiante-nombre">${(e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}</div>
+                        <div class="estudiante-nombre" style="display:flex;align-items:center;gap:8px;">
+                            <span>${(e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}</span>
+                            ${activoBadge}
+                        </div>
                         <div class="estudiante-meta">${curso} &middot; ${identificador}</div>
                     </div>
                     <svg class="estudiante-arrow" width="16" height="16" viewBox="0 0 24 24"
@@ -188,6 +182,25 @@ let _cachedData = null;
         }).join('');
     }
 
+    // Citaciones emitidas (solo Regentes)
+    if (data.citaciones_emitidas && data.citaciones_emitidas.length > 0) {
+        citacionesEmitidasSection.classList.remove('hidden');
+        const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        citacionesEmitidasTbody.innerHTML = data.citaciones_emitidas.map(c => {
+            const est = `${(c.estudiante__apellido_paterno + ' ' + c.estudiante__apellido_materno).trim()}, ${c.estudiante__nombre}`;
+            const fEnv = c.fecha_envio
+                ? (() => { const d = new Date(c.fecha_envio);
+                           return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; })()
+                : '—';
+            return `<tr>
+                <td>${est}</td>
+                <td style="color:var(--text-secondary)">${c.motivo}</td>
+                <td>${estadoBadgeHtml(c.asistencia)}</td>
+                <td style="color:var(--text-muted);font-size:.8rem">${fEnv}</td>
+            </tr>`;
+        }).join('');
+    }
+
     // Cursos asignados (solo Profesores)
     if (data.cursos && data.cursos.length > 0) {
         cursosSection.classList.remove('hidden');
@@ -211,119 +224,63 @@ let _cachedData = null;
     }
 })();
 
-// ── Editar nombre/apellido ────────────────────────────────────────
-btnEditarNombre.addEventListener('click', () => {
-    editNombre.value    = _cachedData?.first_name || '';
-    editApellidos.value = _cachedData?.last_name  || '';
-    editNombreErr.classList.add('hidden');
-    editApellidosErr.classList.add('hidden');
-    editNombre.classList.remove('input-error');
-    editApellidos.classList.remove('input-error');
-    editNombreForm.classList.remove('hidden');
-    btnEditarNombre.classList.add('hidden');
-    editNombre.focus();
+// ── Resetear contraseña ───────────────────────────────────────────
+const confirmResetPassword    = document.getElementById('confirmResetPassword');
+const confirmResetPasswordErr = document.getElementById('confirmResetPasswordErr');
+
+function _cerrarModalConfirm() {
+    modalConfirm.classList.remove('visible');
+    confirmResetPassword.value = '';
+    confirmResetPasswordErr.classList.add('hidden');
+    confirmResetPassword.classList.remove('input-error');
+}
+
+btnReset.addEventListener('click', () => {
+    confirmResetPassword.value = '';
+    confirmResetPasswordErr.classList.add('hidden');
+    confirmResetPassword.classList.remove('input-error');
+    modalConfirm.classList.add('visible');
+    setTimeout(() => confirmResetPassword.focus(), 50);
 });
 
-btnEditarCancelar.addEventListener('click', () => {
-    editNombreForm.classList.add('hidden');
-    btnEditarNombre.classList.remove('hidden');
-});
+btnConfirmNo.addEventListener('click', _cerrarModalConfirm);
 
-btnEditarGuardar.addEventListener('click', async () => {
-    const fn = editNombre.value.trim();
-    const ln = editApellidos.value.trim();
-
-    editNombreErr.classList.add('hidden');
-    editApellidosErr.classList.add('hidden');
-    editNombre.classList.remove('input-error');
-    editApellidos.classList.remove('input-error');
-
-    let valido = true;
-    if (!fn) {
-        editNombreErr.textContent = 'Campo obligatorio.';
-        editNombreErr.classList.remove('hidden');
-        editNombre.classList.add('input-error');
-        valido = false;
-    }
-    if (!ln) {
-        editApellidosErr.textContent = 'Campo obligatorio.';
-        editApellidosErr.classList.remove('hidden');
-        editApellidos.classList.add('input-error');
-        valido = false;
-    }
-    if (!valido) return;
-
-    editGuardarTexto.classList.add('hidden');
-    editGuardarSpinner.classList.remove('hidden');
-    btnEditarGuardar.disabled = true;
-    btnEditarCancelar.disabled = true;
-
-    const { ok, data } = await fetchAPI(`/api/users/${USER_ID}/`, {
-        method: 'PATCH',
-        body: JSON.stringify({ first_name: fn, last_name: ln }),
-    });
-
-    editGuardarTexto.classList.remove('hidden');
-    editGuardarSpinner.classList.add('hidden');
-    btnEditarGuardar.disabled = false;
-    btnEditarCancelar.disabled = false;
-
-    if (!ok) {
-        if (data?.first_name) {
-            editNombreErr.textContent = data.first_name[0];
-            editNombreErr.classList.remove('hidden');
-            editNombre.classList.add('input-error');
-        }
-        if (data?.last_name) {
-            editApellidosErr.textContent = data.last_name[0];
-            editApellidosErr.classList.remove('hidden');
-            editApellidos.classList.add('input-error');
-        }
+btnConfirmSi.addEventListener('click', async () => {
+    const pwd = confirmResetPassword.value.trim();
+    if (!pwd) {
+        confirmResetPasswordErr.textContent = 'Ingresa tu contraseña.';
+        confirmResetPasswordErr.classList.remove('hidden');
+        confirmResetPassword.classList.add('input-error');
+        confirmResetPassword.focus();
         return;
     }
 
-    // Actualizar display
-    const nombre = `${data.first_name} ${data.last_name}`.trim();
-    perfilNombre.textContent    = nombre;
-    perfilIniciales.textContent = (
-        (data.first_name?.[0] || '') + (data.last_name?.[0] || '')
-    ).toUpperCase();
-    if (_cachedData) {
-        _cachedData.first_name = data.first_name;
-        _cachedData.last_name  = data.last_name;
-    }
-    editNombreForm.classList.add('hidden');
-    btnEditarNombre.classList.remove('hidden');
-});
-
-// ── Resetear contraseña ───────────────────────────────────────────
-btnReset.addEventListener('click', () => {
-    modalConfirm.classList.add('visible');
-});
-
-btnConfirmNo.addEventListener('click', () => {
-    modalConfirm.classList.remove('visible');
-});
-
-btnConfirmSi.addEventListener('click', async () => {
     btnConfirmSi.disabled = true;
     btnConfirmNo.disabled = true;
     confirmText.classList.add('hidden');
     confirmSpinner.classList.remove('hidden');
 
-    const { ok, data } = await fetchAPI('/api/auth/change-password/', {
+    const { ok, status, data } = await fetchAPI('/api/auth/change-password/', {
         method: 'POST',
-        body: JSON.stringify({ user_id: USER_ID }),
+        body: JSON.stringify({ user_id: USER_ID, password_director: pwd }),
     });
 
     btnConfirmSi.disabled = false;
     btnConfirmNo.disabled = false;
     confirmText.classList.remove('hidden');
     confirmSpinner.classList.add('hidden');
-    modalConfirm.classList.remove('visible');
 
-    if (!ok) return;
+    if (!ok) {
+        if (status === 403) {
+            confirmResetPasswordErr.textContent = 'Contraseña incorrecta.';
+            confirmResetPasswordErr.classList.remove('hidden');
+            confirmResetPassword.classList.add('input-error');
+            confirmResetPassword.focus();
+        }
+        return;
+    }
 
+    _cerrarModalConfirm();
     credNombre.textContent = perfilNombre.textContent;
     credUser.textContent   = perfilUsername.textContent.replace('@', '');
     credPass.textContent   = data.password_nueva;

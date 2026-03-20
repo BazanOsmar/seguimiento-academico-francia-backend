@@ -4,11 +4,11 @@ services:
     environment:
       POSTGRES_DB: seguimiento_staging_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
-      - postgres_staging_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     restart: always
 
   web:
@@ -19,9 +19,8 @@ services:
     depends_on:
       - db
     volumes:
-      - staticfiles_staging:/app/staticfiles
-      - mediafiles_staging:/app/media
-    # Ya NO exponemos el puerto al exterior
+      - staticfiles_prod:/app/backend/staticfiles
+      - mediafiles_prod:/app/media
     expose:
       - "8000"
     restart: always
@@ -29,16 +28,16 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "8002:80"   # El mundo ve el puerto 8002, Nginx escucha en 80 internamente
+      - "8002:80"
     volumes:
-      - ./nginx/nginx.staging.conf:/etc/nginx/conf.d/default.conf:ro
-      - staticfiles_staging:/app/staticfiles:ro
-      - mediafiles_staging:/app/media:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf
+      - staticfiles_prod:/app/backend/staticfiles:ro
+      - mediafiles_prod:/app/media:ro
     depends_on:
       - web
     restart: always
 
 volumes:
-  postgres_staging_data:
-  staticfiles_staging:
-  mediafiles_staging:
+  postgres_data:
+  staticfiles_prod:
+  mediafiles_prod:

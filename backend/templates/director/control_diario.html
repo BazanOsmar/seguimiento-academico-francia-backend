@@ -234,24 +234,40 @@
 
         /* ── Tarjetas de citación ──────────────────────────────────── */
         .cit-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         .cit-card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-card);
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color .18s;
+        }
+        .cit-card:hover { border-color: var(--accent); }
+        .cit-card.open  { border-color: var(--accent); }
+        .cit-card__summary {
             padding: 14px 16px;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            gap: 12px;
         }
+        .cit-card__chevron {
+            flex-shrink: 0;
+            width: 16px; height: 16px;
+            stroke: var(--text-muted);
+            transition: transform .2s;
+        }
+        .cit-card.open .cit-card__chevron { transform: rotate(180deg); }
+        .cit-card__info { flex: 1; min-width: 0; }
         .cit-card__top {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 8px;
+            margin-bottom: 3px;
         }
         .cit-card__estudiante { font-size: 14px; font-weight: 700; color: var(--text-primary); }
         .cit-card__curso { font-size: 11px; color: var(--text-muted); }
@@ -259,13 +275,35 @@
             font-size: 12px; color: var(--text-secondary);
             font-style: italic;
         }
-        .cit-card__footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 2px;
+        /* Panel expandible */
+        .cit-card__detail {
+            display: none;
+            padding: 0 16px 14px;
+            border-top: 1px solid var(--border-subtle);
+            margin-top: 0;
         }
-        .cit-card__emisor { font-size: 11px; color: var(--text-muted); }
+        .cit-card.open .cit-card__detail { display: block; }
+        .cit-detail-loading {
+            padding: 12px 0;
+            font-size: 12px; color: var(--text-muted);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .cit-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            padding-top: 12px;
+        }
+        .cit-detail-item { display: flex; flex-direction: column; gap: 2px; }
+        .cit-detail-item--full { grid-column: 1 / -1; }
+        .cit-detail-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; color: var(--text-muted);
+        }
+        .cit-detail-value {
+            font-size: 13px; color: var(--text-primary);
+        }
+        .cit-detail-value--muted { color: var(--text-secondary); font-style: italic; }
         .cit-badge {
             display: inline-block; padding: 2px 9px; border-radius: 20px;
             font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -631,33 +669,13 @@
             <!-- ── Sección Citaciones del Día ─────────────────────── -->
             <div class="seccion" id="seccionCitaciones">
                 <div class="seccion__header">
-                    <span class="seccion__titulo">Citaciones del Día</span>
+                    <span class="seccion__titulo">Citaciones Pendientes del Día</span>
                     <div class="seccion__linea"></div>
+                    <span class="seccion__badge" id="badgeCitCreadas">—</span>
                 </div>
-
-                <!-- Creadas hoy -->
-                <div class="sub-seccion">
-                    <div class="sub-seccion__titulo">
-                        Creadas hoy
-                        <span class="sub-badge" id="badgeCitCreadas">—</span>
-                    </div>
-                    <div class="cit-grid" id="gridCitCreadas">
-                        <div class="grid-loading">
-                            <div class="grid-spinner"></div> Cargando...
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Actualizadas hoy -->
-                <div class="sub-seccion">
-                    <div class="sub-seccion__titulo">
-                        Estado actualizado hoy
-                        <span class="sub-badge" id="badgeCitActualizadas">—</span>
-                    </div>
-                    <div class="cit-grid" id="gridCitActualizadas">
-                        <div class="grid-loading">
-                            <div class="grid-spinner"></div> Cargando...
-                        </div>
+                <div class="cit-grid" id="gridCitCreadas">
+                    <div class="grid-loading">
+                        <div class="grid-spinner"></div> Cargando...
                     </div>
                 </div>
             </div>
@@ -929,26 +947,11 @@
     }
 
     async function cargarCitaciones(fecha) {
-        // Creadas hoy
         document.getElementById('gridCitCreadas').innerHTML =
             '<div class="grid-loading"><div class="grid-spinner"></div> Cargando...</div>';
-        // Actualizadas hoy
-        document.getElementById('gridCitActualizadas').innerHTML =
-            '<div class="grid-loading"><div class="grid-spinner"></div> Cargando...</div>';
 
-        const [creadasRes, actualizadasRes] = await Promise.all([
-            fetchAPI(`/api/discipline/citaciones/?fecha_creacion=${fecha}`),
-            fetchAPI(`/api/discipline/citaciones/?fecha_actualizacion=${fecha}`),
-        ]);
-
-        renderCitaciones(
-            creadasRes.ok ? creadasRes.data : [],
-            'gridCitCreadas', 'badgeCitCreadas'
-        );
-        renderCitaciones(
-            actualizadasRes.ok ? actualizadasRes.data : [],
-            'gridCitActualizadas', 'badgeCitActualizadas'
-        );
+        const res = await fetchAPI(`/api/discipline/citaciones/?fecha_creacion=${fecha}&asistencia=PENDIENTE`);
+        renderCitaciones(res.ok ? res.data : [], 'gridCitCreadas', 'badgeCitCreadas');
     }
 
     function badgeCls(asistencia) {
@@ -967,30 +970,96 @@
         };
         return map[a] || a;
     }
+    function fmtFecha(str) {
+        if (!str) return '—';
+        const [y, m, d] = str.split('-');
+        return `${d}/${m}/${y}`;
+    }
 
     function renderCitaciones(lista, gridId, badgeId) {
-        document.getElementById(badgeId).textContent = lista.length;
+        document.getElementById(badgeId).textContent = lista.length || '0';
         if (lista.length === 0) {
             document.getElementById(gridId).innerHTML =
-                '<div class="grid-empty" style="padding:20px 0;">Ninguna</div>';
+                '<div class="grid-empty" style="padding:20px 0;">Sin citaciones pendientes para este día.</div>';
             return;
         }
+        const chevronSvg = `<svg class="cit-card__chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
         const html = lista.map(c => `
-            <div class="cit-card">
-                <div class="cit-card__top">
-                    <div>
-                        <div class="cit-card__estudiante">${c.estudiante_nombre}</div>
-                        <div class="cit-card__curso">${c.curso}</div>
+            <div class="cit-card" data-cit-id="${c.id}">
+                <div class="cit-card__summary">
+                    <div class="cit-card__info">
+                        <div class="cit-card__top">
+                            <div>
+                                <div class="cit-card__estudiante">${c.estudiante_nombre}</div>
+                                <div class="cit-card__curso">${c.curso}</div>
+                            </div>
+                            <span class="cit-badge ${badgeCls(c.asistencia)}">${asistenciaLabel(c.asistencia)}</span>
+                        </div>
+                        <div class="cit-card__motivo">${c.motivo}</div>
                     </div>
-                    <span class="cit-badge ${badgeCls(c.asistencia)}">${asistenciaLabel(c.asistencia)}</span>
+                    ${chevronSvg}
                 </div>
-                <div class="cit-card__motivo">${c.motivo}</div>
-                <div class="cit-card__footer">
-                    <span class="cit-card__emisor">Por: ${c.emisor_nombre || '—'}</span>
-                    <span style="font-size:11px;color:var(--text-muted);">Límite: ${c.fecha_limite_asistencia}</span>
+                <div class="cit-card__detail">
+                    <div class="cit-detail-loading"><div class="grid-spinner"></div> Cargando detalle...</div>
                 </div>
             </div>`).join('');
         document.getElementById(gridId).innerHTML = html;
+
+        document.querySelectorAll(`#${gridId} .cit-card`).forEach(card => {
+            card.addEventListener('click', () => toggleCitacion(card));
+        });
+    }
+
+    async function toggleCitacion(card) {
+        const isOpen = card.classList.contains('open');
+        // Cerrar todas las del mismo grid
+        card.closest('.cit-grid').querySelectorAll('.cit-card.open').forEach(c => c.classList.remove('open'));
+        if (isOpen) return;
+
+        card.classList.add('open');
+        const detail = card.querySelector('.cit-card__detail');
+
+        // Solo cargar si aún no se cargó
+        if (detail.dataset.loaded) return;
+
+        const citId = card.dataset.citId;
+        const res = await fetchAPI(`/api/discipline/citaciones/${citId}/`);
+        detail.dataset.loaded = '1';
+
+        if (!res.ok) {
+            detail.innerHTML = '<p style="font-size:12px;color:var(--danger);padding:10px 0;">No se pudo cargar el detalle.</p>';
+            return;
+        }
+        const d = res.data;
+        detail.innerHTML = `
+            <div class="cit-detail-grid">
+                <div class="cit-detail-item">
+                    <span class="cit-detail-label">Emitido por</span>
+                    <span class="cit-detail-value">${d.emitido_por_nombre || '—'}</span>
+                </div>
+                <div class="cit-detail-item">
+                    <span class="cit-detail-label">Cargo</span>
+                    <span class="cit-detail-value">${d.emitido_por_cargo || '—'}</span>
+                </div>
+                <div class="cit-detail-item">
+                    <span class="cit-detail-label">Tutor</span>
+                    <span class="cit-detail-value">${d.tutor_nombre || 'Sin tutor'}</span>
+                </div>
+                <div class="cit-detail-item">
+                    <span class="cit-detail-label">Fecha límite</span>
+                    <span class="cit-detail-value">${fmtFecha(d.fecha_limite_asistencia)}</span>
+                </div>
+                ${d.motivo_descripcion ? `
+                <div class="cit-detail-item cit-detail-item--full">
+                    <span class="cit-detail-label">Descripción</span>
+                    <span class="cit-detail-value">${d.motivo_descripcion}</span>
+                </div>` : ''}
+                ${d.actualizado_por_nombre ? `
+                <div class="cit-detail-item cit-detail-item--full">
+                    <span class="cit-detail-label">Actualizado por</span>
+                    <span class="cit-detail-value cit-detail-value--muted">${d.actualizado_por_nombre}</span>
+                </div>` : ''}
+            </div>`;
     }
 
     /* ── Toast ───────────────────────────────────────────────────── */

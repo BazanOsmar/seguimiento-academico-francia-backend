@@ -87,6 +87,10 @@ class EstudianteDetailView(APIView):
         return Response(EstudianteDirectorSerializer(self._get_estudiante(pk)).data)
 
     def patch(self, request, pk):
+        password = request.data.get('password', '').strip()
+        if not password or not request.user.check_password(password):
+            return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
         estudiante = self._get_estudiante(pk)
         activo = request.data.get('activo')
         if activo is None or not isinstance(activo, bool):

@@ -23,9 +23,15 @@ class HistorialCursoView(APIView):
     def get(self, request, curso_id):
         get_object_or_404(Curso, pk=curso_id)
 
+        qs = AsistenciaSesion.objects.filter(curso_id=curso_id)
+
+        mes = request.query_params.get("mes", "").strip()
+        if mes and len(mes) == 7:
+            anio, num_mes = mes.split("-")
+            qs = qs.filter(fecha__year=anio, fecha__month=num_mes)
+
         sesiones = (
-            AsistenciaSesion.objects
-            .filter(curso_id=curso_id)
+            qs
             .annotate(
                 presentes=Count("asistencias", filter=Q(asistencias__estado="PRESENTE")),
                 faltas=Count("asistencias", filter=Q(asistencias__estado="FALTA")),

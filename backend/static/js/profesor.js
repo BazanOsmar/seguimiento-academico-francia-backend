@@ -418,7 +418,7 @@ function _renderPlanCards(mes) {
         const plans = pcMap[asig.id] || [];
         const dots  = [1, 2, 3, 4].map(s => {
             const ok = plans.some(p => p.semana === s);
-            return `<span class="plan-asig-dot${ok ? '' : ' plan-asig-dot--empty'}"></span>`;
+            return `<span class="plan-asig-week${ok ? '' : ' plan-asig-week--empty'}">${s}</span>`;
         }).join('');
         return `<div class="plan-asig-card" data-pc-id="${asig.id}" data-mes="${mes}">
             <div>
@@ -483,8 +483,8 @@ function _renderPlanModalTbody(pcId, mes, editable) {
         const { display } = _periodoSemana(mes, semana);
         const tr = document.createElement('tr');
 
-        const dotCls      = plan ? 'plan-semana-dot' : 'plan-semana-dot plan-semana-dot--empty';
-        const semanaCell  = `<td data-label="Semana"><span class="plan-semana-badge"><span class="${dotCls}"></span>Semana ${semana}</span></td>`;
+        const numCls     = plan ? 'plan-semana-num' : 'plan-semana-num plan-semana-num--empty';
+        const semanaCell = `<td data-label="Semana"><span class="plan-semana-badge"><span class="${numCls}">${semana}</span>Semana ${semana}</span></td>`;
         const periodoCell = `<td data-label="Período"><span class="plan-periodo">${display}</span></td>`;
 
         if (plan) {
@@ -650,7 +650,7 @@ async function cargarHistorialPlanes() {
             if (!asig) return;
             const dots = [1, 2, 3, 4].map(s => {
                 const ok = plans.some(p => p.semana === s);
-                return `<span class="plan-asig-dot${ok ? '' : ' plan-asig-dot--empty'}"></span>`;
+                return `<span class="plan-asig-week${ok ? '' : ' plan-asig-week--empty'}">${s}</span>`;
             }).join('');
             const card = document.createElement('div');
             card.className = 'plan-asig-card';
@@ -724,7 +724,7 @@ function _actualizarChecks(password, prefix) {
     wrap.classList.toggle('visible', password.length > 0);
 
     const reglas = [
-        { id: `${prefix}Check8`,     fn: v => v.length >= 8 },
+        { id: `${prefix}Check8`,     fn: v => v.length >= 8 && v.length <= 64 },
         { id: `${prefix}CheckUpper`, fn: v => /[A-Z]/.test(v) },
         { id: `${prefix}CheckLower`, fn: v => /[a-z]/.test(v) },
         { id: `${prefix}CheckNum`,   fn: v => /[0-9]/.test(v) },
@@ -790,94 +790,205 @@ function _initPrimerIngreso() {
     });
 }
 
-// ── Tab Cuenta — cambiar credenciales voluntario ──────────────────
+// ── Tab Cuenta — perfil + modal credenciales ──────────────────────
 let _cuentaIniciada = false;
 
 function _initCuentaTab() {
-    // Rellenar username actual
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    if (user) document.getElementById('cuentaUsernameActual').value = user.username || '';
+    _cargarPerfilStats();
 
     if (_cuentaIniciada) return;
     _cuentaIniciada = true;
 
-    document.getElementById('cuentaPassNueva').addEventListener('input', e => {
-        _actualizarChecks(e.target.value, 'cuenta');
+    // Botones del hero → abrir modal
+    document.querySelectorAll('[data-cred-mode]').forEach(btn => {
+        btn.addEventListener('click', () => _abrirModalCred(btn.dataset.credMode));
     });
 
-    document.getElementById('formCuenta').addEventListener('submit', async (e) => {
+    // Cerrar modal
+    document.getElementById('credModalClose').addEventListener('click', _cerrarModalCred);
+    document.getElementById('credModalOverlay').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalCred();
+    });
+
+    // Checklist en tiempo real
+    document.getElementById('credPassNueva').addEventListener('input', e => {
+        _actualizarChecks(e.target.value, 'cred');
+    });
+
+    // Submit del modal
+    document.getElementById('formCred').addEventListener('submit', async e => {
         e.preventDefault();
-        const errEl   = document.getElementById('cuentaError');
-        const uNuevo  = document.getElementById('cuentaUsernameNuevo').value.trim();
-        const pActual = document.getElementById('cuentaPassActual').value;
-        const pNueva  = document.getElementById('cuentaPassNueva').value;
-
-        errEl.style.display = 'none';
-
-        // Si cambia el username → pedir confirmación primero
-        if (uNuevo) {
-            document.getElementById('confirmCredUsername').textContent = uNuevo;
-            document.getElementById('confirmCredOverlay').classList.add('visible');
-
-            // Esperar decisión del usuario
-            await new Promise(resolve => {
-                document.getElementById('confirmCredAceptar').onclick = () => {
-                    document.getElementById('confirmCredOverlay').classList.remove('visible');
-                    resolve(true);
-                };
-                document.getElementById('confirmCredCancelar').onclick = () => {
-                    document.getElementById('confirmCredOverlay').classList.remove('visible');
-                    resolve(false);
-                };
-            }).then(async (confirmado) => {
-                if (!confirmado) return;
-                await _ejecutarCambioCuenta(uNuevo, pActual, pNueva, errEl);
-            });
-            return;
-        }
-
-        await _ejecutarCambioCuenta(uNuevo, pActual, pNueva, errEl);
+        await _submitCred();
     });
 }
 
-async function _ejecutarCambioCuenta(uNuevo, pActual, pNueva, errEl) {
-    const sucEl = document.getElementById('cuentaSuccess');
-    const btn   = document.getElementById('btnGuardarCuenta');
+// ── Modal de credenciales ─────────────────────────────────────────
+const _CRED_MODOS = {
+    password: {
+        title:    'Cambiar contraseña',
+        sub:      'Necesitarás tu contraseña actual para confirmar.',
+        username: false,
+        password: true,
+    },
+    username: {
+        title:    'Cambiar usuario',
+        sub:      'El cambio de usuario requiere confirmar tu contraseña.',
+        username: true,
+        password: false,
+    },
+    both: {
+        title:    'Cambiar usuario y contraseña',
+        sub:      'Actualiza ambas credenciales en un solo paso.',
+        username: true,
+        password: true,
+    },
+};
 
-    sucEl.classList.remove('visible');
+let _credModoActual = 'password';
+
+function _abrirModalCred(modo) {
+    _credModoActual = modo;
+    const cfg = _CRED_MODOS[modo];
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+    document.getElementById('credModalTitle').textContent = cfg.title;
+    document.getElementById('credModalSub').textContent   = cfg.sub;
+
+    // Mostrar/ocultar campos según modo
+    document.getElementById('credGroupUsername').style.display    = cfg.username ? '' : 'none';
+    document.getElementById('credGroupPassword').style.display    = cfg.password ? '' : 'none';
+    document.getElementById('credCurrentUserRow').style.display   = cfg.username ? '' : 'none';
+
+    if (cfg.username && user) {
+        document.getElementById('credCurrentUsername').textContent = user.username || '—';
+    }
+
+    // Resetear
+    document.getElementById('formCred').reset();
+    document.getElementById('credError').style.display = 'none';
+    document.getElementById('credSuccess').classList.remove('visible');
+    _actualizarChecks('', 'cred');
+
+    document.getElementById('credModalOverlay').classList.add('visible');
+    setTimeout(() => document.getElementById('credPassActual').focus(), 80);
+}
+
+function _cerrarModalCred() {
+    document.getElementById('credModalOverlay').classList.remove('visible');
+}
+
+async function _submitCred() {
+    const cfg    = _CRED_MODOS[_credModoActual];
+    const errEl  = document.getElementById('credError');
+    const btn    = document.getElementById('btnGuardarCred');
+    const pActual = document.getElementById('credPassActual').value;
+    const uNuevo  = cfg.username ? document.getElementById('credUsernameNuevo').value.trim() : '';
+    const pNueva  = cfg.password ? document.getElementById('credPassNueva').value : '';
+
+    errEl.style.display = 'none';
+
+    // Confirmación de cambio de usuario
+    if (cfg.username && uNuevo) {
+        document.getElementById('confirmCredUsername').textContent = uNuevo;
+        document.getElementById('confirmCredOverlay').classList.add('visible');
+        const confirmado = await new Promise(resolve => {
+            document.getElementById('confirmCredAceptar').onclick  = () => { document.getElementById('confirmCredOverlay').classList.remove('visible'); resolve(true); };
+            document.getElementById('confirmCredCancelar').onclick = () => { document.getElementById('confirmCredOverlay').classList.remove('visible'); resolve(false); };
+        });
+        if (!confirmado) return;
+    }
+
     btn.disabled    = true;
     btn.textContent = 'Guardando…';
 
+    const body = { password_actual: pActual };
+    if (uNuevo) body.username_nuevo = uNuevo;
+    if (pNueva) body.password_nueva = pNueva;
+
     const { ok, data } = await fetchAPI('/api/auth/cambiar-credenciales/', {
         method: 'POST',
-        body: JSON.stringify({
-            password_actual: pActual,
-            username_nuevo:  uNuevo,
-            password_nueva:  pNueva,
-        }),
+        body: JSON.stringify(body),
     });
 
     btn.disabled    = false;
     btn.textContent = 'Guardar cambios';
 
     if (!ok) {
-        const msg = data?.errores || data?.username_nuevo?.[0] || data?.password_nueva?.[0]
-            || 'Error al guardar. Revisa los campos.';
+        const msg = data?.errores || data?.username_nuevo?.[0] || data?.password_nueva?.[0] || 'Error al guardar.';
         errEl.textContent   = msg;
         errEl.style.display = 'block';
         return;
     }
 
     localStorage.setItem('user', JSON.stringify(data.user));
-    document.getElementById('cuentaUsernameActual').value = data.user.username;
-    document.getElementById('cuentaUsernameNuevo').value  = '';
-    document.getElementById('cuentaPassActual').value     = '';
-    document.getElementById('cuentaPassNueva').value      = '';
-    _actualizarChecks('', 'cuenta');
 
+    // Actualizar hero + sidebar
     const nombre = `${data.user.first_name || ''} ${data.user.last_name || ''}`.trim() || data.user.username;
-    document.getElementById('profileName').textContent = nombre;
+    document.getElementById('profileName').textContent    = nombre;
+    document.getElementById('perfilNombre').textContent   = nombre;
+    document.getElementById('perfilUsername').textContent = `@${data.user.username}`;
+    const partes = nombre.split(' ');
+    document.getElementById('perfilAvatar').textContent   = partes.length >= 2
+        ? (partes[0][0] + partes[1][0]).toUpperCase()
+        : nombre.slice(0, 2).toUpperCase();
 
+    const sucEl = document.getElementById('credSuccess');
     sucEl.classList.add('visible');
-    setTimeout(() => sucEl.classList.remove('visible'), 4000);
+    setTimeout(() => { sucEl.classList.remove('visible'); _cerrarModalCred(); }, 2200);
 }
+
+async function _cargarPerfilStats() {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+    // Hero — datos inmediatos desde localStorage
+    if (user) {
+        const nombre = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
+        const partes = nombre.split(' ');
+        const iniciales = partes.length >= 2
+            ? (partes[0][0] + partes[1][0]).toUpperCase()
+            : nombre.slice(0, 2).toUpperCase();
+        document.getElementById('perfilAvatar').textContent   = iniciales;
+        document.getElementById('perfilNombre').textContent   = nombre;
+        document.getElementById('perfilUsername').textContent = `@${user.username}`;
+    }
+
+    // Asignaciones — reusar cache si ya se cargaron en el tab Plan
+    if (!_planAsignaciones.length) {
+        const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+        if (ok) _planAsignaciones = data;
+    }
+
+    document.getElementById('statCursos').textContent = _planAsignaciones.length;
+
+    const cursosEl = document.getElementById('perfilCursosList');
+    if (_planAsignaciones.length) {
+        cursosEl.innerHTML = `<div class="asig-grid">${
+            _planAsignaciones.map(a => `
+                <div class="asig-card">
+                    <div class="asig-card-top">
+                        <div class="asig-card-etiqueta">Curso</div>
+                        <div class="asig-card-curso">${_escapeHtml(a.curso_nombre)}</div>
+                    </div>
+                    <div class="asig-card-bottom">
+                        <div class="asig-card-materia-label">Materia</div>
+                        <div class="asig-card-materia">${_escapeHtml(a.materia_nombre)}</div>
+                    </div>
+                </div>`).join('')
+        }</div>`;
+    } else {
+        cursosEl.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;margin:0;">Sin cursos asignados.</p>';
+    }
+
+    // Citaciones
+    const { ok: okCit, data: citData } = await fetchAPI('/api/discipline/citaciones/');
+    if (okCit && citData) {
+        const now = new Date();
+        const esMesActual = c => {
+            const d = new Date(c.fecha_envio);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        };
+        document.getElementById('statCitMes').textContent   = citData.filter(esMesActual).length;
+        document.getElementById('statCitTotal').textContent = citData.length;
+    }
+}
+

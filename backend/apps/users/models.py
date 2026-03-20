@@ -17,6 +17,8 @@ class User(AbstractUser):
         null=True,
         blank=True
     )
-    primer_ingreso = models.BooleanField(default=False)
+    primer_ingreso   = models.BooleanField(default=False)
+    total_ingresos   = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return self.username

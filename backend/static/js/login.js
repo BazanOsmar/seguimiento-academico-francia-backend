@@ -21,7 +21,7 @@ const TIPOS_PERMITIDOS = ['Director', 'Profesor'];
 // ─── Reglas de validación ────────────────────────────────────────────────────
 const USERNAME_MAX = 30;
 const PASSWORD_MIN = 8;
-const PASSWORD_MAX = 30;
+const PASSWORD_MAX = 64;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
 const form            = document.getElementById('loginForm');

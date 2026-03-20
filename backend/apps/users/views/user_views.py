@@ -31,7 +31,7 @@ class UserDetailView(APIView):
                 Estudiante.objects.filter(tutor=user)
                 .select_related('curso')
                 .values('id', 'nombre', 'apellido_paterno', 'apellido_materno', 'identificador',
-                        'curso__grado', 'curso__paralelo', 'curso__id')
+                        'activo', 'curso__grado', 'curso__paralelo', 'curso__id')
             )
             data['citaciones_recientes'] = list(
                 Citacion.objects.filter(estudiante__tutor=user)
@@ -41,6 +41,19 @@ class UserDetailView(APIView):
                         'estudiante__nombre', 'estudiante__apellido_paterno', 'estudiante__apellido_materno')
             )
             data['cursos'] = None
+            data['citaciones_emitidas'] = None
+
+        elif rol == 'Regente':
+            from backend.apps.discipline.models import Citacion
+            data['citaciones_emitidas'] = list(
+                Citacion.objects.filter(emisor=user)
+                .order_by('-fecha_envio')[:5]
+                .values('id', 'motivo', 'asistencia', 'fecha_envio',
+                        'estudiante__nombre', 'estudiante__apellido_paterno', 'estudiante__apellido_materno')
+            )
+            data['estudiantes']          = None
+            data['cursos']               = None
+            data['citaciones_recientes'] = None
 
         elif rol == 'Profesor':
             from backend.apps.academics.models import ProfesorCurso
@@ -52,52 +65,16 @@ class UserDetailView(APIView):
             )
             data['estudiantes']          = None
             data['citaciones_recientes'] = None
+            data['citaciones_emitidas']  = None
 
         else:
             data['estudiantes']          = None
             data['cursos']               = None
             data['citaciones_recientes'] = None
+            data['citaciones_emitidas']  = None
 
         return Response(data)
 
-    def patch(self, request, user_id):
-        import re
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({'errores': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-        first_name = request.data.get('first_name', '').strip()
-        last_name  = request.data.get('last_name',  '').strip()
-        errors = {}
-
-        if not first_name:
-            errors['first_name'] = ['Campo obligatorio.']
-        elif not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$', first_name):
-            errors['first_name'] = ['Solo letras y espacios.']
-
-        if not last_name:
-            errors['last_name'] = ['Campo obligatorio.']
-        elif not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$', last_name):
-            errors['last_name'] = ['Solo letras y espacios.']
-
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
-        user.first_name = first_name
-        user.last_name  = last_name
-        user.save(update_fields=['first_name', 'last_name'])
-
-        from backend.apps.auditoria.services import registrar
-        director_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
-        registrar(
-            request.user,
-            'EDITAR_USUARIO',
-            f"{director_nombre} editó el nombre del usuario '{user.username}'",
-            request,
-        )
-
-        return Response({'first_name': user.first_name, 'last_name': user.last_name})
 
 
 class MiPerfilView(APIView):

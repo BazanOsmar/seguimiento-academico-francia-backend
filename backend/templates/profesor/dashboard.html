@@ -71,29 +71,69 @@
 
         /* ── Drop zone ───────────────────────────────────────────── */
         .drop-zone {
-            border: 2px dashed var(--border);
-            border-radius: var(--radius);
-            padding: 48px 20px;
+            border: 2px dashed rgba(99,102,241,.3);
+            border-radius: 16px;
+            padding: 36px 20px 28px;
             text-align: center;
             cursor: pointer;
             transition: border-color .2s, background .2s;
-            background: var(--bg-card);
+            background: rgba(99,102,241,.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
         }
         .drop-zone:hover,
         .drop-zone--over {
             border-color: var(--accent);
-            background: var(--accent-dim, rgba(99,102,241,.07));
+            background: rgba(99,102,241,.09);
         }
-        .drop-zone--has-file { border-color: var(--success); }
-        .drop-zone__icon { color: var(--text-muted); margin-bottom: 12px; }
+        .drop-zone--has-file {
+            border-color: var(--success);
+            background: rgba(34,197,94,.05);
+        }
+        .drop-zone__icon-wrap {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            background: rgba(99,102,241,.12);
+            border: 1px solid rgba(99,102,241,.22);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            margin-bottom: 14px;
+            transition: background .2s, border-color .2s;
+        }
+        .drop-zone:hover .drop-zone__icon-wrap,
+        .drop-zone--over .drop-zone__icon-wrap {
+            background: rgba(99,102,241,.2);
+            border-color: rgba(99,102,241,.4);
+        }
         .drop-zone__text {
             color: var(--text-muted);
             font-size: .875rem;
             line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .drop-zone__text strong { color: var(--accent); }
+        .drop-zone__formats {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 0;
+        }
+        .drop-zone__fmt-badge {
+            font-size: .65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .05em;
         }
         .drop-zone__filename {
             display: none;
-            margin-top: 10px;
+            margin-top: 12px;
             font-size: .8rem;
             color: var(--success);
             font-weight: 600;
@@ -101,6 +141,14 @@
         }
 
         /* ── Citaciones layout ───────────────────────────────────── */
+        #panelCitaciones .data-table thead th {
+            background: var(--bg-hover);
+            font-size: .68rem;
+            letter-spacing: .06em;
+        }
+        #panelCitaciones .data-table {
+            border-radius: 0;
+        }
         .cit-grid {
             display: grid;
             grid-template-columns: 380px 1fr;
@@ -171,12 +219,24 @@
             gap: 7px;
             align-items: center;
         }
-        .plan-asig-dot {
-            width: 11px; height: 11px;
+        .plan-asig-week {
+            width: 22px; height: 22px;
             border-radius: 50%;
-            background: var(--accent);
+            background: rgba(99,102,241,.15);
+            border: 1.5px solid rgba(99,102,241,.4);
+            color: var(--accent);
+            font-size: .65rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        .plan-asig-dot--empty { background: var(--border); }
+        .plan-asig-week--empty {
+            background: var(--bg-hover);
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
         .plan-asig-card__count {
             font-size: .75rem;
             color: var(--text-muted);
@@ -197,44 +257,72 @@
         .plan-modal {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border-radius: 20px;
             width: min(920px, 100%);
             max-height: 85vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+            box-shadow: 0 24px 64px rgba(0,0,0,.45);
             animation: planModalIn .18s ease;
+            overflow: hidden;
         }
         @keyframes planModalIn {
             from { opacity: 0; transform: scale(.96) translateY(10px); }
             to   { opacity: 1; transform: none; }
         }
+        .plan-modal-strip {
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #818cf8);
+            flex-shrink: 0;
+        }
         .plan-modal-head {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
-            padding: 20px 24px 16px;
+            padding: 18px 24px 16px;
             border-bottom: 1px solid var(--border);
-            gap: 12px;
+            gap: 14px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(99,102,241,.07) 0%, transparent 60%);
+        }
+        .plan-modal-head-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .plan-modal-icon {
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            background: rgba(99,102,241,.12);
+            border: 1px solid rgba(99,102,241,.25);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
             flex-shrink: 0;
         }
         .plan-modal-head h3 {
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 700;
-            margin: 0 0 3px;
+            margin: 0 0 5px;
             color: var(--text);
         }
-        .plan-modal-head span {
-            font-size: .82rem;
-            color: var(--text-muted);
+        .plan-modal-curso-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .72rem;
+            font-weight: 600;
+            color: var(--accent);
+            background: rgba(99,102,241,.1);
+            border: 1px solid rgba(99,102,241,.25);
+            border-radius: 99px;
+            padding: 2px 9px;
         }
         .plan-modal-close {
             background: none; border: none; cursor: pointer;
             color: var(--text-muted);
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-size: 1.25rem;
-            line-height: 1;
+            padding: 6px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
             transition: color .15s, background .15s;
             flex-shrink: 0;
         }
@@ -251,9 +339,17 @@
         .plan-modal-footer {
             display: none;
             justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
             padding: 14px 24px;
             border-top: 1px solid var(--border);
             flex-shrink: 0;
+            background: var(--bg-hover);
+        }
+        .plan-modal-footer-hint {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-right: auto;
         }
 
         /* ── Tabla dentro del modal ───────────────────────────────── */
@@ -264,15 +360,16 @@
             border-collapse: collapse;
         }
         .plan-table th {
-            padding: 11px 16px;
+            padding: 10px 16px;
             text-align: left;
-            font-size: .72rem;
-            font-weight: 600;
+            font-size: .68rem;
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: .05em;
+            letter-spacing: .06em;
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
+            background: var(--bg-hover);
         }
         .plan-table td {
             padding: 14px 16px;
@@ -289,19 +386,30 @@
         .plan-semana-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             font-weight: 600;
             font-size: .85rem;
             color: var(--text);
             white-space: nowrap;
         }
-        .plan-semana-dot {
-            width: 8px; height: 8px;
+        .plan-semana-num {
+            width: 24px; height: 24px;
             border-radius: 50%;
-            background: var(--accent);
+            background: rgba(99,102,241,.15);
+            border: 1.5px solid rgba(99,102,241,.4);
+            color: var(--accent);
+            font-size: .72rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
         }
-        .plan-semana-dot--empty { background: var(--border); }
+        .plan-semana-num--empty {
+            background: var(--bg-hover);
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
 
         .plan-periodo {
             font-size: .78rem;
@@ -423,18 +531,26 @@
         .plan-banner {
             display: none;
             align-items: center;
-            gap: 10px;
-            margin: 16px 16px 0;
-            padding: 12px 16px;
-            border-radius: var(--radius);
-            background: rgba(234,179,8,.1);
-            border-left: 3px solid #ca8a04;
+            gap: 14px;
+            margin: 16px 20px 0;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: rgba(234,179,8,.08);
+            border: 1px solid rgba(234,179,8,.3);
             font-size: .845rem;
             color: var(--text);
             line-height: 1.4;
         }
         .plan-banner.visible { display: flex; }
-        .plan-banner svg { flex-shrink: 0; color: #ca8a04; }
+        .plan-banner-icon {
+            width: 36px; height: 36px;
+            border-radius: 9px;
+            background: rgba(234,179,8,.15);
+            border: 1px solid rgba(234,179,8,.3);
+            display: flex; align-items: center; justify-content: center;
+            color: #ca8a04;
+            flex-shrink: 0;
+        }
 
         /* Botón ver historial */
         .btn-ver-historial {
@@ -882,6 +998,202 @@
         .cuenta-success.visible { display: flex; }
         .cuenta-success svg { color: #22c55e; flex-shrink: 0; }
 
+        /* ── Perfil (panelCuenta) ────────────────────────────────── */
+        .perfil-hero {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: linear-gradient(135deg, rgba(99,102,241,.12) 0%, var(--bg-card) 70%);
+            border: 1px solid rgba(99,102,241,.25);
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+        }
+        .perfil-avatar {
+            width: 76px; height: 76px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.7rem; font-weight: 700; color: #fff;
+            flex-shrink: 0;
+            letter-spacing: 1px;
+            border: 2px solid rgba(255,255,255,.1);
+        }
+        .perfil-hero-info { display: flex; flex-direction: column; gap: 6px; }
+        .perfil-nombre { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 0; }
+        .perfil-username { font-size: .85rem; color: var(--accent); font-weight: 500; }
+        .perfil-rol-badge {
+            display: inline-block;
+            font-size: .72rem; font-weight: 600;
+            color: var(--text-muted);
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            padding: 2px 10px;
+        }
+        .perfil-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .perfil-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 20px;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .perfil-stat-num { font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; }
+        .perfil-stat-label { font-size: .78rem; color: var(--text-muted); }
+        /* Botones de acción en el hero */
+        .perfil-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .perfil-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 99px;
+            border: 1.5px solid rgba(99,102,241,.45);
+            background: rgba(99,102,241,.12);
+            color: var(--accent);
+            font-size: .8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color .15s, background .15s, box-shadow .15s;
+            letter-spacing: .01em;
+        }
+        .perfil-action-btn:hover {
+            border-color: var(--accent);
+            background: rgba(99,102,241,.22);
+            box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+        }
+        .perfil-action-btn svg { flex-shrink: 0; }
+
+        /* Modal de credenciales */
+        .cred-modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 700;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(3px);
+        }
+        .cred-modal-overlay.visible { display: flex; }
+        .cred-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.45);
+            overflow: hidden;
+            animation: planModalIn .18s ease;
+        }
+        .cred-modal-strip {
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #818cf8);
+        }
+        .cred-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 22px 24px 0;
+            gap: 12px;
+        }
+        .cred-modal-title { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0 0 4px; }
+        .cred-modal-sub { font-size: .8rem; color: var(--text-muted); margin: 0; }
+        .cred-modal-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 4px; border-radius: 6px; flex-shrink: 0;
+            transition: color .15s, background .15s;
+        }
+        .cred-modal-close:hover { color: var(--text); background: var(--bg-hover); }
+        .cred-modal-body {
+            padding: 20px 24px 24px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .cred-current-user {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: .82rem; color: var(--text-muted);
+        }
+        .cred-current-user strong { color: var(--accent); }
+
+        .asig-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .asig-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .asig-card:hover {
+            border-color: rgba(99,102,241,.4);
+            box-shadow: 0 2px 12px rgba(99,102,241,.1);
+        }
+        .asig-card-top {
+            background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(129,140,248,.06));
+            padding: 12px 14px 10px;
+            border-bottom: 1px solid rgba(99,102,241,.15);
+        }
+        .asig-card-etiqueta {
+            font-size: .62rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 3px;
+        }
+        .asig-card-curso {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.2;
+        }
+        .asig-card-bottom {
+            padding: 10px 14px;
+            background: var(--bg-hover);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .asig-card-materia-label {
+            font-size: .62rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .asig-card-materia {
+            font-size: .83rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        @media (max-width: 780px) {
+            .perfil-stats { grid-template-columns: repeat(2, 1fr); }
+            .perfil-hero { padding: 20px; }
+            .asig-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 420px) {
+            .perfil-stats { grid-template-columns: 1fr; }
+            .perfil-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .asig-grid { grid-template-columns: 1fr; }
+        }
+
         /* ── Checklist de contraseña ──────────────────────────────── */
         .pass-checks {
             display: none;
@@ -1133,16 +1445,17 @@
 
         <!-- ══ Panel Notas ══════════════════════════════════════════ -->
         <div class="tab-panel active" id="panelNotas" role="tabpanel">
-            <div class="card" style="max-width:520px;margin:0 auto;position:relative;">
+            <div class="card" style="max-width:520px;margin:0 auto;position:relative;overflow:hidden;">
+                <div style="height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);"></div>
                 <div class="card-header">
                     <h2 class="card-title">Subir Notas</h2>
                 </div>
                 <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
                     <div class="drop-zone" id="dropZone" role="button" tabindex="0"
                          aria-label="Zona para arrastrar archivo Excel">
-                        <div class="drop-zone__icon">
-                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="1.5"
+                        <div class="drop-zone__icon-wrap">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.8"
                                  stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                 <polyline points="14 2 14 8 20 8"/>
@@ -1152,9 +1465,13 @@
                             </svg>
                         </div>
                         <p class="drop-zone__text">
-                            Arrastra tu archivo Excel aquí<br>
+                            <strong>Arrastra tu archivo aquí</strong><br>
                             o haz clic para seleccionar
                         </p>
+                        <div class="drop-zone__formats">
+                            <span class="drop-zone__fmt-badge">.xlsx</span>
+                            <span class="drop-zone__fmt-badge">.xls</span>
+                        </div>
                         <p class="drop-zone__filename" id="nombreArchivo"></p>
                     </div>
                     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
@@ -1303,13 +1620,15 @@
 
                     <!-- Banner de aviso -->
                     <div class="plan-banner" id="planBanner">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
+                        <div class="plan-banner-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
                         <span>Tienes semanas sin plan registrado en <strong id="planBannerMes"></strong>. Completa tu plan del mes actual.</span>
                     </div>
 
@@ -1330,103 +1649,67 @@
         </div>
 
         <!-- ══ Panel Cuenta ═════════════════════════════════════════ -->
-        <div class="tab-panel" id="panelCuenta" role="tabpanel" style="position:relative;">
-            <div class="prox-overlay">
-                <div class="prox-overlay-icon">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </div>
-                <h3>Disponible próximamente</h3>
-                <p>Esta función estará disponible<br>en una próxima actualización.</p>
-            </div>
-            <div class="card cuenta-card">
+        <div class="tab-panel" id="panelCuenta" role="tabpanel">
 
-                <!-- Ícono + título centrado -->
-                <div class="cuenta-icon-wrap">
-                    <div class="cuenta-icon-circle">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                    </div>
-                    <span class="cuenta-icon-title">Cambiar credenciales</span>
-                    <span class="cuenta-icon-sub">Actualiza tu usuario y/o contraseña cuando lo necesites</span>
-                </div>
-
-                <div class="card-body" style="display:flex;flex-direction:column;gap:16px;padding-top:8px;">
-
-                    <div class="cuenta-success" id="cuentaSuccess">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Credenciales actualizadas correctamente.
-                    </div>
-
-                    <form id="formCuenta" style="display:flex;flex-direction:column;gap:14px;">
-                        <div class="form-group">
-                            <label class="form-label">Usuario actual</label>
-                            <input class="form-input" id="cuentaUsernameActual" type="text"
-                                   disabled style="opacity:.6;cursor:default;">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="cuentaUsernameNuevo">Nuevo usuario <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
-                            <input class="form-input" id="cuentaUsernameNuevo" type="text"
-                                   placeholder="5–20 car. · solo letras, números y _" maxlength="20" autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="cuentaPassActual">Contraseña actual</label>
-                            <input class="form-input" id="cuentaPassActual" type="password"
-                                   placeholder="Tu contraseña actual" maxlength="20" autocomplete="current-password">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="cuentaPassNueva">Nueva contraseña <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
-                            <input class="form-input" id="cuentaPassNueva" type="password"
-                                   placeholder="Escribe tu nueva contraseña" maxlength="20" autocomplete="new-password">
-                        </div>
-
-                        <!-- Checklist contraseña -->
-                        <div class="pass-checks" id="cuentaPassChecks">
-                            <div class="pass-check-item" id="cuentaCheck8">
-                                <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                                Mínimo 8 caracteres
-                            </div>
-                            <div class="pass-check-item" id="cuentaCheckUpper">
-                                <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                                Al menos una mayúscula
-                            </div>
-                            <div class="pass-check-item" id="cuentaCheckLower">
-                                <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                                Al menos una minúscula
-                            </div>
-                            <div class="pass-check-item" id="cuentaCheckNum">
-                                <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                                Al menos un número
-                            </div>
-                            <div class="pass-check-item" id="cuentaCheckSpec">
-                                <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                                Al menos un carácter especial (@, #, !, ...)
-                            </div>
-                            <div class="pass-check-item" id="cuentaCheckSpace">
-                                <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                                Sin espacios
-                            </div>
-                        </div>
-
-                        <p id="cuentaError" class="form-error" style="display:none;"></p>
-                        <button type="submit" class="btn-primary" id="btnGuardarCuenta">
-                            Guardar cambios
+            <!-- Hero del perfil -->
+            <div class="perfil-hero">
+                <div class="perfil-avatar" id="perfilAvatar">?</div>
+                <div class="perfil-hero-info">
+                    <h2 class="perfil-nombre" id="perfilNombre">Cargando…</h2>
+                    <span class="perfil-username" id="perfilUsername">@—</span>
+                    <span class="perfil-rol-badge">Docente</span>
+                    <div class="perfil-actions">
+                        <button class="perfil-action-btn" data-cred-mode="password">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Cambiar contraseña
                         </button>
-                    </form>
+                        <button class="perfil-action-btn" data-cred-mode="username">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Cambiar usuario
+                        </button>
+                        <button class="perfil-action-btn" data-cred-mode="both">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Cambiar ambos
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            <!-- Stats -->
+            <div class="perfil-stats">
+                <div class="perfil-stat-card">
+                    <span class="perfil-stat-num" id="statCursos">—</span>
+                    <span class="perfil-stat-label">Cursos asignados</span>
+                </div>
+                <div class="perfil-stat-card">
+                    <span class="perfil-stat-num" id="statCitMes">—</span>
+                    <span class="perfil-stat-label">Citaciones este mes</span>
+                </div>
+                <div class="perfil-stat-card">
+                    <span class="perfil-stat-num" id="statCitTotal">—</span>
+                    <span class="perfil-stat-label">Citaciones total</span>
+                </div>
+            </div>
+
+            <!-- Mis cursos -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Mis cursos</h3>
+                </div>
+                <div class="card-body" id="perfilCursosList">
+                    <div style="display:flex;justify-content:center;padding:20px 0;">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     </main>
@@ -1434,19 +1717,36 @@
     <!-- ── Modal detalle plan de trabajo ─────────────────────────── -->
     <div class="plan-modal-overlay" id="planModalOverlay">
         <div class="plan-modal">
+            <div class="plan-modal-strip"></div>
             <div class="plan-modal-head">
-                <div>
-                    <h3 id="planModalMateria"></h3>
-                    <span id="planModalCurso"></span>
+                <div class="plan-modal-head-left">
+                    <div class="plan-modal-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                            <line x1="8" y1="15" x2="13" y2="15"/>
+                            <line x1="8" y1="18" x2="11" y2="18"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 id="planModalMateria"></h3>
+                        <span class="plan-modal-curso-badge" id="planModalCurso"></span>
+                    </div>
                 </div>
-                <button class="plan-modal-close" id="planModalClose" aria-label="Cerrar">&#x2715;</button>
+                <button class="plan-modal-close" id="planModalClose" aria-label="Cerrar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
             <div class="plan-modal-body">
                 <div class="plan-table-wrap">
                     <table class="plan-table">
                         <thead>
                             <tr>
-                                <th style="width:120px;">Semana</th>
+                                <th style="width:130px;">Semana</th>
                                 <th style="width:160px;">Período</th>
                                 <th>Plan de Trabajo</th>
                                 <th style="width:50px;"></th>
@@ -1457,6 +1757,7 @@
                 </div>
             </div>
             <div class="plan-modal-footer" id="planModalFooter">
+                <span class="plan-modal-footer-hint">Mínimo 20 caracteres por semana</span>
                 <button class="btn-primary" id="planModalGuardar">Guardar planes</button>
             </div>
         </div>
@@ -1522,13 +1823,13 @@
                     <div class="form-group">
                         <label class="form-label" for="piPassActual">Contraseña actual (temporal)</label>
                         <input class="form-input" id="piPassActual" type="password"
-                               placeholder="Tu contraseña temporal" maxlength="20"
+                               placeholder="Tu contraseña temporal" maxlength="64"
                                autocomplete="current-password" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="piPassNueva">Nueva contraseña</label>
                         <input class="form-input" id="piPassNueva" type="password"
-                               placeholder="Escribe tu nueva contraseña" maxlength="20"
+                               placeholder="Escribe tu nueva contraseña" maxlength="64"
                                autocomplete="new-password" required>
                     </div>
 
@@ -1536,7 +1837,7 @@
                     <div class="pass-checks" id="piPassChecks">
                         <div class="pass-check-item" id="piCheck8">
                             <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-                            Mínimo 8 caracteres
+                            Entre 8 y 64 caracteres
                         </div>
                         <div class="pass-check-item" id="piCheckUpper">
                             <span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
@@ -1572,6 +1873,78 @@
     </div>
 
     <!-- ── Modal confirmación cambio de usuario ──────────────────── -->
+    <!-- ── Modal cambiar credenciales ───────────────────────────── -->
+    <div class="cred-modal-overlay" id="credModalOverlay">
+        <div class="cred-modal">
+            <div class="cred-modal-strip"></div>
+            <div class="cred-modal-header">
+                <div>
+                    <h3 class="cred-modal-title" id="credModalTitle">Cambiar contraseña</h3>
+                    <p class="cred-modal-sub" id="credModalSub">Necesitarás tu contraseña actual para confirmar.</p>
+                </div>
+                <button class="cred-modal-close" id="credModalClose" aria-label="Cerrar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="cred-modal-body">
+
+                <!-- Usuario actual (visible solo en modos username/both) -->
+                <div class="cred-current-user" id="credCurrentUserRow" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Usuario actual: <strong id="credCurrentUsername">—</strong>
+                </div>
+
+                <div class="cuenta-success" id="credSuccess">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Credenciales actualizadas correctamente.
+                </div>
+
+                <form id="formCred" style="display:flex;flex-direction:column;gap:14px;">
+
+                    <!-- Contraseña actual — siempre visible -->
+                    <div class="form-group">
+                        <label class="form-label" for="credPassActual">Contraseña actual</label>
+                        <input class="form-input" id="credPassActual" type="password"
+                               placeholder="Tu contraseña actual" maxlength="64" autocomplete="current-password">
+                    </div>
+
+                    <!-- Nuevo usuario — solo en modos username/both -->
+                    <div class="form-group" id="credGroupUsername" style="display:none;">
+                        <label class="form-label" for="credUsernameNuevo">Nuevo usuario</label>
+                        <input class="form-input" id="credUsernameNuevo" type="text"
+                               placeholder="5–20 car. · solo letras, números y _" maxlength="20" autocomplete="off">
+                    </div>
+
+                    <!-- Nueva contraseña — solo en modos password/both -->
+                    <div class="form-group" id="credGroupPassword" style="display:none;">
+                        <label class="form-label" for="credPassNueva">Nueva contraseña</label>
+                        <input class="form-input" id="credPassNueva" type="password"
+                               placeholder="Mínimo 8 caracteres" maxlength="64" autocomplete="new-password">
+                    </div>
+
+                    <!-- Checklist contraseña -->
+                    <div class="pass-checks" id="credPassChecks">
+                        <div class="pass-check-item" id="credCheck8"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Entre 8 y 64 caracteres</div>
+                        <div class="pass-check-item" id="credCheckUpper"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Al menos una mayúscula</div>
+                        <div class="pass-check-item" id="credCheckLower"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Al menos una minúscula</div>
+                        <div class="pass-check-item" id="credCheckNum"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Al menos un número</div>
+                        <div class="pass-check-item" id="credCheckSpec"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Al menos un carácter especial (@, #, !, ...)</div>
+                        <div class="pass-check-item" id="credCheckSpace"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Sin espacios</div>
+                    </div>
+
+                    <p id="credError" class="form-error" style="display:none;"></p>
+                    <button type="submit" class="btn-primary" id="btnGuardarCred">Guardar cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="confirm-cred-overlay" id="confirmCredOverlay">
         <div class="confirm-cred-modal">
             <div class="confirm-cred-strip"></div>

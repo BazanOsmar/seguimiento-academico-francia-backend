@@ -4,7 +4,7 @@ from rest_framework import serializers
 def validar_password(value):
     """
     Reglas de contraseña (registro tutor y cambio de credenciales):
-    - Entre 8 y 20 caracteres
+    - Entre 8 y 64 caracteres
     - Sin espacios
     - Al menos una letra minúscula
     - Al menos una letra mayúscula
@@ -13,8 +13,8 @@ def validar_password(value):
     """
     errores = []
 
-    if len(value) < 8 or len(value) > 20:
-        errores.append("Debe tener entre 8 y 20 caracteres.")
+    if len(value) < 8 or len(value) > 64:
+        errores.append("Debe tener entre 8 y 64 caracteres.")
 
     if ' ' in value:
         errores.append("No puede contener espacios.")

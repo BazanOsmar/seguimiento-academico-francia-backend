@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -38,7 +41,11 @@ class ActividadView(APIView):
         if usuario_id.isdigit():
             qs = qs.filter(usuario_id=int(usuario_id))
         if fecha:
-            qs = qs.filter(fecha__date=fecha)
+            tz = ZoneInfo('America/La_Paz')
+            fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
+            inicio = datetime(fecha_dt.year, fecha_dt.month, fecha_dt.day, 0, 0, 0, tzinfo=tz)
+            fin    = datetime(fecha_dt.year, fecha_dt.month, fecha_dt.day, 23, 59, 59, 999999, tzinfo=tz)
+            qs = qs.filter(fecha__range=(inicio, fin))
 
         total = qs.count()
 

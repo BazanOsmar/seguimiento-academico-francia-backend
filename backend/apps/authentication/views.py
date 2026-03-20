@@ -93,6 +93,10 @@ class ChangePasswordView(APIView):
         from backend.apps.users.models import User
         from backend.core.utils import generar_password
 
+        password_director = request.data.get('password_director', '').strip()
+        if not password_director or not request.user.check_password(password_director):
+            return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -165,6 +169,26 @@ class CambiarCredencialesView(APIView):
                 'tipo_usuario':   user.tipo_usuario.nombre if user.tipo_usuario else None,
             }
         })
+
+
+class RegistrarIngresoView(APIView):
+    """
+    POST /api/auth/registrar-ingreso/
+
+    Llamado por la app móvil cada vez que el usuario la abre.
+    Actualiza last_login e incrementa total_ingresos.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from django.utils import timezone
+        from django.db.models import F
+        user = request.user
+        user.last_login    = timezone.now()
+        user.total_ingresos = F('total_ingresos') + 1
+        user.save(update_fields=['last_login', 'total_ingresos'])
+        user.refresh_from_db(fields=['total_ingresos'])
+        return Response({'ok': True, 'total_ingresos': user.total_ingresos})
 
 
 class VerificarContrasenaView(APIView):

@@ -31,14 +31,25 @@
         .badge--director { background: rgba(192,132,252,.12); color: #c084fc; }
         .badge--default  { background: rgba(148,163,184,.12); color: #94a3b8; }
 
+        /* ── Layout dos columnas ── */
+        .perfil-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 860px) {
+            .perfil-layout { grid-template-columns: 1fr; }
+        }
+        .perfil-col-left  { display: flex; flex-direction: column; gap: 16px; }
+        .perfil-col-right { display: flex; flex-direction: column; gap: 20px; }
+
         /* ── Perfil card ── */
         .perfil-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius-card);
-            padding: 36px 32px;
-            max-width: 520px;
-            margin: 0 auto;
+            padding: 28px 24px;
         }
 
         .perfil-avatar {
@@ -217,9 +228,7 @@
         .banner-warn svg { flex-shrink: 0; margin-top: 1px; }
 
         /* ── Sección estudiante vinculado ── */
-        .estudiante-section {
-            margin-top: 20px;
-        }
+        .estudiante-section { }
         .estudiante-section-title {
             font-size: 0.72rem;
             font-weight: 700;
@@ -271,41 +280,7 @@
         }
         .estudiante-arrow { color: var(--text-muted); flex-shrink: 0; }
 
-        /* ── Editar nombre inline ── */
-        .perfil-nombre-wrap {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin-bottom: 4px;
-        }
-        .perfil-nombre-wrap .perfil-nombre { margin-bottom: 0; }
-        .btn-icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 4px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-            transition: color .15s;
-        }
-        .btn-icon:hover { color: var(--accent-text); }
-        .edit-form {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 14px;
-            margin-bottom: 14px;
-        }
-        .edit-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+        /* ── Inputs y helpers compartidos ── */
         .input-sm {
             width: 100%;
             padding: 8px 10px;
@@ -326,15 +301,10 @@
             margin-top: 3px;
             min-height: 14px;
         }
-        .edit-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
         .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
 
         /* ── Planes de Trabajo (solo Profesores) ── */
-        .planes-section { margin-top: 20px; }
+        .planes-section { }
         .planes-section-title {
             font-size: 0.72rem;
             font-weight: 700;
@@ -415,7 +385,7 @@
         .plan-det-dates { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
 
         /* ── Secciones extra ── */
-        .extra-section { margin-top: 20px; }
+        .extra-section { }
         .extra-section-title {
             font-size: 0.72rem;
             font-weight: 700;
@@ -423,6 +393,24 @@
             letter-spacing: .06em;
             color: var(--text-muted);
             margin-bottom: 10px;
+        }
+
+        /* ── Card wrapper para secciones del lado derecho ── */
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 20px 22px;
+        }
+        .section-card-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         /* Chips cursos */
@@ -589,7 +577,7 @@
 
     <!-- ── Contenido ─────────────────────────────────────────────── -->
     <main class="main-content">
-        <div class="content-wrap" style="max-width:600px;margin:0 auto;" id="perfilRoot" data-user-id="{{ user_id }}">
+        <div class="content-wrap" id="perfilRoot" data-user-id="{{ user_id }}">
 
             <a href="/director/usuarios/" class="back-btn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -599,7 +587,7 @@
             </a>
 
             <!-- Banner: contraseña nunca cambiada -->
-            <div class="banner-warn hidden" id="bannerPrimerIngreso">
+            <div class="banner-warn hidden" id="bannerPrimerIngreso" style="margin-bottom:16px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/>
@@ -608,116 +596,113 @@
                 Este usuario nunca ha cambiado su contraseña inicial.
             </div>
 
-            <div class="perfil-card">
-                <div class="perfil-avatar" id="perfilIniciales">—</div>
+            <div class="perfil-layout">
 
-                <div class="perfil-nombre-wrap">
-                    <p class="perfil-nombre" id="perfilNombre">Cargando…</p>
-                    <button class="btn-icon hidden" id="btnEditarNombre" title="Editar nombre">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                </div>
+                <!-- ── Columna izquierda: datos del perfil ── -->
+                <div class="perfil-col-left">
+                    <div class="perfil-card">
+                        <div class="perfil-avatar" id="perfilIniciales">—</div>
 
-                <p class="perfil-username" id="perfilUsername"></p>
+                        <p class="perfil-nombre" id="perfilNombre">Cargando…</p>
+                        <p class="perfil-username" id="perfilUsername"></p>
 
-                <!-- Formulario de edición inline (oculto por defecto) -->
-                <div class="edit-form hidden" id="editNombreForm">
-                    <div class="edit-row">
-                        <div>
-                            <input class="input-sm" type="text" id="editNombre" placeholder="Nombres">
-                            <p class="edit-field-err hidden" id="editNombreErr"></p>
+                        <div class="perfil-rol" id="perfilRol"></div>
+
+                        <div class="perfil-info-row">
+                            <span class="perfil-info-label">Notificaciones</span>
+                            <span class="perfil-info-value" id="perfilFcm"></span>
                         </div>
-                        <div>
-                            <input class="input-sm" type="text" id="editApellidos" placeholder="Apellidos">
-                            <p class="edit-field-err hidden" id="editApellidosErr"></p>
+                        <div class="perfil-info-row">
+                            <span class="perfil-info-label">Último acceso</span>
+                            <span class="perfil-info-value" id="perfilLastLogin">—</span>
                         </div>
-                    </div>
-                    <div class="edit-actions">
-                        <button class="btn-ghost btn-sm" id="btnEditarCancelar">Cancelar</button>
-                        <button class="btn-primary btn-sm" id="btnEditarGuardar">
-                            <span id="editGuardarTexto">Guardar</span>
-                            <span id="editGuardarSpinner" class="btn-spinner hidden"></span>
-                        </button>
+
+                        <div class="section-actions">
+                            <button class="btn-danger" id="btnResetPassword">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                Resetear contraseña
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="perfil-rol" id="perfilRol"></div>
+                <!-- ── Columna derecha: secciones por rol ── -->
+                <div class="perfil-col-right">
 
-                <div class="perfil-info-row">
-                    <span class="perfil-info-label">Notificaciones</span>
-                    <span class="perfil-info-value" id="perfilFcm"></span>
-                </div>
+                    <!-- Estudiante vinculado (solo Tutores) -->
+                    <div class="section-card hidden" id="estudianteSection">
+                        <p class="section-card-title">Estudiante vinculado</p>
+                        <div id="estudiantesLista"></div>
+                    </div>
 
-                <div class="perfil-info-row">
-                    <span class="perfil-info-label">Último acceso</span>
-                    <span class="perfil-info-value" id="perfilLastLogin">—</span>
-                </div>
+                    <!-- Citaciones recientes (solo Tutores) -->
+                    <div class="section-card hidden" id="citacionesSection">
+                        <p class="section-card-title">Últimas citaciones</p>
+                        <div class="cit-table-wrap">
+                            <table class="cit-table">
+                                <thead>
+                                    <tr>
+                                        <th>Estudiante</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th>Fecha límite</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="citacionesTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
 
-                <div class="section-actions">
-                    <button class="btn-danger" id="btnResetPassword">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                        Resetear contraseña
-                    </button>
-                </div>
-            </div>
+                    <!-- Citaciones emitidas (solo Regentes) -->
+                    <div class="section-card hidden" id="citacionesEmitidasSection">
+                        <p class="section-card-title">Últimas citaciones emitidas</p>
+                        <div class="cit-table-wrap">
+                            <table class="cit-table">
+                                <thead>
+                                    <tr>
+                                        <th>Estudiante</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th>Fecha envío</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="citacionesEmitidasTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
 
-            <!-- Estudiante vinculado (solo Tutores) -->
-            <div class="estudiante-section hidden" id="estudianteSection">
-                <p class="estudiante-section-title">Estudiante vinculado</p>
-                <div id="estudiantesLista"></div>
-            </div>
+                    <!-- Cursos asignados (solo Profesores) -->
+                    <div class="section-card hidden" id="cursosSection">
+                        <p class="section-card-title">Cursos asignados</p>
+                        <div class="cursos-chips" id="cursosChips"></div>
+                    </div>
 
-            <!-- Citaciones recientes (solo Tutores) -->
-            <div class="extra-section hidden" id="citacionesSection">
-                <p class="extra-section-title">Últimas citaciones</p>
-                <div class="cit-table-wrap">
-                    <table class="cit-table">
-                        <thead>
-                            <tr>
-                                <th>Estudiante</th>
-                                <th>Motivo</th>
-                                <th>Estado</th>
-                                <th>Fecha límite</th>
-                            </tr>
-                        </thead>
-                        <tbody id="citacionesTbody"></tbody>
-                    </table>
-                </div>
-            </div>
+                    <!-- Planes de Trabajo (solo Profesores) -->
+                    <div class="section-card hidden" id="planesSection">
+                        <p class="section-card-title">Planes de Trabajo</p>
+                        <select class="planes-mes-sel-sm" id="perfilPlanesMes">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <div class="planes-semanas-grid-sm" id="perfilPlanesGrid"></div>
+                    </div>
 
-            <!-- Cursos asignados (solo Profesores) -->
-            <div class="extra-section hidden" id="cursosSection">
-                <p class="extra-section-title">Cursos asignados</p>
-                <div class="cursos-chips" id="cursosChips"></div>
-            </div>
+                </div><!-- /.perfil-col-right -->
 
-            <!-- Planes de Trabajo (solo Profesores) -->
-            <div class="planes-section hidden" id="planesSection">
-                <p class="planes-section-title">Planes de Trabajo</p>
-                <select class="planes-mes-sel-sm" id="perfilPlanesMes">
-                    <option value="1">Enero</option>
-                    <option value="2">Febrero</option>
-                    <option value="3">Marzo</option>
-                    <option value="4">Abril</option>
-                    <option value="5">Mayo</option>
-                    <option value="6">Junio</option>
-                    <option value="7">Julio</option>
-                    <option value="8">Agosto</option>
-                    <option value="9">Septiembre</option>
-                    <option value="10">Octubre</option>
-                    <option value="11">Noviembre</option>
-                    <option value="12">Diciembre</option>
-                </select>
-                <div class="planes-semanas-grid-sm" id="perfilPlanesGrid">
-                    <!-- cargado por JS -->
-                </div>
-            </div>
+            </div><!-- /.perfil-layout -->
 
         </div>
     </main>
@@ -754,6 +739,11 @@
             </div>
             <h3 class="modal-title">¿Resetear contraseña?</h3>
             <p class="modal-subtitle">Se generará una nueva contraseña automáticamente. El usuario deberá cambiarla en su próximo ingreso.</p>
+            <div style="margin-bottom:16px;">
+                <input type="password" id="confirmResetPassword" class="input-sm"
+                       placeholder="Tu contraseña para confirmar" maxlength="20" autocomplete="off">
+                <p class="edit-field-err hidden" id="confirmResetPasswordErr">Contraseña incorrecta.</p>
+            </div>
             <div class="modal-actions">
                 <button class="btn-ghost" id="btnConfirmNo">Cancelar</button>
                 <button class="btn-danger" id="btnConfirmSi" style="width:auto;flex:1;">
