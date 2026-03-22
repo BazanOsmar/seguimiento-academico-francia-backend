@@ -236,22 +236,22 @@
         .flatpickr-calendar.arrowBottom:after  { border-top-color: #1a2d45; }
         .flatpickr-months   { background: #132034; border-radius: 13px 13px 0 0; }
         .flatpickr-month    { color: #f1f5f9; fill: #f1f5f9; height: 42px; }
-        .flatpickr-prev-month, .flatpickr-next-month { color: #64748b; fill: #64748b; padding: 10px; }
-        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #f1f5f9; }
-        .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: inherit; }
+        .flatpickr-prev-month, .flatpickr-next-month { color: #e2e8f0 !important; fill: #e2e8f0 !important; padding: 10px; }
+        .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: #e2e8f0 !important; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #ffffff !important; }
         .flatpickr-current-month { color: #f1f5f9; font-size: .95rem; font-weight: 700; padding-top: 10px; }
         .flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
         .flatpickr-current-month .flatpickr-monthDropdown-months { color: #f1f5f9; background: transparent; font-weight: 700; }
         .flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
         .numInputWrapper:hover { background: rgba(255,255,255,.04); }
-        .numInputWrapper span.arrowUp:after   { border-bottom-color: #64748b; }
-        .numInputWrapper span.arrowDown:after { border-top-color:    #64748b; }
+        .numInputWrapper span.arrowUp,
+        .numInputWrapper span.arrowDown { display: none !important; }
         .flatpickr-weekdays { background: #132034; }
-        .flatpickr-weekday  { background: transparent; color: #64748b; font-size: .72rem; font-weight: 700; letter-spacing: .05em; }
-        .flatpickr-days  { border: none; padding: 6px 8px 10px; }
-        .dayContainer    { padding: 0; }
+        .flatpickr-weekday  { background: transparent !important; color: #e2e8f0 !important; font-size: .72rem; font-weight: 700; letter-spacing: .05em; }
+        .flatpickr-days  { border: none; padding: 6px 0 10px; }
+        .dayContainer    { padding: 0 8px; }
         .flatpickr-day {
-            color: #94a3b8; border: 1px solid transparent;
+            color: #cbd5e1; border: 1px solid transparent;
             border-radius: 8px; height: 36px; line-height: 35px;
             max-width: 39px; font-size: .85rem;
         }
@@ -268,7 +268,7 @@
         }
         .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover,
         .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
-            color: #243d5e; background: transparent; border-color: transparent;
+            color: #3d5a7a; background: transparent; border-color: transparent;
         }
         .flatpickr-day.flatpickr-disabled:hover { cursor: not-allowed; }
     </style>
@@ -382,16 +382,13 @@
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2"
                              stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <line x1="9"  y1="15" x2="15" y2="15"/>
+                            <path d="M3 11l19-9v18L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                         </svg>
                     </div>
                     <div>
-                        <p class="form-card__title">Nueva Citación</p>
+                        <p class="form-card__title">Nuevo envío</p>
                         <p class="form-card__subtitle">
-                            Convoca al tutor de un estudiante, todo un curso o todo el colegio.
+                            Elige entre una citación individual o un comunicado para todos los tutores.
                         </p>
                     </div>
                 </div>
@@ -399,69 +396,126 @@
                 <div class="form-card__body">
                     <form id="formNuevaCitacion" onsubmit="return false;">
 
-                        <!-- Tipo -->
-                        <div>
-                            <label class="form-label" style="margin-bottom:8px;display:block;">Tipo de citación</label>
+                        <!-- Selector principal: Citación | Comunicado -->
+                        <div style="margin-bottom:18px;">
+                            <label class="form-label" style="margin-bottom:8px;display:block;">¿Qué deseas enviar?</label>
                             <div class="radio-group">
                                 <label class="radio-option">
-                                    <input type="radio" name="tipoCitacion" value="individual" checked>
-                                    Individual
+                                    <input type="radio" name="tipoEnvio" value="citacion" checked>
+                                    Citación
                                 </label>
                                 <label class="radio-option">
-                                    <input type="radio" name="tipoCitacion" value="curso">
-                                    Todo el curso
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="tipoCitacion" value="colegio">
-                                    Todo el colegio
+                                    <input type="radio" name="tipoEnvio" value="comunicado">
+                                    Comunicado
                                 </label>
                             </div>
                         </div>
 
-                        <!-- Fila: Curso + Estudiante -->
-                        <div class="form-row" id="rowCursoEstud">
-                            <div class="form-group" id="wrapCurso" style="margin-bottom:0;">
+                        <!-- ── Sección Citación ─────────────────────────────── -->
+                        <div id="seccionCitacion">
+                            <!-- Fila: Curso + Estudiante -->
+                            <div class="form-row" id="rowCursoEstud">
+                                <div class="form-group" id="wrapCurso" style="margin-bottom:0;">
+                                    <label class="form-label">Curso <span class="req">*</span></label>
+                                    <select id="nuevaCurso" class="form-input form-select">
+                                        <option value="">Cargando...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="wrapEstudiante"
+                                     style="margin-bottom:0;opacity:.45;transition:opacity .2s;">
+                                    <label class="form-label">Estudiante <span class="req">*</span></label>
+                                    <select id="nuevaEstudiante" class="form-input form-select" disabled>
+                                        <option value="">— Selecciona estudiante —</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Fila: Motivo + Fecha -->
+                            <div class="form-row">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label">Motivo <span class="req">*</span></label>
+                                    <select id="nuevaMotivo" class="form-input form-select">
+                                        <option value="">— Selecciona motivo —</option>
+                                        <option value="FALTAS">Faltas</option>
+                                        <option value="CONDUCTA">Conducta</option>
+                                        <option value="RENDIMIENTO">Rendimiento</option>
+                                        <option value="DOCUMENTOS">Documentos</option>
+                                        <option value="REUNION">Reunión</option>
+                                        <option value="OTRO">Otro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label">Fecha límite <span class="req">*</span></label>
+                                    <input id="nuevaFechaLimite" type="text" class="form-input"
+                                           placeholder="Selecciona una fecha..." readonly>
+                                </div>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Descripción <span class="req">*</span></label>
+                                <textarea id="nuevaDescripcion" class="form-input form-textarea"
+                                          rows="3" maxlength="500"
+                                          placeholder="Describe el motivo de la citación..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- ── Sección Comunicado ───────────────────────────── -->
+                        <div id="seccionComunicado" style="display:none;">
+                            <!-- Alcance -->
+                            <div style="margin-bottom:14px;">
+                                <label class="form-label" style="margin-bottom:8px;display:block;">Alcance</label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="comAlcance" value="TODOS" checked>
+                                        Todo el colegio
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="comAlcance" value="GRADO">
+                                        Un grado
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="comAlcance" value="CURSO">
+                                        Un curso
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Selector grado (se muestra si alcance=GRADO) -->
+                            <div class="form-group" id="wrapComGrado" style="display:none;">
+                                <label class="form-label">Grado <span class="req">*</span></label>
+                                <select id="comGrado" class="form-input form-select">
+                                    <option value="">— Selecciona grado —</option>
+                                </select>
+                            </div>
+
+                            <!-- Selector curso (se muestra si alcance=CURSO) -->
+                            <div class="form-group" id="wrapComCurso" style="display:none;">
                                 <label class="form-label">Curso <span class="req">*</span></label>
-                                <select id="nuevaCurso" class="form-input form-select">
-                                    <option value="">Cargando...</option>
+                                <select id="comCurso" class="form-input form-select">
+                                    <option value="">— Selecciona curso —</option>
                                 </select>
                             </div>
-                            <div class="form-group" id="wrapEstudiante"
-                                 style="margin-bottom:0;opacity:.45;transition:opacity .2s;">
-                                <label class="form-label">Estudiante <span class="req">*</span></label>
-                                <select id="nuevaEstudiante" class="form-input form-select" disabled>
-                                    <option value="">— Selecciona estudiante —</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <!-- Fila: Motivo + Fecha -->
-                        <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0;">
-                                <label class="form-label">Motivo <span class="req">*</span></label>
-                                <select id="nuevaMotivo" class="form-input form-select">
-                                    <option value="">— Selecciona motivo —</option>
-                                    <option value="FALTAS">Faltas</option>
-                                    <option value="CONDUCTA">Conducta</option>
-                                    <option value="RENDIMIENTO">Rendimiento</option>
-                                    <option value="DOCUMENTOS">Documentos</option>
-                                    <option value="REUNION">Reunión</option>
-                                    <option value="OTRO">Otro</option>
-                                </select>
+                            <div class="form-group">
+                                <label class="form-label">Título <span class="req">*</span></label>
+                                <input id="comTitulo" type="text" class="form-input"
+                                       maxlength="150" placeholder="Ej: Reunión de padres de familia">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Contenido <span class="req">*</span></label>
+                                <textarea id="comContenido" class="form-input form-textarea"
+                                          rows="4" maxlength="2000"
+                                          placeholder="Escribe el mensaje que recibirán los tutores..."></textarea>
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
-                                <label class="form-label">Fecha límite <span class="req">*</span></label>
-                                <input id="nuevaFechaLimite" type="text" class="form-input"
-                                       placeholder="Selecciona una fecha..." readonly>
+                                <label class="form-label">
+                                    Fecha de expiración
+                                    <span style="font-weight:400;color:var(--text-muted);font-size:.78rem;">(opcional)</span>
+                                </label>
+                                <input id="comFechaExpiracion" type="text" class="form-input"
+                                       placeholder="Sin expiración" readonly>
                             </div>
-                        </div>
-
-                        <!-- Descripción -->
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label class="form-label">Descripción <span class="req">*</span></label>
-                            <textarea id="nuevaDescripcion" class="form-input form-textarea"
-                                      rows="3" maxlength="500"
-                                      placeholder="Describe el motivo de la citación..."></textarea>
                         </div>
 
                     </form>

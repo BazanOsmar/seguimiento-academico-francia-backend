@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _initPlanForm();
     _initPrimerIngreso();
     cargarCursos();
+    cargarAsignacionesNotas();
     _verificarDotPlan();  // dot de notificación en background
 });
 
@@ -135,18 +136,21 @@ function _initDragDrop() {
     const input   = document.getElementById('excelInput');
     const nameEl  = document.getElementById('nombreArchivo');
     const btnUp   = document.getElementById('btnSubirNotas');
+    let   _archivo = null;
 
     function setFile(file) {
         if (!file) return;
         const ext = file.name.split('.').pop().toLowerCase();
         if (!['xlsx', 'xls'].includes(ext)) {
-            showAppToast('error', 'Formato inválido', 'Solo se aceptan archivos .xlsx o .xls');
+            showToast('Solo se aceptan archivos .xlsx o .xls', 'warning');
             return;
         }
+        _archivo = file;
         nameEl.textContent = file.name;
         nameEl.style.display = 'block';
         btnUp.disabled = false;
         zone.classList.add('drop-zone--has-file');
+        document.getElementById('notasResultado').style.display = 'none';
     }
 
     zone.addEventListener('click', () => input.click());
@@ -166,9 +170,304 @@ function _initDragDrop() {
         if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
     });
 
-    // Botón "Subir" — solo UI por ahora
-    btnUp.addEventListener('click', () => {
-        showAppToast('info', 'Próximamente', 'La carga de notas estará disponible pronto.');
+    btnUp.addEventListener('click', () => _validarPlanilla(_archivo, btnUp));
+}
+
+async function _validarPlanilla(archivo, btnUp) {
+    const selectAsig   = document.getElementById('selectAsignacion');
+    const errorAsig    = document.getElementById('notasAsignacionError');
+    const resultadoEl  = document.getElementById('notasResultado');
+    const profesorCursoId = selectAsig.value;
+
+    errorAsig.style.display = 'none';
+
+    if (!profesorCursoId) {
+        errorAsig.style.display = 'block';
+        return;
+    }
+    if (!archivo) return;
+
+    btnUp.disabled = true;
+    btnUp.textContent = 'Validando…';
+    resultadoEl.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('profesor_curso_id', profesorCursoId);
+
+    // Fetch nativo: fetchAPI fuerza Content-Type:application/json
+    // lo que rompe el boundary de multipart/form-data
+    const token = localStorage.getItem('access_token');
+    let ok, data;
+    try {
+        const res = await fetch('/api/academics/profesor/validar-planilla/', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+        });
+        data = await res.json();
+        ok   = res.ok;
+    } catch {
+        data = { errores: 'Error de conexión.' };
+        ok   = false;
+    }
+
+    btnUp.disabled = false;
+    btnUp.textContent = 'Validar Planilla';
+
+    if (!ok) {
+        const msg = data?.errores || 'Error al procesar el archivo.';
+        resultadoEl.innerHTML = _renderResultado({ es_valido: false, errores: [msg], advertencias: [], metadatos: {} });
+        resultadoEl.style.display = 'block';
+        return;
+    }
+
+    resultadoEl.innerHTML = _renderResultado(data);
+    resultadoEl.style.display = 'block';
+}
+
+function _renderResultado(r) {
+    const meta = r.metadatos || {};
+
+    if (!r.es_valido) {
+        const items = r.errores.map(e =>
+            `<li style="padding:4px 0;border-bottom:1px solid rgba(239,68,68,.1);font-size:.85rem;">${_escapeHtml(e)}</li>`
+        ).join('');
+        const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
+        return `
+            <div style="border:1px solid rgba(239,68,68,.35);border-radius:12px;overflow:hidden;">
+                <div style="background:rgba(239,68,68,.1);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(239,68,68,.2);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    <span style="font-weight:700;font-size:.875rem;color:#ef4444;">Planilla inválida</span>
+                </div>
+                <ul style="margin:0;padding:12px 16px 12px 32px;color:var(--text);">${items}</ul>
+            </div>
+            ${estudiantesHtml}`;
+    }
+
+    const advertItems = r.advertencias && r.advertencias.length
+        ? `<div style="margin-top:10px;padding:10px 14px;background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.25);border-radius:8px;">
+               <p style="font-size:.78rem;font-weight:700;color:#ca8a04;margin:0 0 6px;">Advertencias</p>
+               <ul style="margin:0;padding-left:16px;">${r.advertencias.map(a =>
+                   `<li style="font-size:.8rem;color:var(--text);padding:2px 0;">${_escapeHtml(a)}</li>`
+               ).join('')}</ul>
+           </div>` : '';
+
+    const trimBadge = t => {
+        const tiene = meta[`${t}_tiene_notas`];
+        return `<span style="font-size:.7rem;padding:2px 8px;border-radius:99px;font-weight:700;
+            background:${tiene ? 'rgba(34,197,94,.12)' : 'rgba(255,255,255,.05)'};
+            border:1px solid ${tiene ? 'rgba(34,197,94,.3)' : 'var(--border)'};
+            color:${tiene ? '#22c55e' : 'var(--text-muted)'};">
+            ${t}: ${tiene ? 'Con notas' : 'Sin notas'}</span>`;
+    };
+
+    const notasHtml     = r.notas ? _renderNotas(r.notas) : '';
+    const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
+
+    return `
+        <div style="border:1px solid rgba(34,197,94,.35);border-radius:12px;overflow:hidden;">
+            <div style="background:rgba(34,197,94,.1);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(34,197,94,.2);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style="font-weight:700;font-size:.875rem;color:#22c55e;">Planilla válida</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+                ${_metaRow('Maestro/a',        meta.maestro)}
+                ${_metaRow('Área',             meta.area)}
+                ${_metaRow('Año escolaridad',  meta.año_escolaridad)}
+                ${_metaRow('Paralelo',         meta.paralelo)}
+                ${_metaRow('Unidad educativa', meta.unidad_educativa)}
+                ${_metaRow('Estudiantes',      meta.cantidad_estudiantes)}
+                <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;">
+                    ${trimBadge('1TRIM')}${trimBadge('2TRIM')}${trimBadge('3TRIM')}
+                </div>
+                ${advertItems}
+            </div>
+        </div>
+        ${estudiantesHtml}
+        ${notasHtml}`;
+}
+
+function _renderEstudiantes(est) {
+    const { activos, inactivos, no_encontrados, total_excel, total_bd, curso_verificado } = est;
+    const encontrados = activos + inactivos;
+
+    const contadores = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;font-weight:700;
+                background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#22c55e;">
+                ${activos} activo${activos !== 1 ? 's' : ''}
+            </span>
+            ${inactivos > 0 ? `<span style="font-size:.75rem;padding:3px 10px;border-radius:99px;font-weight:700;
+                background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);color:#ca8a04;">
+                ${inactivos} inactivo${inactivos !== 1 ? 's' : ''}
+            </span>` : ''}
+            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;font-weight:600;
+                background:var(--bg-hover);border:1px solid var(--border);color:var(--text-muted);">
+                ${encontrados} / ${total_excel} del Excel · ${total_bd} en BD
+            </span>
+        </div>`;
+
+    if (no_encontrados && no_encontrados.length > 0) {
+        const lista = no_encontrados.slice(0, 10).map(n =>
+            `<li style="padding:3px 0;font-size:.82rem;">${_escapeHtml(n)}</li>`
+        ).join('');
+        const masMsg = no_encontrados.length > 10
+            ? `<li style="color:var(--text-muted);font-size:.8rem;">... y ${no_encontrados.length - 10} más</li>` : '';
+
+        // Debug para diagnosticar el formato exacto de nombres
+        const debugExcel = (est._debug_nombres_excel || []).map(n =>
+            `<code style="display:block;font-size:.75rem;background:rgba(0,0,0,.2);padding:2px 6px;border-radius:4px;margin-bottom:2px;">${_escapeHtml(JSON.stringify(n))}</code>`
+        ).join('');
+        const debugBd = (est._debug_nombres_bd || []).map(n =>
+            `<code style="display:block;font-size:.75rem;background:rgba(0,0,0,.2);padding:2px 6px;border-radius:4px;margin-bottom:2px;">${_escapeHtml(JSON.stringify(n))}</code>`
+        ).join('');
+        const debugHtml = (debugExcel || debugBd) ? `
+            <details style="margin-top:10px;">
+                <summary style="cursor:pointer;font-size:.78rem;color:var(--text-muted);user-select:none;">Debug: comparación de nombres</summary>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                    <div><p style="font-size:.75rem;color:var(--text-muted);margin:0 0 4px;">Excel (primeros 5):</p>${debugExcel || '<em style="font-size:.75rem;color:var(--text-muted)">vacío</em>'}</div>
+                    <div><p style="font-size:.75rem;color:var(--text-muted);margin:0 0 4px;">BD curso ${est._debug_curso_id} (primeros 5):</p>${debugBd || '<em style="font-size:.75rem;color:var(--text-muted)">vacío</em>'}</div>
+                </div>
+            </details>` : '';
+
+        return `
+        <div style="margin-top:10px;border:1px solid rgba(239,68,68,.3);border-radius:12px;overflow:hidden;">
+            <div style="background:rgba(239,68,68,.08);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(239,68,68,.15);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                <span style="font-weight:700;font-size:.85rem;color:#ef4444;">Estudiantes no encontrados en la BD</span>
+            </div>
+            <div style="padding:12px 16px;">
+                <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 8px;">
+                    Los siguientes estudiantes del Excel no existen en el curso
+                    ${curso_verificado ? `<strong style="color:var(--text);">${_escapeHtml(curso_verificado)}</strong>` : 'asignado'}:
+                </p>
+                <ul style="margin:0;padding-left:20px;color:var(--text);">${lista}${masMsg}</ul>
+                ${contadores}
+                ${debugHtml}
+            </div>
+        </div>`;
+    }
+
+    return `
+    <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        <div style="background:var(--bg-hover);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+            <span style="font-weight:700;font-size:.85rem;color:var(--text);">Estudiantes verificados</span>
+        </div>
+        <div style="padding:12px 16px;">
+            <p style="font-size:.83rem;color:var(--text-muted);margin:0;">
+                Todos los estudiantes del Excel fueron encontrados en la base de datos del curso.
+            </p>
+            ${contadores}
+        </div>
+    </div>`;
+}
+
+function _renderNotas(notas) {
+    const trimestres = notas.trimestres || {};
+    const orden = ['1TRIM', '2TRIM', '3TRIM'];
+    const labels = { '1TRIM': '1er Trimestre', '2TRIM': '2do Trimestre', '3TRIM': '3er Trimestre' };
+
+    return orden.map(trim => {
+        const td = trimestres[trim];
+        if (!td) return '';
+
+        const saberHtml = _renderTablaDimension(td.saber, 'SABER', '#6366f1', 45);
+        const hacerHtml = _renderTablaDimension(td.hacer, 'HACER', '#0ea5e9', 40);
+
+        const tieneDatos = (td.saber.casilleros.length > 0) || (td.hacer.casilleros.length > 0);
+
+        return `
+        <div style="margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+            <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.trim-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)';"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-hover);border:none;cursor:pointer;color:var(--text);font-family:inherit;">
+                <span style="font-weight:700;font-size:.9rem;">${labels[trim]}</span>
+                <span style="display:flex;align-items:center;gap:8px;">
+                    ${tieneDatos
+                        ? `<span style="font-size:.7rem;color:#22c55e;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:99px;font-weight:700;">Con notas</span>`
+                        : `<span style="font-size:.7rem;color:var(--text-muted);background:var(--bg-input);border:1px solid var(--border);padding:2px 8px;border-radius:99px;">Sin notas</span>`}
+                    <svg class="trim-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </span>
+            </button>
+            <div style="display:block;">
+                ${saberHtml}
+                ${hacerHtml}
+                ${!tieneDatos ? '<p style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:20px;">Sin notas registradas en este trimestre.</p>' : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function _renderTablaDimension(dim, titulo, color, maxPts) {
+    if (!dim.casilleros.length) return '';
+
+    const headers = dim.casilleros.map(c =>
+        `<th style="min-width:80px;text-align:center;">${_escapeHtml(c)}</th>`
+    ).join('');
+
+    const filas = dim.datos.map(est => {
+        const celdas = dim.casilleros.map(c => {
+            const v = est.notas[c];
+            return `<td style="text-align:center;font-variant-numeric:tabular-nums;">${v !== null && v !== undefined ? v : '<span style="color:var(--text-muted);">—</span>'}</td>`;
+        }).join('');
+        const prom = est.promedio;
+        const promColor = prom === null || prom === undefined ? 'var(--text-muted)' :
+            prom >= maxPts * 0.7 ? '#22c55e' : prom >= maxPts * 0.5 ? '#f59e0b' : '#ef4444';
+        return `<tr>
+            <td style="font-variant-numeric:tabular-nums;color:var(--text-muted);text-align:center;">${est.numero ?? ''}</td>
+            <td style="white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${_escapeHtml(est.nombre)}</td>
+            ${celdas}
+            <td style="text-align:center;font-weight:700;color:${promColor};">${prom !== null && prom !== undefined ? prom : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+    <div style="padding:14px 16px 0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="width:3px;height:16px;background:${color};border-radius:2px;display:inline-block;"></span>
+            <span style="font-size:.8rem;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.06em;">${titulo} / ${maxPts} pts</span>
+        </div>
+    </div>
+    <div style="overflow-x:auto;padding-bottom:14px;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+            <thead>
+                <tr style="background:var(--bg-hover);">
+                    <th style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">#</th>
+                    <th style="padding:8px 10px;text-align:left;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;min-width:160px;">Estudiante</th>
+                    ${headers.replace(/(<th)/g, '<th style="padding:8px 10px;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;"')}
+                    <th style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Promedio</th>
+                </tr>
+            </thead>
+            <tbody>${filas}</tbody>
+        </table>
+    </div>`;
+}
+
+function _metaRow(label, valor) {
+    if (!valor && valor !== 0) return '';
+    return `<div style="display:flex;gap:8px;font-size:.85rem;">
+        <span style="color:var(--text-muted);min-width:130px;flex-shrink:0;">${label}:</span>
+        <span style="color:var(--text);font-weight:600;">${_escapeHtml(String(valor))}</span>
+    </div>`;
+}
+
+// ── Cargar asignaciones para el panel de Notas ────────────────────
+async function cargarAsignacionesNotas() {
+    const sel = document.getElementById('selectAsignacion');
+    const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+    if (!ok || !data || !data.length) {
+        sel.innerHTML = '<option value="">— Sin asignaciones registradas —</option>';
+        return;
+    }
+    sel.innerHTML = '<option value="">— Selecciona materia y curso —</option>';
+    data.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value       = a.id;
+        opt.textContent = `${a.materia_nombre} — ${a.curso_nombre}`;
+        sel.appendChild(opt);
     });
 }
 
@@ -678,12 +977,19 @@ function _escapeHtml(str) {
 }
 
 // ── Historial de citaciones ───────────────────────────────────────
+const CIT_CARD_CLASS = {
+    PENDIENTE: 'cit-card--pendiente',
+    ASISTIO:   'cit-card--asistio',
+    ATRASO:    'cit-card--atraso',
+    VISTO:     'cit-card--visto',
+};
+
 async function cargarHistorial() {
-    const tbody   = document.getElementById('tbodyCitaciones');
+    const lista   = document.getElementById('listaCitaciones');
     const spinner = document.getElementById('historialSpinner');
     const empty   = document.getElementById('historialVacio');
 
-    tbody.innerHTML = '';
+    lista.innerHTML = '';
     spinner.style.display = 'flex';
     empty.style.display = 'none';
 
@@ -699,21 +1005,32 @@ async function cargarHistorial() {
     data.forEach(c => {
         const asistBadge = ASISTENCIA_BADGES[c.asistencia] || 'badge--neutral';
         const asistLabel = ASISTENCIA_LABELS[c.asistencia] || c.asistencia;
+        const cardClass  = CIT_CARD_CLASS[c.asistencia] || '';
         const fechaEnvio = new Date(c.fecha_envio).toLocaleDateString('es-BO');
         const fechaLim   = c.fecha_limite_asistencia
             ? new Date(c.fecha_limite_asistencia + 'T00:00:00').toLocaleDateString('es-BO')
             : '—';
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${c.estudiante_nombre}</td>
-            <td>${c.curso}</td>
-            <td>${MOTIVOS[c.motivo] || c.motivo}</td>
-            <td><span class="badge ${asistBadge}">${asistLabel}</span></td>
-            <td>${fechaLim}</td>
-            <td>${fechaEnvio}</td>
+        const div = document.createElement('div');
+        div.className = `cit-card ${cardClass}`;
+        div.innerHTML = `
+            <div class="cit-card__info">
+                <span class="cit-card__estudiante">${_escapeHtml(c.estudiante_nombre)}</span>
+                <div class="cit-card__meta">
+                    <span>${_escapeHtml(c.curso)}</span>
+                    <span>·</span>
+                    <span>${MOTIVOS[c.motivo] || c.motivo}</span>
+                    <span>·</span>
+                    <span>Límite: ${fechaLim}</span>
+                    <span>·</span>
+                    <span>Enviada: ${fechaEnvio}</span>
+                </div>
+            </div>
+            <div class="cit-card__badge">
+                <span class="badge ${asistBadge}">${asistLabel}</span>
+            </div>
         `;
-        tbody.appendChild(tr);
+        lista.appendChild(div);
     });
 }
 

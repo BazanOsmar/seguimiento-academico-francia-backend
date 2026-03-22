@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer, CambiarCredencialesSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer, RegistroTutorBaseSerializer, CambiarCredencialesSerializer
 # Create your views here.
 class LoginView(APIView):
     """
@@ -208,8 +208,42 @@ class VerificarContrasenaView(APIView):
         return Response({'errores': 'Contraseña incorrecta'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class VerificarRegistroTutorView(APIView):
+    """
+    POST /api/auth/registro-tutor/verificar/
+
+    Paso 1 del registro: valida todos los datos sin crear la cuenta.
+    Si todo es correcto devuelve un preview del estudiante para que
+    la app pueda mostrar los términos y condiciones.
+    """
+
+    permission_classes = []
+
+    def post(self, request):
+        serializer = RegistroTutorBaseSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        estudiante = serializer.validated_data['_estudiante']
+        return Response({
+            'valido': True,
+            'estudiante': {
+                'id': estudiante.id,
+                'nombre': estudiante.nombre,
+                'apellido_paterno': estudiante.apellido_paterno,
+                'apellido_materno': estudiante.apellido_materno,
+                'curso': str(estudiante.curso),
+            },
+        })
+
+
 class RegistroTutorView(APIView):
-    """Registro público de tutores/padres desde la app móvil."""
+    """
+    POST /api/auth/registro-tutor/
+
+    Paso 2 del registro: crea la cuenta. Requiere todos los datos más
+    accepted_terms=true. Vuelve a validar todo para garantizar consistencia.
+    """
 
     permission_classes = []
 
@@ -222,6 +256,7 @@ class RegistroTutorView(APIView):
         estudiante = data['_estudiante']
 
         from django.db import transaction
+        from django.utils import timezone
         from backend.apps.users.models import User, TipoUsuario
 
         tipo_tutor = TipoUsuario.objects.get(nombre='Tutor')
@@ -234,6 +269,8 @@ class RegistroTutorView(APIView):
                 password=data['password'],
                 tipo_usuario=tipo_tutor,
                 primer_ingreso=False,
+                accepted_terms=True,
+                accepted_terms_at=timezone.now(),
             )
             estudiante.tutor = user
             estudiante.save(update_fields=['tutor'])

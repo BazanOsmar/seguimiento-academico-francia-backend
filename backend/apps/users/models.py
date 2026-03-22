@@ -19,6 +19,8 @@ class User(AbstractUser):
     )
     primer_ingreso   = models.BooleanField(default=False)
     total_ingresos   = models.PositiveIntegerField(default=0)
+    accepted_terms    = models.BooleanField(default=False)
+    accepted_terms_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.username

@@ -7,6 +7,7 @@ from .views import (
     ProfesorMisAsignacionesView,
     ProfesorPlanListCreateView, ProfesorPlanDetailView, ProfesorPlanHistorialView,
     DirectorPlanesView, DirectorPlanesExportarView,
+    ValidarPlanillaView,
 )
 
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
     path("cursos/<int:curso_id>/materias/",   MateriasXCursoView.as_view(),         name="materias-x-curso"),
     path("profesor/cursos/",                  ProfesorCursosView.as_view(),         name="profesor-cursos"),
     path("profesor/mis-asignaciones/",        ProfesorMisAsignacionesView.as_view(), name="profesor-mis-asignaciones"),
+    path("profesor/validar-planilla/",        ValidarPlanillaView.as_view(),         name="profesor-validar-planilla"),
     path("profesor/planes/",                  ProfesorPlanListCreateView.as_view(), name="profesor-planes"),
     path("profesor/planes/historial/",        ProfesorPlanHistorialView.as_view(),  name="profesor-planes-historial"),
     path("profesor/planes/<int:plan_id>/",    ProfesorPlanDetailView.as_view(),     name="profesor-plan-detail"),

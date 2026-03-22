@@ -155,81 +155,101 @@ document.querySelectorAll('.chip-filtro').forEach(chip => {
 });
 
 // ── Refs del formulario inline ─────────────────────────────────────
-const formNueva      = document.getElementById('formNuevaCitacion');
-const selectCurso    = document.getElementById('nuevaCurso');
-const selectEstud    = document.getElementById('nuevaEstudiante');
-const radiosTipo     = document.querySelectorAll('input[name="tipoCitacion"]');
-const rowCursoEstud  = document.getElementById('rowCursoEstud');
-const wrapCurso      = document.getElementById('wrapCurso');
-const wrapEstudiante = document.getElementById('wrapEstudiante');
-const progressMsg    = document.getElementById('progressMsg');
-const errorNueva     = document.getElementById('errorNueva');
-const btnEnviarNueva = document.getElementById('btnEnviarNueva');
-const btnEnviarTexto = document.getElementById('btnEnviarTexto');
-const btnLimpiarForm = document.getElementById('btnLimpiarForm');
+const formNueva         = document.getElementById('formNuevaCitacion');
+const selectCurso       = document.getElementById('nuevaCurso');
+const selectEstud       = document.getElementById('nuevaEstudiante');
+const radiosEnvio       = document.querySelectorAll('input[name="tipoEnvio"]');
+const radiosAlcance     = document.querySelectorAll('input[name="comAlcance"]');
+const seccionCitacion   = document.getElementById('seccionCitacion');
+const seccionComunicado = document.getElementById('seccionComunicado');
+const wrapComGrado      = document.getElementById('wrapComGrado');
+const wrapComCurso      = document.getElementById('wrapComCurso');
+const rowCursoEstud     = document.getElementById('rowCursoEstud');
+const wrapCurso         = document.getElementById('wrapCurso');
+const wrapEstudiante    = document.getElementById('wrapEstudiante');
+const progressMsg       = document.getElementById('progressMsg');
+const errorNueva        = document.getElementById('errorNueva');
+const btnEnviarNueva    = document.getElementById('btnEnviarNueva');
+const btnEnviarTexto    = document.getElementById('btnEnviarTexto');
+const btnLimpiarForm    = document.getElementById('btnLimpiarForm');
 
-let fpFechaLimite = null;
+let fpFechaLimite     = null;
+let fpFechaExpiracion = null;
+let _cursosCache      = [];  // usado para grados únicos
 
-function getTipo() {
-    return document.querySelector('input[name="tipoCitacion"]:checked').value;
+function getTipoEnvio() {
+    return document.querySelector('input[name="tipoEnvio"]:checked').value;
 }
+
+function getAlcance() {
+    return document.querySelector('input[name="comAlcance"]:checked').value;
+}
+
+// ── Cambio entre Citación / Comunicado ───────────────────────────
+radiosEnvio.forEach(r => {
+    r.addEventListener('change', () => {
+        const envio = getTipoEnvio();
+        if (envio === 'comunicado') {
+            seccionCitacion.style.display   = 'none';
+            seccionComunicado.style.display = '';
+            btnEnviarTexto.textContent      = 'Enviar comunicado';
+        } else {
+            seccionCitacion.style.display   = '';
+            seccionComunicado.style.display = 'none';
+            btnEnviarTexto.textContent      = 'Enviar citación';
+        }
+        errorNueva.style.display  = 'none';
+        progressMsg.style.display = 'none';
+    });
+});
+
+// ── Cambio de alcance del comunicado ─────────────────────────────
+radiosAlcance.forEach(r => {
+    r.addEventListener('change', () => {
+        const alcance = getAlcance();
+        wrapComGrado.style.display = alcance === 'GRADO' ? '' : 'none';
+        wrapComCurso.style.display = alcance === 'CURSO' ? '' : 'none';
+    });
+});
 
 function resetForm() {
     formNueva.reset();
-    if (fpFechaLimite) fpFechaLimite.clear();
+    if (fpFechaLimite)     fpFechaLimite.clear();
+    if (fpFechaExpiracion) fpFechaExpiracion.clear();
+
+    // Restaurar sección citación
+    seccionCitacion.style.display   = '';
+    seccionComunicado.style.display = 'none';
+
+    // Ocultar selectores de alcance
+    wrapComGrado.style.display = 'none';
+    wrapComCurso.style.display = 'none';
 
     // Restaurar fila curso/estudiante
-    rowCursoEstud.style.display = '';
-    wrapCurso.style.opacity     = '1';
-    selectCurso.disabled        = false;
+    rowCursoEstud.style.display  = '';
+    wrapCurso.style.opacity      = '1';
+    selectCurso.disabled         = false;
 
     // Limpiar estudiante
-    selectEstud.innerHTML = '<option value="">— Selecciona estudiante —</option>';
-    selectEstud.disabled  = true;
+    selectEstud.innerHTML        = '<option value="">— Selecciona estudiante —</option>';
+    selectEstud.disabled         = true;
     wrapEstudiante.style.opacity = '0.45';
 
     // Limpiar mensajes
     progressMsg.style.display = 'none';
     errorNueva.style.display  = 'none';
 
-    // Restaurar botón enviar
-    btnEnviarNueva.disabled    = false;
+    // Restaurar botón
+    btnEnviarNueva.disabled      = false;
     btnEnviarNueva.style.display = '';
     btnEnviarTexto.textContent   = 'Enviar citación';
     btnLimpiarForm.style.display = 'none';
 
-    // Tipo por defecto
-    document.querySelector('input[name="tipoCitacion"][value="individual"]').checked = true;
+    // Selecciones por defecto
+    document.querySelector('input[name="tipoEnvio"][value="citacion"]').checked = true;
+    document.querySelector('input[name="comAlcance"][value="TODOS"]').checked   = true;
 }
 
-// ── Cambio de tipo de citación ────────────────────────────────────
-radiosTipo.forEach(r => {
-    r.addEventListener('change', () => {
-        const tipo = getTipo();
-
-        if (tipo === 'colegio') {
-            // Ocultar fila curso/estudiante (no aplica)
-            rowCursoEstud.style.display = 'none';
-        } else {
-            rowCursoEstud.style.display = '';
-            wrapCurso.style.opacity     = '1';
-            selectCurso.disabled        = false;
-
-            if (tipo === 'curso') {
-                // Solo curso — sin estudiante
-                selectEstud.disabled = true;
-                selectEstud.value    = '';
-                wrapEstudiante.style.opacity = '0.45';
-            } else {
-                // Individual — habilitar estudiante si ya hay opciones
-                if (selectEstud.options.length > 1) {
-                    selectEstud.disabled         = false;
-                    wrapEstudiante.style.opacity = '1';
-                }
-            }
-        }
-    });
-});
 
 // ── Carga inicial de cursos ───────────────────────────────────────
 async function cargarCursosForm() {
@@ -241,8 +261,22 @@ async function cargarCursosForm() {
         selectCurso.innerHTML = '<option value="">— Sin cursos —</option>';
         return;
     }
+    _cursosCache = data;
+
+    // Select de citación (curso para filtrar estudiante)
     selectCurso.innerHTML = '<option value="">— Selecciona curso —</option>'
         + data.map(c => `<option value="${c.id}">${c.grado} ${c.paralelo}</option>`).join('');
+
+    // Select de comunicado — todos los cursos
+    const comCursoSel = document.getElementById('comCurso');
+    comCursoSel.innerHTML = '<option value="">— Selecciona curso —</option>'
+        + data.map(c => `<option value="${c.id}">${c.grado} ${c.paralelo}</option>`).join('');
+
+    // Select de grado — valores únicos ordenados
+    const grados = [...new Set(data.map(c => c.grado))].sort();
+    const comGradoSel = document.getElementById('comGrado');
+    comGradoSel.innerHTML = '<option value="">— Selecciona grado —</option>'
+        + grados.map(g => `<option value="${g}">${g}</option>`).join('');
 }
 
 // ── Cambio de curso → carga estudiantes ──────────────────────────
@@ -253,7 +287,7 @@ selectCurso.addEventListener('change', async () => {
     selectEstud.disabled         = true;
     wrapEstudiante.style.opacity = '0.45';
 
-    if (!cursoId || getTipo() !== 'individual') return;
+    if (!cursoId) return;
 
     selectEstud.innerHTML = '<option value="">Cargando...</option>';
     const { ok, data } = await fetchAPI(`/api/students/curso/${cursoId}/estudiantes/`);
@@ -282,22 +316,39 @@ const _FP_LOCALE_ES = {
     time_24hr: true,
 };
 
-function initFpFechaLimite() {
-    const input = document.getElementById('nuevaFechaLimite');
-    if (!input || typeof flatpickr === 'undefined') return;
+function initFlatpickrs() {
+    if (typeof flatpickr === 'undefined') return;
     const manana = new Date();
     manana.setDate(manana.getDate() + 1);
-    fpFechaLimite = flatpickr(input, {
-        locale:        _FP_LOCALE_ES,
-        dateFormat:    'Y-m-d',
-        minDate:       manana,
-        disableMobile: true,
-    });
+    const maxFecha = new Date();
+    maxFecha.setFullYear(maxFecha.getFullYear() + 1);
+
+    const inputLimite = document.getElementById('nuevaFechaLimite');
+    if (inputLimite) {
+        fpFechaLimite = flatpickr(inputLimite, {
+            locale:        _FP_LOCALE_ES,
+            dateFormat:    'Y-m-d',
+            minDate:       manana,
+            maxDate:       maxFecha,
+            disableMobile: true,
+        });
+    }
+
+    const inputExp = document.getElementById('comFechaExpiracion');
+    if (inputExp) {
+        fpFechaExpiracion = flatpickr(inputExp, {
+            locale:        _FP_LOCALE_ES,
+            dateFormat:    'Y-m-d',
+            minDate:       manana,
+            maxDate:       maxFecha,
+            disableMobile: true,
+        });
+    }
 }
 if (typeof flatpickr !== 'undefined') {
-    initFpFechaLimite();
+    initFlatpickrs();
 } else {
-    window.addEventListener('load', initFpFechaLimite);
+    window.addEventListener('load', initFlatpickrs);
 }
 
 // ── Envío del formulario ──────────────────────────────────────────
@@ -305,36 +356,73 @@ btnEnviarNueva.addEventListener('click', async () => {
     errorNueva.style.display  = 'none';
     progressMsg.style.display = 'none';
 
-    const tipo        = getTipo();
+    if (getTipoEnvio() === 'comunicado') {
+        await enviarComunicado();
+        return;
+    }
+
+    // Citación — siempre individual
     const cursoId     = selectCurso.value;
     const estudId     = selectEstud.value;
     const motivo      = document.getElementById('nuevaMotivo').value;
     const descripcion = document.getElementById('nuevaDescripcion').value.trim();
     const fechaLimite = document.getElementById('nuevaFechaLimite').value;
 
-    if (tipo !== 'colegio' && !cursoId)  return mostrarError('Selecciona un curso.');
-    if (tipo === 'individual' && !estudId) return mostrarError('Selecciona un estudiante.');
-    if (!motivo)                           return mostrarError('Selecciona un motivo.');
-    if (!descripcion)                      return mostrarError('Escribe una descripción.');
-    if (!fechaLimite)                      return mostrarError('Selecciona la fecha límite.');
+    if (!cursoId)     return mostrarError('Selecciona un curso.');
+    if (!estudId)     return mostrarError('Selecciona un estudiante.');
+    if (!motivo)      return mostrarError('Selecciona un motivo.');
+    if (!descripcion) return mostrarError('Escribe una descripción.');
+    if (!fechaLimite) return mostrarError('Selecciona la fecha límite.');
 
     btnEnviarNueva.disabled    = true;
     btnEnviarTexto.textContent = 'Enviando...';
-
-    if (tipo === 'individual') {
-        await crearIndividual(parseInt(estudId), motivo, descripcion, fechaLimite);
-    } else if (tipo === 'curso') {
-        await crearPorCurso(cursoId, motivo, descripcion, fechaLimite);
-    } else {
-        await crearColegio(motivo, descripcion, fechaLimite);
-    }
+    await crearIndividual(parseInt(estudId), motivo, descripcion, fechaLimite);
 });
 
 function mostrarError(msg) {
     errorNueva.textContent     = msg;
     errorNueva.style.display   = 'block';
     btnEnviarNueva.disabled    = false;
-    btnEnviarTexto.textContent = 'Enviar citación';
+    btnEnviarTexto.textContent = getTipoEnvio() === 'comunicado' ? 'Enviar comunicado' : 'Enviar citación';
+}
+
+// ── Crear comunicado con alcance ──────────────────────────────────
+async function enviarComunicado() {
+    const alcance   = getAlcance();
+    const titulo    = document.getElementById('comTitulo').value.trim();
+    const contenido = document.getElementById('comContenido').value.trim();
+    const fechaExp  = document.getElementById('comFechaExpiracion').value || null;
+    const grado     = document.getElementById('comGrado').value;
+    const cursoId   = document.getElementById('comCurso').value;
+
+    if (alcance === 'GRADO' && !grado)   return mostrarError('Selecciona el grado.');
+    if (alcance === 'CURSO' && !cursoId) return mostrarError('Selecciona el curso.');
+    if (!titulo)                         return mostrarError('Escribe un título para el comunicado.');
+    if (!contenido)                      return mostrarError('Escribe el contenido del comunicado.');
+
+    btnEnviarNueva.disabled    = true;
+    btnEnviarTexto.textContent = 'Enviando...';
+
+    const body = { titulo, contenido, alcance };
+    if (fechaExp)            body.fecha_expiracion = fechaExp;
+    if (alcance === 'GRADO') body.grado = grado;
+    if (alcance === 'CURSO') body.curso = parseInt(cursoId);
+
+    const alcanceLabel = { TODOS: 'todos los tutores', GRADO: `grado ${grado}`, CURSO: 'el curso seleccionado' };
+
+    const { ok, data } = await fetchAPI('/api/comunicados/crear/', {
+        method: 'POST',
+        body:   JSON.stringify(body),
+    });
+
+    if (ok) {
+        showAppToast('success', 'Comunicado enviado', `"${data.titulo}" fue enviado a ${alcanceLabel[alcance]}.`);
+        resetForm();
+        cargarCursosForm();
+    } else {
+        const msg = data?.errores || data?.titulo?.[0] || data?.contenido?.[0] || data?.curso?.[0] || 'Error al enviar el comunicado.';
+        mostrarError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
 }
 
 // ── Crear citación individual ─────────────────────────────────────
@@ -357,71 +445,7 @@ async function crearIndividual(estudId, motivo, descripcion, fechaLimite) {
     }
 }
 
-// ── Crear citaciones para todo un curso ──────────────────────────
-async function crearPorCurso(cursoId, motivo, descripcion, fechaLimite) {
-    const { ok, data: estudiantes } = await fetchAPI(`/api/students/curso/${cursoId}/estudiantes/`);
-    if (!ok || !estudiantes.length) {
-        mostrarError('No se pudo obtener los estudiantes del curso.');
-        return;
-    }
-    await enviarLote(estudiantes, motivo, descripcion, fechaLimite);
-}
-
-// ── Crear citaciones para todo el colegio ────────────────────────
-async function crearColegio(motivo, descripcion, fechaLimite) {
-    progressMsg.style.display = 'block';
-    progressMsg.textContent   = 'Obteniendo cursos del colegio...';
-
-    const { ok: okC, data: cursos } = await fetchAPI('/api/academics/cursos/');
-    if (!okC || !cursos.length) {
-        mostrarError('No se pudieron obtener los cursos.');
-        return;
-    }
-
-    progressMsg.textContent = `Obteniendo estudiantes de ${cursos.length} curso(s)...`;
-
-    // Fetch todos los estudiantes en paralelo
-    const results         = await Promise.all(
-        cursos.map(c => fetchAPI(`/api/students/curso/${c.id}/estudiantes/`))
-    );
-    const todosEstudiantes = results.flatMap(r => (r.ok && r.data) ? r.data : []);
-
-    if (!todosEstudiantes.length) {
-        mostrarError('No hay estudiantes registrados en el colegio.');
-        return;
-    }
-
-    await enviarLote(todosEstudiantes, motivo, descripcion, fechaLimite);
-}
-
-// ── Envío en lote (curso o colegio) ──────────────────────────────
-async function enviarLote(estudiantes, motivo, descripcion, fechaLimite) {
-    progressMsg.style.display = 'block';
-    let creadas = 0, errores = 0;
-
-    for (let i = 0; i < estudiantes.length; i++) {
-        progressMsg.textContent = `Enviando ${i + 1} de ${estudiantes.length}...`;
-        const { ok } = await fetchAPI('/api/discipline/citaciones/crear/', {
-            method: 'POST',
-            body:   JSON.stringify({
-                estudiante: estudiantes[i].id, motivo, descripcion,
-                estado: 'ENVIADA', fecha_limite_asistencia: fechaLimite,
-            }),
-        });
-        if (ok) creadas++; else errores++;
-    }
-
-    progressMsg.textContent    = `${creadas} citación(es) enviada(s).${errores ? ` ${errores} no pudieron enviarse.` : ''}`;
-    btnEnviarNueva.style.display = 'none';
-    btnLimpiarForm.style.display = '';
-
-    if (creadas > 0) {
-        showAppToast('success', 'Citaciones creadas', `${creadas} registradas correctamente.`);
-        await cargarCitaciones();
-    }
-}
-
-// ── Limpiar formulario tras envío en lote ────────────────────────
+// ── Limpiar formulario ────────────────────────────────────────────
 btnLimpiarForm.addEventListener('click', () => {
     resetForm();
     cargarCursosForm();

@@ -94,7 +94,7 @@ class RegistrarTokenView(APIView):
         token = request.data.get('token', '').strip()
         if not token:
             return Response({'errores': 'Token requerido.'}, status=status.HTTP_400_BAD_REQUEST)
-        FCMDevice.objects.get_or_create(user=request.user, token=token)
+        FCMDevice.objects.update_or_create(token=token, defaults={'user': request.user})
         return Response({'ok': True}, status=status.HTTP_200_OK)
 
     def delete(self, request):

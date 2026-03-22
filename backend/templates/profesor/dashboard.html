@@ -150,14 +150,44 @@
             border-radius: 0;
         }
         .cit-grid {
-            display: grid;
-            grid-template-columns: 380px 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 20px;
-            align-items: start;
+            max-width: 860px;
+            margin: 0 auto;
         }
-        @media (max-width: 900px) {
-            .cit-grid { grid-template-columns: 1fr; }
+        .cit-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
         }
+
+        /* ── Tarjetas del historial de citaciones ─────────────────── */
+        .cit-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px;
+        }
+        .cit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 6px 16px;
+            align-items: center;
+        }
+        .cit-card--pendiente  { border-left-color: #f59e0b; }
+        .cit-card--asistio    { border-left-color: #10b981; }
+        .cit-card--atraso     { border-left-color: #ef4444; }
+        .cit-card--visto      { border-left-color: #6366f1; }
+        .cit-card__info       { display: flex; flex-direction: column; gap: 4px; }
+        .cit-card__estudiante { font-weight: 600; color: var(--text-primary); font-size: .92rem; }
+        .cit-card__meta       { font-size: .8rem; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; }
+        .cit-card__badge      { align-self: start; margin-top: 2px; }
 
         /* ── Historial ───────────────────────────────────────────── */
         .historial-spinner {
@@ -1445,12 +1475,24 @@
 
         <!-- ══ Panel Notas ══════════════════════════════════════════ -->
         <div class="tab-panel active" id="panelNotas" role="tabpanel">
-            <div class="card" style="max-width:520px;margin:0 auto;position:relative;overflow:hidden;">
+            <div class="card" style="max-width:520px;margin:0 auto;">
                 <div style="height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);"></div>
                 <div class="card-header">
                     <h2 class="card-title">Subir Notas</h2>
                 </div>
                 <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+
+                    <!-- Selector de asignación -->
+                    <div class="form-group">
+                        <label class="form-label" for="selectAsignacion">Materia / Curso</label>
+                        <select class="form-input" id="selectAsignacion">
+                            <option value="">— Cargando asignaciones… —</option>
+                        </select>
+                        <p class="form-error" id="notasAsignacionError" style="display:none;">
+                            Selecciona la materia y curso al que corresponde esta planilla.
+                        </p>
+                    </div>
+
                     <div class="drop-zone" id="dropZone" role="button" tabindex="0"
                          aria-label="Zona para arrastrar archivo Excel">
                         <div class="drop-zone__icon-wrap">
@@ -1475,41 +1517,20 @@
                         <p class="drop-zone__filename" id="nombreArchivo"></p>
                     </div>
                     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
-                    <button class="btn-primary" id="btnSubirNotas" disabled>
-                        Subir Notas
-                    </button>
-                </div>
-            </div>
 
-            <!-- Overlay próximamente -->
-            <div class="prox-overlay">
-                <div class="prox-overlay-icon">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
+                    <button class="btn-primary" id="btnSubirNotas" disabled>
+                        Validar Planilla
+                    </button>
+
+                    <!-- Resultado de la validación -->
+                    <div id="notasResultado" style="display:none;"></div>
+
                 </div>
-                <h3>Disponible próximamente</h3>
-                <p>Esta función estará disponible<br>en una próxima actualización.</p>
             </div>
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->
         <div class="tab-panel" id="panelCitaciones" role="tabpanel" style="position:relative;">
-            <div class="prox-overlay">
-                <div class="prox-overlay-icon">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </div>
-                <h3>Disponible próximamente</h3>
-                <p>Esta función estará disponible<br>en una próxima actualización.</p>
-            </div>
             <div class="cit-grid">
 
                 <!-- Formulario nueva citación -->
@@ -1520,41 +1541,43 @@
                     <div class="card-body">
                         <form id="formCitacion" style="display:flex;flex-direction:column;gap:14px;">
 
-                            <div class="form-group">
-                                <label class="form-label" for="citCurso">Curso</label>
-                                <select id="citCurso" class="form-input" disabled>
-                                    <option value="">— Cargando cursos… —</option>
-                                </select>
+                            <div class="cit-form-row">
+                                <div class="form-group" style="margin:0;">
+                                    <label class="form-label" for="citCurso">Curso</label>
+                                    <select id="citCurso" class="form-input" disabled>
+                                        <option value="">— Cargando… —</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label class="form-label" for="citEstudiante">Estudiante</label>
+                                    <select id="citEstudiante" class="form-input" disabled>
+                                        <option value="">— Selecciona —</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label" for="citEstudiante">Estudiante</label>
-                                <select id="citEstudiante" class="form-input" disabled>
-                                    <option value="">— Selecciona un estudiante —</option>
-                                </select>
+                            <div class="cit-form-row">
+                                <div class="form-group" style="margin:0;">
+                                    <label class="form-label" for="citMotivo">Motivo</label>
+                                    <select id="citMotivo" class="form-input" required>
+                                        <option value="">— Motivo —</option>
+                                        <option value="FALTAS">Faltas</option>
+                                        <option value="DISCIPLINA">Disciplina</option>
+                                        <option value="ACADEMICO">Académico</option>
+                                        <option value="OTRO">Otro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label class="form-label" for="citFechaLimite">Fecha límite</label>
+                                    <input id="citFechaLimite" class="form-input" type="date" required>
+                                </div>
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label" for="citMotivo">Motivo</label>
-                                <select id="citMotivo" class="form-input" required>
-                                    <option value="">— Selecciona un motivo —</option>
-                                    <option value="FALTAS">Faltas</option>
-                                    <option value="DISCIPLINA">Disciplina</option>
-                                    <option value="ACADEMICO">Académico</option>
-                                    <option value="OTRO">Otro</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
+                            <div class="form-group" style="margin:0;">
                                 <label class="form-label" for="citDescripcion">Descripción</label>
                                 <textarea id="citDescripcion" class="form-input form-textarea"
-                                          rows="9" placeholder="Describe el motivo de la citación…"
+                                          rows="5" placeholder="Describe el motivo de la citación…"
                                           maxlength="500" style="resize:none;"></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="citFechaLimite">Fecha límite de asistencia</label>
-                                <input id="citFechaLimite" class="form-input" type="date" required>
                             </div>
 
                             <p id="citError" class="form-error" style="display:none"></p>
@@ -1582,21 +1605,8 @@
                             Aún no has emitido ninguna citación.
                         </p>
 
-                        <div class="table-wrapper" style="overflow-x:auto;">
-                            <table class="data-table" style="min-width:560px;">
-                                <thead>
-                                    <tr>
-                                        <th>Estudiante</th>
-                                        <th>Curso</th>
-                                        <th>Motivo</th>
-                                        <th>Estado</th>
-                                        <th>Fecha límite</th>
-                                        <th>Enviada</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyCitaciones"></tbody>
-                            </table>
-                        </div>
+                        <div class="cit-lista" id="listaCitaciones"></div>
+
                     </div>
                 </div>
 

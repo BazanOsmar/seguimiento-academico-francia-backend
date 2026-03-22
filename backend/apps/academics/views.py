@@ -14,6 +14,7 @@ from rest_framework import status
 from backend.apps.users.permissions import IsDirectorOrRegente, IsProfesor, IsDirector
 from .models import Curso, Materia, ProfesorCurso, PlanDeTrabajo, ProfesorPlan
 from .serializers import CursoSerializer, MateriaSerializer, AsignacionSerializer, ProfesorPlanSerializer, DirectorPlanSerializer, ProfesorAsignacionSerializer
+from .services.planilla_validator import validar_estructura, validar_pertenencia, extraer_notas, validar_estudiantes
 
 
 class CursoListView(ListAPIView):
@@ -503,6 +504,92 @@ class DirectorPlanesExportarView(APIView):
         )
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
+
+
+class ValidarPlanillaView(APIView):
+    """
+    POST /api/academics/profesor/validar-planilla/
+
+    Recibe un archivo Excel (.xlsx/.xls) y un profesor_curso_id.
+    Valida que:
+      1. El archivo sea una planilla Ley 070 válida.
+      2. El nombre del maestro coincida con el profesor autenticado.
+      3. El área/materia coincida con la materia asignada.
+      4. El paralelo y año de escolaridad coincidan con el curso asignado.
+
+    Permiso: solo Profesor.
+    """
+
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def post(self, request):
+        archivo = request.FILES.get('archivo')
+        if not archivo:
+            return Response({'errores': 'Se requiere un archivo Excel.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        nombre = archivo.name.lower()
+        if not (nombre.endswith('.xlsx') or nombre.endswith('.xls')):
+            return Response({'errores': 'Solo se aceptan archivos .xlsx o .xls.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            profesor_curso_id = int(request.data.get('profesor_curso_id', 0))
+        except (ValueError, TypeError):
+            return Response({'errores': 'profesor_curso_id inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            profesor_curso = (
+                ProfesorCurso.objects
+                .select_related('profesor', 'materia', 'curso')
+                .get(pk=profesor_curso_id, profesor=request.user)
+            )
+        except ProfesorCurso.DoesNotExist:
+            return Response(
+                {'errores': 'Asignación no válida o no te pertenece.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        import openpyxl as _xl
+
+        contenido = archivo.read()
+        try:
+            wb = _xl.load_workbook(io.BytesIO(contenido), data_only=True)
+        except Exception as e:
+            return Response(
+                {'errores': f'No se pudo abrir el archivo: {e}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Una sola carga — se pasa el workbook abierto a todas las funciones
+        resultado = validar_estructura(wb)
+
+        if resultado['es_valido']:
+            errores_pertenencia = validar_pertenencia(resultado['metadatos'], profesor_curso)
+            if errores_pertenencia:
+                resultado['es_valido'] = False
+                resultado['errores'].extend(errores_pertenencia)
+            else:
+                notas = extraer_notas(wb)
+                resultado['notas'] = notas
+
+                nombres_excel = []
+                for trim_data in notas['trimestres'].values():
+                    datos = trim_data['saber']['datos'] or trim_data['hacer']['datos']
+                    if datos:
+                        nombres_excel = [e['nombre'] for e in datos]
+                        break
+
+                curso_nombre = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
+                val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
+                val_est['curso_verificado'] = curso_nombre
+                resultado['estudiantes'] = val_est
+                if not val_est['es_valido']:
+                    resultado['es_valido'] = False
+                    resultado['errores'].append(
+                        f"{len(val_est['no_encontrados'])} estudiante(s) del Excel "
+                        f"no se encontraron en el curso {curso_nombre}."
+                    )
+
+        return Response(resultado)
 
 
 class AsignacionDetailView(APIView):
