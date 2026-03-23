@@ -7,12 +7,15 @@ User = settings.AUTH_USER_MODEL
 
 class Citacion(models.Model):
     ESTADOS_ASISTENCIA = (
-        ('PENDIENTE',   'Pendiente'),
-        ('VISTO',       'Visto'),
-        ('ASISTIO',     'Asistió'),
-        ('NO_ASISTIO',  'No asistió'),
-        ('ATRASO',      'Atraso'),
-        ('Informativo', 'Informativo'),
+        ('PENDIENTE',  'Pendiente'),
+        ('ASISTIO',    'Asistió'),
+        ('NO_ASISTIO', 'No asistió'),
+        ('ATRASO',     'Atraso'),
+    )
+
+    ESTADOS_ENVIO = (
+        ('ENVIADA', 'Enviada'),
+        ('VISTO',   'Visto'),
     )
 
     estudiante = models.ForeignKey(
@@ -32,7 +35,9 @@ class Citacion(models.Model):
     descripcion = models.TextField()
 
     estado = models.CharField(
-        max_length=20
+        max_length=20,
+        choices=ESTADOS_ENVIO,
+        default='ENVIADA',
     )
 
     fecha_envio = models.DateTimeField(

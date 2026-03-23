@@ -65,12 +65,10 @@ function formatLastLogin(dt) {
 
 // ── Estado badge (citaciones) ─────────────────────────────────────
 const ESTADO_MAP = {
-    'PENDIENTE':   { cls: 'estado--pendiente',   label: 'Pendiente'   },
-    'VISTO':       { cls: 'estado--visto',        label: 'Visto'       },
-    'ASISTIO':     { cls: 'estado--asistio',      label: 'Asistió'     },
-    'NO_ASISTIO':  { cls: 'estado--no_asistio',   label: 'No asistió'  },
-    'ATRASO':      { cls: 'estado--atraso',       label: 'Atraso'      },
-    'Informativo': { cls: 'estado--informativo',  label: 'Informativo' },
+    'PENDIENTE':  { cls: 'estado--pendiente',  label: 'Pendiente'  },
+    'ASISTIO':    { cls: 'estado--asistio',    label: 'Asistió'    },
+    'NO_ASISTIO': { cls: 'estado--no_asistio', label: 'No asistió' },
+    'ATRASO':     { cls: 'estado--atraso',     label: 'Atraso'     },
 };
 function estadoBadgeHtml(estado) {
     const b = ESTADO_MAP[estado] || { cls: '', label: estado };

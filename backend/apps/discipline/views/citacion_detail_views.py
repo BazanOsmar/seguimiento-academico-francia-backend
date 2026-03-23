@@ -156,16 +156,16 @@ class CitacionVistoView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if citacion.asistencia != "PENDIENTE":
+        if citacion.estado == "VISTO":
             return Response(
-                {"id": citacion.id, "asistencia": citacion.asistencia},
+                {"id": citacion.id, "estado": citacion.estado},
                 status=status.HTTP_200_OK,
             )
 
-        citacion.asistencia = "VISTO"
-        citacion.save(update_fields=["asistencia"])
+        citacion.estado = "VISTO"
+        citacion.save(update_fields=["estado"])
 
         return Response(
-            {"id": citacion.id, "asistencia": "VISTO"},
+            {"id": citacion.id, "estado": "VISTO"},
             status=status.HTTP_200_OK,
         )

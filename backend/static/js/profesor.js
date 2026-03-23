@@ -719,13 +719,17 @@ function _renderPlanCards(mes) {
             const ok = plans.some(p => p.semana === s);
             return `<span class="plan-asig-week${ok ? '' : ' plan-asig-week--empty'}">${s}</span>`;
         }).join('');
-        return `<div class="plan-asig-card" data-pc-id="${asig.id}" data-mes="${mes}">
+        const complete = plans.length === 4;
+        return `<div class="plan-asig-card${complete ? ' plan-asig-card--complete' : ''}" data-pc-id="${asig.id}" data-mes="${mes}">
             <div>
                 <div class="plan-asig-card__materia">${_escapeHtml(asig.materia_nombre)}</div>
                 <div class="plan-asig-card__curso">${_escapeHtml(asig.curso_nombre)}</div>
             </div>
             <div class="plan-asig-dots">${dots}</div>
-            <div class="plan-asig-card__count">${plans.length} de 4 semanas</div>
+            ${complete
+                ? `<span class="plan-asig-card__badge-complete"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>Completo</span>`
+                : `<div class="plan-asig-card__count">${plans.length} de 4 semanas</div>`
+            }
         </div>`;
     }).join('');
 
@@ -951,15 +955,19 @@ async function cargarHistorialPlanes() {
                 const ok = plans.some(p => p.semana === s);
                 return `<span class="plan-asig-week${ok ? '' : ' plan-asig-week--empty'}">${s}</span>`;
             }).join('');
+            const complete2 = plans.length === 4;
             const card = document.createElement('div');
-            card.className = 'plan-asig-card';
+            card.className = `plan-asig-card${complete2 ? ' plan-asig-card--complete' : ''}`;
             card.innerHTML = `
                 <div>
                     <div class="plan-asig-card__materia">${_escapeHtml(asig.materia_nombre)}</div>
                     <div class="plan-asig-card__curso">${_escapeHtml(asig.curso_nombre)}</div>
                 </div>
                 <div class="plan-asig-dots">${dots}</div>
-                <div class="plan-asig-card__count">${plans.length} de 4 semanas</div>`;
+                ${complete2
+                    ? `<span class="plan-asig-card__badge-complete"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>Completo</span>`
+                    : `<div class="plan-asig-card__count">${plans.length} de 4 semanas</div>`
+                }`;
             card.addEventListener('click', () => _abrirPlanModal(pcId, mesNum, false));
             grid.appendChild(card);
         });
@@ -978,10 +986,10 @@ function _escapeHtml(str) {
 
 // ── Historial de citaciones ───────────────────────────────────────
 const CIT_CARD_CLASS = {
-    PENDIENTE: 'cit-card--pendiente',
-    ASISTIO:   'cit-card--asistio',
-    ATRASO:    'cit-card--atraso',
-    VISTO:     'cit-card--visto',
+    PENDIENTE:  'cit-card--pendiente',
+    ASISTIO:    'cit-card--asistio',
+    NO_ASISTIO: 'cit-card--no_asistio',
+    ATRASO:     'cit-card--atraso',
 };
 
 async function cargarHistorial() {
@@ -1053,6 +1061,18 @@ function _actualizarChecks(password, prefix) {
         if (el) el.classList.toggle('ok', fn(password));
     });
 }
+
+// ── Toggle mostrar/ocultar contraseña ─────────────────────────────
+document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-toggle-pass');
+    if (!btn) return;
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.querySelector('.icon-eye').style.display     = showing ? '' : 'none';
+    btn.querySelector('.icon-eye-off').style.display = showing ? 'none' : '';
+});
 
 // ── Primer ingreso — modal forzado ────────────────────────────────
 function _initPrimerIngreso() {

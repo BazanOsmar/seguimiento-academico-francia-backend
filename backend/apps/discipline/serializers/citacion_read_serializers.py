@@ -24,9 +24,15 @@ class CitacionListSerializer(CitacionBaseSerializer):
     Expone los datos relevantes para la vista del regente/director.
     """
     emisor_nombre = serializers.SerializerMethodField()
+    emisor_tipo   = serializers.SerializerMethodField()
 
     def get_emisor_nombre(self, obj):
         return f"{obj.emisor.first_name} {obj.emisor.last_name}".strip() or obj.emisor.username
+
+    def get_emisor_tipo(self, obj):
+        if obj.emisor.tipo_usuario:
+            return obj.emisor.tipo_usuario.nombre
+        return None
 
     class Meta:
         model = Citacion
@@ -38,9 +44,11 @@ class CitacionListSerializer(CitacionBaseSerializer):
             "fecha_envio",
             "fecha_limite_asistencia",
             "motivo",
+            "descripcion",
             "estado",
             "fecha_asistencia",
             "emisor_nombre",
+            "emisor_tipo",
         ]
 
 

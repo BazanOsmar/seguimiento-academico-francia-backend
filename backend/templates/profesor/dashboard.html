@@ -150,44 +150,14 @@
             border-radius: 0;
         }
         .cit-grid {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 380px 1fr;
             gap: 20px;
-            max-width: 860px;
-            margin: 0 auto;
+            align-items: start;
         }
-        .cit-form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
+        @media (max-width: 900px) {
+            .cit-grid { grid-template-columns: 1fr; }
         }
-
-        /* ── Tarjetas del historial de citaciones ─────────────────── */
-        .cit-lista {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 16px;
-        }
-        .cit-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-left: 4px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px 16px;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 6px 16px;
-            align-items: center;
-        }
-        .cit-card--pendiente  { border-left-color: #f59e0b; }
-        .cit-card--asistio    { border-left-color: #10b981; }
-        .cit-card--atraso     { border-left-color: #ef4444; }
-        .cit-card--visto      { border-left-color: #6366f1; }
-        .cit-card__info       { display: flex; flex-direction: column; gap: 4px; }
-        .cit-card__estudiante { font-weight: 600; color: var(--text-primary); font-size: .92rem; }
-        .cit-card__meta       { font-size: .8rem; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; }
-        .cit-card__badge      { align-self: start; margin-top: 2px; }
 
         /* ── Historial ───────────────────────────────────────────── */
         .historial-spinner {
@@ -270,6 +240,34 @@
         .plan-asig-card__count {
             font-size: .75rem;
             color: var(--text-muted);
+        }
+        .plan-asig-card--complete {
+            border-color: rgba(34,197,94,.35);
+            background: linear-gradient(135deg, rgba(34,197,94,.06), rgba(34,197,94,.02));
+        }
+        .plan-asig-card--complete:hover {
+            border-color: rgba(34,197,94,.6);
+            box-shadow: 0 4px 20px rgba(34,197,94,.12);
+        }
+        .plan-asig-card--complete .plan-asig-card__count {
+            color: #22c55e;
+            font-weight: 600;
+        }
+        .plan-asig-card--complete .plan-asig-card__materia {
+            color: var(--text);
+        }
+        .plan-asig-card__badge-complete {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .68rem;
+            font-weight: 700;
+            color: #22c55e;
+            background: rgba(34,197,94,.1);
+            border: 1px solid rgba(34,197,94,.25);
+            border-radius: 20px;
+            padding: 2px 8px;
+            align-self: flex-start;
         }
 
         /* ── Modal plan de trabajo ────────────────────────────────── */
@@ -944,23 +942,58 @@
             height: 4px;
             background: linear-gradient(90deg, var(--accent), #818cf8);
         }
-        .cred-modal-body {
-            padding: 28px 28px 24px;
+        .cred-modal-welcome {
             display: flex;
-            flex-direction: column;
-            gap: 18px;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px 18px;
+            background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(129,140,248,.04));
+            border-bottom: 1px solid var(--border);
         }
+        .cred-modal-icon {
+            width: 48px; height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(99,102,241,.35);
+        }
+        .cred-modal-icon svg { color: #fff; }
         .cred-modal-title {
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--text);
-            margin: 0 0 2px;
+            margin: 0 0 3px;
         }
         .cred-modal-sub {
-            font-size: .83rem;
+            font-size: .8rem;
             color: var(--text-muted);
             margin: 0;
             line-height: 1.5;
+        }
+        .cred-modal-body {
+            padding: 20px 24px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .cred-modal-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(99,102,241,.07);
+            border: 1px solid rgba(99,102,241,.18);
+            border-radius: 10px;
+            font-size: .8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .cred-modal-notice svg { flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+        .cred-modal-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0 -4px;
         }
         .cred-modal-form {
             display: flex;
@@ -981,6 +1014,16 @@
             gap: 10px;
             justify-content: flex-end;
         }
+        .pass-input-wrap { position: relative; }
+        .pass-input-wrap .form-input { padding-right: 42px; }
+        .btn-toggle-pass {
+            position: absolute; right: 10px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 4px; border-radius: 6px;
+            display: flex; align-items: center; transition: color .15s;
+        }
+        .btn-toggle-pass:hover { color: var(--text); }
 
         /* ── Tab Cuenta ───────────────────────────────────────────── */
         .cuenta-card {
@@ -1159,6 +1202,25 @@
             font-size: .82rem; color: var(--text-muted);
         }
         .cred-current-user strong { color: var(--accent); }
+
+        .pass-input-wrap {
+            position: relative;
+        }
+        .pass-input-wrap .form-input {
+            padding-right: 42px;
+        }
+        .btn-toggle-pass {
+            position: absolute;
+            right: 10px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            transition: color .15s;
+        }
+        .btn-toggle-pass:hover { color: var(--text); }
 
         .asig-grid {
             display: grid;
@@ -1475,24 +1537,12 @@
 
         <!-- ══ Panel Notas ══════════════════════════════════════════ -->
         <div class="tab-panel active" id="panelNotas" role="tabpanel">
-            <div class="card" style="max-width:520px;margin:0 auto;">
+            <div class="card" style="max-width:520px;margin:0 auto;position:relative;overflow:hidden;">
                 <div style="height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);"></div>
                 <div class="card-header">
                     <h2 class="card-title">Subir Notas</h2>
                 </div>
                 <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
-
-                    <!-- Selector de asignación -->
-                    <div class="form-group">
-                        <label class="form-label" for="selectAsignacion">Materia / Curso</label>
-                        <select class="form-input" id="selectAsignacion">
-                            <option value="">— Cargando asignaciones… —</option>
-                        </select>
-                        <p class="form-error" id="notasAsignacionError" style="display:none;">
-                            Selecciona la materia y curso al que corresponde esta planilla.
-                        </p>
-                    </div>
-
                     <div class="drop-zone" id="dropZone" role="button" tabindex="0"
                          aria-label="Zona para arrastrar archivo Excel">
                         <div class="drop-zone__icon-wrap">
@@ -1517,20 +1567,41 @@
                         <p class="drop-zone__filename" id="nombreArchivo"></p>
                     </div>
                     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
-
                     <button class="btn-primary" id="btnSubirNotas" disabled>
-                        Validar Planilla
+                        Subir Notas
                     </button>
-
-                    <!-- Resultado de la validación -->
-                    <div id="notasResultado" style="display:none;"></div>
-
                 </div>
+            </div>
+
+            <!-- Overlay próximamente -->
+            <div class="prox-overlay">
+                <div class="prox-overlay-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <h3>Disponible próximamente</h3>
+                <p>Esta función estará disponible<br>en una próxima actualización.</p>
             </div>
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->
         <div class="tab-panel" id="panelCitaciones" role="tabpanel" style="position:relative;">
+            <div class="prox-overlay">
+                <div class="prox-overlay-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <h3>Disponible próximamente</h3>
+                <p>Esta función estará disponible<br>en una próxima actualización.</p>
+            </div>
             <div class="cit-grid">
 
                 <!-- Formulario nueva citación -->
@@ -1541,43 +1612,41 @@
                     <div class="card-body">
                         <form id="formCitacion" style="display:flex;flex-direction:column;gap:14px;">
 
-                            <div class="cit-form-row">
-                                <div class="form-group" style="margin:0;">
-                                    <label class="form-label" for="citCurso">Curso</label>
-                                    <select id="citCurso" class="form-input" disabled>
-                                        <option value="">— Cargando… —</option>
-                                    </select>
-                                </div>
-                                <div class="form-group" style="margin:0;">
-                                    <label class="form-label" for="citEstudiante">Estudiante</label>
-                                    <select id="citEstudiante" class="form-input" disabled>
-                                        <option value="">— Selecciona —</option>
-                                    </select>
-                                </div>
+                            <div class="form-group">
+                                <label class="form-label" for="citCurso">Curso</label>
+                                <select id="citCurso" class="form-input" disabled>
+                                    <option value="">— Cargando cursos… —</option>
+                                </select>
                             </div>
 
-                            <div class="cit-form-row">
-                                <div class="form-group" style="margin:0;">
-                                    <label class="form-label" for="citMotivo">Motivo</label>
-                                    <select id="citMotivo" class="form-input" required>
-                                        <option value="">— Motivo —</option>
-                                        <option value="FALTAS">Faltas</option>
-                                        <option value="DISCIPLINA">Disciplina</option>
-                                        <option value="ACADEMICO">Académico</option>
-                                        <option value="OTRO">Otro</option>
-                                    </select>
-                                </div>
-                                <div class="form-group" style="margin:0;">
-                                    <label class="form-label" for="citFechaLimite">Fecha límite</label>
-                                    <input id="citFechaLimite" class="form-input" type="date" required>
-                                </div>
+                            <div class="form-group">
+                                <label class="form-label" for="citEstudiante">Estudiante</label>
+                                <select id="citEstudiante" class="form-input" disabled>
+                                    <option value="">— Selecciona un estudiante —</option>
+                                </select>
                             </div>
 
-                            <div class="form-group" style="margin:0;">
+                            <div class="form-group">
+                                <label class="form-label" for="citMotivo">Motivo</label>
+                                <select id="citMotivo" class="form-input" required>
+                                    <option value="">— Selecciona un motivo —</option>
+                                    <option value="FALTAS">Faltas</option>
+                                    <option value="DISCIPLINA">Disciplina</option>
+                                    <option value="ACADEMICO">Académico</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
                                 <label class="form-label" for="citDescripcion">Descripción</label>
                                 <textarea id="citDescripcion" class="form-input form-textarea"
-                                          rows="5" placeholder="Describe el motivo de la citación…"
+                                          rows="9" placeholder="Describe el motivo de la citación…"
                                           maxlength="500" style="resize:none;"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="citFechaLimite">Fecha límite de asistencia</label>
+                                <input id="citFechaLimite" class="form-input" type="date" required>
                             </div>
 
                             <p id="citError" class="form-error" style="display:none"></p>
@@ -1605,8 +1674,21 @@
                             Aún no has emitido ninguna citación.
                         </p>
 
-                        <div class="cit-lista" id="listaCitaciones"></div>
-
+                        <div class="table-wrapper" style="overflow-x:auto;">
+                            <table class="data-table" style="min-width:560px;">
+                                <thead>
+                                    <tr>
+                                        <th>Estudiante</th>
+                                        <th>Curso</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th>Fecha límite</th>
+                                        <th>Enviada</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyCitaciones"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -1815,14 +1897,25 @@
     <div class="cred-modal-overlay" id="primerIngresoOverlay">
         <div class="cred-modal">
             <div class="cred-modal-strip"></div>
-            <div class="cred-modal-body">
-                <div>
-                    <p class="cred-modal-title">Bienvenido/a — Cambia tus credenciales</p>
-                    <p class="cred-modal-sub">
-                        Es tu primer ingreso al sistema. Por seguridad debes establecer
-                        un usuario y contraseña propios antes de continuar.
-                    </p>
+            <div class="cred-modal-welcome">
+                <div class="cred-modal-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/><path d="M20 21a8 8 0 1 0-16 0"/>
+                    </svg>
                 </div>
+                <div>
+                    <p class="cred-modal-title">Bienvenido/a al sistema</p>
+                    <p class="cred-modal-sub">Primer ingreso — establece tus credenciales</p>
+                </div>
+            </div>
+            <div class="cred-modal-body">
+                <div class="cred-modal-notice">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Por seguridad debes elegir un usuario y contraseña propios antes de continuar. Esta acción solo se realiza una vez.
+                </div>
+                <div class="cred-modal-divider"></div>
                 <form class="cred-modal-form" id="formPrimerIngreso">
                     <div class="form-group">
                         <label class="form-label" for="piUsernameNuevo">Nuevo usuario</label>
@@ -1832,15 +1925,27 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="piPassActual">Contraseña actual (temporal)</label>
-                        <input class="form-input" id="piPassActual" type="password"
-                               placeholder="Tu contraseña temporal" maxlength="64"
-                               autocomplete="current-password" required>
+                        <div class="pass-input-wrap">
+                            <input class="form-input" id="piPassActual" type="password"
+                                   placeholder="Tu contraseña temporal" maxlength="64"
+                                   autocomplete="current-password" required>
+                            <button type="button" class="btn-toggle-pass" data-target="piPassActual" aria-label="Mostrar contraseña">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="piPassNueva">Nueva contraseña</label>
-                        <input class="form-input" id="piPassNueva" type="password"
-                               placeholder="Escribe tu nueva contraseña" maxlength="64"
-                               autocomplete="new-password" required>
+                        <div class="pass-input-wrap">
+                            <input class="form-input" id="piPassNueva" type="password"
+                                   placeholder="Escribe tu nueva contraseña" maxlength="64"
+                                   autocomplete="new-password" required>
+                            <button type="button" class="btn-toggle-pass" data-target="piPassNueva" aria-label="Mostrar contraseña">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Checklist -->
@@ -1920,8 +2025,14 @@
                     <!-- Contraseña actual — siempre visible -->
                     <div class="form-group">
                         <label class="form-label" for="credPassActual">Contraseña actual</label>
-                        <input class="form-input" id="credPassActual" type="password"
-                               placeholder="Tu contraseña actual" maxlength="64" autocomplete="current-password">
+                        <div class="pass-input-wrap">
+                            <input class="form-input" id="credPassActual" type="password"
+                                   placeholder="Tu contraseña actual" maxlength="64" autocomplete="current-password">
+                            <button type="button" class="btn-toggle-pass" data-target="credPassActual" aria-label="Mostrar contraseña">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Nuevo usuario — solo en modos username/both -->
@@ -1934,8 +2045,14 @@
                     <!-- Nueva contraseña — solo en modos password/both -->
                     <div class="form-group" id="credGroupPassword" style="display:none;">
                         <label class="form-label" for="credPassNueva">Nueva contraseña</label>
-                        <input class="form-input" id="credPassNueva" type="password"
-                               placeholder="Mínimo 8 caracteres" maxlength="64" autocomplete="new-password">
+                        <div class="pass-input-wrap">
+                            <input class="form-input" id="credPassNueva" type="password"
+                                   placeholder="Mínimo 8 caracteres" maxlength="64" autocomplete="new-password">
+                            <button type="button" class="btn-toggle-pass" data-target="credPassNueva" aria-label="Mostrar contraseña">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Checklist contraseña -->
