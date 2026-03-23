@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer, CambiarCredencialesSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer, RegistroTutorBaseSerializer, CambiarCredencialesSerializer
 # Create your views here.
 class LoginView(APIView):
     """
@@ -223,6 +223,35 @@ class VerificarContrasenaView(APIView):
         if request.user.check_password(password):
             return Response({'ok': True})
         return Response({'errores': 'Contraseña incorrecta'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerificarRegistroTutorView(APIView):
+    """
+    POST /api/auth/registro-tutor/verificar/
+
+    Paso 1 del registro: valida todos los datos sin crear la cuenta.
+    Si todo es correcto devuelve un preview del estudiante para que
+    la app pueda mostrar los términos y condiciones.
+    """
+
+    permission_classes = []
+
+    def post(self, request):
+        serializer = RegistroTutorBaseSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        estudiante = serializer.validated_data['_estudiante']
+        return Response({
+            'valido': True,
+            'estudiante': {
+                'id': estudiante.id,
+                'nombre': estudiante.nombre,
+                'apellido_paterno': estudiante.apellido_paterno,
+                'apellido_materno': estudiante.apellido_materno,
+                'curso': str(estudiante.curso),
+            },
+        })
 
 
 class RegistroTutorView(APIView):
