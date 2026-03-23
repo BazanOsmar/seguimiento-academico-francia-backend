@@ -23,4 +23,4 @@ RUN DJANGO_SETTINGS_MODULE=backend.config.settings.production \
 
 EXPOSE 8000
 
-CMD ["gunicorn", "backend.config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["gunicorn", "backend.config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "gthread", "--threads", "4", "--timeout", "60", "--keep-alive", "5"]
