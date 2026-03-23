@@ -47,6 +47,8 @@ class CitacionListView(APIView):
         queryset = Citacion.objects.select_related(
             "estudiante",
             "estudiante__curso",
+            "emisor",
+            "emisor__tipo_usuario",
         ).all()  # El modelo ya tiene ordering = ["-fecha_envio"]
 
         # Regente y Profesor solo ven sus propias citaciones; Director ve todas
