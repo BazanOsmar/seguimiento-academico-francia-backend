@@ -554,6 +554,63 @@
             .vp-cards-grid { grid-template-columns: 1fr; }
         }
 
+        /* ── Tarjetas de asignación (vista Por Profesor) ──────── */
+        .asig-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .asig-badge-curso {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--accent);
+            background: var(--accent-alpha, rgba(var(--accent-rgb, 99,102,241),0.12));
+            border-radius: 4px;
+            padding: 1px 6px;
+            align-self: flex-start;
+        }
+        .asig-card__materia {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .asig-card__curso {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+        .asig-card__actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .asig-card__btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .asig-card__btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+        .asig-card__btn:hover { opacity: 0.8; }
+        .asig-card__btn--del {
+            background: rgba(239,68,68,0.12);
+            color: var(--danger, #ef4444);
+        }
+        .asig-card__btn--edit {
+            background: var(--accent-alpha, rgba(99,102,241,0.12));
+            color: var(--accent);
+        }
+
         .asig-edit-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
         .asig-edit-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; }
         .asig-edit-close:hover { color: var(--danger); }
