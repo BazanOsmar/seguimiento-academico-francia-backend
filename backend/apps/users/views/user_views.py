@@ -75,6 +75,39 @@ class UserDetailView(APIView):
 
         return Response(data)
 
+    def patch(self, request, user_id):
+        import re
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'errores': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        first_name = request.data.get('first_name', '').strip()
+        last_name  = request.data.get('last_name',  '').strip()
+        errors = {}
+
+        if not first_name:
+            errors['first_name'] = ['Campo obligatorio.']
+        elif not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$', first_name):
+            errors['first_name'] = ['Solo letras y espacios.']
+
+        if not last_name:
+            errors['last_name'] = ['Campo obligatorio.']
+        elif not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$', last_name):
+            errors['last_name'] = ['Solo letras y espacios.']
+
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user.first_name = first_name
+        user.last_name  = last_name
+        user.save(update_fields=['first_name', 'last_name'])
+
+        from backend.apps.auditoria.services import registrar
+        director = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        registrar(request.user, 'EDITAR_USUARIO', f"{director} editó los datos de '{user.username}'", request)
+
+        return Response({'first_name': user.first_name, 'last_name': user.last_name})
 
 
 class MiPerfilView(APIView):

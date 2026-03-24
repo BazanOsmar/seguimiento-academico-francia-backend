@@ -12,6 +12,7 @@ let filtroEmisor    = 'Director';
 // ── Helpers ───────────────────────────────────────────────────────
 const MOTIVO_LABELS = {
     FALTAS:      'Faltas',
+    ATRASOS:     'Atrasos',
     CONDUCTA:    'Conducta',
     RENDIMIENTO: 'Rendimiento',
     DOCUMENTOS:  'Documentos',
@@ -62,58 +63,30 @@ function renderCards(citaciones) {
     footer.textContent = `${citaciones.length} citación${citaciones.length !== 1 ? 'es' : ''}`;
 
     grid.innerHTML = citaciones.map(c => `
-        <div class="citacion-card" data-status="${c.asistencia}">
-
+        <div class="citacion-card" data-status="${c.asistencia}" data-id="${c.id}">
             <div class="citacion-card__header">
-                <div>
+                <div style="flex:1;min-width:0;">
                     <p class="citacion-card__nombre">${c.estudiante_nombre}</p>
                     <div class="citacion-card__meta">
                         <span class="badge-curso">${c.curso}</span>
-                        <span class="citacion-card__motivo">${MOTIVO_LABELS[c.motivo] || c.motivo}</span>
+                        <span class="citacion-card__motivo citacion-card__motivo--${c.motivo}">${MOTIVO_LABELS[c.motivo] || c.motivo}</span>
                     </div>
                 </div>
-                ${estadoBadgeHTML(c.asistencia)}
+                <div style="flex-shrink:0;">${estadoBadgeHTML(c.asistencia)}</div>
             </div>
-
+            ${c.descripcion ? `
             <div class="citacion-card__body">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                    ${c.descripcion ? `<p class="citacion-card__desc" style="margin:0;flex:1;">${c.descripcion}</p>` : '<span></span>'}
-                    <span style="flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:50px;${c.estado === 'VISTO' ? 'background:rgba(34,197,94,.12);color:#22c55e;' : 'background:rgba(148,163,184,.1);color:var(--text-muted);'}">
-                        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
-                        ${c.estado === 'VISTO' ? 'Visto' : 'Enviada'}
-                    </span>
-                </div>
-                ${(c.emisor_nombre && filtroEmisor !== 'Director') ? `<p class="citacion-card__emisor">Emitido por <strong>${c.emisor_nombre}</strong>${c.emisor_tipo ? ` · ${c.emisor_tipo}` : ''}</p>` : ''}
-            </div>
-
-            <div class="citacion-card__dates">
-                <div class="citacion-card__date-item">
-                    <span class="citacion-card__date-label">Fecha límite</span>
-                    <span class="citacion-card__date-val">${formatFecha(c.fecha_limite_asistencia)}</span>
-                </div>
-                <div class="citacion-card__date-item">
-                    <span class="citacion-card__date-label">Asistencia</span>
-                    <span class="citacion-card__date-val">${c.fecha_asistencia ? formatFecha(c.fecha_asistencia) : '<span style="color:var(--text-muted);font-weight:400;font-size:.75rem;">Sin asistencia aún</span>'}</span>
-                </div>
-            </div>
-
-            ${c.asistencia === 'PENDIENTE' && c.emisor_tipo !== 'Profesor' ? `
-            <div class="citacion-card__footer">
-                <button class="btn-marcar btn-marcar-asistencia"
-                        data-id="${c.id}"
-                        data-nombre="${c.estudiante_nombre}">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    Marcar asistencia del tutor
-                </button>
+                <p class="citacion-card__desc">${c.descripcion}</p>
             </div>` : ''}
-
+            <div class="citacion-card__foot">
+                <span class="citacion-card__foot-label">Fecha límite</span>
+                <span class="citacion-card__foot-val">${formatFecha(c.fecha_limite_asistencia)}</span>
+            </div>
         </div>
     `).join('');
 
-    grid.querySelectorAll('.btn-marcar').forEach(btn => {
-        btn.addEventListener('click', () => abrirModalMarcar(btn.dataset.id, btn.dataset.nombre));
+    grid.querySelectorAll('.citacion-card').forEach(card => {
+        card.addEventListener('click', () => abrirModalDetalle(card.dataset.id));
     });
 }
 
@@ -482,6 +455,85 @@ btnLimpiarForm.addEventListener('click', () => {
     resetForm();
     cargarCursosForm();
 });
+
+// ── Modal "Detalle citación" ──────────────────────────────────────
+const modalDetalle        = document.getElementById('modalDetalleCitacion');
+const modalDetalleConten  = document.getElementById('modalDetalleContenido');
+const btnCerrarDetalle    = document.getElementById('btnCerrarDetalle');
+
+function cerrarModalDetalle() {
+    modalDetalle.classList.remove('visible');
+}
+
+btnCerrarDetalle.addEventListener('click', cerrarModalDetalle);
+modalDetalle.addEventListener('click', e => { if (e.target === modalDetalle) cerrarModalDetalle(); });
+
+async function abrirModalDetalle(id) {
+    modalDetalleConten.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:32px 0;">Cargando...</p>';
+    modalDetalle.classList.add('visible');
+
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${id}/`);
+    if (!ok) {
+        modalDetalleConten.innerHTML = '<p style="text-align:center;color:var(--error);padding:24px 0;">Error al cargar la citación.</p>';
+        return;
+    }
+
+    const nombreEsc = data.estudiante_nombre.replace(/'/g, "\\'");
+    const btnMarcar = (data.asistencia === 'PENDIENTE') ? `
+        <div class="modal-det__footer">
+            <button class="btn-marcar-asistencia"
+                    style="width:100%;height:40px;border-radius:var(--radius-sm);font-size:.82rem;"
+                    onclick="cerrarModalDetalle();abrirModalMarcar('${data.id}','${nombreEsc}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Marcar asistencia del tutor
+            </button>
+        </div>` : '';
+
+    modalDetalleConten.innerHTML = `
+        <div class="modal-det__hero modal-det__hero--${data.asistencia}">
+            <p class="modal-det__nombre">${data.estudiante_nombre}</p>
+            <div class="modal-det__sub">
+                <span class="badge-curso">${data.curso}</span>
+                <span class="citacion-card__motivo citacion-card__motivo--${data.motivo}">${MOTIVO_LABELS[data.motivo] || data.motivo}</span>
+                ${estadoBadgeHTML(data.asistencia)}
+            </div>
+        </div>
+
+        <div class="modal-det__body">
+            <div class="modal-det__info-grid">
+                <div class="modal-det__info-item">
+                    <p class="modal-det__info-label">Emitido por</p>
+                    <p class="modal-det__info-val">${data.emitido_por_nombre || '—'}</p>
+                    ${data.emitido_por_cargo ? `<p style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">${data.emitido_por_cargo}</p>` : ''}
+                </div>
+                <div class="modal-det__info-item">
+                    <p class="modal-det__info-label">Tutor registrado</p>
+                    <p class="modal-det__info-val">${data.tutor_nombre || '<em style="color:var(--text-muted);font-weight:400;">Sin tutor</em>'}</p>
+                </div>
+            </div>
+
+            <div class="modal-det__desc">
+                <p class="modal-det__desc-label">Descripción</p>
+                <p class="modal-det__desc-text">${data.motivo_descripcion || '—'}</p>
+            </div>
+
+            <div class="modal-det__dates">
+                <div class="modal-det__date-item">
+                    <span class="modal-det__date-label">Fecha de envío</span>
+                    <span class="modal-det__date-val">${formatFecha(data.fecha_envio)}</span>
+                </div>
+                <div class="modal-det__date-item">
+                    <span class="modal-det__date-label">Fecha límite</span>
+                    <span class="modal-det__date-val">${formatFecha(data.fecha_limite_asistencia)}</span>
+                </div>
+            </div>
+        </div>
+
+        ${btnMarcar}
+    `;
+}
 
 // ── Modal "Marcar asistencia" ─────────────────────────────────────
 const modalMarcar     = document.getElementById('modalMarcarAsistencia');

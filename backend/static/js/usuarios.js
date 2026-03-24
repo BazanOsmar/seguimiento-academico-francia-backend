@@ -322,6 +322,71 @@ function estadoBadgeHtml(estado) {
     return `<span class="estado-badge ${b.cls}">${b.label}</span>`;
 }
 
+function _activarEdicion() {
+    pmContent.querySelector('#pmDisplayNombre').style.display  = 'none';
+    pmContent.querySelector('#pmDisplayUsername').style.display = 'none';
+    pmContent.querySelector('#pmEditForm').style.display       = '';
+    pmContent.querySelector('.pm-btn-edit').style.display      = 'none';
+    pmContent.querySelector('.pm-btn-reset').style.display     = 'none';
+    pmContent.querySelector('#pmEditNombre').focus();
+
+    pmContent.querySelector('.pm-btn-cancel-edit').addEventListener('click', _desactivarEdicion);
+    pmContent.querySelector('.pm-btn-save-edit').addEventListener('click', _guardarEdicion);
+}
+
+function _desactivarEdicion() {
+    pmContent.querySelector('#pmDisplayNombre').style.display  = '';
+    pmContent.querySelector('#pmDisplayUsername').style.display = '';
+    pmContent.querySelector('#pmEditForm').style.display       = 'none';
+    pmContent.querySelector('.pm-btn-edit').style.display      = '';
+    pmContent.querySelector('.pm-btn-reset').style.display     = '';
+    pmContent.querySelector('#pmEditErr').classList.add('hidden');
+}
+
+async function _guardarEdicion() {
+    const firstName = pmContent.querySelector('#pmEditNombre').value.trim();
+    const lastName  = pmContent.querySelector('#pmEditApellidos').value.trim();
+    const errEl     = pmContent.querySelector('#pmEditErr');
+    errEl.classList.add('hidden');
+
+    if (!firstName || !lastName) {
+        errEl.textContent = 'Nombre y apellidos son obligatorios.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    const btnSave = pmContent.querySelector('.pm-btn-save-edit');
+    btnSave.disabled    = true;
+    btnSave.textContent = 'Guardando...';
+
+    const { ok, data } = await fetchAPI(`/api/users/${_pmUserId}/`, {
+        method: 'PATCH',
+        body:   JSON.stringify({ first_name: firstName, last_name: lastName }),
+    });
+
+    btnSave.disabled    = false;
+    btnSave.textContent = 'Guardar';
+
+    if (!ok) {
+        errEl.textContent = data?.errores || data?.first_name?.[0] || data?.last_name?.[0] || 'Error al guardar.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    const nuevoNombre = `${data.first_name} ${data.last_name}`.trim();
+    pmContent.querySelector('#pmDisplayNombre').textContent = nuevoNombre;
+
+    if (_pmData) { _pmData.first_name = data.first_name; _pmData.last_name = data.last_name; }
+    const idx = _usuarios.findIndex(u => u.id === _pmUserId);
+    if (idx !== -1) {
+        _usuarios[idx].first_name = data.first_name;
+        _usuarios[idx].last_name  = data.last_name;
+        aplicarFiltros();
+    }
+
+    _desactivarEdicion();
+}
+
 function _cerrarPerfil() {
     pmOverlay.classList.remove('visible');
     pmContent.innerHTML = '';
@@ -364,6 +429,9 @@ async function abrirPerfil(userId) {
         setTimeout(() => pmConfirmPwd.focus(), 50);
     });
 
+    // Botón editar
+    pmContent.querySelector('.pm-btn-edit')?.addEventListener('click', _activarEdicion);
+
     // Copiar credenciales en pmCredOverlay
     document.querySelectorAll('#pmCredOverlay .cred-copy').forEach(btn => {
         btn.onclick = () => {
@@ -399,26 +467,57 @@ function _buildPerfilHtml(data) {
     const cardHtml = `
         ${bannerHtml}
         <div class="pm-avatar">${iniciales}</div>
-        <p class="pm-nombre">${escHtml(nombre)}</p>
-        <p class="pm-username">@${escHtml(data.username)}</p>
+        <p class="pm-nombre" id="pmDisplayNombre">${escHtml(nombre)}</p>
+        <p class="pm-username" id="pmDisplayUsername">@${escHtml(data.username)}</p>
         <div class="pm-rol">${badgeHtml(rol)}</div>
-        <div class="pm-info-rows">
-            <div class="pm-info-row">
-                <span class="pm-info-label">Notificaciones</span>
-                <span>${fcmBadgeHtml(data.tiene_fcm)}</span>
+
+        <div class="pm-edit-form" id="pmEditForm" style="display:none;">
+            <div>
+                <label class="pm-edit-label">Nombre</label>
+                <input class="pm-edit-input" id="pmEditNombre" type="text" value="${escHtml(data.first_name)}" maxlength="50">
             </div>
-            <div class="pm-info-row">
-                <span class="pm-info-label">Último acceso</span>
-                <span style="color:var(--text-primary);font-size:.82rem;font-weight:500">${formatLastLogin(data.last_login)}</span>
+            <div>
+                <label class="pm-edit-label">Apellidos</label>
+                <input class="pm-edit-input" id="pmEditApellidos" type="text" value="${escHtml(data.last_name)}" maxlength="50">
+            </div>
+            <p class="pm-edit-err hidden" id="pmEditErr"></p>
+            <div class="pm-edit-btns">
+                <button class="btn-ghost pm-btn-cancel-edit" style="flex:1;height:34px;font-size:.8rem;">Cancelar</button>
+                <button class="btn-primary pm-btn-save-edit" style="flex:1;height:34px;font-size:.8rem;">Guardar</button>
             </div>
         </div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-subtle);">
-            <button class="pm-btn-reset">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                Resetear contraseña
-            </button>
+
+        <div class="pm-stats-grid">
+            <div class="pm-stat-item">
+                <p class="pm-stat-label">Último acceso</p>
+                <p class="pm-stat-val">${formatLastLogin(data.last_login)}</p>
+            </div>
+            <div class="pm-stat-item">
+                <p class="pm-stat-label">Ingresos totales</p>
+                <p class="pm-stat-val">${data.total_ingresos ?? '—'}</p>
+            </div>
+            <div class="pm-stat-item" style="grid-column:1/-1;">
+                <p class="pm-stat-label">Notificaciones push</p>
+                <p class="pm-stat-val">${fcmBadgeHtml(data.tiene_fcm)}</p>
+            </div>
+        </div>
+        <div class="pm-actions-section">
+            <p class="pm-actions-label">Acciones</p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="pm-btn-edit">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Editar datos
+                </button>
+                <button class="pm-btn-reset">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Resetear contraseña
+                </button>
+            </div>
         </div>`;
 
     // ── Tutor / Regente — layout simple ──────────────────────────
