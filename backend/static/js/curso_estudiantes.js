@@ -5,34 +5,45 @@
    CURSO_ID debe estar definido antes de cargar este script.
    ================================================================ */
 
-const API_STUDENTS = `/api/students/?curso=${CURSO_ID}`;
-const API_CREAR    = '/api/students/crear/';
+const API_STUDENTS  = `/api/students/?curso=${CURSO_ID}`;
+const API_CREAR_SOLO = '/api/students/crear-solo/';
 
 // ── Estado ────────────────────────────────────────────────────────
 let _estudiantes = [];
 let _cursoNombre = '';
 
 // ── DOM refs ──────────────────────────────────────────────────────
-const pageTitle       = document.getElementById('pageTitle');
-const fCursoNombre    = document.getElementById('fCursoNombre');
-const tbody           = document.getElementById('tbodyEstudiantes');
-const tableCount      = document.getElementById('tableCount');
-const searchInput     = document.getElementById('searchInput');
+const pageTitle         = document.getElementById('pageTitle');
+const tbody             = document.getElementById('tbodyEstudiantes');
+const searchInput       = document.getElementById('searchInput');
+const totalNum          = document.getElementById('totalNum');
+const cursoTitleSpan    = document.getElementById('cursoTitleSpan');
+const btnNuevo          = document.getElementById('btnNuevoEstudiante');
 
-const drawer          = document.getElementById('drawer');
-const drawerBackdrop  = document.getElementById('drawerBackdrop');
-const btnNuevo        = document.getElementById('btnNuevoEstudiante');
-const btnCerrar       = document.getElementById('btnCerrarDrawer');
-const btnCancelar     = document.getElementById('btnCancelarDrawer');
-const btnGuardar      = document.getElementById('btnGuardar');
-const btnGuardarText  = document.getElementById('btnGuardarText');
-const btnGuardarSpinner = document.getElementById('btnGuardarSpinner');
+// Modal materias
+const btnToggleMaterias = document.getElementById('btnToggleMaterias');
+const modalMatOverlay   = document.getElementById('modalMateriasOverlay');
+const modalMatRows      = document.getElementById('modalMatRows');
+const modalMatCursoLbl  = document.getElementById('modalMatCursoLabel');
 
-const modalBackdrop   = document.getElementById('modalBackdrop');
-const credUser        = document.getElementById('credUser');
-const credPass        = document.getElementById('credPass');
-const modalEstudiante = document.getElementById('modalEstudiante');
-const btnModalOk      = document.getElementById('btnModalOk');
+// Modal añadir estudiante
+const modalAEOverlay    = document.getElementById('modalAEOverlay');
+const formAE            = document.getElementById('formAE');
+const aeNombre          = document.getElementById('aeNombre');
+const aePaterno         = document.getElementById('aePaterno');
+const aeMaterno         = document.getElementById('aeMaterno');
+const aeCursoNombre     = document.getElementById('aeCursoNombre');
+const aeCourseBadge     = document.getElementById('aeCourseBadge');
+const aeError           = document.getElementById('aeError');
+const btnGuardarAE      = document.getElementById('btnGuardarAE');
+const btnGuardarAEText  = document.getElementById('btnGuardarAEText');
+const btnGuardarAESpinner = document.getElementById('btnGuardarAESpinner');
+
+// Modal éxito
+const modalBackdrop     = document.getElementById('modalBackdrop');
+const modalEstudiante   = document.getElementById('modalEstudiante');
+const credCodigo        = document.getElementById('credCodigo');
+const btnModalOk        = document.getElementById('btnModalOk');
 
 // ── Helpers ───────────────────────────────────────────────────────
 function escHtml(str) {
@@ -42,51 +53,42 @@ function escHtml(str) {
 }
 
 function setGuardando(on) {
-    btnGuardar.disabled = on;
-    btnGuardarText.classList.toggle('hidden', on);
-    btnGuardarSpinner.classList.toggle('hidden', !on);
-}
-
-function inputError(el, msg) {
-    el.classList.add('input-error');
-    let hint = el.parentElement.querySelector('.input-error-msg');
-    if (!hint) {
-        hint = document.createElement('p');
-        hint.className = 'input-error-msg';
-        el.parentElement.appendChild(hint);
-    }
-    hint.textContent = msg;
-}
-
-function clearErrors() {
-    document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-    document.querySelectorAll('.input-error-msg').forEach(el => el.remove());
+    btnGuardarAE.disabled = on;
+    btnGuardarAEText.classList.toggle('hidden', on);
+    btnGuardarAESpinner.classList.toggle('hidden', !on);
 }
 
 // ── Tabla ─────────────────────────────────────────────────────────
+const SVG_CHECK = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+const SVG_CROSS = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>`;
+
 function renderTabla(lista) {
     if (!lista.length) {
-        tbody.innerHTML = `<tr class="tr-empty"><td colspan="6">No se encontraron estudiantes.</td></tr>`;
-        tableCount.textContent = '0 registros';
+        tbody.innerHTML = `<tr class="tr-empty"><td colspan="4">No se encontraron estudiantes.</td></tr>`;
         return;
     }
-    tbody.innerHTML = lista.map((e, i) => `
+
+    tbody.innerHTML = lista.map((e, i) => {
+        const nro        = String(i + 1).padStart(2, '0');
+        const nombreCls  = e.activo ? 'td-name' : 'td-name td-nombre--inactivo';
+        const tutorHtml  = e.tutor_nombre
+            ? `<span class="tutor-check">${SVG_CHECK}</span>`
+            : `<span class="tutor-cross">${SVG_CROSS}</span>`;
+        const estadoHtml = e.activo
+            ? '<span class="badge-activo">Activo</span>'
+            : '<span class="badge-baja">Dado de baja</span>';
+        return `
         <tr class="tr-clickable" data-href="/director/estudiantes/${CURSO_ID}/${e.id}/">
-            <td class="td-num">${i + 1}</td>
-            <td class="td-name">${escHtml(e.nombre_completo)}</td>
-            <td class="td-muted">${e.identificador ? escHtml(e.identificador) : '<span class="no-data">—</span>'}</td>
-            <td>${e.tutor_nombre ? escHtml(e.tutor_nombre) : '<span style="color:var(--danger);font-size:.82rem;">Sin tutor aún</span>'}</td>
-            <td class="td-mono">${e.tutor_username ? escHtml(e.tutor_username) : '<span style="color:var(--danger);font-size:.82rem;">—</span>'}</td>
-            <td>${e.activo
-                ? '<span class="badge badge--success">Activo</span>'
-                : '<span class="badge badge--danger">Inactivo</span>'
-            }</td>
-        </tr>
-    `).join('');
+            <td class="td-mono" style="font-size:13px">${nro}</td>
+            <td class="${nombreCls}">${escHtml(e.nombre_completo)}</td>
+            <td class="td-tutor-icon">${tutorHtml}</td>
+            <td>${estadoHtml}</td>
+        </tr>`;
+    }).join('');
+
     tbody.querySelectorAll('.tr-clickable').forEach(tr => {
         tr.addEventListener('click', () => window.location.href = tr.dataset.href);
     });
-    tableCount.textContent = `${lista.length} ${lista.length === 1 ? 'registro' : 'registros'}`;
 }
 
 searchInput.addEventListener('input', () => {
@@ -97,117 +99,118 @@ searchInput.addEventListener('input', () => {
     ));
 });
 
-// ── Username auto-generado ─────────────────────────────────────────
-let _usernameEditado = false;
+// ── Modal Materias ────────────────────────────────────────────────
+let _materiasCargadas = false;
 
-function _normalizar(texto) {
-    return texto.normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/gi, '')
-        .toLowerCase();
+async function abrirModalMaterias() {
+    if (!modalMatOverlay) return;
+    if (modalMatCursoLbl) modalMatCursoLbl.textContent = _cursoNombre;
+    modalMatOverlay.classList.add('visible');
+
+    if (_materiasCargadas) return;
+    _materiasCargadas = true;
+
+    const { ok, data } = await fetchAPI(`/api/academics/cursos/${CURSO_ID}/materias/`);
+    if (!ok || !data?.length) {
+        modalMatRows.innerHTML = `<div class="modal-mat-row" style="color:var(--text-muted);font-size:13px;grid-column:1/-1">Sin materias asignadas a este curso.</div>`;
+        return;
+    }
+    modalMatRows.innerHTML = data.map(m => `
+        <div class="modal-mat-row">
+            <span class="modal-mat-row__mat">${escHtml(m.materia)}</span>
+            <span class="modal-mat-row__prof">${escHtml(m.profesor)}</span>
+        </div>`).join('');
 }
 
-function _generarUsername(nombre, apellidos) {
-    const n = _normalizar(nombre);
-    const a = _normalizar(apellidos);
-    return (n.slice(0, 1) + a.slice(0, 11)).slice(0, 12);
+function cerrarModalMaterias() {
+    modalMatOverlay?.classList.remove('visible');
 }
 
-function _actualizarUsername() {
-    if (_usernameEditado) return;
-    const nombre    = document.getElementById('fTutorNombre').value.trim();
-    const apellidos = document.getElementById('fTutorApellidos').value.trim();
-    const input     = document.getElementById('fTutorUsername');
-    const tag       = document.getElementById('usernameAutoTag');
-    const generado  = _generarUsername(nombre, apellidos);
-    input.value = generado;
-    if (tag) tag.style.display = generado ? 'inline' : 'none';
+btnToggleMaterias?.addEventListener('click', abrirModalMaterias);
+document.getElementById('btnCerrarModalMat')?.addEventListener('click', cerrarModalMaterias);
+document.getElementById('btnModalMatCerrar')?.addEventListener('click', cerrarModalMaterias);
+modalMatOverlay?.addEventListener('click', e => { if (e.target === modalMatOverlay) cerrarModalMaterias(); });
+
+// ── Modal Añadir Estudiante ───────────────────────────────────────
+function abrirModalAE() {
+    aeNombre.value  = '';
+    aePaterno.value = '';
+    aeMaterno.value = '';
+    aeError.style.display = 'none';
+    [aeNombre, aePaterno, aeMaterno].forEach(el => el.classList.remove('input-error'));
+    modalAEOverlay.classList.add('visible');
+    aeNombre.focus();
 }
 
-// ── Drawer ────────────────────────────────────────────────────────
-function abrirDrawer() {
-    clearErrors();
-    _usernameEditado = false;
-    ['fNombre','fApellidoPaterno','fApellidoMaterno','fTutorNombre','fTutorApellidos','fTutorUsername'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    const tag = document.getElementById('usernameAutoTag');
-    if (tag) tag.style.display = 'none';
-    drawer.classList.add('drawer--open');
-    drawerBackdrop.classList.add('visible');
-    document.getElementById('fNombre').focus();
+function cerrarModalAE() {
+    modalAEOverlay.classList.remove('visible');
 }
 
-function cerrarDrawer() {
-    drawer.classList.remove('drawer--open');
-    drawerBackdrop.classList.remove('visible');
-}
+btnNuevo?.addEventListener('click', abrirModalAE);
+document.getElementById('btnCerrarAE')?.addEventListener('click', cerrarModalAE);
+document.getElementById('btnCancelarAE')?.addEventListener('click', cerrarModalAE);
+modalAEOverlay?.addEventListener('click', e => { if (e.target === modalAEOverlay) cerrarModalAE(); });
 
-btnNuevo.addEventListener('click', abrirDrawer);
-btnCerrar.addEventListener('click', cerrarDrawer);
-btnCancelar.addEventListener('click', cerrarDrawer);
-drawerBackdrop.addEventListener('click', cerrarDrawer);
+formAE?.addEventListener('submit', async e => {
+    e.preventDefault();
 
-document.getElementById('fTutorNombre').addEventListener('input', _actualizarUsername);
-document.getElementById('fTutorApellidos').addEventListener('input', _actualizarUsername);
-document.getElementById('fTutorUsername').addEventListener('input', () => {
-    _usernameEditado = true;
-    const tag = document.getElementById('usernameAutoTag');
-    if (tag) tag.style.display = 'none';
-});
+    const nombre   = aeNombre.value.trim();
+    const paterno  = aePaterno.value.trim();
+    const materno  = aeMaterno.value.trim();
 
-// ── Guardar ───────────────────────────────────────────────────────
-btnGuardar.addEventListener('click', async () => {
-    clearErrors();
-
-    const nombre           = document.getElementById('fNombre').value.trim();
-    const apellidoPaterno  = document.getElementById('fApellidoPaterno').value.trim();
-    const apellidoMaterno  = document.getElementById('fApellidoMaterno').value.trim();
-    const tutorNombre      = document.getElementById('fTutorNombre').value.trim();
-    const tutorApellidos   = document.getElementById('fTutorApellidos').value.trim();
-    const tutorUsername    = document.getElementById('fTutorUsername').value.trim();
+    // Validación
     let valido = true;
-    if (!nombre)         { inputError(document.getElementById('fNombre'),         'Campo obligatorio.'); valido = false; }
-    if (!apellidoPaterno && !apellidoMaterno) { inputError(document.getElementById('fApellidoPaterno'), 'Al menos un apellido es obligatorio.'); valido = false; }
-    if (!tutorNombre)    { inputError(document.getElementById('fTutorNombre'),    'Campo obligatorio.'); valido = false; }
-    if (!tutorApellidos) { inputError(document.getElementById('fTutorApellidos'), 'Campo obligatorio.'); valido = false; }
-    if (!tutorUsername)  { inputError(document.getElementById('fTutorUsername'),  'Campo obligatorio.'); valido = false; }
-    if (!valido) return;
+    [aeNombre, aePaterno, aeMaterno].forEach(el => el.classList.remove('input-error'));
+    aeError.style.display = 'none';
+
+    if (!nombre) { aeNombre.classList.add('input-error'); valido = false; }
+    if (!paterno && !materno) {
+        aePaterno.classList.add('input-error');
+        aeMaterno.classList.add('input-error');
+        valido = false;
+    }
+    if (!valido) {
+        aeError.textContent = 'Por favor completa los campos requeridos.';
+        aeError.style.display = 'block';
+        return;
+    }
 
     setGuardando(true);
 
-    const { ok, data } = await fetchAPI(API_CREAR, {
+    const { ok, data } = await fetchAPI(API_CREAR_SOLO, {
         method: 'POST',
         body: JSON.stringify({
             nombre,
-            apellido_paterno: apellidoPaterno,
-            apellido_materno: apellidoMaterno,
+            apellido_paterno: paterno,
+            apellido_materno: materno,
             curso: CURSO_ID,
-            tutor_nombre:    tutorNombre,
-            tutor_apellidos: tutorApellidos,
-            tutor_username:  tutorUsername,
         }),
     });
 
     setGuardando(false);
-    if (!ok) return;
 
-    _estudiantes.unshift(data.estudiante);
+    if (!ok) {
+        aeError.textContent = data?.errores || 'Error al guardar. Intenta nuevamente.';
+        aeError.style.display = 'block';
+        return;
+    }
+
+    // Éxito
+    _estudiantes.unshift(data);
+    if (totalNum) totalNum.textContent = String(_estudiantes.length).padStart(3, '0');
     renderTabla(_estudiantes);
-    cerrarDrawer();
-    mostrarCredenciales(data.estudiante, data.credenciales_tutor);
+    cerrarModalAE();
+    mostrarExito(data);
 });
 
-// ── Modal credenciales ────────────────────────────────────────────
-function mostrarCredenciales(estudiante, creds) {
+// ── Modal éxito ───────────────────────────────────────────────────
+function mostrarExito(estudiante) {
     modalEstudiante.textContent = estudiante.nombre_completo;
-    credUser.textContent = creds.username;
-    credPass.textContent = creds.password;
+    credCodigo.textContent = estudiante.identificador || '—';
     modalBackdrop.classList.add('visible');
 }
 
-btnModalOk.addEventListener('click', () => modalBackdrop.classList.remove('visible'));
+btnModalOk?.addEventListener('click', () => modalBackdrop.classList.remove('visible'));
 
 document.querySelectorAll('.cred-copy').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -219,16 +222,24 @@ document.querySelectorAll('.cred-copy').forEach(btn => {
     });
 });
 
+// ── Escape key ───────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (modalAEOverlay?.classList.contains('visible'))    cerrarModalAE();
+    else if (modalMatOverlay?.classList.contains('visible')) cerrarModalMaterias();
+});
+
 // ── Inicializar ───────────────────────────────────────────────────
 (async () => {
-    // Nombre del curso ya viene del contexto Django
     _cursoNombre = CURSO_NOMBRE;
-    pageTitle.textContent    = _cursoNombre;
-    fCursoNombre.textContent = _cursoNombre;
+    pageTitle.textContent = _cursoNombre;
+    if (cursoTitleSpan)  cursoTitleSpan.textContent = _cursoNombre;
+    if (aeCursoNombre)   aeCursoNombre.textContent  = _cursoNombre;
+    if (aeCourseBadge)   aeCourseBadge.textContent  = `Curso: ${_cursoNombre}`;
 
-    // Cargar estudiantes del curso
     const { ok, data } = await fetchAPI(API_STUDENTS);
     if (!ok) return;
     _estudiantes = Array.isArray(data) ? data : [];
+    if (totalNum) totalNum.textContent = String(_estudiantes.length).padStart(3, '0');
     renderTabla(_estudiantes);
 })();

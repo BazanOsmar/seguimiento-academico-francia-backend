@@ -3,12 +3,19 @@ from backend.apps.students.views.student_list_views import EstudiantesPorCursoVi
 from backend.apps.students.views.student_director_views import (
     EstudianteDirectorListView,
     EstudianteCreateView,
+    EstudianteSoloCreateView,
     EstudianteDetailView,
 )
 from backend.apps.students.views.student_search_views import EstudianteBusquedaView
 from backend.apps.students.views.student_import_views import ImportarEstudiantesExcelView
+from backend.apps.students.views.student_me_views import MiEstudianteView
 
 urlpatterns = [
+    path(
+        "me/student/",
+        MiEstudianteView.as_view(),
+        name="mi-estudiante",
+    ),
     path(
         "importar-excel/",
         ImportarEstudiantesExcelView.as_view(),
@@ -28,6 +35,11 @@ urlpatterns = [
         "crear/",
         EstudianteCreateView.as_view(),
         name="estudiantes-crear",
+    ),
+    path(
+        "crear-solo/",
+        EstudianteSoloCreateView.as_view(),
+        name="estudiantes-crear-solo",
     ),
     path(
         "buscar/",

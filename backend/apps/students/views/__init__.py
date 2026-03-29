@@ -1,2 +1,3 @@
 from .student_list_views import EstudiantesPorCursoView
 from .student_director_views import EstudianteDirectorListView, EstudianteCreateView
+from .student_me_views import MiEstudianteView

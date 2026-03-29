@@ -7,6 +7,7 @@ from backend.apps.attendance.views.resumen_cursos_views import ResumenCursosTodo
 from backend.apps.attendance.views.calendario_mensual_views import CalendarioMensualView
 from backend.apps.attendance.views.calendario_estudiante_views import CalendarioEstudianteView
 from .views import EstadoAsistenciaDiariaView, RegistrosRecientesView, HistorialEstudianteView, HistorialCursoView
+from backend.apps.attendance.views.historial_tutor_views import HistorialTutorView
 
 urlpatterns = [
     path(
@@ -48,6 +49,11 @@ urlpatterns = [
         "registros-recientes/",
         RegistrosRecientesView.as_view(),
         name="registros-recientes",
+    ),
+    path(
+        "parents/me/historial/",
+        HistorialTutorView.as_view(),
+        name="historial-tutor",
     ),
     path(
         "estudiantes/<int:estudiante_id>/historial/",

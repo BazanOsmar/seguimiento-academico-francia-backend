@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from backend.core.utils import generar_password
@@ -23,6 +24,16 @@ class UserListSerializer(serializers.ModelSerializer):
         return bool(getattr(obj, 'tiene_fcm', False))
 
 
+def _username_base(first_name, last_name):
+    """Genera username base: primera palabra del nombre + primera del apellido, sin acentos."""
+    def normalizar(s):
+        nfkd = unicodedata.normalize('NFKD', s.strip().split()[0])
+        return re.sub(r'[^a-z0-9]', '', ''.join(
+            c for c in nfkd if not unicodedata.combining(c)
+        ).lower())
+    return normalizar(first_name) + normalizar(last_name)
+
+
 class UserCreateSerializer(serializers.ModelSerializer):
     tipo_usuario = serializers.SlugRelatedField(
         slug_field='nombre',
@@ -31,19 +42,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'tipo_usuario')
+        fields = ('first_name', 'last_name', 'tipo_usuario')
         extra_kwargs = {
-            'username':   {'required': True},
             'first_name': {'required': True},
             'last_name':  {'required': True},
         }
-
-    def validate_username(self, value):
-        if len(value) < 6:
-            raise serializers.ValidationError("El nombre de usuario debe tener al menos 6 caracteres.")
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Ya existe un usuario con ese nombre de usuario.")
-        return value
 
     def validate_first_name(self, value):
         value = value.strip()
@@ -62,11 +65,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        password = generar_password(
-            validated_data['first_name'],
-            validated_data['last_name']
-        )
+        base     = _username_base(validated_data['first_name'], validated_data['last_name'])
+        username = base
+        counter  = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base}{counter}"
+            counter += 1
+
+        password = generar_password(validated_data['first_name'], validated_data['last_name'])
         user = User.objects.create_user(
+            username=username,
             password=password,
             primer_ingreso=True,
             **validated_data

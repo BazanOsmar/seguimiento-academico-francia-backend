@@ -3,18 +3,23 @@ from .models import Curso, Materia, ProfesorCurso, ProfesorPlan
 
 
 class ProfesorAsignacionSerializer(serializers.ModelSerializer):
-    """Devuelve las asignaciones (ProfesorCurso) del profesor autenticado."""
+    """Devuelve las asignaciones (ProfesorCurso) del profesor autenticado, con conteo de planes."""
     materia_id     = serializers.IntegerField(source='materia.id', read_only=True)
     materia_nombre = serializers.CharField(source='materia.nombre', read_only=True)
     curso_id       = serializers.IntegerField(source='curso.id', read_only=True)
     curso_nombre   = serializers.SerializerMethodField()
+    planes_count   = serializers.SerializerMethodField()
 
     class Meta:
         model  = ProfesorCurso
-        fields = ('id', 'materia_id', 'materia_nombre', 'curso_id', 'curso_nombre')
+        fields = ('id', 'materia_id', 'materia_nombre', 'curso_id', 'curso_nombre', 'planes_count')
 
     def get_curso_nombre(self, obj):
         return f'{obj.curso.grado} "{obj.curso.paralelo}"'
+
+    def get_planes_count(self, obj):
+        counts = self.context.get('planes_counts', {})
+        return counts.get(obj.id, 0)
 
 
 class CursoSerializer(serializers.ModelSerializer):

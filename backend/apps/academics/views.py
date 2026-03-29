@@ -15,6 +15,12 @@ from backend.apps.users.permissions import IsDirectorOrRegente, IsProfesor, IsDi
 from .models import Curso, Materia, ProfesorCurso, PlanDeTrabajo, ProfesorPlan
 from .serializers import CursoSerializer, MateriaSerializer, AsignacionSerializer, ProfesorPlanSerializer, DirectorPlanSerializer, ProfesorAsignacionSerializer
 from .services.planilla_validator import validar_estructura, validar_pertenencia, extraer_notas, validar_estudiantes
+from .services.planilla_validator_2026 import (
+    es_formato_2026,
+    validar_estructura_2026,
+    validar_pertenencia_2026,
+)
+from .services.notas_mongo_service import guardar_notas, obtener_notas
 
 
 class CursoListView(ListAPIView):
@@ -176,19 +182,45 @@ class AsignacionListCreateView(APIView):
 
 class ProfesorMisAsignacionesView(APIView):
     """
-    GET /api/academics/profesor/mis-asignaciones/
-    Retorna todas las asignaciones (ProfesorCurso) del profesor autenticado.
+    GET /api/academics/profesor/mis-asignaciones/?mes=N
+    Retorna todas las asignaciones (ProfesorCurso) del profesor autenticado,
+    con el conteo de planes de trabajo. Si se pasa ?mes=N (1-12), planes_count
+    refleja solo los planes de ese mes; sin el parámetro cuenta todos los meses.
     """
     permission_classes = [IsAuthenticated, IsProfesor]
 
     def get(self, request):
+        mes = request.query_params.get('mes')
+        if mes is not None:
+            try:
+                mes = int(mes)
+                if not (1 <= mes <= 12):
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response(
+                    {'errores': 'El parámetro mes debe ser un número entre 1 y 12.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         qs = (
             ProfesorCurso.objects
             .filter(profesor=request.user)
             .select_related('materia', 'curso')
             .order_by('materia__nombre', 'curso__grado', 'curso__paralelo')
         )
-        return Response(ProfesorAsignacionSerializer(qs, many=True).data)
+
+        planes_qs = ProfesorPlan.objects.filter(profesor_curso__profesor=request.user)
+        if mes is not None:
+            planes_qs = planes_qs.filter(mes=mes)
+
+        planes_counts = {
+            row['profesor_curso_id']: row['total']
+            for row in planes_qs.values('profesor_curso_id').annotate(total=Count('id'))
+        }
+
+        return Response(
+            ProfesorAsignacionSerializer(qs, many=True, context={'planes_counts': planes_counts}).data
+        )
 
 
 class ProfesorPlanListCreateView(APIView):
@@ -287,10 +319,21 @@ class ProfesorPlanHistorialView(APIView):
 
 class ProfesorPlanDetailView(APIView):
     """
+    GET    /api/academics/profesor/planes/{plan_id}/  — detalle de un plan del profesor autenticado
     DELETE /api/academics/profesor/planes/{plan_id}/  — elimina un plan del profesor autenticado
     """
 
     permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request, plan_id):
+        try:
+            pp = ProfesorPlan.objects.select_related(
+                'plan', 'profesor_curso__materia', 'profesor_curso__curso'
+            ).get(pk=plan_id, profesor_curso__profesor=request.user)
+        except ProfesorPlan.DoesNotExist:
+            return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(ProfesorPlanSerializer(pp).data)
 
     def delete(self, request, plan_id):
         try:
@@ -531,22 +574,24 @@ class ValidarPlanillaView(APIView):
         if not (nombre.endswith('.xlsx') or nombre.endswith('.xls')):
             return Response({'errores': 'Solo se aceptan archivos .xlsx o .xls.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            profesor_curso_id = int(request.data.get('profesor_curso_id', 0))
-        except (ValueError, TypeError):
-            return Response({'errores': 'profesor_curso_id inválido.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            profesor_curso = (
-                ProfesorCurso.objects
-                .select_related('profesor', 'materia', 'curso')
-                .get(pk=profesor_curso_id, profesor=request.user)
-            )
-        except ProfesorCurso.DoesNotExist:
-            return Response(
-                {'errores': 'Asignación no válida o no te pertenece.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        profesor_curso_id = request.data.get('profesor_curso_id')
+        profesor_curso = None
+        if profesor_curso_id:
+            try:
+                profesor_curso_id = int(profesor_curso_id)
+            except (ValueError, TypeError):
+                return Response({'errores': 'profesor_curso_id inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                profesor_curso = (
+                    ProfesorCurso.objects
+                    .select_related('profesor', 'materia', 'curso')
+                    .get(pk=profesor_curso_id, profesor=request.user)
+                )
+            except ProfesorCurso.DoesNotExist:
+                return Response(
+                    {'errores': 'Asignación no válida o no te pertenece.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         import openpyxl as _xl
 
@@ -559,37 +604,81 @@ class ValidarPlanillaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Una sola carga — se pasa el workbook abierto a todas las funciones
-        resultado = validar_estructura(wb)
-
-        if resultado['es_valido']:
-            errores_pertenencia = validar_pertenencia(resultado['metadatos'], profesor_curso)
-            if errores_pertenencia:
-                resultado['es_valido'] = False
-                resultado['errores'].extend(errores_pertenencia)
-            else:
-                notas = extraer_notas(wb)
-                resultado['notas'] = notas
-
-                nombres_excel = []
-                for trim_data in notas['trimestres'].values():
-                    datos = trim_data['saber']['datos'] or trim_data['hacer']['datos']
-                    if datos:
-                        nombres_excel = [e['nombre'] for e in datos]
-                        break
-
-                curso_nombre = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
-                val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
-                val_est['curso_verificado'] = curso_nombre
-                resultado['estudiantes'] = val_est
-                if not val_est['es_valido']:
+        # ── Detectar formato y bifurcar ───────────────────────────────
+        if es_formato_2026(wb):
+            resultado = validar_estructura_2026(wb)
+            if resultado['es_valido'] and profesor_curso:
+                errores_pertenencia = validar_pertenencia_2026(resultado['metadatos'], profesor_curso)
+                if errores_pertenencia:
                     resultado['es_valido'] = False
-                    resultado['errores'].append(
-                        f"{len(val_est['no_encontrados'])} estudiante(s) del Excel "
-                        f"no se encontraron en el curso {curso_nombre}."
-                    )
+                    resultado['errores'].extend(errores_pertenencia)
+                else:
+                    _TRIM_MAP = {'1TRIM': 1, '2TRIM': 2, '3TRIM': 3}
+                    headers_por_trim = resultado['metadatos'].get('headers_actividades', {})
+                    mongo_result = {'insertados': 0, 'actualizados': 0, 'errores': 0}
+                    for hoja, dims in headers_por_trim.items():
+                        t = _TRIM_MAP.get(hoja, 1)
+                        r = guardar_notas(profesor_curso, t, dims)
+                        mongo_result['insertados']  += r['insertados']
+                        mongo_result['actualizados'] += r['actualizados']
+                        mongo_result['errores']      += r['errores']
+                    resultado['mongo'] = mongo_result
+        else:
+            # Formato Ley 070 (antiguo)
+            resultado = validar_estructura(wb)
+            if resultado['es_valido']:
+                errores_pertenencia = validar_pertenencia(resultado['metadatos'], profesor_curso)
+                if errores_pertenencia:
+                    resultado['es_valido'] = False
+                    resultado['errores'].extend(errores_pertenencia)
+                else:
+                    notas = extraer_notas(wb)
+                    resultado['notas'] = notas
+
+                    nombres_excel = []
+                    for trim_data in notas['trimestres'].values():
+                        datos = trim_data['saber']['datos'] or trim_data['hacer']['datos']
+                        if datos:
+                            nombres_excel = [e['nombre'] for e in datos]
+                            break
+
+                    curso_nombre = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
+                    val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
+                    val_est['curso_verificado'] = curso_nombre
+                    resultado['estudiantes'] = val_est
+                    if not val_est['es_valido']:
+                        resultado['es_valido'] = False
+                        resultado['errores'].append(
+                            f"{len(val_est['no_encontrados'])} estudiante(s) del Excel "
+                            f"no se encontraron en el curso {curso_nombre}."
+                        )
 
         return Response(resultado)
+
+
+class NotasMongoView(APIView):
+    """
+    GET /api/academics/profesor/notas/?profesor_curso_id=X&trimestre=1
+    Recupera las notas guardadas en MongoDB para una asignación y trimestre.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        try:
+            profesor_curso_id = int(request.query_params.get('profesor_curso_id', 0))
+            trimestre         = int(request.query_params.get('trimestre', 1))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pc = ProfesorCurso.objects.select_related('materia', 'curso').get(
+                pk=profesor_curso_id, profesor=request.user
+            )
+        except ProfesorCurso.DoesNotExist:
+            return Response({'errores': 'Asignación no válida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        actividades = obtener_notas(pc.materia.id, pc.curso.id, trimestre)
+        return Response({'trimestre': trimestre, 'actividades': actividades})
 
 
 class AsignacionDetailView(APIView):

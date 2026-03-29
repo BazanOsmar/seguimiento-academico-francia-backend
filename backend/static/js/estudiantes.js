@@ -1,7 +1,7 @@
 'use strict';
 
 /* ================================================================
-   estudiantes.js — Grid de cursos + buscador global de estudiantes
+   estudiantes.js — Grid de cursos y métricas de estudiantes
    ================================================================ */
 
 const API_CURSOS      = '/api/academics/cursos/';
@@ -21,32 +21,17 @@ const CARD_COLORS = [
 ];
 
 // ── DOM refs ──────────────────────────────────────────────────────
-const grid           = document.getElementById('coursesGrid');
+const grid         = document.getElementById('coursesGrid');
 const coursesLoading = document.getElementById('coursesLoading');
-const searchInput    = document.getElementById('searchInput');
-const searchResults  = document.getElementById('searchResults');
-const searchBody     = document.getElementById('searchTableBody');
-const searchCount    = document.getElementById('searchCount');
-const metricsRow     = document.getElementById('metricsRow');
-const metricsInner   = document.getElementById('metricsInner');
+const metricsRow   = document.getElementById('metricsRow');
+const metricsInner = document.getElementById('metricsInner');
 
-let _cursos      = [];
-let _searchTimer = null;
+let _cursos = [];
 
 // ── Helpers ───────────────────────────────────────────────────────
 function shortCode(grado, paralelo) {
     const num = (grado.match(/\d+/) || ['?'])[0];
     return num + paralelo.trim().toUpperCase();
-}
-
-function showGrid() {
-    grid.classList.remove('hidden');
-    searchResults.classList.add('hidden');
-}
-
-function showSearch() {
-    grid.classList.add('hidden');
-    searchResults.classList.remove('hidden');
 }
 
 // ── Renderizar métricas ───────────────────────────────────────────
@@ -67,16 +52,9 @@ function renderMetricas(lista) {
     });
 
     const metricCard = (label, value, accent) => `
-        <div style="
-            background:var(--bg-card);
-            border:1px solid var(--border);
-            border-radius:var(--radius-card);
-            padding:14px 20px;
-            display:flex;flex-direction:column;gap:4px;
-            min-width:110px;flex:1;
-        ">
-            <span style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">${label}</span>
-            <span style="font-size:1.6rem;font-weight:700;color:${accent};">${value}</span>
+        <div class="metric-card">
+            <span class="metric-card__label">${label}</span>
+            <span class="metric-card__value" style="color:${accent};">${value}</span>
         </div>`;
 
     let html = metricCard('Total', total, 'var(--accent-text)');
@@ -85,7 +63,7 @@ function renderMetricas(lista) {
     });
 
     metricsInner.innerHTML = html;
-    metricsRow.style.display = 'block';
+    metricsRow.style.display = 'flex';
 }
 
 // ── Renderizar grid de cursos ─────────────────────────────────────
@@ -121,56 +99,6 @@ function renderCursos(lista) {
         grid.appendChild(card);
     });
 }
-
-// ── Renderizar tabla de resultados ────────────────────────────────
-function renderResultados(lista) {
-    if (!lista.length) {
-        searchBody.innerHTML = '<tr class="tr-empty"><td colspan="4">Sin resultados para esa búsqueda.</td></tr>';
-        searchCount.textContent = '';
-        return;
-    }
-
-    searchBody.innerHTML = lista.map((e, i) => `
-        <tr>
-            <td class="td-num">${i + 1}</td>
-            <td class="td-name">${e.nombre_completo}</td>
-            <td class="td-mono">${e.identificador || '—'}</td>
-            <td><span class="badge-curso">${e.curso_nombre}</span></td>
-        </tr>
-    `).join('');
-
-    const n = lista.length;
-    searchCount.textContent = n === 10
-        ? 'Mostrando los primeros 10 resultados'
-        : `${n} estudiante${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
-}
-
-// ── Buscar estudiantes via API ────────────────────────────────────
-async function buscarEstudiantes(q) {
-    showSearch();
-    searchBody.innerHTML = '<tr class="tr-loading"><td colspan="4"><span class="table-spinner"></span> Buscando…</td></tr>';
-    searchCount.textContent = '';
-
-    const { ok, data } = await fetchAPI(`${API_ESTUDIANTES}?q=${encodeURIComponent(q)}`);
-    if (!ok) {
-        searchBody.innerHTML = '<tr class="tr-empty"><td colspan="4">Error al realizar la búsqueda.</td></tr>';
-        return;
-    }
-
-    renderResultados(Array.isArray(data) ? data : (data.results ?? []));
-}
-
-// ── Input con debounce 350 ms ─────────────────────────────────────
-searchInput.addEventListener('input', () => {
-    clearTimeout(_searchTimer);
-    const q = searchInput.value.trim();
-    if (!q) { showGrid(); return; }
-    _searchTimer = setTimeout(() => buscarEstudiantes(q), 350);
-});
-
-searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { searchInput.value = ''; showGrid(); }
-});
 
 // ── Cargar cursos al inicio ───────────────────────────────────────
 (async () => {

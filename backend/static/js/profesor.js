@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _initLogout();
     _initUserInfo();
     _initTabs();
+    _initCitacionesVisualOnly();
     _initDragDrop();
     _initCitacionForm();
     _initPlanForm();
@@ -72,6 +73,104 @@ function _initTabs() {
     document.getElementById('sideCitaciones').addEventListener('click', () => _activarTab('panelCitaciones'));
     document.getElementById('sidePlan').addEventListener('click',       () => _activarTab('panelPlan'));
     document.getElementById('sideCuenta').addEventListener('click',     () => _activarTab('panelCuenta'));
+}
+
+// ── Citaciones/Comunicados (solo interfaz visual, sin backend) ──
+function _initCitacionesVisualOnly() {
+    const secCit = document.getElementById('secTitleCitProf');
+    const secCom = document.getElementById('secTitleComProf');
+    const search = document.getElementById('searchInputProf');
+    const btnCit = document.getElementById('btnToggleCitProf');
+    const btnCom = document.getElementById('btnToggleComProf');
+    const stats  = document.getElementById('statsRowProf');
+    const secCitCard = document.getElementById('sectionCitCardProf');
+    const secComCard = document.getElementById('sectionComCardProf');
+    if (!secCit || !secCom || !search || !btnCit || !btnCom || !stats || !secCitCard || !secComCard) return;
+
+    const ahora = new Date();
+    const limiteAnio = ahora.getFullYear();
+    const limiteMes = ahora.getMonth();
+    let mesCit = { year: limiteAnio, month: limiteMes };
+    let mesCom = { year: limiteAnio, month: limiteMes };
+
+    const fmtMes = ({ year, month }) =>
+        new Date(year, month, 1).toLocaleDateString('es-BO', { month: 'long', year: 'numeric' });
+
+    const _setSec = (sec) => {
+        const esCit = sec === 'cit';
+        secCit.classList.toggle('sec-title--active', esCit);
+        secCom.classList.toggle('sec-title--active', !esCit);
+        stats.style.display = esCit ? '' : 'none';
+        secCitCard.style.display = esCit ? '' : 'none';
+        secComCard.style.display = esCit ? 'none' : '';
+        btnCit.style.display = esCit ? '' : 'none';
+        btnCom.style.display = esCit ? 'none' : '';
+        search.placeholder = esCit
+            ? 'Buscar por nombre del estudiante...'
+            : 'Buscar por titulo del comunicado...';
+    };
+
+    const _setupMonthNav = (prevId, nextId, labelId, getter, setter) => {
+        const prev = document.getElementById(prevId);
+        const next = document.getElementById(nextId);
+        const lbl  = document.getElementById(labelId);
+        if (!prev || !next || !lbl) return;
+        const paint = () => {
+            const v = getter();
+            lbl.textContent = fmtMes(v);
+            prev.disabled = (v.year === limiteAnio && v.month === 0);
+            next.disabled = (v.year === limiteAnio && v.month === limiteMes);
+        };
+        prev.addEventListener('click', () => {
+            const v = getter();
+            if (v.year === limiteAnio && v.month === 0) return;
+            const d = new Date(v.year, v.month - 1, 1);
+            setter({ year: d.getFullYear(), month: d.getMonth() });
+            paint();
+        });
+        next.addEventListener('click', () => {
+            const v = getter();
+            if (v.year === limiteAnio && v.month === limiteMes) return;
+            const d = new Date(v.year, v.month + 1, 1);
+            setter({ year: d.getFullYear(), month: d.getMonth() });
+            paint();
+        });
+        paint();
+    };
+
+    const _setupChipGroup = (id) => {
+        const wrap = document.getElementById(id);
+        if (!wrap) return;
+        wrap.addEventListener('click', (e) => {
+            const chip = e.target.closest('.rol-chip');
+            if (!chip) return;
+            wrap.querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+            chip.classList.add('rol-chip--active');
+        });
+    };
+
+    stats.addEventListener('click', (e) => {
+        const card = e.target.closest('.cit-stat-card');
+        if (!card) return;
+        stats.querySelectorAll('.cit-stat-card').forEach(c => c.classList.remove('cit-stat-card--active'));
+        card.classList.add('cit-stat-card--active');
+    });
+
+    secCit.addEventListener('click', () => _setSec('cit'));
+    secCom.addEventListener('click', () => _setSec('com'));
+
+    [btnCit, btnCom].forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.add('is-open');
+            setTimeout(() => btn.classList.remove('is-open'), 180);
+        });
+    });
+
+    _setupChipGroup('rolChipsProf');
+    _setupChipGroup('rolChipsComProf');
+    _setupMonthNav('btnMesPrevProf', 'btnMesNextProf', 'citMesLabelProf', () => mesCit, v => { mesCit = v; });
+    _setupMonthNav('btnComMesPrevProf', 'btnComMesNextProf', 'comMesLabelProf', () => mesCom, v => { mesCom = v; });
+    _setSec('cit');
 }
 
 // ── Sidebar (hamburguesa) ─────────────────────────────────────────
@@ -1328,4 +1427,3 @@ async function _cargarPerfilStats() {
         document.getElementById('statCitTotal').textContent = citData.length;
     }
 }
-

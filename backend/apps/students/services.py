@@ -11,6 +11,34 @@ _PATRON_HOJA       = re.compile(r'^\S+\s+[A-Za-z]$')
 _COLUMNAS_ESPERADAS = ['PATERNO', 'MATERNO', 'NOMBRES']
 
 
+def crear_estudiante_solo(datos):
+    """
+    Crea un Estudiante sin tutor, generando el identificador automáticamente
+    con el patrón: {ini_paterno}{ini_materno}{ini_nombre}{grado}{paralelo}-{nro:02d}
+    """
+    curso      = datos['curso']
+    ap_paterno = datos.get('apellido_paterno', '').strip().upper()
+    ap_materno = datos.get('apellido_materno', '').strip().upper()
+    nombre     = datos['nombre'].strip().upper()
+
+    base_nro = Estudiante.objects.filter(curso=curso).count() + 1
+    nro = base_nro
+    while True:
+        cand = _generar_identificador(ap_paterno, ap_materno, nombre, curso.grado, curso.paralelo, nro)
+        if not Estudiante.objects.filter(identificador=cand).exists():
+            break
+        nro += 1
+
+    return Estudiante.objects.create(
+        nombre=nombre,
+        apellido_paterno=ap_paterno,
+        apellido_materno=ap_materno,
+        identificador=cand,
+        curso=curso,
+        activo=True,
+    )
+
+
 @transaction.atomic
 def crear_estudiante_con_tutor(datos):
     """

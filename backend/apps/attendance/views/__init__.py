@@ -3,3 +3,4 @@ from .attendance_create_views import RegistrarAsistenciaCursoView
 from .registros_recientes_views import RegistrosRecientesView
 from .historial_estudiante_views import HistorialEstudianteView
 from .historial_curso_views import HistorialCursoView
+from .historial_tutor_views import HistorialTutorView

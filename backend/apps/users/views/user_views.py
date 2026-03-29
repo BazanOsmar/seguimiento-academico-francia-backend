@@ -215,6 +215,18 @@ class UserView(APIView):
         return Response({'stats': stats, 'usuarios': serializer.data})
 
     def post(self, request):
+        password_director = request.data.get('password_director', '').strip()
+        if not password_director:
+            return Response(
+                {'password_director': ['Se requiere tu contraseña para confirmar.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not request.user.check_password(password_director):
+            return Response(
+                {'password_director': ['Contraseña incorrecta.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = UserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

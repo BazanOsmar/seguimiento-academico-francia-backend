@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..models import Citacion
 from ..serializers.citacion_read_serializers import CitacionDetailSerializer
-from backend.apps.users.permissions import IsDirectorOrRegente, IsTutor
+from backend.apps.users.permissions import IsDirectorOrRegente, IsTutor, IsDirectorOrRegenteOrProfesor
 
 
 class CitacionDetailView(APIView):
@@ -24,7 +24,7 @@ class CitacionDetailView(APIView):
     Permisos: Solo Director o Regente.
     """
 
-    permission_classes = [IsAuthenticated, IsDirectorOrRegente]
+    permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
 
     def _get_citacion(self, citacion_id):
         """
@@ -49,7 +49,8 @@ class CitacionDetailView(APIView):
         GET api/discipline/citaciones/<id>/
 
         Devuelve el detalle completo de una citación específica.
-        Director ve cualquiera; Regente solo las suyas.
+        Director ve cualquier citación del sistema.
+        Regente y Profesor solo ven las citaciones que ellos mismos emitieron.
         """
         citacion = self._get_citacion(citacion_id)
         if citacion is None:
@@ -59,7 +60,9 @@ class CitacionDetailView(APIView):
             )
 
         tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
-        if tipo == "Regente" and citacion.emisor != request.user:
+        
+        # El Director tiene "superpoderes" de visualización
+        if tipo != "Director" and citacion.emisor != request.user:
             return Response(
                 {"errores": "No tienes permiso para ver esta citación."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -73,20 +76,9 @@ class CitacionDetailView(APIView):
         PATCH api/discipline/citaciones/<id>/
 
         Registra que el padre/tutor se presentó a la citación.
-        No requiere body. El backend determina automáticamente:
-        - ASISTIO: si la fecha actual <= fecha_limite_asistencia
-        - ATRASO:  si la fecha actual > fecha_limite_asistencia
-
-        Solo Regente puede marcar asistencia, y únicamente en citaciones propias.
-        El Director no puede cambiar el estado de ninguna citación.
+        Solo el usuario que EMITIÓ la citación puede marcar la asistencia,
+        esto aplica para Director, Regentes y Profesores.
         """
-        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
-        if tipo != "Regente":
-            return Response(
-                {"errores": "Solo el Regente puede marcar la asistencia a una citación."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         citacion = self._get_citacion(citacion_id)
         if citacion is None:
             return Response(
@@ -94,9 +86,10 @@ class CitacionDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        # Regla estricta: Solo el emisor puede marcar asistencia
         if citacion.emisor != request.user:
             return Response(
-                {"errores": "No puedes modificar citaciones que no emitiste."},
+                {"errores": "Solo el emisor original de la citación puede marcar la asistencia."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

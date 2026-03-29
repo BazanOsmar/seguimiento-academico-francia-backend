@@ -5,6 +5,7 @@ from ..models import Comunicado
 
 class ComunicadoSerializer(serializers.ModelSerializer):
     emisor_nombre = serializers.SerializerMethodField()
+    emisor_tipo = serializers.SerializerMethodField()
     visto = serializers.SerializerMethodField()
     visto_en = serializers.SerializerMethodField()
 
@@ -17,7 +18,9 @@ class ComunicadoSerializer(serializers.ModelSerializer):
             'id',
             'titulo',
             'contenido',
+            'emisor_id',
             'emisor_nombre',
+            'emisor_tipo',
             'fecha_envio',
             'fecha_expiracion',
             'alcance',
@@ -34,6 +37,10 @@ class ComunicadoSerializer(serializers.ModelSerializer):
     def get_emisor_nombre(self, obj):
         e = obj.emisor
         return f"{e.first_name} {e.last_name}".strip() or e.username
+
+    def get_emisor_tipo(self, obj):
+        e = obj.emisor
+        return e.tipo_usuario.nombre if e and e.tipo_usuario else None
 
     def get_visto(self, obj):
         visto_set = self.context.get('visto_set', set())

@@ -10,8 +10,9 @@ from backend.apps.students.models import Estudiante
 from backend.apps.students.serializers import (
     EstudianteDirectorSerializer,
     EstudianteCreateSerializer,
+    EstudianteSoloCreateSerializer,
 )
-from backend.apps.students.services import crear_estudiante_con_tutor
+from backend.apps.students.services import crear_estudiante_con_tutor, crear_estudiante_solo
 from rest_framework.exceptions import NotFound
 
 
@@ -69,6 +70,31 @@ class EstudianteCreateView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
+class EstudianteSoloCreateView(APIView):
+    """
+    POST /api/students/crear-solo/
+    Crea solo al estudiante (sin tutor). El identificador se genera automáticamente.
+    """
+    permission_classes = (IsAuthenticated, IsDirector)
+
+    def post(self, request):
+        serializer = EstudianteSoloCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            primer_campo, primer_msgs = next(iter(serializer.errors.items()))
+            msg = primer_msgs[0] if isinstance(primer_msgs, list) else str(primer_msgs)
+            return Response({'errores': msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            estudiante = crear_estudiante_solo(serializer.validated_data)
+        except Exception as exc:
+            return Response({'errores': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            EstudianteDirectorSerializer(estudiante).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class EstudianteDetailView(APIView):
     """
     GET  /api/students/<id>/  — Detalle del estudiante.
@@ -92,9 +118,28 @@ class EstudianteDetailView(APIView):
             return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
 
         estudiante = self._get_estudiante(pk)
-        activo = request.data.get('activo')
-        if activo is None or not isinstance(activo, bool):
-            return Response({'errores': 'El campo activo es requerido y debe ser true o false.'}, status=status.HTTP_400_BAD_REQUEST)
-        estudiante.activo = activo
-        estudiante.save(update_fields=['activo'])
+
+        if 'activo' in request.data:
+            activo = request.data.get('activo')
+            if activo is None or not isinstance(activo, bool):
+                return Response({'errores': 'El campo activo debe ser true o false.'}, status=status.HTTP_400_BAD_REQUEST)
+            estudiante.activo = activo
+            estudiante.save(update_fields=['activo'])
+
+        elif any(k in request.data for k in ('nombre', 'apellido_paterno', 'apellido_materno')):
+            nombre   = request.data.get('nombre', '').strip().upper()
+            paterno  = request.data.get('apellido_paterno', '').strip().upper()
+            materno  = request.data.get('apellido_materno', '').strip().upper()
+            if not nombre:
+                return Response({'errores': 'El nombre es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not paterno and not materno:
+                return Response({'errores': 'Al menos un apellido es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
+            estudiante.nombre           = nombre
+            estudiante.apellido_paterno = paterno
+            estudiante.apellido_materno = materno
+            estudiante.save(update_fields=['nombre', 'apellido_paterno', 'apellido_materno'])
+
+        else:
+            return Response({'errores': 'No se especificaron campos a actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(EstudianteDirectorSerializer(estudiante).data)

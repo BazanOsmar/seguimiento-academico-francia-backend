@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from ..models import Citacion
+from backend.apps.academics.models import ProfesorCurso
 
 
 class CitacionBaseSerializer(serializers.ModelSerializer):
@@ -23,8 +24,9 @@ class CitacionListSerializer(CitacionBaseSerializer):
     Serializer de LECTURA para listar citaciones.
     Expone los datos relevantes para la vista del regente/director.
     """
-    emisor_nombre = serializers.SerializerMethodField()
-    emisor_tipo   = serializers.SerializerMethodField()
+    emisor_nombre  = serializers.SerializerMethodField()
+    emisor_tipo    = serializers.SerializerMethodField()
+    materia_nombre = serializers.SerializerMethodField()
 
     def get_emisor_nombre(self, obj):
         return f"{obj.emisor.first_name} {obj.emisor.last_name}".strip() or obj.emisor.username
@@ -33,6 +35,23 @@ class CitacionListSerializer(CitacionBaseSerializer):
         if obj.emisor.tipo_usuario:
             return obj.emisor.tipo_usuario.nombre
         return None
+
+    def get_materia_nombre(self, obj):
+        """Solo para profesores: deriva la materia vía ProfesorCurso."""
+        if not obj.emisor.tipo_usuario or obj.emisor.tipo_usuario.nombre != 'Profesor':
+            return None
+        curso_id = obj.estudiante.curso_id
+        # Usa el prefetch cacheado por la vista (sin queries extra)
+        profcursos = getattr(obj.emisor, '_profcursos', None)
+        if profcursos is None:
+            # Fallback: query directa si se llama sin el prefetch
+            profcursos = list(
+                ProfesorCurso.objects
+                .filter(profesor=obj.emisor)
+                .select_related('materia')
+            )
+        nombres = [pc.materia.nombre for pc in profcursos if pc.curso_id == curso_id]
+        return ', '.join(nombres) if nombres else None
 
     class Meta:
         model = Citacion
@@ -49,6 +68,7 @@ class CitacionListSerializer(CitacionBaseSerializer):
             "fecha_asistencia",
             "emisor_nombre",
             "emisor_tipo",
+            "materia_nombre",
         ]
 
 
@@ -61,6 +81,7 @@ class CitacionDetailSerializer(CitacionBaseSerializer):
     tutor_nombre = serializers.SerializerMethodField()
     emitido_por_nombre = serializers.SerializerMethodField()
     emitido_por_cargo = serializers.SerializerMethodField()
+    emisor_id = serializers.IntegerField(source="emisor.id", read_only=True)
     motivo_descripcion = serializers.CharField(source="descripcion")
     actualizado_por_nombre = serializers.SerializerMethodField()
 
@@ -76,6 +97,7 @@ class CitacionDetailSerializer(CitacionBaseSerializer):
             "tutor_nombre",
             "emitido_por_nombre",
             "emitido_por_cargo",
+            "emisor_id",
             "motivo",
             "motivo_descripcion",
             "fecha_asistencia",

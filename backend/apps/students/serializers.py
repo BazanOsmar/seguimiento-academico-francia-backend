@@ -40,6 +40,19 @@ class EstudianteBusquedaSerializer(serializers.ModelSerializer):
 
 # ── Panel Director ────────────────────────────────────────────────
 
+class EstudianteTutorPerfilSerializer(serializers.ModelSerializer):
+    nombre_completo = serializers.SerializerMethodField()
+    curso_nombre = serializers.StringRelatedField(source="curso")
+
+    class Meta:
+        model = Estudiante
+        fields = ("id", "nombre_completo", "curso_nombre")
+
+    def get_nombre_completo(self, obj):
+        apellidos = f"{obj.apellido_paterno} {obj.apellido_materno}".strip()
+        return f"{obj.nombre} {apellidos}".strip()
+
+
 class EstudianteDirectorSerializer(serializers.ModelSerializer):
     """Lectura: tabla del panel director."""
     nombre_completo = serializers.SerializerMethodField()
@@ -52,6 +65,9 @@ class EstudianteDirectorSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "nombre_completo",
+            "nombre",
+            "apellido_paterno",
+            "apellido_materno",
             "identificador",
             "curso_nombre",
             "tutor_nombre",
@@ -74,6 +90,21 @@ class EstudianteDirectorSerializer(serializers.ModelSerializer):
 
     def get_tutor_username(self, obj):
         return obj.tutor.username if obj.tutor else None
+
+
+class EstudianteSoloCreateSerializer(serializers.Serializer):
+    """Escritura: crea solo al estudiante (sin tutor), identificador auto-generado."""
+    nombre           = serializers.CharField(max_length=100)
+    apellido_paterno = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    apellido_materno = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    curso            = serializers.PrimaryKeyRelatedField(queryset=Curso.objects.all())
+
+    def validate(self, attrs):
+        if not attrs.get('apellido_paterno') and not attrs.get('apellido_materno'):
+            raise serializers.ValidationError(
+                {'apellido_paterno': 'Al menos un apellido es obligatorio.'}
+            )
+        return attrs
 
 
 class EstudianteCreateSerializer(serializers.Serializer):

@@ -2,11 +2,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Prefetch
 
 from ..models import Citacion
 from ..serializers import CitacionListSerializer
 from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
 from ..services.citacion_vencimiento import marcar_citaciones_vencidas
+from backend.apps.academics.models import ProfesorCurso
 
 
 class CitacionListView(APIView):
@@ -49,6 +51,12 @@ class CitacionListView(APIView):
             "estudiante__curso",
             "emisor",
             "emisor__tipo_usuario",
+        ).prefetch_related(
+            Prefetch(
+                "emisor__profesorcurso_set",
+                queryset=ProfesorCurso.objects.select_related("materia"),
+                to_attr="_profcursos",
+            )
         ).all()  # El modelo ya tiene ordering = ["-fecha_envio"]
 
         # Regente y Profesor solo ven sus propias citaciones; Director ve todas

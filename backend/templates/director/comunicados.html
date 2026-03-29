@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{% static 'css/flatpickr-dark.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
     <script>
         const token = localStorage.getItem('access_token');
@@ -21,6 +22,45 @@
     <style>
         /* ── Layout ──────────────────────────────────────────────── */
         .page-inner { max-width: 1100px; margin: 0 auto; }
+
+        /* ── Formulario colapsable ── */
+        .form-card-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows .35s cubic-bezier(.4, 0, .2, 1),
+                        opacity .25s ease;
+            opacity: 0;
+            pointer-events: none;
+            margin-bottom: 0;
+        }
+        .form-card-wrapper.expanded {
+            grid-template-rows: 1fr;
+            opacity: 1;
+            pointer-events: auto;
+            margin-bottom: 28px;
+        }
+        .form-card-wrapper > .form-card {
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+        .btn-nueva-accion {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 11px 24px;
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-sm);
+            color: var(--accent-text);
+            font-size: 0.9rem; font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s, background .15s, border-color .15s, color .15s;
+            white-space: nowrap;
+        }
+        .btn-nueva-accion:hover { opacity: .8; }
+        .btn-nueva-accion.is-open {
+            background: var(--bg-input);
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
 
         /* ── Formulario inline ────────────────────────────────────── */
         .form-card {
@@ -130,19 +170,111 @@
         .chip-filtro--active { background: var(--accent); color: #fff; border-color: var(--accent); }
         .chip-filtro--active:hover { background: var(--accent-hover); }
 
-        /* ── Tarjetas citaciones ──────────────────────────────────── */
-        .citaciones-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
+        /* ── Dos botones de acción (solo se usan dentro del header) ── */
+        .nueva-accion-row { display:none; }
+        .btn-nueva-com {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 11px 22px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.9rem; font-weight: 600;
+            cursor: pointer;
+            transition: border-color .15s, color .15s, background .15s;
+            white-space: nowrap;
         }
-        @media (max-width: 700px) { .citaciones-grid { grid-template-columns: 1fr; } }
+        .btn-nueva-com:hover { border-color: var(--border); color: var(--text-primary); background: var(--bg-card-hover); }
+        .btn-nueva-com.is-open { border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim); }
 
-        .citacion-card {
+        /* ── Lista tabla de citaciones ───────────────────────────── */
+        .citaciones-grid { display: flex; flex-direction: column; gap: 7px; }
+
+        .cit-table-hdr {
+            display: grid;
+            grid-template-columns: 56px 1fr 150px 110px 150px;
+            padding: 0 20px 8px;
+            font-size: .63rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .09em;
+            color: var(--text-muted);
+        }
+        .cit-table-hdr > :nth-child(3),
+        .cit-table-hdr > :nth-child(4) { text-align: center; }
+        .cit-table-hdr > :last-child    { text-align: right; }
+
+        .cit-row {
+            display: grid;
+            grid-template-columns: 56px 1fr 150px 110px 150px;
+            align-items: center;
+            padding: 13px 20px;
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-card);
-            overflow: hidden;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+        .cit-row:hover {
+            border-color: rgba(59,130,246,.28);
+            background: rgba(59,130,246,.03);
+        }
+        .cit-row:hover .cit-row__nombre { color: var(--accent-text); }
+
+        .cit-row__nombre {
+            font-size: .88rem; font-weight: 600;
+            color: var(--text-primary); line-height: 1.3;
+            transition: color .15s;
+        }
+        .cit-row__curso {
+            font-size: .68rem; color: var(--text-muted);
+            margin-top: 2px; text-transform: uppercase; letter-spacing: .04em;
+        }
+
+        /* Badge motivo */
+        .cit-badge-motivo {
+            display: inline-block;
+            font-size: .62rem; font-weight: 700;
+            padding: 3px 9px; border-radius: 4px;
+            text-transform: uppercase; letter-spacing: .05em;
+            border: 1px solid transparent;
+        }
+        .cit-badge-motivo--FALTAS      { background: rgba(239,68,68,.12);  color: #f87171; border-color: rgba(239,68,68,.2); }
+        .cit-badge-motivo--ATRASOS     { background: rgba(245,158,11,.12); color: #fbbf24; border-color: rgba(245,158,11,.2); }
+        .cit-badge-motivo--CONDUCTA    { background: rgba(168,85,247,.12); color: #c084fc; border-color: rgba(168,85,247,.2); }
+        .cit-badge-motivo--RENDIMIENTO { background: rgba(59,130,246,.12); color: #60a5fa; border-color: rgba(59,130,246,.2); }
+        .cit-badge-motivo--REUNION     { background: rgba(20,184,166,.12); color: #2dd4bf; border-color: rgba(20,184,166,.2); }
+        .cit-badge-motivo--DOCUMENTOS  { background: rgba(251,146,60,.12); color: #fb923c; border-color: rgba(251,146,60,.2); }
+        .cit-badge-motivo--OTRO        { background: rgba(148,163,184,.12); color: #94a3b8; border-color: rgba(148,163,184,.2); }
+
+        /* Fecha */
+        .cit-row__fecha {
+            font-size: .75rem; color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Badge estado (pill con dot) */
+        .cit-badge-status {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 50px;
+            font-size: .65rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .05em;
+        }
+        .cit-status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: currentColor; flex-shrink: 0;
+        }
+        .cit-badge-status--pendiente  { background: rgba(245,158,11,.12); color: #f59e0b; }
+        .cit-badge-status--asistio    { background: rgba(34,197,94,.12);  color: #22c55e; }
+        .cit-badge-status--no_asistio { background: rgba(239,68,68,.12);  color: #ef4444; }
+        .cit-badge-status--atraso     { background: rgba(220,38,38,.12);  color: #dc2626; }
+
+        /* Skeleton */
+        .cit-row--skeleton { pointer-events: none; min-height: 56px; }
+
+        /* Compat: .citacion-card se usa en modal de detalle */
+        .citacion-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);            overflow: hidden;
             display: flex; flex-direction: column;
             cursor: pointer;
             transition: box-shadow .18s, transform .18s, border-color .18s;
@@ -370,49 +502,110 @@
             color: var(--text-muted); margin-top: 10px;
         }
 
-        /* ── Tab switcher ────────────────────────────────────────── */
-        .tab-switcher {
-            display: inline-flex;
+        /* ── Sección de lista ────────────────────────────────────── */
+        .list-section {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 50px;
-            padding: 4px;
-            gap: 3px;
-            margin-bottom: 22px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+
+        /* Header: título + botones de acción */
+        .list-section__hdr {
+            display: flex; align-items: center;
+            justify-content: space-between; gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .list-section__title {
+            font-size: .95rem; font-weight: 700;
+            color: var(--text-primary);
+        }
+        .list-section__actions { display: flex; gap: 8px; }
+
+        /* Fila de tabs + navegador de mes en la misma línea */
+        .list-section__tabs-row {
+            display: flex; align-items: stretch;
+            border-bottom: 1px solid var(--border-subtle);
+            background: transparent;
+            padding: 0 20px;
+        }
+
+        /* Tab switcher — estilo underline */
+        .tab-switcher {
+            display: flex; flex: 0 0 auto;
+            background: transparent;
+            padding: 0; gap: 28px; margin-bottom: 0;
+            border-bottom: none;
         }
         .tab-switcher__btn {
-            display: flex; align-items: center; gap: 8px;
-            padding: 9px 22px;
-            border-radius: 50px; border: none; cursor: pointer;
-            font-size: .875rem; font-weight: 600;
-            color: var(--text-secondary);
+            display: flex; align-items: center; gap: 7px;
+            padding: 14px 2px;
+            flex: 0 0 auto;
+            border: none; border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: .85rem; font-weight: 600;
+            color: var(--text-muted);
             background: transparent;
-            transition: background .2s, color .2s, box-shadow .2s;
+            transition: color .18s, border-color .18s;
             white-space: nowrap;
         }
-        .tab-switcher__btn svg { opacity: .6; transition: opacity .2s; }
         .tab-switcher__btn:not(.tab-switcher__btn--active):hover {
-            background: var(--bg-card-hover); color: var(--text-primary);
+            color: var(--text-primary);
         }
-        .tab-switcher__btn:not(.tab-switcher__btn--active):hover svg { opacity: .85; }
         .tab-switcher__btn--active {
-            background: var(--accent);
-            color: #fff;
-            box-shadow: 0 2px 10px rgba(59,130,246,.4);
+            color: var(--accent-text);
+            border-bottom-color: var(--accent);
+            background: transparent;
         }
-        .tab-switcher__btn--active svg { opacity: 1; }
         .tab-switcher__badge {
             display: inline-flex; align-items: center; justify-content: center;
-            min-width: 20px; height: 20px; padding: 0 6px;
-            border-radius: 50px; font-size: .7rem; font-weight: 700;
-            background: rgba(255,255,255,.2);
-            color: inherit;
-            transition: background .2s;
+            min-width: 18px; height: 17px; padding: 0 5px;
+            border-radius: 50px; font-size: .65rem; font-weight: 700;
+            background: var(--bg-card); color: var(--text-muted);
+            transition: background .2s, color .2s;
         }
-        .tab-switcher__btn:not(.tab-switcher__btn--active) .tab-switcher__badge {
-            background: var(--bg-surface);
-            color: var(--text-muted);
+        .tab-switcher__btn--active .tab-switcher__badge {
+            background: var(--accent-dim); color: var(--accent-text);
         }
+
+        /* Navegador de mes inline (en la fila de tabs) */
+        .cit-mes-nav {
+            display: flex; align-items: center; gap: 4px;
+            margin-left: auto;
+            padding: 0 16px;
+            border-left: 1px solid var(--border-subtle);
+        }
+        .cit-mes-nav__btn {
+            background: none; border: none;
+            color: var(--text-muted); cursor: pointer;
+            font-size: 1rem; font-weight: 700;
+            width: 26px; height: 26px;
+            border-radius: 4px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s, color .15s;
+        }
+        .cit-mes-nav__btn:hover:not(:disabled) {
+            background: var(--bg-card-hover); color: var(--text-primary);
+        }
+        .cit-mes-nav__btn:disabled { opacity: .3; cursor: default; }
+        .cit-mes-nav__label {
+            font-size: .8rem; font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 110px; text-align: center;
+            text-transform: capitalize;
+        }
+        .cit-mes-nav__count {
+            font-size: .7rem; color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 1px 8px; border-radius: 50px;
+            margin-left: 4px;
+        }
+
+        /* Cuerpo de la sección */
+        .list-section__body { padding: 18px 20px 28px; }
 
         /* ── Comunicados list ────────────────────────────────────── */
         .comunicados-list {
@@ -421,92 +614,385 @@
         .com-card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
-            border-left: 4px solid var(--accent);
             border-radius: var(--radius-card);
-            padding: 18px 20px;
-            display: flex; flex-direction: column; gap: 10px;
-            transition: box-shadow .18s, transform .18s;
+            padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color .18s, box-shadow .18s, transform .18s;
         }
-        .com-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.3); transform: translateY(-1px); }
-        .com-card__top {
+        .com-card::before {
+            content: "";
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--accent) 0%, #10b981 100%);
+        }
+        .com-card:hover {
+            border-color: rgba(59,130,246,.28);
+            box-shadow: 0 10px 26px rgba(0,0,0,.24);
+            transform: translateY(-1px);
+        }
+        .com-card__head {
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .com-card__meta {
             display: flex; align-items: flex-start;
             justify-content: space-between; gap: 12px;
+            flex-wrap: wrap;
+        }
+        .com-card__chips {
+            display: flex; align-items: center; gap: 6px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+        .com-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: .68rem; font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 50px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+        .com-chip--destino {
+            background: rgba(59,130,246,.12);
+            color: #60a5fa;
+            border-color: rgba(59,130,246,.22);
+        }
+        .com-chip--alcance {
+            background: rgba(148,163,184,.12);
+            color: #cbd5e1;
+            border-color: rgba(148,163,184,.22);
+        }
+        .com-card__fecha {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: .72rem; color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
         .com-card__titulo {
-            font-size: .95rem; font-weight: 700;
+            font-size: .98rem; font-weight: 800;
             color: var(--text-primary); line-height: 1.3;
+            margin: 0;
+            letter-spacing: -.01em;
+        }
+        .com-card__body {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,.02);
         }
         .com-card__contenido {
             font-size: .83rem; color: var(--text-secondary);
             line-height: 1.6;
             display: -webkit-box; -webkit-line-clamp: 2;
             -webkit-box-orient: vertical; overflow: hidden;
+            margin: 0;
         }
-        .com-card__footer {
+        .com-card__bottom {
             display: flex; align-items: center;
-            gap: 14px; flex-wrap: wrap;
-            padding-top: 10px; border-top: 1px solid var(--border-subtle);
+            justify-content: space-between;
+            gap: 10px; flex-wrap: wrap;
+            padding-top: 8px; border-top: 1px solid var(--border-subtle);
+        }
+        .com-card__autor {
+            display: inline-flex; align-items: center; gap: 8px;
             font-size: .75rem; color: var(--text-muted);
+            min-width: 0;
         }
-        .com-card__footer-item {
-            display: flex; align-items: center; gap: 5px;
+        .com-card__autor-icon {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--text-secondary);
+            flex-shrink: 0;
         }
-        .alcance-badge {
-            display: inline-block; padding: 3px 10px;
-            border-radius: 50px; font-size: .72rem; font-weight: 700;
-            white-space: nowrap; flex-shrink: 0;
-            background: rgba(59,130,246,.12); color: #60a5fa;
-            border: 1px solid rgba(59,130,246,.2);
+        .com-card__autor-nombre {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 320px;
+        }
+        .com-card__expira {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: .7rem; font-weight: 700;
+            color: #f59e0b;
+            background: rgba(245,158,11,.1);
+            border: 1px solid rgba(245,158,11,.18);
+            border-radius: 50px;
+            padding: 3px 8px;
+            white-space: nowrap;
+        }
+        @media (max-width: 620px) {
+            .com-card__autor-nombre { max-width: 220px; }
         }
 
-        /* ── Flatpickr dark theme ────────────────────────────────── */
-        .flatpickr-calendar {
-            background: #1a2d45; border: 1px solid #243d5e;
-            border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.6);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            font-size: .875rem; color: #94a3b8;
+        /* ── Page header (fuera de la card) ─────────────────────── */
+        .page-hdr {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 16px;
+            margin-bottom: 20px;
         }
-        .flatpickr-calendar.arrowTop:before  { border-bottom-color: #243d5e; }
-        .flatpickr-calendar.arrowTop:after   { border-bottom-color: #132034; }
-        .flatpickr-calendar.arrowBottom:before { border-top-color: #243d5e; }
-        .flatpickr-calendar.arrowBottom:after  { border-top-color: #1a2d45; }
-        .flatpickr-months   { background: #132034; border-radius: 13px 13px 0 0; }
-        .flatpickr-month    { color: #f1f5f9; fill: #f1f5f9; height: 42px; }
-        .flatpickr-prev-month, .flatpickr-next-month { color: #64748b; fill: #64748b; padding: 10px; }
-        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #f1f5f9; }
-        .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: inherit; }
-        .flatpickr-current-month { color: #f1f5f9; font-size: .95rem; font-weight: 700; padding-top: 10px; }
-        .flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
-        .flatpickr-current-month .flatpickr-monthDropdown-months { color: #f1f5f9; background: transparent; font-weight: 700; }
-        .flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
-        .numInputWrapper:hover { background: rgba(255,255,255,.04); }
-        .numInputWrapper span.arrowUp:after   { border-bottom-color: #64748b; }
-        .numInputWrapper span.arrowDown:after { border-top-color:    #64748b; }
-        .flatpickr-weekdays { background: #132034; }
-        .flatpickr-weekday  { background: transparent; color: #64748b; font-size: .72rem; font-weight: 700; letter-spacing: .05em; }
-        .flatpickr-days  { border: none; padding: 6px 8px 10px; }
-        .dayContainer    { padding: 0; }
-        .flatpickr-day {
-            color: #94a3b8; border: 1px solid transparent;
-            border-radius: 8px; height: 36px; line-height: 35px;
-            max-width: 39px; font-size: .85rem;
+        .page-hdr__title {
+            font-size: 1.55rem; font-weight: 800;
+            color: var(--text-primary); line-height: 1.2;
+            letter-spacing: -.02em;
         }
-        .flatpickr-day:hover, .flatpickr-day:focus { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
-        .flatpickr-day.today { border-color: #3b82f6; color: #60a5fa; font-weight: 700; }
-        .flatpickr-day.today:hover { background: rgba(59,130,246,.15); border-color: #3b82f6; color: #60a5fa; }
-        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-            background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 700;
+        .page-hdr__sub {
+            font-size: .78rem; color: var(--text-muted); margin-top: 4px;
         }
-        .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover { background: #2563eb; border-color: #2563eb; }
-        .flatpickr-day.inRange {
-            background: rgba(59,130,246,.15); border-color: transparent; color: #60a5fa;
-            box-shadow: -5px 0 0 rgba(59,130,246,.15), 5px 0 0 rgba(59,130,246,.15);
+        .page-hdr__actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+        /* ── Barra de búsqueda ────────────────────────────────── */
+        .list-section__search {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-subtle);
         }
-        .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover,
-        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
-            color: #243d5e; background: transparent; border-color: transparent;
+        .search-input-wrap {
+            position: relative; max-width: 540px; margin: 0 auto;
         }
-        .flatpickr-day.flatpickr-disabled:hover { cursor: not-allowed; }
+        .search-input-wrap svg {
+            position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+            color: var(--text-muted); pointer-events: none;
+        }
+        .search-input {
+            width: 100%; box-sizing: border-box;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: .85rem;
+            padding: 9px 12px 9px 36px;
+            transition: border-color .15s;
+        }
+        .search-input:focus { border-color: var(--accent); outline: none; }
+        .search-input::placeholder { color: var(--text-muted); font-size: .82rem; }
+
+        /* ── ID de citación ───────────────────────────────────── */
+        .cit-row__id {
+            font-size: .72rem; font-weight: 600;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+        }
+
+
+        /* ── Encabezado grande con selector de sección ───────────── */
+        .sec-hdr { margin-bottom: 24px; }
+        .sec-hdr__title-row {
+            display: flex; align-items: baseline; gap: 18px;
+            margin-bottom: 6px;
+        }
+        .sec-title {
+            font-size: 2.4rem; font-weight: 900;
+            color: var(--text-muted);
+            cursor: pointer;
+            letter-spacing: -.03em;
+            transition: color .2s;
+            line-height: 1;
+            user-select: none;
+        }
+        .sec-title--active { color: var(--text-primary); }
+        .sec-title:hover:not(.sec-title--active) { color: var(--text-secondary); }
+        .sec-hdr__sep {
+            font-size: 2.4rem; font-weight: 300;
+            color: var(--border); line-height: 1;
+        }
+        .sec-hdr__sub {
+            font-size: .82rem; color: var(--text-muted);
+            margin-bottom: 16px; max-width: 620px;
+        }
+        .sec-hdr__actions-row {
+            display: flex; align-items: center;
+            gap: 10px; flex-wrap: wrap;
+        }
+        .sec-search-wrap {
+            position: relative; flex: 1;
+            min-width: 200px; max-width: 440px;
+        }
+        .sec-search-wrap svg {
+            position: absolute; left: 11px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted); pointer-events: none;
+        }
+        .sec-search-input {
+            width: 100%; box-sizing: border-box;
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-primary);
+            font-size: .85rem; padding: 9px 12px 9px 36px;
+            transition: border-color .15s;
+        }
+        .sec-search-input:focus { border-color: var(--accent); outline: none; }
+        .sec-search-input::placeholder { color: var(--text-muted); font-size: .82rem; }
+
+        /* ── Stats row ────────────────────────────────────────────── */
+        .cit-stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-bottom: 18px;
+        }
+        @media (max-width: 720px) { .cit-stats-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 440px) { .cit-stats-row { grid-template-columns: 1fr; } }
+        .cit-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 16px 18px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .cit-stat-card__icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .cit-stat-card__icon--blue   { background: rgba(59,130,246,.15); color: #60a5fa; }
+        .cit-stat-card__icon--yellow { background: rgba(245,158,11,.15); color: #f59e0b; }
+        .cit-stat-card__icon--red    { background: rgba(239,68,68,.15);  color: #ef4444; }
+        .cit-stat-card__icon--green  { background: rgba(34,197,94,.15);  color: #22c55e; }
+        .cit-stat-card__label {
+            font-size: .62rem; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px;
+        }
+        .cit-stat-card__value {
+            font-size: 1.6rem; font-weight: 800;
+            color: var(--text-primary); line-height: 1;
+        }
+
+        /* ── Fila de filtros por rol ──────────────────────────────── */
+        .cit-filter-row {
+            display: flex; align-items: center;
+            justify-content: space-between; gap: 12px;
+            flex-wrap: wrap;
+        }
+        .cit-filter-row__left {
+            display: flex; align-items: center;
+            gap: 10px; flex-wrap: wrap;
+        }
+        .cit-filter-label {
+            font-size: .65rem; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
+        }
+        .rol-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .rol-chip {
+            display: inline-flex; align-items: center;
+            height: 30px; padding: 0 14px;
+            border-radius: 50px; font-size: .77rem; font-weight: 600;
+            cursor: pointer; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-secondary);
+            transition: background .15s, color .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .rol-chip:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .rol-chip--active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .rol-chip--active:hover { background: var(--accent); opacity: .88; }
+
+        /* ── Modal de formulario ──────────────────────────────────── */
+        .modal-form {
+            max-width: 600px; width: 94%;
+            padding: 0; overflow: hidden;
+            position: relative;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-form .form-card {
+            box-shadow: none; border: none; margin: 0; border-radius: 0;
+        }
+        .modal-form__close {
+            position: absolute; top: 12px; right: 12px; z-index: 10;
+            background: rgba(0,0,0,.28); border: none; cursor: pointer;
+            color: rgba(255,255,255,.85); padding: 6px;
+            border-radius: 6px; display: flex; align-items: center;
+            transition: background .15s, color .15s;
+        }
+        .modal-form__close:hover { background: rgba(0,0,0,.5); color: #fff; }
+
+        /* ── Stat cards clickeables ───────────────────────────────── */
+        .cit-stat-card {
+            cursor: pointer;
+            transition: border-color .18s, box-shadow .18s, transform .15s;
+        }
+        .cit-stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+        .cit-stat-card[data-filter=""].cit-stat-card--active {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 2px rgba(59,130,246,.22), 0 4px 16px rgba(59,130,246,.12);
+        }
+        .cit-stat-card[data-filter="PENDIENTE"].cit-stat-card--active {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 2px rgba(245,158,11,.22), 0 4px 16px rgba(245,158,11,.12);
+        }
+        .cit-stat-card[data-filter="VENCIDA"].cit-stat-card--active {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 2px rgba(239,68,68,.22), 0 4px 16px rgba(239,68,68,.12);
+        }
+        .cit-stat-card[data-filter="ASISTIO"].cit-stat-card--active {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34,197,94,.22), 0 4px 16px rgba(34,197,94,.12);
+        }
+
+        /* ── Filter row dentro del card (sin margin externo) ─────── */
+        .cit-filter-row {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 0;
+        }
+        .cit-section__body { padding: 20px; }
+
+        /* ── Tag emisor en tarjeta (Profesor / Regente) ──────────── */
+        .cit-emisor {
+            display: flex; align-items: center; gap: 5px;
+            margin-top: 6px; flex-wrap: wrap;
+        }
+        .cit-emisor__materia {
+            font-size: .68rem; font-weight: 700;
+            color: var(--accent-text);
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,130,246,.2);
+            padding: 1px 7px; border-radius: 4px;
+            white-space: nowrap;
+        }
+        .cit-emisor__sep { font-size: .65rem; color: var(--text-muted); }
+        .cit-emisor__nombre {
+            font-size: .72rem; color: var(--text-muted);
+            font-style: italic; white-space: nowrap;
+        }
+
+        /* ── Grid 2 columnas de cards ─────────────────────────────── */
+        .cit-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 760px) { .cit-cards-grid { grid-template-columns: 1fr; } }
+
+        /* ── Scrollbars personalizados ────────────────────────────── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99,130,190,.35);
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99,130,190,.6);
+        }
+        /* Scrollbars más finos solo en los paneles pequeños */
+        #grupoChips::-webkit-scrollbar,
+        #selectorEstList::-webkit-scrollbar { width: 4px; }
+        #grupoChips::-webkit-scrollbar-thumb,
+        #selectorEstList::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,.3);
+            border-radius: 99px;
+        }
+        #grupoChips::-webkit-scrollbar-thumb:hover,
+        #selectorEstList::-webkit-scrollbar-thumb:hover {
+            background: rgba(59,130,246,.55);
+        }
+        /* Firefox */
+        * { scrollbar-width: thin; scrollbar-color: rgba(99,130,190,.35) transparent; }
+        #grupoChips, #selectorEstList {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59,130,246,.3) transparent;
+        }
+
     </style>
 </head>
 <body>
@@ -611,13 +1097,169 @@
     <main class="main-content">
         <div class="page-inner">
 
-            <!-- ── Formulario nueva citación (inline) ───────────── -->
+
+
+
+            <!-- ── Page header ────────────────────────────────────── -->
+            <!-- badges ocultos para compatibilidad JS -->
+            <span id="badgeCitaciones" style="display:none;">0</span>
+            <span id="badgeComunicados" style="display:none;">0</span>
+            <select id="selectEmisor" style="display:none;"><option value="">Todos</option></select>
+
+            <!-- ── Encabezado grande con selector de sección ─────── -->
+            <div class="sec-hdr">
+                <div class="sec-hdr__title-row">
+                    <h1 class="sec-title sec-title--active" id="secTitleCit" data-sec="citaciones">Citaciones</h1>
+                    <span class="sec-hdr__sep">/</span>
+                    <h1 class="sec-title" id="secTitleCom" data-sec="comunicados">Comunicados</h1>
+                </div>
+                <p class="sec-hdr__sub">Gestión centralizada del historial disciplinario y anuncios académicos para toda la institución escolar.</p>
+                <div class="sec-hdr__actions-row">
+                    <div class="sec-search-wrap">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" id="searchInput" class="sec-search-input"
+                               placeholder="Buscar por nombre del estudiante...">
+                    </div>
+                    <button class="btn-nueva-accion" id="btnToggleCit">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        NUEVA CITACIÓN
+                    </button>
+                    <button class="btn-nueva-com" id="btnToggleCom" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        NUEVO COMUNICADO
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Stats / filtros rápidos (solo citaciones) ────────── -->
+            <div class="cit-stats-row" id="statsRow">
+                <div class="cit-stat-card" data-filter="">
+                    <div class="cit-stat-card__icon cit-stat-card__icon--blue">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="cit-stat-card__label">TODOS</div>
+                        <div class="cit-stat-card__value" id="statTodos">—</div>
+                    </div>
+                </div>
+                <div class="cit-stat-card cit-stat-card--active" data-filter="PENDIENTE">
+                    <div class="cit-stat-card__icon cit-stat-card__icon--yellow">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="cit-stat-card__label">PENDIENTES</div>
+                        <div class="cit-stat-card__value" id="statPendientes">—</div>
+                    </div>
+                </div>
+                <div class="cit-stat-card" data-filter="VENCIDA">
+                    <div class="cit-stat-card__icon cit-stat-card__icon--red">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="12" y1="18" x2="12" y2="18"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="cit-stat-card__label">VENCIDAS</div>
+                        <div class="cit-stat-card__value" id="statVencidas">—</div>
+                    </div>
+                </div>
+                <div class="cit-stat-card" data-filter="ASISTIO">
+                    <div class="cit-stat-card__icon cit-stat-card__icon--green">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="cit-stat-card__label">ASISTIDAS</div>
+                        <div class="cit-stat-card__value" id="statAsistidas">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Card: Citaciones (filtros + grid) ─────────────── -->
+            <div class="list-section" id="sectionCitCard">
+                <div class="cit-filter-row" id="filterRowCit">
+                    <div class="cit-filter-row__left">
+                        <span class="cit-filter-label">FILTRAR POR ROL:</span>
+                        <div class="rol-chips" id="rolChips">
+                            <button class="rol-chip rol-chip--active" data-emisor="">Todos</button>
+                            <button class="rol-chip" data-emisor="Director">Director</button>
+                            <button class="rol-chip" data-emisor="Profesor">Profesores</button>
+                            <button class="rol-chip" data-emisor="Regente">Regentes</button>
+                        </div>
+                    </div>
+                    <div class="cit-mes-nav" id="citMesNav">
+                        <button class="cit-mes-nav__btn" id="btnMesPrev" aria-label="Mes anterior">&#8249;</button>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span class="cit-mes-nav__label" id="citMesLabel">—</span>
+                        <button class="cit-mes-nav__btn" id="btnMesNext" aria-label="Mes siguiente">&#8250;</button>
+                    </div>
+                </div>
+                <div class="cit-section__body">
+                    <div id="panelCitaciones">
+                        <div class="cit-cards-grid" id="citacionesGrid"></div>
+                        <p class="grid-footer" id="gridFooter"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Card: Comunicados ──────────────────────────────── -->
+            <div class="list-section" id="sectionComCard" style="display:none;">
+                <div class="cit-filter-row" id="filterRowCom" style="justify-content:space-between;">
+                    <div class="cit-filter-row__left">
+                        <span class="cit-filter-label">FILTRAR POR ROL:</span>
+                        <div class="rol-chips" id="rolChipsCom">
+                            <button class="rol-chip rol-chip--active" data-emisor="">Todos</button>
+                            <button class="rol-chip" data-emisor="Director">Director</button>
+                            <button class="rol-chip" data-emisor="Profesor">Profesores</button>
+                            <button class="rol-chip" data-emisor="Regente">Regentes</button>
+                        </div>
+                    </div>
+                    <div class="cit-mes-nav" id="comMesNav">
+                        <button class="cit-mes-nav__btn" id="btnComMesPrev" aria-label="Mes anterior">&#8249;</button>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span class="cit-mes-nav__label" id="comMesLabel">—</span>
+                        <button class="cit-mes-nav__btn" id="btnComMesNext" aria-label="Mes siguiente">&#8250;</button>
+                    </div>
+                </div>
+                <div class="cit-section__body">
+                    <div id="panelComunicados">
+                        <div class="comunicados-list" id="comunicadosList"></div>
+                        <p class="grid-footer" id="comFooter"></p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ── Modal: Nueva citación ─────────────────────────────────── -->
+    <div class="modal-backdrop" id="modalNuevaCitacion">
+        <div class="modal modal-form">
+            <button class="modal-form__close" id="btnCerrarModalCit" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
             <div class="form-card">
                 <div class="form-card__header">
                     <div class="form-card__icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
                             <line x1="12" y1="18" x2="12" y2="12"/>
@@ -626,52 +1268,65 @@
                     </div>
                     <div>
                         <p class="form-card__title">Nueva Citación</p>
-                        <p class="form-card__subtitle">
-                            Convoca al tutor de un estudiante, todo un curso o todo el colegio.
-                        </p>
+                        <p class="form-card__subtitle">Convoca al tutor de un estudiante o a un grupo de estudiantes de un mismo curso.</p>
                     </div>
                 </div>
-
                 <div class="form-card__body">
                     <form id="formNuevaCitacion" onsubmit="return false;">
-
-                        <!-- Tipo -->
                         <div>
                             <label class="form-label" style="margin-bottom:8px;display:block;">Tipo de citación</label>
                             <div class="radio-group">
-                                <label class="radio-option">
-                                    <input type="radio" name="tipoCitacion" value="individual" checked>
-                                    Individual
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="tipoCitacion" value="curso">
-                                    Todo el curso
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="tipoCitacion" value="colegio">
-                                    Todo el colegio
-                                </label>
+                                <label class="radio-option"><input type="radio" name="tipoCitacion" value="individual" checked> Individual</label>
+                                <label class="radio-option"><input type="radio" name="tipoCitacion" value="curso"> Todo el curso</label>
+                                <label class="radio-option"><input type="radio" name="tipoCitacion" value="grupo"> Grupo de estudiantes</label>
                             </div>
                         </div>
-
-                        <!-- Fila: Curso + Estudiante -->
+                        <!-- Fila Curso + Estudiante (modos individual/curso) -->
                         <div class="form-row" id="rowCursoEstud">
                             <div class="form-group" id="wrapCurso" style="margin-bottom:0;">
                                 <label class="form-label">Curso <span class="req">*</span></label>
-                                <select id="nuevaCurso" class="form-input form-select">
-                                    <option value="">Cargando...</option>
-                                </select>
+                                <select id="nuevaCurso" class="form-input form-select"><option value="">Cargando...</option></select>
                             </div>
-                            <div class="form-group" id="wrapEstudiante"
-                                 style="margin-bottom:0;opacity:.45;transition:opacity .2s;">
+                            <!-- Individual: select único -->
+                            <div class="form-group" id="wrapEstudiante" style="margin-bottom:0;opacity:.45;transition:opacity .2s;">
                                 <label class="form-label">Estudiante <span class="req">*</span></label>
-                                <select id="nuevaEstudiante" class="form-input form-select" disabled>
-                                    <option value="">— Selecciona estudiante —</option>
-                                </select>
+                                <select id="nuevaEstudiante" class="form-input form-select" disabled><option value="">— Selecciona estudiante —</option></select>
                             </div>
                         </div>
-
-                        <!-- Fila: Motivo + Fecha -->
+                        <!-- Grupo: botón selector + lista de seleccionados (ancho completo, separado) -->
+                        <div id="wrapGrupo" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <button type="button" id="btnAbrirSelectorEst"
+                                    style="display:flex;align-items:center;gap:7px;flex:1;
+                                           padding:9px 14px;
+                                           background:var(--bg-input,var(--bg-card));border:1px solid var(--border);
+                                           border-radius:8px;color:var(--text-secondary);font-size:.84rem;
+                                           cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;" disabled>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                    <span id="btnSelectorLabel">Seleccionar estudiantes…</span>
+                                </button>
+                                <!-- Badge de cuenta -->
+                                <span id="grupoCountBadge" style="display:none;
+                                    background:var(--accent-dim,rgba(59,130,246,.12));
+                                    color:var(--accent-text,#60a5fa);
+                                    border:1px solid rgba(59,130,246,.2);
+                                    border-radius:50px;padding:3px 11px;
+                                    font-size:.74rem;font-weight:700;white-space:nowrap;"></span>
+                            </div>
+                            <!-- Lista compacta de seleccionados con scroll -->
+                            <div id="grupoChips" style="
+                                margin-top:8px;
+                                max-height:110px;
+                                overflow-y:auto;
+                                display:flex;
+                                flex-direction:column;
+                                gap:3px;
+                                border:1px solid var(--border);
+                                border-radius:8px;
+                                padding:4px 6px;
+                                background:var(--bg-input,var(--bg-card));
+                            "></div>
+                        </div>
                         <div class="form-row">
                             <div class="form-group" style="margin-bottom:0;">
                                 <label class="form-label">Motivo <span class="req">*</span></label>
@@ -687,94 +1342,156 @@
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
                                 <label class="form-label">Fecha límite <span class="req">*</span></label>
-                                <input id="nuevaFechaLimite" type="text" class="form-input"
-                                       placeholder="Selecciona una fecha..." readonly>
+                                <input id="nuevaFechaLimite" type="text" class="form-input" placeholder="Selecciona una fecha..." readonly>
                             </div>
                         </div>
-
-                        <!-- Descripción -->
                         <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label">Descripción <span class="req">*</span></label>
-                            <textarea id="nuevaDescripcion" class="form-input form-textarea"
-                                      rows="3" maxlength="500"
-                                      placeholder="Describe el motivo de la citación..."></textarea>
+                            <textarea id="nuevaDescripcion" class="form-input form-textarea" rows="3" maxlength="500" placeholder="Describe el motivo de la citación..."></textarea>
                         </div>
-
                     </form>
-
                     <div id="progressMsg" class="progress-msg" style="display:none;"></div>
                     <p id="errorNueva" class="form-error" style="display:none;margin-top:10px;"></p>
-
                     <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
-                        <button id="btnLimpiarForm" class="btn-secondary" style="display:none;">
-                            Limpiar formulario
-                        </button>
+                        <button id="btnLimpiarForm" class="btn-secondary" style="display:none;">Limpiar formulario</button>
                         <button id="btnEnviarNueva" class="btn-primary" style="height:42px;padding:0 24px;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="2.5"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"/>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                             </svg>
                             <span id="btnEnviarTexto">Enviar citación</span>
                         </button>
                     </div>
                 </div>
             </div>
-
-            <!-- ── Tab switcher ───────────────────────────────────── -->
-            <div class="tab-switcher">
-                <button type="button" class="tab-switcher__btn tab-switcher__btn--active" data-tab="citaciones">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.2"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    Citaciones
-                    <span class="tab-switcher__badge" id="badgeCitaciones">0</span>
-                </button>
-                <button type="button" class="tab-switcher__btn" data-tab="comunicados">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.2"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        <polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    Comunicados
-                    <span class="tab-switcher__badge" id="badgeComunicados">0</span>
-                </button>
-            </div>
-
-            <!-- ── Panel: Citaciones ──────────────────────────────── -->
-            <div id="panelCitaciones" style="min-height:320px;">
-                <div class="action-row" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                    <div class="chips-group">
-                        <button type="button" class="chip-filtro" data-filtro="">Todos</button>
-                        <button type="button" class="chip-filtro chip-filtro--active" data-filtro="PENDIENTE">Pendientes</button>
-                        <button type="button" class="chip-filtro" data-filtro="ASISTIO">Asistidas</button>
-                        <button type="button" class="chip-filtro" data-filtro="NO_ASISTIO">No asistidas</button>
-                        <button type="button" class="chip-filtro" data-filtro="ATRASO">Atraso</button>
-                    </div>
-                    <select id="selectEmisor" class="form-input form-select" style="width:auto;height:32px;font-size:.8rem;padding:0 10px;">
-                        <option value="">Todos los emisores</option>
-                        <option value="Director" selected>Director</option>
-                        <option value="Regente">Regente</option>
-                        <option value="Profesor">Profesor</option>
-                    </select>
-                </div>
-                <div class="citaciones-grid" id="citacionesGrid"></div>
-                <p class="grid-footer" id="gridFooter"></p>
-            </div>
-
-            <!-- ── Panel: Comunicados ─────────────────────────────── -->
-            <div id="panelComunicados" style="display:none;min-height:320px;">
-                <div class="comunicados-list" id="comunicadosList"></div>
-                <p class="grid-footer" id="comFooter"></p>
-            </div>
-
         </div>
-    </main>
+    </div>
+
+    <!-- ── Modal: Nuevo comunicado ────────────────────────────────── -->
+    <div class="modal-backdrop" id="modalNuevoComunicado">
+        <div class="modal modal-form">
+            <button class="modal-form__close" id="btnCerrarModalCom" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <div class="form-card">
+                <div class="form-card__header">
+                    <div class="form-card__icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="form-card__title">Nuevo Comunicado</p>
+                        <p class="form-card__subtitle">Envía un mensaje oficial a tutores de un curso, grado o todo el colegio.</p>
+                    </div>
+                </div>
+                <div class="form-card__body">
+                    <form id="formNuevoComunicado" onsubmit="return false;">
+                        <div>
+                            <label class="form-label" style="margin-bottom:8px;display:block;">Destinatarios</label>
+                            <div class="radio-group">
+                                <label class="radio-option"><input type="radio" name="comAlcance" value="TODOS" checked> Todo el colegio</label>
+                                <label class="radio-option"><input type="radio" name="comAlcance" value="GRADO"> Por grado</label>
+                                <label class="radio-option"><input type="radio" name="comAlcance" value="CURSO"> Por curso</label>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" id="wrapComGrado" style="display:none;margin-bottom:0;">
+                                <label class="form-label">Grado <span class="req">*</span></label>
+                                <select id="comGrado" class="form-input form-select"><option value="">— Selecciona grado —</option></select>
+                            </div>
+                            <div class="form-group" id="wrapComCurso" style="display:none;margin-bottom:0;">
+                                <label class="form-label">Curso <span class="req">*</span></label>
+                                <select id="comCurso" class="form-input form-select"><option value="">— Selecciona curso —</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Título <span class="req">*</span></label>
+                            <input id="comTitulo" type="text" class="form-input" placeholder="Ej: Reunión de padres de familia" maxlength="150">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Contenido <span class="req">*</span></label>
+                            <textarea id="comContenido" class="form-input form-textarea" rows="3" maxlength="1000" placeholder="Escribe el mensaje del comunicado..."></textarea>
+                        </div>
+                        <div class="form-group" style="margin-top:16px;margin-bottom:0;">
+                            <label class="form-label">Fecha de expiración <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
+                            <input id="comFechaExpiracion" type="text" class="form-input" placeholder="Selecciona fecha..." readonly>
+                        </div>
+                    </form>
+                    <div id="progressMsgCom" class="progress-msg" style="display:none;"></div>
+                    <p id="errorNuevaCom" class="form-error" style="display:none;margin-top:10px;"></p>
+                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+                        <button id="btnEnviarCom" class="btn-primary" style="height:42px;padding:0 24px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                            <span id="btnEnviarComTexto">Enviar comunicado</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Panel flotante: Selector de estudiantes (modo Grupo) ───── -->
+    <div id="panelSelectorEst" style="
+        display:none;
+        position:fixed;
+        z-index:2000;
+        top:50%; left:50%;
+        transform:translate(-50%,-50%);
+        width:min(420px,94vw);
+        background:var(--bg-card);
+        border:1px solid var(--border);
+        border-radius:16px;
+        box-shadow:0 24px 64px rgba(0,0,0,.55);
+        overflow:hidden;
+        flex-direction:column;
+        animation:fadeScaleIn .18s ease;
+    ">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+            <div>
+                <p style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin:0;">Seleccionar estudiantes</p>
+                <p id="selectorCursoLabel" style="font-size:.75rem;color:var(--text-muted);margin:2px 0 0;"></p>
+            </div>
+            <button id="btnCerrarSelectorEst" style="background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px;" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <!-- Barra seleccionar todos + búsqueda rápida -->
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <input id="selectorBuscar" type="text" placeholder="Buscar estudiante…"
+                style="flex:1;background:var(--bg-input,var(--bg-card));border:1px solid var(--border);border-radius:8px;
+                       padding:7px 11px;font-size:.82rem;color:var(--text-primary);font-family:inherit;outline:none;
+                       transition:border-color .15s;">
+            <button id="btnSelectorToggleAll" type="button"
+                style="white-space:nowrap;font-size:.75rem;font-weight:600;color:var(--accent);
+                       background:none;border:none;cursor:pointer;font-family:inherit;padding:0;">
+                Seleccionar todos
+            </button>
+        </div>
+        <!-- Lista de checkboxes -->
+        <div id="selectorEstList" style="overflow-y:auto;max-height:280px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;">
+            <p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>
+        </div>
+        <!-- Footer contador + confirmar -->
+        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <p id="selectorContador" style="font-size:.78rem;color:var(--text-muted);margin:0;">0 seleccionados</p>
+            <button id="btnConfirmarSelectorEst" type="button"
+                style="display:flex;align-items:center;gap:6px;padding:8px 20px;
+                       background:var(--accent);color:#fff;border:none;border-radius:8px;
+                       font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit;
+                       transition:opacity .15s;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Confirmar
+            </button>
+        </div>
+    </div>
+    <!-- Backdrop del selector flotante -->
+    <div id="backdropSelectorEst" style="display:none;position:fixed;inset:0;z-index:1999;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);"></div>
 
     <!-- ── Modal: Detalle citación ───────────────────────────────── -->
     <div class="modal-backdrop" id="modalDetalleCitacion">

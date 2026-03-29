@@ -200,7 +200,13 @@ async function _cargarVistaProfesor() {
         porProf[a.profesor].asigs.push(a);
     }
 
-    const grupos = Object.values(porProf).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const prioridadEstado = { red: 0, orange: 1, green: 2 };
+    const grupos = Object.values(porProf).sort((a, b) => {
+        const prioA = prioridadEstado[_planStatus(a.asigs)] ?? 99;
+        const prioB = prioridadEstado[_planStatus(b.asigs)] ?? 99;
+        if (prioA !== prioB) return prioA - prioB;
+        return a.nombre.localeCompare(b.nombre);
+    });
     _renderVpSidebar(grupos);
 }
 
@@ -891,36 +897,38 @@ async function cargarMaterias() {
     wrap.style.display = 'block';
 }
 
-document.getElementById('btnCrearMateria').addEventListener('click', async () => {
-    const input  = document.getElementById('inputNombreMateria');
-    const nombre = input.value.trim();
-    _ocultarError('errorMateria');
+const btnCrearMateria = document.getElementById('btnCrearMateria');
+if (btnCrearMateria) {
+    btnCrearMateria.addEventListener('click', async () => {
+        const input  = document.getElementById('inputNombreMateria');
+        const nombre = input.value.trim();
+        _ocultarError('errorMateria');
 
-    if (!nombre) {
-        _mostrarError('errorMateriaMsg', 'errorMateria', 'Escribe el nombre de la materia.');
-        return;
-    }
+        if (!nombre) {
+            _mostrarError('errorMateriaMsg', 'errorMateria', 'Escribe el nombre de la materia.');
+            return;
+        }
 
-    const btn    = document.getElementById('btnCrearMateria');
-    btn.disabled = true;
+        btnCrearMateria.disabled = true;
 
-    const { ok, data } = await fetchAPI('/api/academics/materias/', {
-        method: 'POST',
-        body: JSON.stringify({ nombre }),
+        const { ok, data } = await fetchAPI('/api/academics/materias/', {
+            method: 'POST',
+            body: JSON.stringify({ nombre }),
+        });
+
+        btnCrearMateria.disabled = false;
+
+        if (!ok) {
+            _mostrarError('errorMateriaMsg', 'errorMateria',
+                data?.errores || data?.nombre?.[0] || 'Error al crear la materia.');
+            return;
+        }
+
+        input.value = '';
+        showToast(`Materia "${data.nombre}" agregada correctamente.`, 'success');
+        await cargarMaterias();
     });
-
-    btn.disabled = false;
-
-    if (!ok) {
-        _mostrarError('errorMateriaMsg', 'errorMateria',
-            data?.errores || data?.nombre?.[0] || 'Error al crear la materia.');
-        return;
-    }
-
-    input.value = '';
-    showToast(`Materia "${data.nombre}" agregada correctamente.`, 'success');
-    await cargarMaterias();
-});
+}
 
 function eliminarMateria(id, nombre) {
     _abrirDelModal({

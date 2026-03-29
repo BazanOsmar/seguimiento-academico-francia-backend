@@ -1,0 +1,104 @@
+/* ─────────────────────────────────────────────────────────────────
+   flatpickr-dark.css  — Tema oscuro unificado para todo el sistema
+   ───────────────────────────────────────────────────────────────── */
+
+/* Contenedor principal */
+.flatpickr-calendar {
+    background    : #1a2d45;
+    border        : 1px solid #243d5e;
+    border-radius : 14px;
+    box-shadow    : 0 16px 48px rgba(0,0,0,.65), 0 0 0 1px rgba(59,130,246,.08);
+    font-family   : 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size     : .875rem;
+    color         : #94a3b8;
+}
+
+/* Flechas del popover */
+.flatpickr-calendar.arrowTop:before  { border-bottom-color: #243d5e; }
+.flatpickr-calendar.arrowTop:after   { border-bottom-color: #132034; }
+.flatpickr-calendar.arrowBottom:before { border-top-color: #243d5e; }
+.flatpickr-calendar.arrowBottom:after  { border-top-color:  #1a2d45; }
+
+/* Cabecera de mes */
+.flatpickr-months           { background: #132034; border-radius: 13px 13px 0 0; }
+.flatpickr-month            { color: #f1f5f9; fill: #f1f5f9; height: 42px; }
+.flatpickr-prev-month,
+.flatpickr-next-month       { color: #94a3b8 !important; fill: #94a3b8 !important; padding: 10px; }
+.flatpickr-prev-month:hover svg,
+.flatpickr-next-month:hover svg { fill: #f1f5f9 !important; }
+.flatpickr-prev-month svg,
+.flatpickr-next-month svg   { fill: inherit !important; }
+
+/* Mes y año */
+.flatpickr-current-month    { color: #f1f5f9; font-size: .95rem; font-weight: 700; padding-top: 10px; }
+.flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
+.flatpickr-current-month .flatpickr-monthDropdown-months        { color: #f1f5f9; background: transparent; font-weight: 700; }
+.flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
+
+/* Spinner numérico (año) */
+.numInputWrapper            { background: transparent; }
+.numInputWrapper:hover      { background: rgba(255,255,255,.06); }
+.numInputWrapper span       { background: transparent; border-color: transparent; }
+.numInputWrapper span:hover { background: rgba(255,255,255,.10); }
+.numInputWrapper span.arrowUp:after   { border-bottom-color: #f1f5f9; }
+.numInputWrapper span.arrowDown:after { border-top-color:    #f1f5f9; }
+
+/* Cuerpo del calendario */
+.flatpickr-innerContainer,
+.flatpickr-rContainer       { background: #1a2d45; }
+.flatpickr-weekdays         { background: #132034; }
+.flatpickr-weekday          { background: transparent !important; color: #e2e8f0 !important;
+                               font-size: .72rem; font-weight: 700; letter-spacing: .05em; }
+.flatpickr-days             {
+    border: none;
+    padding: 6px 0 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.dayContainer               {
+    padding: 0;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+}
+
+/* Días */
+.flatpickr-day {
+    color        : #94a3b8;
+    border       : 1px solid transparent;
+    border-radius: 8px;
+    height       : 36px;
+    line-height  : 35px;
+    max-width    : 39px;
+    font-size    : .85rem;
+    text-align   : center !important;
+    transition   : background .12s, color .12s, border-color .12s;
+}
+.flatpickr-day:hover,
+.flatpickr-day:focus        { background: #1f3452; border-color: #1f3452; color: #f1f5f9; }
+
+/* Hoy */
+.flatpickr-day.today        { border-color: #3b82f6; color: #60a5fa; font-weight: 700; }
+.flatpickr-day.today:hover  { background: rgba(59,130,246,.15); border-color: #3b82f6; color: #60a5fa; }
+
+/* Seleccionado */
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange     { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 700; }
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover { background: #2563eb; border-color: #2563eb; }
+
+/* Rango */
+.flatpickr-day.inRange {
+    background: rgba(59,130,246,.15);
+    border-color: transparent;
+    color: #60a5fa;
+    box-shadow: -5px 0 0 rgba(59,130,246,.15), 5px 0 0 rgba(59,130,246,.15);
+}
+
+/* Días inhabilitados / otros meses */
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover { color: #334155 !important; cursor: not-allowed; }
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay             { color: #3d5a7a !important; background: transparent; border-color: transparent; }

@@ -143,7 +143,9 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,.65);
+            background: rgba(0,0,0,.55);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             z-index: 200;
             justify-content: center;
             align-items: center;
@@ -566,6 +568,289 @@
         .pm-cred-title { font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 4px; }
         .pm-cred-sub   { font-size: .82rem; color: var(--text-secondary); text-align: center; margin-bottom: 16px; }
         .pm-cred-warn  { font-size: .76rem; color: var(--warning); text-align: center; margin: 12px 0 16px; }
+
+        /* ── Modal Nuevo Usuario ───────────────────────────────────── */
+        @keyframes modal-nuevo-in {
+            from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+            to   { opacity: 1; transform: scale(1)    translateY(0);     }
+        }
+        .modal-nuevo-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 220;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-nuevo-overlay.visible { display: flex; }
+        .modal-nuevo-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modal-nuevo-in .18s ease-out;
+        }
+        .modal-nuevo-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid var(--border-subtle);
+            position: relative;
+        }
+        .modal-nuevo-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 48px; height: 3px;
+            background: var(--accent);
+            border-radius: 0 2px 0 0;
+        }
+        .modal-nuevo-header-content { flex: 1; min-width: 0; }
+        .modal-nuevo-eyebrow {
+            font-size: .65rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .1em;
+            color: var(--accent-text); margin: 0 0 5px;
+        }
+        .modal-nuevo-title {
+            font-size: 1.1rem; font-weight: 700;
+            color: var(--text-primary); margin: 0 0 5px; line-height: 1.25;
+        }
+        .modal-nuevo-subtitle {
+            font-size: .78rem; color: var(--text-muted);
+            line-height: 1.5; margin: 0;
+        }
+        .modal-nuevo-body { padding: 22px 24px 20px; }
+        .modal-nuevo-info {
+            display: flex; align-items: flex-start; gap: 10px;
+            background: rgba(59,130,246,.07);
+            border: 1px solid rgba(59,130,246,.18);
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            font-size: .78rem; color: var(--text-secondary); line-height: 1.5;
+        }
+        .modal-nuevo-info svg { color: var(--info); flex-shrink: 0; margin-top: 1px; }
+        .modal-nuevo-info p { margin: 0; }
+        .modal-nuevo-footer {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .modal-nuevo-btn-crear {
+            display: flex; align-items: center; gap: 7px;
+        }
+
+        /* ── Paso 2: confirmación ──────────────────────────────────── */
+        .mn-paso { transition: opacity .15s; }
+        .mn-paso.hidden { display: none; }
+        .mn-resumen {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+        .mn-resumen-label {
+            font-size: .62rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; color: var(--text-muted); margin-bottom: 10px;
+        }
+        .mn-resumen-row {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: .83rem; margin-bottom: 6px;
+        }
+        .mn-resumen-row:last-child { margin-bottom: 0; }
+        .mn-resumen-key { color: var(--text-muted); }
+        .mn-resumen-val { font-weight: 600; color: var(--text-primary); }
+        .mn-pass-err {
+            font-size: .76rem; color: var(--danger);
+            margin-top: 6px; display: none;
+        }
+        .mn-pass-err.visible { display: block; }
+
+        /* ── Mejoras UI página ─────────────────────────────────────── */
+        .page-header-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px; /* Reducido para compensar el texto más grande */
+        }
+        .page-section-title {
+            font-size: 1.75rem; /* Aumentado de 1.25rem */
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0 0 2px;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+        .page-section-desc {
+            font-size: 0.95rem; /* Aumentado de 0.8rem */
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+        .stat-filter-label {
+            font-size: .68rem !important;
+            font-weight: 700 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: .07em !important;
+            margin-bottom: 4px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0 !important;
+        }
+        .table-card-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .table-card-hdr-title {
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--text-muted);
+        }
+
+        /* ── Mejoras de tamaño (Haciendo la sección muy compacta) ──────────────── */
+        .stat-card {
+            padding: 16px 24px !important; /* Reducido de 22px a 16px */
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(26, 45, 69, 0.8) 100%) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        .stat-card--clickable:hover {
+            border-color: var(--accent) !important;
+            transform: translateY(-6px) !important;
+            box-shadow: 0 15px 45px rgba(59, 130, 246, 0.2) !important;
+        }
+
+        .stat-card--active {
+            border-color: var(--accent) !important;
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.15) 100%) !important;
+        }
+
+        .stat-card--active::after {
+            height: 5px !important;
+            border-radius: 10px 10px 0 0;
+            background: var(--accent) !important;
+            box-shadow: 0 -2px 15px var(--accent);
+        }
+
+        .stat-icon {
+            width: 52px !important; 
+            height: 52px !important;
+            border-radius: 18px !important; /* Iconos también más redondeados */
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.05);
+            transition: all 0.4s ease;
+        }
+        
+        .stat-card--clickable:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .stat-card-inner p[id^="stat"] {
+            font-size: 2.2rem !important; 
+            margin: 4px 0 0 !important; 
+            line-height: 1;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stat-filter-label {
+            font-size: 0.7rem !important;
+            font-weight: 700 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            margin-bottom: 2px !important;
+        }
+
+        .stat-card--active .stat-filter-label {
+            color: var(--accent-text) !important;
+        }
+
+        /* ── Nueva Celda de Usuario ── */
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px; /* Estilo squircle moderno */
+            background: var(--bg-app);
+            border: 1px solid var(--border);
+            color: var(--accent-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .tr-clickable:hover .user-avatar-circle {
+            transform: scale(1.05);
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .user-fullname {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .user-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .td-actions {
+            text-align: right !important;
+            padding-right: 20px !important;
+        }
+        .btn-view-profile {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+        .tr-clickable:hover .btn-view-profile {
+            color: var(--accent-text);
+            background: var(--bg-card-hover);
+            border-color: var(--border);
+        }
+
     </style>
 </head>
 <body>
@@ -682,16 +967,27 @@
     <main class="main-content">
         <div class="content-wrap">
 
-            <!-- Stats -->
+            <!-- Page header -->
+            <div class="page-header-row">
+                <div>
+                    <h2 class="page-section-title">Gestión de Usuarios</h2>
+                    <p class="page-section-desc">Administra las cuentas del personal del sistema institucional.</p>
+                </div>
+                <button class="btn-primary" id="btnNuevoUsuario" style="white-space:nowrap;flex-shrink:0;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Añadir Usuario
+                </button>
+            </div>
+
+            <!-- Stats / Filtros -->
             <div class="stats-grid">
-                <!-- Total -->
                 <div class="stat-card stat-card--clickable stat-card--active" style="padding:18px 20px;" data-filter="all">
                     <div class="stat-card-inner">
                         <div>
-                            <div class="stat-filter-label">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                                Total Usuarios
-                            </div>
+                            <div class="stat-filter-label">Total</div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statTotal">—</p>
                         </div>
                         <div class="stat-icon stat-icon--blue">
@@ -704,14 +1000,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- Docentes -->
                 <div class="stat-card stat-card--clickable" style="padding:18px 20px;" data-filter="Profesor">
                     <div class="stat-card-inner">
                         <div>
-                            <div class="stat-filter-label">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                                Docentes
-                            </div>
+                            <div class="stat-filter-label">Docentes</div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statDocentes">—</p>
                         </div>
                         <div class="stat-icon stat-icon--green">
@@ -722,14 +1014,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- Padres -->
                 <div class="stat-card stat-card--clickable" style="padding:18px 20px;" data-filter="Tutor">
                     <div class="stat-card-inner">
                         <div>
-                            <div class="stat-filter-label">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                                Padres
-                            </div>
+                            <div class="stat-filter-label">Padres</div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statPadres">—</p>
                         </div>
                         <div class="stat-icon stat-icon--indigo">
@@ -740,14 +1028,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- Regentes -->
                 <div class="stat-card stat-card--clickable" style="padding:18px 20px;" data-filter="Regente">
                     <div class="stat-card-inner">
                         <div>
-                            <div class="stat-filter-label">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                                Regentes
-                            </div>
+                            <div class="stat-filter-label">Regentes</div>
                             <p style="font-size:1.9rem;font-weight:700;color:var(--text-primary);margin:0;" id="statRegentes">—</p>
                         </div>
                         <div class="stat-icon stat-icon--orange">
@@ -759,34 +1043,29 @@
                 </div>
             </div>
 
-            <!-- Buscador + botón -->
-            <div class="search-add-row">
-                <div class="search-wrapper">
+            <!-- Buscador -->
+            <div class="filters-bar" style="margin-bottom: 24px;">
+                <div class="search-wrapper" style="max-width:360px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
-                    <input type="text" id="searchInput" class="search-input"
-                           placeholder="Buscar usuario…" autocomplete="off">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, apellido o usuario..." autocomplete="off">
                 </div>
-                <button class="btn-primary" id="btnNuevoUsuario" style="white-space:nowrap;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Añadir Usuario
-                </button>
             </div>
 
             <!-- Tabla -->
             <div class="table-card">
+                <div class="table-card-hdr">
+                    <span class="table-card-hdr-title">Registro de usuarios</span>
+                    <span id="tableCount" class="table-count">— registros</span>
+                </div>
                 <div class="table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Nombre</th>
                                 <th>Apellidos</th>
-                                <th>Rol usuario</th>
+                                <th>Rol</th>
                                 <th>Notificaciones</th>
                                 <th>Último acceso</th>
                             </tr>
@@ -801,66 +1080,117 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="table-footer">
-                    <span id="tableCount" class="table-count">— registros</span>
-                </div>
+                <div id="tableFooterUsers" style="padding:12px 20px; border-top:1px solid var(--border-subtle); display:flex; justify-content:center; align-items:center;"></div>
             </div>
 
         </div>
     </main>
 
-    <!-- ── Drawer: Nuevo Usuario ──────────────────────────────────── -->
-    <div class="drawer-backdrop" id="drawerBackdrop"></div>
-    <aside class="drawer" id="drawer" aria-label="Nuevo usuario">
-        <div class="drawer-header">
-            <h2 class="drawer-title">Nuevo Usuario</h2>
-            <button class="drawer-close" id="btnCerrarDrawer" aria-label="Cerrar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-        </div>
-        <div class="drawer-body">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label" for="fNombre">Nombre(s) <span class="req">*</span></label>
-                    <input type="text" id="fNombre" class="form-input" maxlength="100" placeholder="Ej: Juan Carlos" autocomplete="off">
+    <!-- ── Modal: Nuevo Usuario ────────────────────────────────────── -->
+    <div class="modal-nuevo-overlay" id="modalNuevoOverlay" role="dialog" aria-modal="true" aria-labelledby="modalNuevoTitle">
+        <div class="modal-nuevo-box" id="modalNuevo">
+            <div class="modal-nuevo-header">
+                <div class="modal-nuevo-header-content">
+                    <p class="modal-nuevo-eyebrow">Gestión de usuarios</p>
+                    <h2 class="modal-nuevo-title" id="modalNuevoTitle">Añadir Nueva Cuenta</h2>
+                    <p class="modal-nuevo-subtitle">Complete los detalles para integrar un nuevo miembro al sistema institucional.</p>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="fApellidos">Apellidos <span class="req">*</span></label>
-                    <input type="text" id="fApellidos" class="form-input" maxlength="100" placeholder="Ej: López Mamani" autocomplete="off">
+                <button class="drawer-close" id="btnCerrarDrawer" aria-label="Cerrar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-nuevo-body">
+
+                <!-- ── Paso 1: datos del usuario ─────────────────── -->
+                <div class="mn-paso" id="mnPaso1">
+                    <div class="form-grid" style="margin-bottom:14px;">
+                        <div class="form-group">
+                            <label class="form-label" for="fNombre">Nombres <span class="req">*</span></label>
+                            <input type="text" id="fNombre" class="form-input" maxlength="100" placeholder="Ej: Juan Carlos" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fApellidos">Apellidos <span class="req">*</span></label>
+                            <input type="text" id="fApellidos" class="form-input" maxlength="100" placeholder="Ej: López Mamani" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:20px;">
+                        <label class="form-label" for="fRol">Rol institucional <span class="req">*</span></label>
+                        <select id="fRol" class="form-select">
+                            <option value="">Seleccione un rol institucional…</option>
+                            <option value="Regente">Regente</option>
+                            <option value="Profesor">Profesor</option>
+                        </select>
+                    </div>
+                    <div class="modal-nuevo-info">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <p>El nombre de usuario y contraseña se generarán automáticamente. Las credenciales se mostrarán una única vez al confirmar.</p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="fUsername">Usuario <span class="req">*</span></label>
-                    <input type="text" id="fUsername" class="form-input" maxlength="50" placeholder="Nombre de usuario" autocomplete="off">
+
+                <!-- ── Paso 2: confirmación con contraseña ────────── -->
+                <div class="mn-paso hidden" id="mnPaso2">
+                    <div class="mn-resumen">
+                        <p class="mn-resumen-label">Resumen de la nueva cuenta</p>
+                        <div class="mn-resumen-row">
+                            <span class="mn-resumen-key">Nombre completo</span>
+                            <span class="mn-resumen-val" id="mnResumenNombre">—</span>
+                        </div>
+                        <div class="mn-resumen-row">
+                            <span class="mn-resumen-key">Rol</span>
+                            <span class="mn-resumen-val" id="mnResumenRol">—</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fPasswordDirector">Tu contraseña <span class="req">*</span></label>
+                        <input type="password" id="fPasswordDirector" class="form-input" maxlength="20"
+                               placeholder="Ingresa tu contraseña para confirmar" autocomplete="current-password">
+                        <p class="mn-pass-err" id="mnPassErr"></p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="fRol">Rol <span class="req">*</span></label>
-                    <select id="fRol" class="form-select">
-                        <option value="">Seleccionar rol…</option>
-                        <option value="Regente">Regente</option>
-                        <option value="Profesor">Profesor</option>
-                    </select>
+
+            </div>
+            <div class="modal-nuevo-footer" id="mnFooter">
+                <!-- Pie paso 1 -->
+                <div class="mn-paso" id="mnFooter1" style="display:contents;">
+                    <button class="btn-ghost" id="btnCancelarDrawer">Cancelar</button>
+                    <button class="btn-primary modal-nuevo-btn-crear" id="btnContinuar">
+                        Continuar
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Pie paso 2 -->
+                <div class="mn-paso hidden" id="mnFooter2" style="display:contents;">
+                    <button class="btn-ghost" id="btnVolver">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Volver
+                    </button>
+                    <button class="btn-primary" id="btnGuardar">
+                        <span id="btnGuardarText" class="modal-nuevo-btn-crear">
+                            Crear Cuenta
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </span>
+                        <span id="btnGuardarSpinner" class="btn-spinner hidden"></span>
+                    </button>
                 </div>
             </div>
-            <div class="form-hint" style="margin-top:8px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                La contraseña se generará automáticamente.
-            </div>
         </div>
-        <div class="drawer-footer">
-            <button class="btn-ghost" id="btnCancelarDrawer">Cancelar</button>
-            <button class="btn-primary" id="btnGuardar">
-                <span id="btnGuardarText">Guardar</span>
-                <span id="btnGuardarSpinner" class="btn-spinner hidden"></span>
-            </button>
-        </div>
-    </aside>
+    </div>
 
     <!-- ── Modal: Credenciales ───────────────────────────────────── -->
     <div class="modal-backdrop" id="modalBackdrop">

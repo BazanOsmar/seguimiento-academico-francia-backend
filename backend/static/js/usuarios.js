@@ -5,23 +5,42 @@ const API_USERS = '/api/users/';
 let _usuarios  = [];
 let _stats     = { total: 0, docentes: 0, padres: 0, regentes: 0 };
 let _filtroRol = 'all';
+let _filtroSearch = '';
+
+// ── Estado paginación ─────────────────────────────────────────────
+let _usuariosPage = 1;
+const _usuariosPerPage = 10;
+
+const renderPaginationHTML = (total, perPage, current) => {
+    if (total <= perPage) return '';
+    const pages = Math.ceil(total / perPage);
+    let html = `<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px;">`;
+    for(let i=1; i<=pages; i++) {
+        const bg = (i === current) ? 'var(--accent)' : 'transparent';
+        const color = (i === current) ? '#fff' : 'var(--text-primary)';
+        const border = (i === current) ? 'var(--accent)' : 'var(--border)';
+        html += `<button class="-page-btn" data-p="${i}" style="border:1px solid ${border}; border-radius:6px; background:${bg}; color:${color}; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:600; font-size:0.75rem; transition:all 0.15s;">${i}</button>`;
+    }
+    html += `</div>`;
+    return html;
+};
 
 // ── DOM refs ──────────────────────────────────────────────────────
-const tbody       = document.getElementById('tbodyUsuarios');
-const tableCount  = document.getElementById('tableCount');
-const searchInput = document.getElementById('searchInput');
+const tbody      = document.getElementById('tbodyUsuarios');
+const tableCount = document.getElementById('tableCount');
 
 const statTotal    = document.getElementById('statTotal');
 const statDocentes = document.getElementById('statDocentes');
 const statPadres   = document.getElementById('statPadres');
 const statRegentes = document.getElementById('statRegentes');
 
-const drawer          = document.getElementById('drawer');
-const drawerBackdrop  = document.getElementById('drawerBackdrop');
-const btnNuevo        = document.getElementById('btnNuevoUsuario');
-const btnCerrar       = document.getElementById('btnCerrarDrawer');
-const btnCancelar     = document.getElementById('btnCancelarDrawer');
-const btnGuardar      = document.getElementById('btnGuardar');
+const modalNuevoOverlay = document.getElementById('modalNuevoOverlay');
+const btnNuevo          = document.getElementById('btnNuevoUsuario');
+const btnCerrar         = document.getElementById('btnCerrarDrawer');
+const btnCancelar       = document.getElementById('btnCancelarDrawer');
+const btnContinuar      = document.getElementById('btnContinuar');
+const btnVolver         = document.getElementById('btnVolver');
+const btnGuardar        = document.getElementById('btnGuardar');
 const btnGuardarText    = document.getElementById('btnGuardarText');
 const btnGuardarSpinner = document.getElementById('btnGuardarSpinner');
 
@@ -123,22 +142,17 @@ function renderStats(s) {
 }
 
 // ── Filtros (locales) ─────────────────────────────────────────────
-function aplicarFiltros() {
-    let lista = _usuarios;
-
-    if (_filtroRol !== 'all') {
-        lista = lista.filter(u => u.rol === _filtroRol);
-    }
-
-    const q = searchInput.value.toLowerCase().trim();
-    if (q) {
-        lista = lista.filter(u =>
-            (u.first_name || '').toLowerCase().includes(q) ||
-            (u.last_name  || '').toLowerCase().includes(q) ||
-            (u.username   || '').toLowerCase().includes(q)
-        );
-    }
-
+function aplicarFiltros(resetPage = true) {
+    if (resetPage) _usuariosPage = 1;
+    const lista = _usuarios.filter(u => {
+        if (_filtroRol !== 'all' && u.rol !== _filtroRol) return false;
+        if (_filtroSearch) {
+            const q = _filtroSearch.toLowerCase();
+            const fullName = `${u.first_name || ''} ${u.last_name || ''} ${u.username || ''}`.toLowerCase();
+            if (!fullName.includes(q)) return false;
+        }
+        return true;
+    });
     renderTabla(lista);
 }
 
@@ -150,22 +164,34 @@ document.querySelectorAll('.stat-card--clickable').forEach(card => {
         );
         card.classList.add('stat-card--active');
         _filtroRol = card.dataset.filter;
-        searchInput.value = '';
         aplicarFiltros();
     });
 });
 
-// ── Buscador ──────────────────────────────────────────────────────
-searchInput.addEventListener('input', aplicarFiltros);
+// ── Búsqueda ──────────────────────────────────────────────────────
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', e => {
+        _filtroSearch = e.target.value.trim();
+        aplicarFiltros(true);
+    });
+}
 
 // ── Tabla ─────────────────────────────────────────────────────────
 function renderTabla(lista) {
+    const footer = document.getElementById('tableFooterUsers');
     if (!lista.length) {
         tbody.innerHTML = `<tr class="tr-empty"><td colspan="5">No se encontraron usuarios.</td></tr>`;
         tableCount.textContent = '0 registros';
+        if (footer) footer.innerHTML = '';
         return;
     }
-    tbody.innerHTML = lista.map(u => `
+
+    const total = lista.length;
+    const from = (_usuariosPage - 1) * _usuariosPerPage;
+    const paginadas = lista.slice(from, from + _usuariosPerPage);
+
+    tbody.innerHTML = paginadas.map(u => `
         <tr class="tr-clickable" data-id="${u.id}" style="cursor:pointer;">
             <td class="td-name">${escHtml(u.first_name)}</td>
             <td>${escHtml(u.last_name)}</td>
@@ -174,64 +200,129 @@ function renderTabla(lista) {
             <td class="td-muted">${formatLastLogin(u.last_login)}</td>
         </tr>
     `).join('');
+
     tbody.querySelectorAll('.tr-clickable').forEach(tr => {
         tr.addEventListener('click', () => abrirPerfil(parseInt(tr.dataset.id, 10)));
     });
+
     tableCount.textContent = `${lista.length} ${lista.length === 1 ? 'registro' : 'registros'}`;
+
+    if (footer) {
+        footer.innerHTML = renderPaginationHTML(total, _usuariosPerPage, _usuariosPage);
+        footer.querySelectorAll('.-page-btn').forEach(b => {
+             b.addEventListener('click', (e) => {
+                 _usuariosPage = parseInt(e.target.dataset.p);
+                 document.querySelector('.table-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                 aplicarFiltros(false);
+             });
+        });
+    }
 }
 
-// ── Drawer ────────────────────────────────────────────────────────
+// ── Modal Nuevo Usuario ───────────────────────────────────────────
+function _irPaso(paso) {
+    document.getElementById('mnPaso1').classList.toggle('hidden', paso !== 1);
+    document.getElementById('mnPaso2').classList.toggle('hidden', paso !== 2);
+    document.getElementById('mnFooter1').classList.toggle('hidden', paso !== 1);
+    document.getElementById('mnFooter2').classList.toggle('hidden', paso !== 2);
+}
+
 function abrirDrawer() {
     clearErrors();
-    ['fNombre', 'fApellidos', 'fUsername'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('fRol').value = '';
-    drawer.classList.add('drawer--open');
-    drawerBackdrop.classList.add('visible');
+    document.getElementById('fNombre').value    = '';
+    document.getElementById('fApellidos').value = '';
+    document.getElementById('fRol').value       = '';
+    document.getElementById('fPasswordDirector').value = '';
+    document.getElementById('mnPassErr').classList.remove('visible');
+    document.getElementById('fPasswordDirector').classList.remove('input-error');
+    _irPaso(1);
+    modalNuevoOverlay.classList.add('visible');
     document.getElementById('fNombre').focus();
 }
 
 function cerrarDrawer() {
-    drawer.classList.remove('drawer--open');
-    drawerBackdrop.classList.remove('visible');
+    modalNuevoOverlay.classList.remove('visible');
 }
 
 btnNuevo.addEventListener('click', abrirDrawer);
 btnCerrar.addEventListener('click', cerrarDrawer);
 btnCancelar.addEventListener('click', cerrarDrawer);
-drawerBackdrop.addEventListener('click', cerrarDrawer);
+modalNuevoOverlay.addEventListener('click', e => {
+    if (e.target === modalNuevoOverlay) cerrarDrawer();
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modalNuevoOverlay.classList.contains('visible')) cerrarDrawer();
+});
 
-// ── Guardar ───────────────────────────────────────────────────────
-btnGuardar.addEventListener('click', async () => {
+btnContinuar.addEventListener('click', () => {
     clearErrors();
-
     const nombre    = document.getElementById('fNombre').value.trim();
     const apellidos = document.getElementById('fApellidos').value.trim();
-    const username  = document.getElementById('fUsername').value.trim();
     const rol       = document.getElementById('fRol').value;
 
     let valido = true;
     if (!nombre)    { inputError(document.getElementById('fNombre'),    'Campo obligatorio.'); valido = false; }
     if (!apellidos) { inputError(document.getElementById('fApellidos'), 'Campo obligatorio.'); valido = false; }
-    if (!username)  { inputError(document.getElementById('fUsername'),  'Campo obligatorio.'); valido = false; }
     if (!rol)       { inputError(document.getElementById('fRol'),       'Selecciona un rol.'); valido = false; }
     if (!valido) return;
 
+    const ROL_LABEL = { Profesor: 'Profesor', Regente: 'Regente' };
+    document.getElementById('mnResumenNombre').textContent = `${nombre} ${apellidos}`;
+    document.getElementById('mnResumenRol').textContent    = ROL_LABEL[rol] || rol;
+    document.getElementById('mnPassErr').classList.remove('visible');
+    document.getElementById('fPasswordDirector').classList.remove('input-error');
+    _irPaso(2);
+    document.getElementById('fPasswordDirector').focus();
+});
+
+btnVolver.addEventListener('click', () => {
+    _irPaso(1);
+    document.getElementById('fNombre').focus();
+});
+
+// ── Guardar ───────────────────────────────────────────────────────
+btnGuardar.addEventListener('click', async () => {
+    clearErrors();
+
+    const nombre            = document.getElementById('fNombre').value.trim();
+    const apellidos         = document.getElementById('fApellidos').value.trim();
+    const rol               = document.getElementById('fRol').value;
+    const passwordDirector  = document.getElementById('fPasswordDirector').value;
+    const passErrEl         = document.getElementById('mnPassErr');
+    const passInputEl       = document.getElementById('fPasswordDirector');
+
+    if (!passwordDirector) {
+        passErrEl.textContent = 'Ingresa tu contraseña para confirmar.';
+        passErrEl.classList.add('visible');
+        passInputEl.classList.add('input-error');
+        passInputEl.focus();
+        return;
+    }
+
+    passErrEl.classList.remove('visible');
+    passInputEl.classList.remove('input-error');
     setGuardando(true);
 
     const { ok, data } = await fetchAPI(API_USERS, {
         method: 'POST',
         body: JSON.stringify({
-            first_name:   nombre,
-            last_name:    apellidos,
-            username:     username,
-            tipo_usuario: rol,
+            first_name:        nombre,
+            last_name:         apellidos,
+            tipo_usuario:      rol,
+            password_director: passwordDirector,
         }),
     });
 
     setGuardando(false);
-    if (!ok) return;
+    if (!ok) {
+        if (data?.password_director) {
+            passErrEl.textContent = data.password_director[0];
+            passErrEl.classList.add('visible');
+            passInputEl.classList.add('input-error');
+            passInputEl.focus();
+        }
+        return;
+    }
 
     _usuarios.unshift({
         id:         data.id,
@@ -252,7 +343,6 @@ btnGuardar.addEventListener('click', async () => {
     );
     document.querySelector('[data-filter="all"]').classList.add('stat-card--active');
     _filtroRol = 'all';
-    searchInput.value = '';
     aplicarFiltros();
 
     cerrarDrawer();

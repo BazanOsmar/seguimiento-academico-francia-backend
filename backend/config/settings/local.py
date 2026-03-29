@@ -16,3 +16,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# ── MongoDB Atlas ──────────────────────────────────────────────────
+MONGO_URI     = 'mongodb+srv://osmarbzn:contra123@cluster0.mufoyzz.mongodb.net/?appName=Cluster0'
+MONGO_DB_NAME = 'seguimiento_academico'

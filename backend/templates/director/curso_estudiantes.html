@@ -17,7 +17,424 @@
         }
     </script>
     <style>
-        /* ── Sección materias ── */
+        /* ── Breadcrumb en topbar ── */
+        .topbar-bc {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+        .topbar-bc__link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px 4px 7px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 13px;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .topbar-bc__link--back::before {
+            content: '‹';
+            font-size: 17px;
+            line-height: 1;
+            opacity: .65;
+        }
+        .topbar-bc__link:hover {
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+        .topbar-bc__sep { color: var(--text-muted); opacity: .35; font-size: 15px; margin: 0 2px; }
+        .topbar-bc__current {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 13px;
+            padding: 4px 2px;
+        }
+        /* ── Encabezado de página ── */
+        .curso-page-hdr {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .curso-breadcrumb {
+            font-family: monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        .curso-breadcrumb a { color: var(--text-muted); text-decoration: none; }
+        .curso-breadcrumb a:hover { color: var(--accent-text); }
+        .curso-breadcrumb__sep { margin: 0 5px; opacity: .4; }
+        .curso-main-title {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.15;
+        }
+        .curso-main-title span { color: var(--accent-text); }
+        .curso-total-box { text-align: right; flex-shrink: 0; padding-top: 2px; }
+        .curso-total-num {
+            font-family: monospace;
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: var(--accent-text);
+            line-height: 1;
+        }
+        .curso-total-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+        /* ── Barra de búsqueda + botón materias ── */
+        .search-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-pill {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            padding: 9px 16px;
+            transition: border-color .15s;
+        }
+        .search-pill:focus-within { border-color: var(--accent); }
+        .search-pill svg { flex-shrink: 0; color: var(--text-muted); }
+        .search-pill input {
+            background: none;
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .search-pill input::placeholder { color: var(--text-muted); }
+        .btn-materias {
+            white-space: nowrap;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 9px 18px;
+            border-radius: 9999px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: border-color .15s, background .15s, color .15s;
+        }
+        .btn-materias:hover,
+        .btn-materias.active {
+            border-color: var(--accent);
+            color: var(--accent-text);
+            background: var(--accent-dim);
+        }
+        /* ── Layout sticky: solo el tbody scrollea ── */
+        .main-content {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-wrap {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .table-card {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .table-wrapper {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .table-wrapper::-webkit-scrollbar { width: 5px; }
+        .table-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        .data-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bg-card);
+        }
+        /* ── Tabla archivo ── */
+        .archive-glow { box-shadow: 0 0 32px 0 rgba(218,226,253,0.06); }
+        .table-footer-mono {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .td-tutor-icon { text-align: center; }
+        .tutor-check { color: var(--success); display: flex; justify-content: center; }
+        .tutor-cross { color: var(--danger); opacity: .55; display: flex; justify-content: center; }
+        .badge-activo {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(34,197,94,0.12);
+            color: #4ade80;
+        }
+        .badge-baja {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(239,68,68,0.10);
+            color: #f87171;
+        }
+        .td-nombre--inactivo { opacity: .5; }
+        /* ── Modal materias ── */
+        .modal-mat-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(11,19,38,.80);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+        .modal-mat-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal-mat-box {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            box-shadow: 0 25px 60px rgba(0,0,0,.5);
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 80px);
+            animation: modal-mat-in .2s ease;
+        }
+        @keyframes modal-mat-in {
+            from { transform: scale(.95) translateY(-8px); opacity: 0; }
+            to   { transform: scale(1)   translateY(0);    opacity: 1; }
+        }
+        .modal-mat-hdr {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 22px 26px 18px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .modal-mat-title { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+        .modal-mat-subtitle {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+        .modal-mat-close-x {
+            padding: 5px;
+            border-radius: 50%;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            flex-shrink: 0;
+        }
+        .modal-mat-close-x:hover { background: var(--bg-input); color: var(--text-primary); }
+        .modal-mat-body { overflow-y: auto; padding: 22px 26px; flex: 1; }
+        .modal-mat-table {
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .modal-mat-thead {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 9px 18px;
+            background: rgba(0,0,0,.2);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+        .modal-mat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 13px 18px;
+            border-top: 1px solid var(--border-subtle);
+            transition: background .12s;
+        }
+        .modal-mat-row:hover { background: var(--bg-hover, var(--bg-input)); }
+        .modal-mat-row__mat { font-size: 13px; font-weight: 600; color: var(--accent-text); }
+        .modal-mat-row__prof { font-size: 13px; color: var(--text-primary); }
+        .modal-mat-info {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 13px 15px;
+            margin-top: 16px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-dim);
+            border: 1px solid rgba(99,102,241,.2);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+        .modal-mat-info svg { flex-shrink: 0; margin-top: 1px; color: var(--accent-text); }
+        .modal-mat-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding: 14px 26px;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-app);
+            border-radius: 0 0 var(--radius-card) var(--radius-card);
+        }
+        /* ── Modal Añadir Estudiante ── */
+        .modal-ae-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(11,19,38,.82);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+        .modal-ae-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal-ae-box {
+            width: 100%;
+            max-width: 480px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            box-shadow: 0 25px 60px rgba(0,0,0,.55);
+            overflow: hidden;
+            animation: modal-mat-in .2s ease;
+        }
+        .modal-ae-hdr {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 22px 24px 18px;
+            background: var(--bg-input);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .modal-ae-title { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+        .modal-ae-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+        .modal-ae-badge {
+            font-size: 10px;
+            font-family: monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--accent-text);
+            background: var(--accent-dim);
+            border: 1px solid rgba(99,102,241,.2);
+            padding: 3px 9px;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .modal-ae-body { padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+        .ae-field { display: flex; flex-direction: column; gap: 5px; }
+        .ae-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+        .ae-input {
+            background: var(--bg-app);
+            border: 1px solid var(--border);
+            border-bottom: 2px solid var(--border);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--text-primary);
+            width: 100%;
+            transition: border-color .15s, background .15s;
+        }
+        .ae-input::placeholder { color: var(--text-muted); }
+        .ae-input:focus { outline: none; border-bottom-color: var(--accent); background: var(--bg-input); }
+        .ae-input.input-error { border-bottom-color: var(--danger); }
+        .ae-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .ae-curso-display {
+            padding: 10px 14px 8px;
+            border-bottom: 2px solid var(--border-subtle);
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: .6;
+        }
+        .ae-info {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-dim);
+            border: 1px solid rgba(99,102,241,.15);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+        .ae-info svg { flex-shrink: 0; margin-top: 1px; color: var(--accent-text); }
+        .modal-ae-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            padding-top: 6px;
+        }
+        /* ── Sección materias (legacy, solo grid) ── */
         .materias-card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
@@ -31,11 +448,7 @@
             gap: 8px;
             margin-bottom: 16px;
         }
-        .materias-card__title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
+        .materias-card__title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
         .materias-card__count {
             font-size: 12px;
             color: var(--text-muted);
@@ -58,16 +471,8 @@
             gap: 4px;
             transition: border-color .15s, background .15s;
         }
-        .materia-chip:hover {
-            border-color: var(--accent);
-            background: var(--accent-dim);
-        }
-        .materia-chip__nombre {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            line-height: 1.3;
-        }
+        .materia-chip:hover { border-color: var(--accent); background: var(--accent-dim); }
+        .materia-chip__nombre { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
         .materia-chip__profesor {
             font-size: 11px;
             color: var(--text-muted);
@@ -75,26 +480,16 @@
             align-items: center;
             gap: 5px;
         }
-        .materia-chip__profesor svg {
-            flex-shrink: 0;
-            opacity: .6;
-        }
-        .materia-chip--skeleton .materia-chip__nombre {
-            height: 13px;
-            width: 70%;
-            background: linear-gradient(90deg,var(--bg-input) 25%,var(--border) 50%,var(--bg-input) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.4s infinite;
-            border-radius: 4px;
-        }
+        .materia-chip__profesor svg { flex-shrink: 0; opacity: .6; }
+        .materia-chip--skeleton .materia-chip__nombre,
         .materia-chip--skeleton .materia-chip__profesor {
-            height: 10px;
-            width: 55%;
             background: linear-gradient(90deg,var(--bg-input) 25%,var(--border) 50%,var(--bg-input) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.4s infinite;
             border-radius: 4px;
         }
+        .materia-chip--skeleton .materia-chip__nombre { height: 13px; width: 70%; }
+        .materia-chip--skeleton .materia-chip__profesor { height: 10px; width: 55%; }
         @keyframes shimmer { to { background-position: -200% 0; } }
     </style>
 </head>
@@ -198,21 +593,11 @@
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
             </button>
-            <a href="/director/estudiantes/" class="btn-back" aria-label="Volver a cursos">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
-            </a>
-            <h1 class="page-title" id="pageTitle">Cargando…</h1>
-        </div>
-        <div class="topbar-actions">
-            <button class="btn-primary" id="btnNuevoEstudiante">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Nuevo Estudiante
-            </button>
+            <nav class="topbar-bc" aria-label="Navegación">
+                <a href="/director/estudiantes/" class="topbar-bc__link topbar-bc__link--back">Estudiantes</a>
+                <span class="topbar-bc__sep">›</span>
+                <span class="topbar-bc__current" id="pageTitle">Cargando…</span>
+            </nav>
         </div>
     </header>
 
@@ -220,34 +605,53 @@
     <main class="main-content">
         <div class="content-wrap">
 
-            <div class="filters-bar">
-                <div class="search-wrapper">
+            <!-- ── Encabezado ── -->
+            <div class="curso-page-hdr">
+                <div>
+                    <h2 class="curso-main-title">Estudiantes: <span id="cursoTitleSpan">—</span></h2>
+                </div>
+                <div class="curso-total-box">
+                    <div class="curso-total-num" id="totalNum">—</div>
+                    <div class="curso-total-label">Total Inscritos</div>
+                </div>
+            </div>
+
+            <!-- ── Búsqueda + Materias ── -->
+            <div class="search-bar-row">
+                <div class="search-pill">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
-                    <input type="text" id="searchInput" class="search-input"
+                    <input type="text" id="searchInput"
                            placeholder="Buscar por nombre o identificador…"
                            autocomplete="off">
                 </div>
+                <button class="btn-materias" id="btnToggleMaterias">MATERIAS</button>
+                <button class="btn-primary" id="btnNuevoEstudiante" style="white-space:nowrap;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Nuevo Estudiante
+                </button>
             </div>
 
-            <div class="table-card">
+            <!-- ── Tabla ── -->
+            <div class="table-card archive-glow">
                 <div class="table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Nombre completo</th>
-                                <th>Identificador</th>
-                                <th>Nombre tutor</th>
-                                <th>Usuario tutor</th>
-                                <th>Estado</th>
+                                <th style="width:60px">Nro</th>
+                                <th>Nombre Completo</th>
+                                <th style="width:110px;text-align:center">Con Tutor</th>
+                                <th style="width:130px">Estado</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyEstudiantes">
                             <tr class="tr-loading">
-                                <td colspan="6">
+                                <td colspan="4">
                                     <div class="table-spinner"></div>
                                     Cargando estudiantes…
                                 </td>
@@ -255,123 +659,115 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="table-footer">
-                    <span id="tableCount" class="table-count">— registros</span>
-                </div>
-            </div>
-
-            <!-- ── Materias del curso ── -->
-            <div class="materias-card" id="materiasCard" style="margin-top:20px;margin-bottom:0;">
-                <div class="materias-card__header">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
-                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                    </svg>
-                    <span class="materias-card__title">Materias del Curso</span>
-                    <span class="materias-card__count" id="materiasCount">—</span>
-                </div>
-                <div class="materias-grid" id="materiasGrid">
-                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
-                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
-                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
-                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
-                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
-                    <div class="materia-chip materia-chip--skeleton"><div class="materia-chip__nombre"></div><div class="materia-chip__profesor"></div></div>
-                </div>
             </div>
 
         </div>
     </main>
 
-    <!-- ── Drawer: Nuevo Estudiante ──────────────────────────────── -->
-    <div class="drawer-backdrop" id="drawerBackdrop"></div>
-    <aside class="drawer" id="drawer" aria-label="Nuevo estudiante">
-        <div class="drawer-header">
-            <h2 class="drawer-title">Nuevo Estudiante</h2>
-            <button class="drawer-close" id="btnCerrarDrawer" aria-label="Cerrar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-        </div>
-        <div class="drawer-body">
-
-            <!-- ── Sección: Estudiante ── -->
-            <p class="drawer-section-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                </svg>
-                Datos del estudiante
-            </p>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label" for="fNombre">Nombre(s) <span class="req">*</span></label>
-                    <input type="text" id="fNombre" class="form-input" maxlength="100" placeholder="Ej: María Fernanda" autocomplete="off">
+    <!-- ── Modal: Materias del Curso ────────────────────────────── -->
+    <div class="modal-mat-overlay" id="modalMateriasOverlay">
+        <div class="modal-mat-box" role="dialog" aria-modal="true" aria-labelledby="modalMatTitle">
+            <div class="modal-mat-hdr">
+                <div>
+                    <h2 class="modal-mat-title" id="modalMatTitle">Materias del Curso</h2>
+                    <p class="modal-mat-subtitle"><span id="modalMatCursoLabel">—</span></p>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="fApellidoPaterno">Apellido paterno</label>
-                    <input type="text" id="fApellidoPaterno" class="form-input" maxlength="100" placeholder="Ej: García" autocomplete="off">
+                <button class="modal-mat-close-x" id="btnCerrarModalMat" aria-label="Cerrar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-mat-body">
+                <div class="modal-mat-table">
+                    <div class="modal-mat-thead">
+                        <div>Materia</div>
+                        <div>Docente</div>
+                    </div>
+                    <div id="modalMatRows">
+                        <div class="modal-mat-row" style="color:var(--text-muted);font-size:13px;">
+                            <span style="grid-column:1/-1;display:flex;align-items:center;gap:8px;">
+                                <div class="table-spinner" style="width:14px;height:14px;border-width:2px;"></div>
+                                Cargando materias…
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="fApellidoMaterno">Apellido materno</label>
-                    <input type="text" id="fApellidoMaterno" class="form-input" maxlength="100" placeholder="Ej: López" autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Curso</label>
-                    <div class="curso-display" id="fCursoNombre">—</div>
+                <div class="modal-mat-info">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <p>Estas materias corresponden a la malla curricular vigente asignada a este curso. Para modificar la asignación de docentes, ve a la sección Académico.</p>
                 </div>
             </div>
+            <div class="modal-mat-footer">
+                <button class="btn-primary" id="btnModalMatCerrar">Cerrar</button>
+            </div>
+        </div>
+    </div>
 
-            <div class="drawer-divider"></div>
-
-            <!-- ── Sección: Tutor ── -->
-            <p class="drawer-section-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                </svg>
-                Datos del tutor
-            </p>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label" for="fTutorNombre">Nombre(s) <span class="req">*</span></label>
-                    <input type="text" id="fTutorNombre" class="form-input" maxlength="100" placeholder="Nombre del tutor" autocomplete="off">
+    <!-- ── Modal: Añadir Estudiante ─────────────────────────────── -->
+    <div class="modal-ae-overlay" id="modalAEOverlay">
+        <div class="modal-ae-box" role="dialog" aria-modal="true">
+            <div class="modal-ae-hdr">
+                <div>
+                    <h2 class="modal-ae-title">Añadir Nuevo Estudiante</h2>
+                    <p class="modal-ae-subtitle">Ingresa los datos para la inscripción oficial.</p>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="fTutorApellidos">Apellidos <span class="req">*</span></label>
-                    <input type="text" id="fTutorApellidos" class="form-input" maxlength="100" placeholder="Apellidos del tutor" autocomplete="off">
-                </div>
-                <div class="form-group" style="grid-column: 1 / -1;">
-                    <label class="form-label" for="fTutorUsername">
-                        Nombre de usuario <span class="req">*</span>
-                        <span id="usernameAutoTag" style="margin-left:6px;font-size:0.7rem;font-weight:500;color:var(--accent);opacity:0.8;">auto</span>
-                    </label>
-                    <input type="text" id="fTutorUsername" class="form-input" maxlength="50"
-                           placeholder="Se genera automáticamente…" autocomplete="off" spellcheck="false">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="modal-ae-badge" id="aeCourseBadge">—</span>
+                    <button class="modal-mat-close-x" id="btnCerrarAE" aria-label="Cerrar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
-            <div class="form-hint">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                El nombre de usuario se genera automáticamente, pero puedes editarlo. La contraseña se generará al guardar.
-            </div>
-
+            <form id="formAE" class="modal-ae-body" autocomplete="off">
+                <div class="ae-field">
+                    <label class="ae-label" for="aeNombre">Nombres</label>
+                    <input type="text" id="aeNombre" class="ae-input" placeholder="Ej. Juan Carlos" maxlength="100">
+                </div>
+                <div class="ae-grid">
+                    <div class="ae-field">
+                        <label class="ae-label" for="aePaterno">Apellido Paterno</label>
+                        <input type="text" id="aePaterno" class="ae-input" placeholder="Ej. Mamani" maxlength="100">
+                    </div>
+                    <div class="ae-field">
+                        <label class="ae-label" for="aeMaterno">Apellido Materno</label>
+                        <input type="text" id="aeMaterno" class="ae-input" placeholder="Ej. Quispe" maxlength="100">
+                    </div>
+                </div>
+                <div class="ae-field">
+                    <label class="ae-label">Curso Asignado</label>
+                    <div class="ae-curso-display" id="aeCursoDisplay">
+                        <span id="aeCursoNombre">—</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4">
+                            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ae-info">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <p>Al guardar, se generará automáticamente un <strong>Código de Estudiante</strong> único basado en los apellidos y el curso.</p>
+                </div>
+                <p class="input-error-msg" id="aeError" style="display:none;color:var(--danger);font-size:12px;"></p>
+                <div class="modal-ae-footer">
+                    <button type="button" class="btn-ghost" id="btnCancelarAE">Cancelar</button>
+                    <button type="submit" class="btn-primary" id="btnGuardarAE">
+                        <span id="btnGuardarAEText">Guardar Estudiante</span>
+                        <span id="btnGuardarAESpinner" class="btn-spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="drawer-footer">
-            <button class="btn-ghost" id="btnCancelarDrawer">Cancelar</button>
-            <button class="btn-primary" id="btnGuardar">
-                <span id="btnGuardarText">Guardar</span>
-                <span id="btnGuardarSpinner" class="btn-spinner hidden"></span>
-            </button>
-        </div>
-    </aside>
+    </div>
 
-    <!-- ── Modal: Credenciales ───────────────────────────────────── -->
+    <!-- ── Modal: Estudiante registrado ──────────────────────────── -->
     <div class="modal-backdrop" id="modalBackdrop">
         <div class="modal" role="dialog" aria-modal="true">
             <div class="modal-icon modal-icon--success">
@@ -383,21 +779,11 @@
             <h3 class="modal-title">Estudiante registrado</h3>
             <p class="modal-subtitle" id="modalEstudiante"></p>
             <div class="cred-box">
-                <p class="cred-label">Credenciales del tutor</p>
+                <p class="cred-label">Código de Estudiante</p>
                 <div class="cred-row">
-                    <span class="cred-key">Usuario</span>
-                    <span class="cred-val" id="credUser"></span>
-                    <button class="cred-copy" data-target="credUser" aria-label="Copiar usuario">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2"/>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-key">Contraseña</span>
-                    <span class="cred-val" id="credPass"></span>
-                    <button class="cred-copy" data-target="credPass" aria-label="Copiar contraseña">
+                    <span class="cred-key">Código</span>
+                    <span class="cred-val" id="credCodigo" style="font-family:monospace;font-size:15px;letter-spacing:.05em;"></span>
+                    <button class="cred-copy" data-target="credCodigo" aria-label="Copiar código">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2"/>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -405,7 +791,6 @@
                     </button>
                 </div>
             </div>
-            <p class="modal-warn">Guarda estas credenciales ahora. La contraseña no se mostrará de nuevo.</p>
             <button class="btn-primary btn-full" id="btnModalOk">Entendido</button>
         </div>
     </div>
@@ -415,31 +800,6 @@
     const CURSO_NOMBRE = "{{ curso_nombre }}";
 </script>
 <script src="{% static_v 'js/curso_estudiantes.js' %}"></script>
-<script>
-'use strict';
-(async () => {
-    const { ok, data } = await fetchAPI(`/api/academics/cursos/${CURSO_ID}/materias/`);
-    const grid  = document.getElementById('materiasGrid');
-    const count = document.getElementById('materiasCount');
-    if (!ok || !data?.length) {
-        grid.innerHTML = '<p style="font-size:13px;color:var(--text-muted);grid-column:1/-1">Sin materias asignadas a este curso.</p>';
-        count.textContent = '0 materias';
-        return;
-    }
-    count.textContent = `${data.length} materia${data.length !== 1 ? 's' : ''}`;
-    grid.innerHTML = data.map(m => `
-        <div class="materia-chip">
-            <span class="materia-chip__nombre">${m.materia}</span>
-            <span class="materia-chip__profesor">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-                ${m.profesor}
-            </span>
-        </div>`).join('');
-})();
-</script>
 <script>
     /* ── Sidebar ─────────────────────────────────────────────── */
     const _user = JSON.parse(localStorage.getItem('user') || 'null');

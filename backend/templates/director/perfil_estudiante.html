@@ -117,117 +117,195 @@
         }
         .btn-reactivar:hover { background: var(--success); color: #fff; }
 
-        /* ── Citaciones ── */
-        .cit-item {
+        /* ── Tutor mejorado ── */
+        .perfil-tutor-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .perfil-tutor-avatar {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: var(--bg-input);
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            margin-bottom: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: border-color .18s;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            color: var(--text-muted);
         }
-        .cit-item:hover { border-color: var(--accent); }
-        .cit-item.open  { border-color: var(--accent); }
-        .cit-summary {
-            padding: 14px 16px;
+        .perfil-tutor-info { display: flex; flex-direction: column; gap: 2px; }
+        .perfil-tutor-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+        .perfil-tutor-user { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+
+        /* ── Citaciones — sección ── */
+        .cit-section-hdr {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .cit-hdr-top {
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-        .cit-summary__body { flex: 1; min-width: 0; }
-        .cit-header {
-            display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            gap: 8px;
+            gap: 12px;
+            flex-wrap: wrap;
         }
-        .cit-motivo {
-            font-size: 0.85rem;
-            font-weight: 600;
+        .cit-hdr-left { display: flex; align-items: center; gap: 14px; }
+        .cit-hdr-icon {
+            width: 46px; height: 46px;
+            background: var(--accent-dim);
+            border-radius: var(--radius);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent-text);
+            flex-shrink: 0;
+        }
+        .cit-hdr-title { font-size: 1.15rem; font-weight: 800; color: var(--text-primary); }
+        .cit-hdr-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+        .cit-total-badge {
+            font-size: 13px; font-weight: 700; font-family: monospace;
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            padding: 3px 10px;
+            border-radius: var(--radius-sm);
+            letter-spacing: .04em;
+        }
+        .cit-hdr-sub {
+            font-size: 10px; color: var(--text-muted);
+            text-transform: uppercase; font-weight: 600; letter-spacing: .07em;
+        }
+        .cit-month-nav {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 6px 12px;
+        }
+        .cit-month-nav__btn {
+            background: none; border: none;
+            color: var(--text-muted);
+            cursor: pointer; padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 16px; line-height: 1;
+            transition: color .15s, background .15s;
+        }
+        .cit-month-nav__btn:hover { color: var(--accent-text); background: var(--accent-dim); }
+        .cit-month-nav__btn:disabled { opacity: .25; cursor: not-allowed; pointer-events: none; }
+        .cit-month-nav__label {
+            font-size: 0.78rem; font-weight: 700; font-family: monospace;
+            text-transform: uppercase; letter-spacing: .04em;
+            min-width: 108px; text-align: center;
             color: var(--text-primary);
         }
-        .cit-fecha {
-            font-size: 0.75rem;
+
+        /* ── Tabs underline ── */
+        .cit-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            background: rgba(19,27,46,.3);
+        }
+        .cit-tab {
+            padding: 13px 4px;
+            border-radius: 0;
+            font-size: 11px; font-weight: 700;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: transparent;
             color: var(--text-muted);
-            white-space: nowrap;
+            cursor: pointer;
+            margin-right: 28px;
+            text-transform: uppercase; letter-spacing: .06em;
+            transition: color .15s, border-color .15s;
         }
-        .cit-desc {
-            font-size: 0.82rem;
-            color: var(--text-secondary, var(--text-muted));
-            line-height: 1.45;
+        .cit-tab:hover { color: var(--text-primary); }
+        .cit-tab.active { border-bottom-color: var(--accent); color: var(--accent-text); }
+        .cit-tab__count {
+            display: inline-block; margin-left: 6px;
+            font-size: 10px; background: var(--bg-card);
+            border-radius: 4px; padding: 0 5px; color: var(--text-muted);
         }
-        .cit-chevron {
+        .cit-tab.active .cit-tab__count { background: var(--accent-dim); color: var(--accent-text); }
+
+        /* ── Items de citación ── */
+        .cit-item {
+            border: none; border-radius: 0; margin-bottom: 0;
+            border-bottom: 1px solid var(--border);
+            border-left: 4px solid transparent;
+            cursor: pointer;
+            transition: background .15s;
+            overflow: hidden;
+        }
+        .cit-item:last-child { border-bottom: none; }
+        .cit-item:hover { background: rgba(255,255,255,.02); }
+        .cit-item.open  { background: rgba(45,52,73,.18); }
+        .cit-item--pendiente  { border-left-color: var(--warning); }
+        .cit-item--vencida    { border-left-color: var(--danger); }
+        .cit-item--asistencia { border-left-color: var(--accent); }
+        .cit-icon-box {
+            width: 38px; height: 38px;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
-            width: 15px; height: 15px;
-            stroke: var(--text-muted);
-            transition: transform .2s;
+        }
+        .cit-icon-box--pendiente  { background: rgba(245,158,11,.1); color: var(--warning); }
+        .cit-icon-box--vencida    { background: rgba(239,68,68,.1);  color: var(--danger); }
+        .cit-icon-box--asistencia { background: var(--accent-dim);   color: var(--accent-text); }
+        .cit-summary {
+            padding: 14px 20px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .cit-summary__body { flex: 1; min-width: 0; }
+        .cit-motivo { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+        .cit-summary__meta {
+            font-size: 10px; color: var(--text-muted);
+            text-transform: uppercase; font-weight: 600; letter-spacing: .05em; margin-top: 2px;
+        }
+        .cit-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .cit-fecha { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+        .cit-chevron {
+            flex-shrink: 0; width: 15px; height: 15px;
+            stroke: var(--text-muted); transition: transform .2s;
         }
         .cit-item.open .cit-chevron { transform: rotate(180deg); }
         /* Panel expandible */
         .cit-detail {
             display: none;
-            border-top: 1px solid var(--border);
-            padding: 12px 16px 14px;
+            padding: 0 20px 18px 72px;
         }
         .cit-item.open .cit-detail { display: block; }
+        .cit-detail-inner {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+        }
         .cit-detail-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             gap: 8px 16px;
+            margin-bottom: 12px;
         }
-        .cit-di { display: flex; flex-direction: column; gap: 2px; }
+        @media (max-width: 700px) { .cit-detail-grid { grid-template-columns: 1fr 1fr; } }
+        .cit-di { display: flex; flex-direction: column; gap: 3px; }
         .cit-di--full { grid-column: 1 / -1; }
         .cit-di__label {
             font-size: 10px; font-weight: 700; text-transform: uppercase;
             letter-spacing: .07em; color: var(--text-muted);
         }
         .cit-di__value { font-size: 0.82rem; color: var(--text-primary); }
-        .cit-di__value--muted { color: var(--text-secondary); font-style: italic; }
-        /* ── Tabs de filtro ── */
-        .cit-tabs {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-        }
-        .cit-tab {
-            padding: 5px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: background .15s, color .15s, border-color .15s;
-        }
-        .cit-tab:hover { border-color: var(--accent); color: var(--accent-text); }
-        .cit-tab.active {
-            background: var(--accent-dim);
-            border-color: var(--accent);
-            color: var(--accent-text);
-        }
-        .cit-tab__count {
-            display: inline-block;
-            margin-left: 5px;
-            font-size: 10px;
+        .cit-di__value--muted { color: var(--text-muted); font-style: italic; }
+        .cit-desc-box {
             background: var(--bg-card);
-            border-radius: 10px;
-            padding: 0 6px;
-            color: var(--text-muted);
-        }
-        .cit-tab.active .cit-tab__count { background: var(--accent); color: #fff; }
-        .cit-empty {
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.88rem;
-            font-weight: 500;
-            padding: 28px 16px;
-            background: var(--bg-input);
-            border: 1px dashed var(--border);
             border-radius: var(--radius-sm);
-            margin: 4px 0;
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            line-height: 1.55;
+        }
+        .cit-empty {
+            text-align: center; color: var(--text-muted);
+            font-size: 0.88rem; font-weight: 500;
+            padding: 36px 16px;
         }
 
         /* ── Calendario de asistencia ── */
@@ -449,6 +527,74 @@
             margin-top: 5px;
             min-height: 16px;
         }
+
+        /* ── Breadcrumb en topbar ── */
+        .topbar-bc {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+        .topbar-bc__link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px 4px 7px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 13px;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: background .15s, color .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .topbar-bc__link--back::before {
+            content: '‹';
+            font-size: 17px;
+            line-height: 1;
+            opacity: .65;
+        }
+        .topbar-bc__link:hover {
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+        .topbar-bc__sep { color: var(--text-muted); opacity: .35; font-size: 15px; margin: 0 2px; }
+        .topbar-bc__current {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 13px;
+            padding: 4px 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+
+        /* ── Botón editar nombre ── */
+        .btn-edit-perfil {
+            width: 100%;
+            margin-top: 16px;
+            padding: 9px 0;
+            border-radius: var(--radius);
+            border: 1px solid var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            transition: background .15s, opacity .15s;
+        }
+        .btn-edit-perfil:hover { opacity: .8; }
+        /* Modal editar — inputs consistentes */
+        .confirm-pass-wrap input.input-error { border-color: var(--danger); }
+        .en-fields-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -541,7 +687,7 @@
 
     <!-- ── Top bar ────────────────────────────────────────────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="6"  x2="21" y2="6"/>
@@ -549,12 +695,13 @@
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
             </button>
-            <a href="/director/estudiantes/{{ curso_id }}/" class="btn-back" aria-label="Volver al curso">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
-            </a>
-            <h1 class="page-title">Perfil del Estudiante</h1>
+            <nav class="topbar-bc" aria-label="Navegación">
+                <a href="/director/estudiantes/" class="topbar-bc__link">Estudiantes</a>
+                <span class="topbar-bc__sep">›</span>
+                <a href="/director/estudiantes/{{ curso_id }}/" class="topbar-bc__link topbar-bc__link--back" id="bcCurso">Curso</a>
+                <span class="topbar-bc__sep">›</span>
+                <span class="topbar-bc__current" id="bcEstudiante">…</span>
+            </nav>
         </div>
     </header>
 
@@ -594,18 +741,23 @@
                             <span class="perfil-field-value" id="pActivo"></span>
                         </div>
                     </div>
+                    <button class="btn-edit-perfil" id="btnEditNombre">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Editar nombre del estudiante
+                    </button>
 
                     <hr class="perfil-divider">
 
                     <p class="perfil-section-title">Tutor</p>
-                    <div class="perfil-field-list" id="tutorFieldList">
-                        <div class="perfil-field">
-                            <span class="perfil-field-label">Nombre</span>
-                            <span class="perfil-field-value" id="pTutorNombre"></span>
-                        </div>
-                        <div class="perfil-field">
-                            <span class="perfil-field-label">Usuario</span>
-                            <span class="perfil-field-value td-mono" id="pTutorUsername"></span>
+                    <div id="tutorFieldList">
+                        <div class="perfil-tutor-row">
+                            <div class="perfil-tutor-avatar">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div class="perfil-tutor-info">
+                                <span class="perfil-tutor-name" id="pTutorNombre"></span>
+                                <span class="perfil-tutor-user" id="pTutorUsername"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -654,20 +806,83 @@
             </div><!-- /.perfil-layout -->
 
             <!-- ── Citaciones (abajo, ancho completo) ── -->
-            <div class="perfil-card" style="margin-top:20px">
-                <p class="perfil-section-title">Citaciones</p>
+            <div class="perfil-card" style="margin-top:20px;padding:0;overflow:hidden;">
+                <!-- Header -->
+                <div class="cit-section-hdr">
+                    <div class="cit-hdr-top">
+                        <div class="cit-hdr-left">
+                            <div class="cit-hdr-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="12" y1="18" x2="12" y2="12"/>
+                                    <line x1="9" y1="15" x2="15" y2="15"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="cit-hdr-title">Citaciones</div>
+                                <div class="cit-hdr-meta">
+                                    <span class="cit-total-badge" id="citTotalBadge">0 TOTAL</span>
+                                    <span class="cit-hdr-sub">Historial Disciplinario</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cit-month-nav">
+                            <button class="cit-month-nav__btn" id="citMesPrev">‹</button>
+                            <span class="cit-month-nav__label" id="citMesLabel"></span>
+                            <button class="cit-month-nav__btn" id="citMesNext">›</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tabs -->
                 <div class="cit-tabs">
                     <button class="cit-tab active" data-filtro="pendiente">Pendientes<span class="cit-tab__count" id="countPendiente">0</span></button>
                     <button class="cit-tab" data-filtro="vencidas">Vencidas<span class="cit-tab__count" id="countVencidas">0</span></button>
                     <button class="cit-tab" data-filtro="asistencia">Con asistencia<span class="cit-tab__count" id="countAsistencia">0</span></button>
                 </div>
+                <!-- Lista -->
                 <div id="citacionesContainer">
-                    <div class="table-spinner" style="margin:0 auto;display:block;"></div>
+                    <div class="table-spinner" style="margin:24px auto;display:block;"></div>
                 </div>
             </div>
 
         </div><!-- /.content-wrap -->
     </main>
+
+    <!-- ── Modal editar nombre del estudiante ───────────────────── -->
+    <div class="confirm-modal-backdrop" id="editNombreBackdrop">
+        <div class="confirm-modal" style="max-width:420px;">
+            <div class="confirm-modal-icon" style="background:var(--accent-dim);color:var(--accent-text);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <h3>Editar nombre</h3>
+            <p>Corrige los datos del estudiante si fueron ingresados incorrectamente. Se guardarán en mayúsculas.</p>
+            <div class="en-fields-group">
+                <div class="confirm-pass-wrap" style="margin-bottom:0;">
+                    <label for="enNombre">Nombre</label>
+                    <input type="text" id="enNombre" placeholder="Nombre" maxlength="100" autocomplete="off">
+                </div>
+                <div class="confirm-pass-wrap" style="margin-bottom:0;">
+                    <label for="enPaterno">Apellido paterno</label>
+                    <input type="text" id="enPaterno" placeholder="Apellido paterno (opcional)" maxlength="100" autocomplete="off">
+                </div>
+                <div class="confirm-pass-wrap" style="margin-bottom:0;">
+                    <label for="enMaterno">Apellido materno</label>
+                    <input type="text" id="enMaterno" placeholder="Apellido materno (opcional)" maxlength="100" autocomplete="off">
+                </div>
+            </div>
+            <p class="confirm-pass-error" id="enError" style="margin:8px 0 12px;min-height:14px;"></p>
+            <div class="confirm-pass-wrap">
+                <label for="enPassword">Confirma tu contraseña</label>
+                <input type="password" id="enPassword" placeholder="Tu contraseña de acceso" maxlength="64" autocomplete="current-password">
+                <p class="confirm-pass-error" id="enPasswordError"></p>
+            </div>
+            <div class="confirm-modal-actions">
+                <button class="btn-ghost" id="btnEnCancelar">Cancelar</button>
+                <button class="btn-confirm btn-confirm--success" id="btnEnGuardar">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ── Modal confirmación cambio de estado ──────────────────── -->
     <div class="confirm-modal-backdrop" id="confirmBackdrop">
@@ -713,7 +928,8 @@ const ASISTENCIA_CLASS = {
     ATRASO:     'badge--warning',
 };
 
-let _activo = true;
+let _activo     = true;
+let _estudiante = null;
 
 function renderEstado(activo) {
     document.getElementById('pActivo').innerHTML = activo
@@ -738,7 +954,19 @@ function fmtFecha(str) {
 }
 
 let _todasCitaciones = [];
-let _filtroActivo = 'pendiente';
+let _filtroActivo    = 'pendiente';
+let _citMes          = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+
+const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function _citMesLabel(mes) {
+    const [y, m] = mes.split('-');
+    return `${MESES_ES[Number(m) - 1]} ${y}`;
+}
+
+function _citacionesDelMes() {
+    return _todasCitaciones.filter(c => c.fecha_envio && c.fecha_envio.slice(0, 7) === _citMes);
+}
 
 const FILTROS = {
     pendiente:  c => c.asistencia === 'PENDIENTE',
@@ -746,52 +974,75 @@ const FILTROS = {
     asistencia: c => ['ASISTIO', 'ATRASO', 'NO_ASISTIO', 'VISTO'].includes(c.asistencia),
 };
 const FILTRO_EMPTY = {
-    pendiente:  'Sin citaciones pendientes.',
-    vencidas:   'Sin citaciones vencidas.',
-    asistencia: 'Sin citaciones con asistencia registrada.',
+    pendiente:  'Sin citaciones pendientes este mes.',
+    vencidas:   'Sin citaciones vencidas este mes.',
+    asistencia: 'Sin citaciones con asistencia registrada este mes.',
 };
+
+// Color/icon por estado del tab
+const CIT_TAB_CLASS = { pendiente: 'pendiente', vencidas: 'vencida', asistencia: 'asistencia' };
+
+function _citItemClass(asistencia) {
+    if (asistencia === 'PENDIENTE') return 'pendiente';
+    if (asistencia === 'VENCIDA')   return 'vencida';
+    return 'asistencia';
+}
 
 function renderCitaciones(lista) {
     _todasCitaciones = lista;
-    // Actualizar contadores de tabs
-    document.getElementById('countPendiente').textContent  = lista.filter(FILTROS.pendiente).length;
-    document.getElementById('countVencidas').textContent   = lista.filter(FILTROS.vencidas).length;
-    document.getElementById('countAsistencia').textContent = lista.filter(FILTROS.asistencia).length;
+    document.getElementById('citMesLabel').textContent = _citMesLabel(_citMes);
+    _actualizarContadores();
     renderFiltro(_filtroActivo);
+}
+
+function _actualizarContadores() {
+    const delMes = _citacionesDelMes();
+    document.getElementById('citTotalBadge').textContent   = `${delMes.length} TOTAL`;
+    document.getElementById('countPendiente').textContent  = delMes.filter(FILTROS.pendiente).length;
+    document.getElementById('countVencidas').textContent   = delMes.filter(FILTROS.vencidas).length;
+    document.getElementById('countAsistencia').textContent = delMes.filter(FILTROS.asistencia).length;
 }
 
 function renderFiltro(filtro) {
     _filtroActivo = filtro;
-    const cont = document.getElementById('citacionesContainer');
-    const lista = _todasCitaciones.filter(FILTROS[filtro]);
+    const cont  = document.getElementById('citacionesContainer');
+    const lista = _citacionesDelMes().filter(FILTROS[filtro]);
 
     if (!lista.length) {
         cont.innerHTML = `<p class="cit-empty">${FILTRO_EMPTY[filtro]}</p>`;
         return;
     }
+
     const chevron = `<svg class="cit-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
     cont.innerHTML = lista.map(c => {
+        const cls   = _citItemClass(c.asistencia);
         const fecha = new Date(c.fecha_envio).toLocaleDateString('es-BO', { day:'2-digit', month:'short', year:'numeric' });
         const badgeClass = ASISTENCIA_CLASS[c.asistencia] || 'badge--default';
         const label      = ASISTENCIA_LABEL[c.asistencia] || c.asistencia;
         return `
-        <div class="cit-item" data-cit-id="${c.id}">
+        <div class="cit-item cit-item--${cls}" data-cit-id="${c.id}">
             <div class="cit-summary">
+                <div class="cit-icon-box cit-icon-box--${cls}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                </div>
                 <div class="cit-summary__body">
                     <div class="cit-header">
                         <span class="cit-motivo">${c.motivo}</span>
-                        <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                             <span class="badge ${badgeClass}">${label}</span>
                             <span class="cit-fecha">${fecha}</span>
                         </div>
                     </div>
-                    <p class="cit-desc" style="margin:0;">Límite: ${fmtFecha(c.fecha_limite_asistencia)}</p>
+                    <p class="cit-summary__meta" style="margin:0;">Límite: ${fmtFecha(c.fecha_limite_asistencia)}</p>
                 </div>
                 ${chevron}
             </div>
             <div class="cit-detail">
-                <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
-                    <div class="table-spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div> Cargando...
+                <div class="cit-detail-inner">
+                    <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
+                        <div class="table-spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div> Cargando...
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -801,6 +1052,37 @@ function renderFiltro(filtro) {
         item.addEventListener('click', () => toggleCitacion(item));
     });
 }
+
+/* Navegación por mes */
+const _citAnioActual = new Date().getFullYear();
+const _citMesActual  = new Date().toISOString().slice(0, 7); // "YYYY-MM" de hoy
+
+function _actualizarBotonesCitMes() {
+    const [y, m] = _citMes.split('-').map(Number);
+    document.getElementById('citMesPrev').disabled = (y === _citAnioActual && m === 1);
+    document.getElementById('citMesNext').disabled = (_citMes >= _citMesActual);
+}
+
+document.getElementById('citMesPrev').addEventListener('click', () => {
+    const [y, m] = _citMes.split('-').map(Number);
+    if (y === _citAnioActual && m === 1) return;
+    const prev = new Date(y, m - 2, 1);
+    _citMes = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    document.getElementById('citMesLabel').textContent = _citMesLabel(_citMes);
+    _actualizarBotonesCitMes();
+    _actualizarContadores();
+    renderFiltro(_filtroActivo);
+});
+document.getElementById('citMesNext').addEventListener('click', () => {
+    if (_citMes >= _citMesActual) return;
+    const [y, m] = _citMes.split('-').map(Number);
+    const next = new Date(y, m, 1);
+    _citMes = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+    document.getElementById('citMesLabel').textContent = _citMesLabel(_citMes);
+    _actualizarBotonesCitMes();
+    _actualizarContadores();
+    renderFiltro(_filtroActivo);
+});
 
 // Tabs
 document.querySelectorAll('.cit-tab').forEach(tab => {
@@ -824,37 +1106,39 @@ async function toggleCitacion(item) {
     detail.dataset.loaded = '1';
 
     if (!res.ok) {
-        detail.innerHTML = '<p style="font-size:12px;color:var(--danger);">No se pudo cargar el detalle.</p>';
+        detail.innerHTML = '<div class="cit-detail-inner"><p style="font-size:12px;color:var(--danger);">No se pudo cargar el detalle.</p></div>';
         return;
     }
     const d = res.data;
     detail.innerHTML = `
-        <div class="cit-detail-grid">
-            <div class="cit-di">
-                <span class="cit-di__label">Emitido por</span>
-                <span class="cit-di__value">${d.emitido_por_nombre || '—'}</span>
+        <div class="cit-detail-inner">
+            <div class="cit-detail-grid">
+                <div class="cit-di">
+                    <span class="cit-di__label">Emitido por</span>
+                    <span class="cit-di__value">${d.emitido_por_nombre || '—'}</span>
+                </div>
+                <div class="cit-di">
+                    <span class="cit-di__label">Cargo</span>
+                    <span class="cit-di__value">${d.emitido_por_cargo || '—'}</span>
+                </div>
+                <div class="cit-di">
+                    <span class="cit-di__label">Tutor</span>
+                    <span class="cit-di__value">${d.tutor_nombre || 'Sin tutor'}</span>
+                </div>
+                <div class="cit-di">
+                    <span class="cit-di__label">Fecha límite</span>
+                    <span class="cit-di__value">${fmtFecha(d.fecha_limite_asistencia)}</span>
+                </div>
+                <div class="cit-di cit-di--full">
+                    <span class="cit-di__label">Descripción</span>
+                    <div class="cit-desc-box">${d.motivo_descripcion || '<em style="color:var(--text-muted)">Sin descripción</em>'}</div>
+                </div>
+                ${d.actualizado_por_nombre ? `
+                <div class="cit-di cit-di--full">
+                    <span class="cit-di__label">Actualizado por</span>
+                    <span class="cit-di__value cit-di__value--muted">${d.actualizado_por_nombre}</span>
+                </div>` : ''}
             </div>
-            <div class="cit-di">
-                <span class="cit-di__label">Cargo</span>
-                <span class="cit-di__value">${d.emitido_por_cargo || '—'}</span>
-            </div>
-            <div class="cit-di">
-                <span class="cit-di__label">Tutor</span>
-                <span class="cit-di__value">${d.tutor_nombre || 'Sin tutor'}</span>
-            </div>
-            <div class="cit-di">
-                <span class="cit-di__label">Fecha límite</span>
-                <span class="cit-di__value">${fmtFecha(d.fecha_limite_asistencia)}</span>
-            </div>
-            <div class="cit-di cit-di--full">
-                <span class="cit-di__label">Descripción</span>
-                <span class="cit-di__value">${d.motivo_descripcion || '<em style="color:var(--text-muted)">Sin descripción</em>'}</span>
-            </div>
-            ${d.actualizado_por_nombre ? `
-            <div class="cit-di cit-di--full">
-                <span class="cit-di__label">Actualizado por</span>
-                <span class="cit-di__value cit-di__value--muted">${d.actualizado_por_nombre}</span>
-            </div>` : ''}
         </div>`;
 }
 
@@ -952,7 +1236,10 @@ document.getElementById('perfilCalNext').addEventListener('click', () => {
 
     if (resEstudiante.ok) {
         const d = resEstudiante.data;
+        _estudiante = d;
         _activo = d.activo;
+        document.getElementById('bcCurso').textContent      = d.curso_nombre;
+        document.getElementById('bcEstudiante').textContent = d.nombre_completo;
         document.getElementById('pNombre').textContent        = d.nombre_completo;
         document.getElementById('pCurso').textContent         = d.curso_nombre;
         document.getElementById('pIdentificador').textContent  = d.identificador || '—';
@@ -961,11 +1248,13 @@ document.getElementById('perfilCalNext').addEventListener('click', () => {
             document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
         } else {
             document.getElementById('tutorFieldList').innerHTML =
-                '<p style="font-size:0.82rem;color:var(--text-muted);font-style:italic;margin:0;">Sin tutor asignado aún.</p>';
+                '<p style="font-size:0.82rem;color:var(--text-muted);font-style:italic;margin:0;padding:4px 0;">Sin tutor asignado aún.</p>';
         }
         renderEstado(_activo);
     }
 
+    document.getElementById('citMesLabel').textContent = _citMesLabel(_citMes);
+    _actualizarBotonesCitMes();
     if (resCitaciones.ok) {
         renderCitaciones(Array.isArray(resCitaciones.data) ? resCitaciones.data : []);
     }
@@ -1033,6 +1322,96 @@ btnConfirmAceptar.addEventListener('click', async () => {
     }
     _activo = data.activo;
     renderEstado(_activo);
+});
+
+/* ── Modal editar nombre ────────────────────────────────── */
+const editNombreBackdrop = document.getElementById('editNombreBackdrop');
+const enNombre       = document.getElementById('enNombre');
+const enPaterno      = document.getElementById('enPaterno');
+const enMaterno      = document.getElementById('enMaterno');
+const enPassword     = document.getElementById('enPassword');
+const enError        = document.getElementById('enError');
+const enPasswordError = document.getElementById('enPasswordError');
+const btnEnGuardar   = document.getElementById('btnEnGuardar');
+
+document.getElementById('btnEditNombre').addEventListener('click', () => {
+    if (!_estudiante) return;
+    enNombre.value   = _estudiante.nombre || '';
+    enPaterno.value  = _estudiante.apellido_paterno || '';
+    enMaterno.value  = _estudiante.apellido_materno || '';
+    enPassword.value = '';
+    [enNombre, enPaterno, enMaterno].forEach(el => el.classList.remove('input-error'));
+    enError.textContent = '';
+    enPasswordError.textContent = '';
+    editNombreBackdrop.classList.add('visible');
+    enNombre.focus();
+});
+
+function cerrarEditNombre() {
+    editNombreBackdrop.classList.remove('visible');
+}
+document.getElementById('btnEnCancelar').addEventListener('click', cerrarEditNombre);
+editNombreBackdrop.addEventListener('click', e => { if (e.target === editNombreBackdrop) cerrarEditNombre(); });
+
+[enNombre, enPaterno, enMaterno].forEach(el => {
+    el.addEventListener('input', () => {
+        const start = el.selectionStart;
+        const end   = el.selectionEnd;
+        el.value = el.value.toUpperCase();
+        el.setSelectionRange(start, end);
+    });
+});
+
+btnEnGuardar.addEventListener('click', async () => {
+    const nombre   = enNombre.value.trim();
+    const paterno  = enPaterno.value.trim();
+    const materno  = enMaterno.value.trim();
+    const password = enPassword.value.trim();
+
+    [enNombre, enPaterno, enMaterno].forEach(el => el.classList.remove('input-error'));
+    enError.textContent = '';
+    enPasswordError.textContent = '';
+
+    let valido = true;
+    if (!nombre) { enNombre.classList.add('input-error'); valido = false; }
+    if (!paterno && !materno) {
+        enPaterno.classList.add('input-error');
+        enMaterno.classList.add('input-error');
+        valido = false;
+    }
+    if (!valido) {
+        enError.textContent = 'El nombre y al menos un apellido son obligatorios.';
+        return;
+    }
+    if (!password) {
+        enPasswordError.textContent = 'Ingresa tu contraseña para confirmar.';
+        return;
+    }
+
+    btnEnGuardar.disabled = true;
+    btnEnGuardar.textContent = 'Guardando...';
+
+    const { ok, data } = await fetchAPI(`/api/students/${ESTUDIANTE_ID}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nombre, apellido_paterno: paterno, apellido_materno: materno, password }),
+    });
+
+    btnEnGuardar.disabled = false;
+    btnEnGuardar.textContent = 'Guardar cambios';
+
+    if (!ok) {
+        enPasswordError.textContent = data?.errores || 'Error al guardar. Intenta nuevamente.';
+        return;
+    }
+
+    _estudiante = data;
+    document.getElementById('pNombre').textContent      = data.nombre_completo;
+    document.getElementById('bcEstudiante').textContent = data.nombre_completo;
+    cerrarEditNombre();
+});
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && editNombreBackdrop.classList.contains('visible')) cerrarEditNombre();
 });
 
 /* ── Sidebar ────────────────────────────────────────────── */

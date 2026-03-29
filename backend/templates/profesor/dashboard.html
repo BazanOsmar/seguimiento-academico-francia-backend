@@ -8,6 +8,7 @@
     <title>Panel Profesor — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profesor-citcom.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
 
     <script>
@@ -1589,7 +1590,165 @@
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->
-        <div class="tab-panel" id="panelCitaciones" role="tabpanel" style="position:relative;">
+        <div class="tab-panel" id="panelCitaciones" role="tabpanel">
+            <div class="page-inner">
+                <div class="sec-hdr">
+                    <div class="sec-hdr__title-row">
+                        <h1 class="sec-title sec-title--active" id="secTitleCitProf">Citaciones</h1>
+                        <span class="sec-hdr__sep">/</span>
+                        <h1 class="sec-title" id="secTitleComProf">Comunicados</h1>
+                    </div>
+                    <p class="sec-hdr__sub">Gestion centralizada del historial disciplinario y anuncios academicos para tus cursos.</p>
+                    <div class="sec-hdr__actions-row">
+                        <div class="sec-search-wrap">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <input type="text" id="searchInputProf" class="sec-search-input" placeholder="Buscar por nombre del estudiante...">
+                        </div>
+                        <button class="btn-nueva-accion" id="btnToggleCitProf" type="button">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            NUEVA CITACION
+                        </button>
+                        <button class="btn-nueva-com" id="btnToggleComProf" type="button" style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            NUEVO COMUNICADO
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cit-stats-row" id="statsRowProf">
+                    <div class="cit-stat-card" data-filter="">
+                        <div class="cit-stat-card__icon cit-stat-card__icon--blue">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="cit-stat-card__label">TODOS</div>
+                            <div class="cit-stat-card__value">0</div>
+                        </div>
+                    </div>
+                    <div class="cit-stat-card cit-stat-card--active" data-filter="PENDIENTE">
+                        <div class="cit-stat-card__icon cit-stat-card__icon--yellow">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="cit-stat-card__label">PENDIENTES</div>
+                            <div class="cit-stat-card__value">0</div>
+                        </div>
+                    </div>
+                    <div class="cit-stat-card" data-filter="VENCIDA">
+                        <div class="cit-stat-card__icon cit-stat-card__icon--red">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="cit-stat-card__label">VENCIDAS</div>
+                            <div class="cit-stat-card__value">0</div>
+                        </div>
+                    </div>
+                    <div class="cit-stat-card" data-filter="ASISTIO">
+                        <div class="cit-stat-card__icon cit-stat-card__icon--green">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="cit-stat-card__label">ASISTIDAS</div>
+                            <div class="cit-stat-card__value">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-section" id="sectionCitCardProf">
+                    <div class="cit-filter-row">
+                        <div class="cit-filter-row__left">
+                            <span class="cit-filter-label">FILTRAR POR ROL:</span>
+                            <div class="rol-chips" id="rolChipsProf">
+                                <button class="rol-chip rol-chip--active" data-emisor="">Todos</button>
+                                <button class="rol-chip" data-emisor="Director">Director</button>
+                                <button class="rol-chip" data-emisor="Profesor">Profesores</button>
+                                <button class="rol-chip" data-emisor="Regente">Regentes</button>
+                            </div>
+                        </div>
+                        <div class="cit-mes-nav">
+                            <button class="cit-mes-nav__btn" id="btnMesPrevProf" type="button">&#8249;</button>
+                            <span class="cit-mes-nav__label" id="citMesLabelProf">Marzo 2026</span>
+                            <button class="cit-mes-nav__btn" id="btnMesNextProf" type="button">&#8250;</button>
+                        </div>
+                    </div>
+                    <div class="cit-section__body">
+                        <div class="cit-cards-grid">
+                            <article class="citacion-card" data-status="PENDIENTE">
+                                <div class="citacion-card__header">
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="citacion-card__nombre">Sin registros por mostrar</div>
+                                        <div class="citacion-card__meta">
+                                            <span class="cit-row__curso">Visual de referencia</span>
+                                            <span class="citacion-card__motivo">Interfaz</span>
+                                        </div>
+                                    </div>
+                                    <span class="cit-badge-status cit-badge-status--pendiente">
+                                        <span class="cit-status-dot"></span>Pendiente
+                                    </span>
+                                </div>
+                                <div class="citacion-card__foot">
+                                    <span class="citacion-card__foot-label">Fecha limite</span>
+                                    <span class="citacion-card__foot-val">--</span>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-section" id="sectionComCardProf" style="display:none;">
+                    <div class="cit-filter-row">
+                        <div class="cit-filter-row__left">
+                            <span class="cit-filter-label">FILTRAR POR ROL:</span>
+                            <div class="rol-chips" id="rolChipsComProf">
+                                <button class="rol-chip rol-chip--active" data-emisor="">Todos</button>
+                                <button class="rol-chip" data-emisor="Director">Director</button>
+                                <button class="rol-chip" data-emisor="Profesor">Profesores</button>
+                                <button class="rol-chip" data-emisor="Regente">Regentes</button>
+                            </div>
+                        </div>
+                        <div class="cit-mes-nav">
+                            <button class="cit-mes-nav__btn" id="btnComMesPrevProf" type="button">&#8249;</button>
+                            <span class="cit-mes-nav__label" id="comMesLabelProf">Marzo 2026</span>
+                            <button class="cit-mes-nav__btn" id="btnComMesNextProf" type="button">&#8250;</button>
+                        </div>
+                    </div>
+                    <div class="cit-section__body">
+                        <div class="comunicados-list">
+                            <article class="com-card">
+                                <div class="com-card__head">
+                                    <div class="com-card__meta">
+                                        <div class="com-card__chips">
+                                            <span class="com-chip com-chip--destino">Visual</span>
+                                            <span class="com-chip com-chip--alcance">Comunicados</span>
+                                        </div>
+                                        <span class="com-card__fecha">Sin datos</span>
+                                    </div>
+                                    <h3 class="com-card__titulo">Sin comunicados por mostrar</h3>
+                                </div>
+                                <div class="com-card__body">
+                                    <p class="com-card__contenido">Vista de interfaz clonada del director. Luego conectamos datos reales.</p>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="display:none;" aria-hidden="true">
             <div class="prox-overlay">
                 <div class="prox-overlay-icon">
                     <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
@@ -1693,6 +1852,7 @@
                 </div>
 
             </div><!-- /cit-grid -->
+            </div>
         </div>
 
         <!-- ══ Panel Plan de Trabajo ════════════════════════════════ -->

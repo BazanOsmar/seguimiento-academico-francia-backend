@@ -101,10 +101,19 @@ class HistorialEstudianteSerializer(serializers.ModelSerializer):
     """
     fecha      = serializers.DateField(source='sesion.fecha')
     dia_semana = serializers.SerializerMethodField()
+    registrado_por = serializers.SerializerMethodField()
 
     class Meta:
         model  = Asistencia
-        fields = ('fecha', 'dia_semana', 'hora', 'estado')
+        fields = ('fecha', 'dia_semana', 'hora', 'estado', 'registrado_por')
 
     def get_dia_semana(self, obj):
         return _DIAS_ES[obj.sesion.fecha.weekday()]
+
+    def get_registrado_por(self, obj):
+        user = obj.sesion.registrado_por
+        nombre = f"{user.first_name} {user.last_name}".strip() or user.username
+        tipo = getattr(getattr(user, 'tipo_usuario', None), 'nombre', None)
+        if tipo == 'Profesor':
+            return f"Prof. {nombre}"
+        return nombre

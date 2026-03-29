@@ -29,7 +29,7 @@ class HistorialEstudianteView(APIView):
 
         qs = (
             Asistencia.objects
-            .select_related('sesion')
+            .select_related('sesion', 'sesion__registrado_por', 'sesion__registrado_por__tipo_usuario')
             .filter(estudiante_id=estudiante_id)
             .order_by('-sesion__fecha')
         )

@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,7 +23,7 @@
             display: flex;
             align-items: stretch;
             border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 22px;
+            margin-bottom: 10px;
             gap: 0;
             overflow-x: auto;
             overflow-y: hidden;
@@ -90,6 +90,25 @@
             transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
         }
         .acad-subnav-actions button svg { width: 13px; height: 13px; flex-shrink: 0; }
+        .acad-actions-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .acad-actions-row button {
+            padding: 6px 13px;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem; font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            white-space: nowrap; flex-shrink: 0;
+            transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
+        }
+        .acad-actions-row button svg { width: 13px; height: 13px; flex-shrink: 0; }
+        @media (max-width: 640px) { .acad-actions-row { justify-content: flex-start; } }
 
         .btn-descargar-planes {
             background: var(--bg-surface);
@@ -227,6 +246,10 @@
             border-radius: var(--radius-card);
             overflow: hidden;
             flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 8;
+            box-shadow: 0 8px 22px rgba(0,0,0,.2);
         }
 
         /* ── Cabecera ────────────────────────────────────────── */
@@ -753,19 +776,71 @@
         }
 
         /* ── Vista Materias ──────────────────────────────────────── */
+        .mat-header { margin-bottom: 14px; }
+        .mat-header--actions {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .mat-header__copy { min-width: 0; flex: 1; }
+        .mat-header--actions .acad-actions-row { margin-bottom: 0; flex-shrink: 0; }
+        .mat-header__title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -.01em;
+            margin: 0;
+        }
+        .mat-header__sub {
+            margin: 4px 0 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+        @media (max-width: 640px) {
+            .mat-header--actions { flex-direction: column; align-items: stretch; }
+            .mat-header--actions .acad-actions-row { width: 100%; justify-content: flex-start; }
+        }
         .mat-form-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); padding: 20px; margin-bottom: 14px; }
-        .mat-form-row { display: flex; gap: 10px; }
-        .mat-form-row input { flex: 1; padding: 9px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; outline: none; }
-        .mat-form-row input:focus { border-color: var(--accent); }
+        .mat-form-row { display: flex; gap: 10px; align-items: stretch; }
+        .mat-form-row input {
+            flex: 1;
+            padding: 11px 13px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            font-weight: 500;
+            outline: none;
+        }
+        .mat-form-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+        .mat-form-row .btn-primary {
+            min-width: 145px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            letter-spacing: .01em;
+        }
         .mat-table-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); overflow: hidden; }
 
-        .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-        .data-table th { text-align: left; padding: 10px 18px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); border-bottom: 1px solid var(--border-subtle); }
-        .data-table td { padding: 12px 18px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); vertical-align: middle; }
-        .data-table tr:last-child td { border-bottom: none; }
-        .data-table tr:hover td { background: var(--bg-surface); }
-        .num-cell { color: var(--text-muted); font-size: 0.78rem; width: 40px; }
-        .name-cell { font-weight: 500; }
+        #vistaMaterias .data-table { width: 100%; border-collapse: collapse; font-size: 0.91rem; }
+        #vistaMaterias .data-table th {
+            text-align: left;
+            padding: 11px 18px;
+            font-size: 0.73rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,.015);
+        }
+        #vistaMaterias .data-table td { padding: 13px 18px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); vertical-align: middle; }
+        #vistaMaterias .data-table tr:last-child td { border-bottom: none; }
+        #vistaMaterias .data-table tr:hover td { background: var(--bg-surface); }
+        #vistaMaterias .num-cell { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; width: 40px; }
+        #vistaMaterias .name-cell { font-weight: 600; font-size: 0.92rem; }
 
         .chip { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 0.78rem; font-weight: 600; }
         .chip--blue   { background: rgba(96,165,250,.12);  color: #60a5fa; }
@@ -776,7 +851,7 @@
             display: inline-flex; align-items: center; gap: 6px;
             padding: 5px 10px; background: var(--danger-dim); color: var(--danger);
             border: 1px solid rgba(239,68,68,.2); border-radius: var(--radius-sm);
-            font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background .12s;
+            font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: background .12s;
         }
         .btn-del:hover { background: rgba(239,68,68,.2); }
         .btn-del svg { width: 13px; height: 13px; }
@@ -1170,31 +1245,35 @@
                     </svg>
                     Materias
                 </button>
-                <div class="acad-subnav-sep"></div>
-                <div class="acad-subnav-actions">
-                    <button class="btn-descargar-planes" id="btnNavDescargarPlanes">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Descargar Planes
-                    </button>
-                    <button class="btn-nueva-asig" id="btnNuevaAsig">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Nueva Asignación
-                    </button>
-                </div>
             </nav>
-
                 <!-- ── Contenido principal ───────────────────────── -->
                 <div class="acad-panel-right">
 
                     <!-- Vista: Por Profesor (DEFAULT) -->
                     <div class="acad-vista active" id="vistaProfesores">
+                        <div class="mat-header mat-header--actions">
+                            <div class="mat-header__copy">
+                                <h2 class="mat-header__title">Vista por Profesor</h2>
+                                <p class="mat-header__sub">Revisa asignaciones y el estado de planificación de cada docente.</p>
+                            </div>
+                            <div class="acad-actions-row">
+                                <button class="btn-descargar-planes" id="btnNavDescargarPlanes">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    Descargar Planes
+                                </button>
+                                <button class="btn-nueva-asig" id="btnNuevaAsig">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Nueva Asignación
+                                </button>
+                            </div>
+                        </div>
                         <div class="vp-layout">
                             <div class="vp-list-wrap">
                                 <div class="vp-list-title">Profesores</div>
@@ -1216,6 +1295,10 @@
 
                     <!-- Vista: Por Curso -->
                     <div class="acad-vista" id="vistaCursos">
+                        <div class="mat-header">
+                            <h2 class="mat-header__title">Vista por Curso</h2>
+                            <p class="mat-header__sub">Consulta qué materias y profesores están asignados a cada curso.</p>
+                        </div>
                         <div class="vc-split" id="vcSplit">
                             <div id="cursosGrid">
                                 <div class="spinner-inline"></div>
@@ -1226,14 +1309,9 @@
 
                     <!-- Vista: Materias -->
                     <div class="acad-vista" id="vistaMaterias">
-                        <div class="mat-form-card">
-                            <div class="mat-form-row">
-                                <input type="text" id="inputNombreMateria" placeholder="Nombre de la materia" maxlength="80" autocomplete="off">
-                                <button class="btn-primary" id="btnCrearMateria">Agregar</button>
-                            </div>
-                            <div class="error-inline" id="errorMateria">
-                                <span id="errorMateriaMsg"></span>
-                            </div>
+                        <div class="mat-header">
+                            <h2 class="mat-header__title">Gestión de Materias</h2>
+                            <p class="mat-header__sub">Consulta y administra el listado académico de la institución.</p>
                         </div>
                         <div class="mat-table-card">
                             <div id="spinnerMaterias" class="spinner-inline" style="display:none;"></div>
@@ -1249,8 +1327,8 @@
                                     <thead>
                                         <tr>
                                             <th style="width:40px;">#</th>
-                                            <th>Materia</th>
-                                            <th></th>
+                                            <th>Nombre de Materia</th>
+                                            <th style="text-align:right;">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbodyMaterias"></tbody>
@@ -1261,8 +1339,11 @@
 
                     <!-- Vista: Planes de Trabajo -->
                     <div class="acad-vista" id="vistaPlanes">
+                        <div class="mat-header">
+                            <h2 class="mat-header__title">Planes de Trabajo</h2>
+                            <p class="mat-header__sub">Supervisa el avance mensual de planes y exporta reportes consolidados.</p>
+                        </div>
                         <div class="planes-header">
-                            <h2>Planes de Trabajo</h2>
                             <select class="planes-mes-sel" id="planesMesSel">
                                 <option value="1">Enero</option>
                                 <option value="2">Febrero</option>
