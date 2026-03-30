@@ -118,5 +118,4 @@ LOGGING = {
     },
 }
 
-# Imagen pública para notificaciones FCM (Cloudinary)
-FCM_NOTIFICATION_IMAGE = "https://res.cloudinary.com/dyb72ixpe/image/upload/v1773503749/logo_francia_uhdojd.png"
+FCM_NOTIFICATION_IMAGE = None
