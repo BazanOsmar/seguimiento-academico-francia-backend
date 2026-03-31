@@ -7,12 +7,10 @@ class EstudianteListSerializer(serializers.ModelSerializer):
     """
     Serializador de solo lectura para listar estudiantes
     pertenecientes a un curso específico.
-
-    Se utiliza en el flujo de control de asistencia,
-    donde no se requiere exponer información sensible
-    ni permitir modificaciones.
     """
-    apellidos = serializers.SerializerMethodField()
+    apellidos        = serializers.SerializerMethodField()
+    tiene_tutor      = serializers.SerializerMethodField()
+    tutor_tiene_fcm  = serializers.SerializerMethodField()
 
     class Meta:
         model = Estudiante
@@ -20,10 +18,19 @@ class EstudianteListSerializer(serializers.ModelSerializer):
             "id",
             "nombre",
             "apellidos",
+            "tiene_tutor",
+            "tutor_tiene_fcm",
         )
 
     def get_apellidos(self, obj):
         return f"{obj.apellido_paterno} {obj.apellido_materno}".strip()
+
+    def get_tiene_tutor(self, obj):
+        return obj.tutor_id is not None
+
+    def get_tutor_tiene_fcm(self, obj):
+        # El queryset debe venir anotado con `tutor_tiene_fcm` desde la vista
+        return getattr(obj, 'tutor_tiene_fcm', False)
 
 
 class EstudianteBusquedaSerializer(serializers.ModelSerializer):

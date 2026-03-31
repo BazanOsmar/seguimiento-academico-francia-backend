@@ -7,8 +7,10 @@
 // ── Constantes de motivos ─────────────────────────────────────────
 const MOTIVOS = {
     FALTAS:      'Faltas',
-    DISCIPLINA:  'Disciplina',
-    ACADEMICO:   'Académico',
+    CONDUCTA:    'Conducta',
+    RENDIMIENTO: 'Rendimiento',
+    DOCUMENTOS:  'Documentos',
+    REUNION:     'Reunión',
     OTRO:        'Otro',
 };
 
@@ -159,11 +161,14 @@ function _initCitacionesVisualOnly() {
     secCit.addEventListener('click', () => _setSec('cit'));
     secCom.addEventListener('click', () => _setSec('com'));
 
-    [btnCit, btnCom].forEach(btn => {
-        btn.addEventListener('click', () => {
-            btn.classList.add('is-open');
-            setTimeout(() => btn.classList.remove('is-open'), 180);
-        });
+    btnCit.addEventListener('click', () => {
+        btnCit.classList.add('is-open');
+        setTimeout(() => btnCit.classList.remove('is-open'), 180);
+        _abrirModalNuevaCitProf();
+    });
+    btnCom.addEventListener('click', () => {
+        btnCom.classList.add('is-open');
+        setTimeout(() => btnCom.classList.remove('is-open'), 180);
     });
 
     _setupChipGroup('rolChipsProf');
@@ -570,6 +575,19 @@ async function cargarAsignacionesNotas() {
     });
 }
 
+// ── Modal nueva citación: abrir / cerrar ──────────────────────────
+function _abrirModalNuevaCitProf() {
+    document.getElementById('modalNuevaCitacionProf').classList.add('visible');
+}
+
+function _cerrarModalNuevaCitProf() {
+    const modal = document.getElementById('modalNuevaCitacionProf');
+    modal.classList.remove('visible');
+    document.getElementById('formCitacion').reset();
+    document.getElementById('citEstudiante').disabled = true;
+    document.getElementById('citError').style.display = 'none';
+}
+
 // ── Formulario de nueva citación ──────────────────────────────────
 function _initCitacionForm() {
     const selectCurso = document.getElementById('citCurso');
@@ -589,6 +607,13 @@ function _initCitacionForm() {
     document.getElementById('formCitacion').addEventListener('submit', async e => {
         e.preventDefault();
         await enviarCitacion();
+    });
+
+    // Cerrar modal al pulsar X, Cancelar o clic fuera
+    document.getElementById('btnCerrarModalCitProf').addEventListener('click', _cerrarModalNuevaCitProf);
+    document.getElementById('btnCancelarCitProf').addEventListener('click', _cerrarModalNuevaCitProf);
+    document.getElementById('modalNuevaCitacionProf').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalNuevaCitProf();
     });
 }
 
@@ -650,6 +675,7 @@ async function enviarCitacion() {
         return;
     }
 
+    const btnHtml = btn.innerHTML;
     btn.disabled = true;
     btn.textContent = 'Enviando...';
 
@@ -665,7 +691,7 @@ async function enviarCitacion() {
     });
 
     btn.disabled = false;
-    btn.textContent = 'Enviar Citación';
+    btn.innerHTML = btnHtml;
 
     if (!ok) {
         const msg = data?.errores || data?.estudiante?.[0] || data?.motivo?.[0] || 'Error al crear la citación.';
@@ -675,10 +701,7 @@ async function enviarCitacion() {
     }
 
     showAppToast('success', 'Citación enviada', 'La citación fue registrada correctamente.');
-    document.getElementById('formCitacion').reset();
-    document.getElementById('citEstudiante').disabled = true;
-    document.getElementById('nombreArchivo').style.display = 'none';
-    await cargarHistorial();
+    _cerrarModalNuevaCitProf();
 }
 
 // ── Plan de Trabajo ───────────────────────────────────────────────

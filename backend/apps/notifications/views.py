@@ -1,12 +1,14 @@
 import logging
 
 import firebase_admin
+from django.db.models import Exists, OuterRef
 from firebase_admin import messaging as fb_messaging
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.apps.students.models import Estudiante
 from backend.apps.users.permissions import IsDirector
 
 from .models import FCMDevice
@@ -78,6 +80,94 @@ class DispositivosCountView(APIView):
 
     def get(self, request):
         return Response({'total': FCMDevice.objects.count()})
+
+
+class CoberturaComunicadoView(APIView):
+    """
+    GET /api/notifications/cobertura-comunicado/
+    Devuelve cuántos tutores únicos (padres) recibirán notificación push
+    según el alcance del comunicado a enviar.
+
+    Params:
+        alcance  = TODOS | GRADO | CURSO
+        grado    = nombre del grado  (requerido si alcance=GRADO)
+        curso_id = id del curso      (requerido si alcance=CURSO)
+    """
+    permission_classes = (IsDirector,)
+
+    def get(self, request):
+        alcance  = request.query_params.get('alcance', 'TODOS')
+        grado    = request.query_params.get('grado', '').strip()
+        curso_id = request.query_params.get('curso_id', '').strip()
+
+        qs = Estudiante.objects.filter(activo=True, tutor__isnull=False)
+
+        if alcance == 'GRADO':
+            if not grado:
+                return Response(
+                    {'errores': 'Se requiere el parámetro grado.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            qs = qs.filter(curso__grado=grado)
+        elif alcance == 'CURSO':
+            if not curso_id:
+                return Response(
+                    {'errores': 'Se requiere el parámetro curso_id.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                qs = qs.filter(curso_id=int(curso_id))
+            except ValueError:
+                return Response(
+                    {'errores': 'curso_id inválido.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        tutor_ids = qs.values_list('tutor_id', flat=True).distinct()
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        tutores = list(
+            User.objects.filter(id__in=tutor_ids)
+            .annotate(tiene_fcm=Exists(FCMDevice.objects.filter(user=OuterRef('pk'))))
+            .values('id', 'first_name', 'last_name', 'username', 'tiene_fcm')
+        )
+
+        # Estudiantes agrupados por tutor (solo los del scope actual)
+        estudiantes_qs = qs.values(
+            'tutor_id',
+            'apellido_paterno', 'apellido_materno', 'nombre',
+            'curso__grado', 'curso__paralelo',
+        )
+        estudiantes_por_tutor = {}
+        for e in estudiantes_qs:
+            tid = e['tutor_id']
+            apellidos = f"{e['apellido_paterno']} {e['apellido_materno']}".strip()
+            nombre_est = f"{apellidos}, {e['nombre']}".strip(', ')
+            curso_label = f"{e['curso__grado']} {e['curso__paralelo']}".strip()
+            estudiantes_por_tutor.setdefault(tid, []).append({
+                'nombre': nombre_est,
+                'curso':  curso_label,
+            })
+
+        lista = [
+            {
+                'id':        t['id'],
+                'nombre':    f"{t['first_name']} {t['last_name']}".strip() or t['username'],
+                'tiene_fcm': t['tiene_fcm'],
+                'estudiantes': estudiantes_por_tutor.get(t['id'], []),
+            }
+            for t in tutores
+        ]
+        lista.sort(key=lambda x: x['nombre'])
+
+        con_fcm = sum(1 for t in lista if t['tiene_fcm'])
+        return Response({
+            'total':   len(lista),
+            'con_fcm': con_fcm,
+            'sin_fcm': len(lista) - con_fcm,
+            'tutores': lista,
+        })
 
 
 class RegistrarTokenView(APIView):

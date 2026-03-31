@@ -613,121 +613,81 @@
         }
         .com-card {
             background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            padding: 14px 16px;
-            display: flex; flex-direction: column; gap: 12px;
-            position: relative;
-            overflow: hidden;
-            transition: border-color .18s, box-shadow .18s, transform .18s;
-        }
-        .com-card::before {
-            content: "";
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 4px;
-            background: linear-gradient(180deg, var(--accent) 0%, #10b981 100%);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex; flex-direction: column;
+            transition: border-color .15s, box-shadow .15s;
         }
         .com-card:hover {
-            border-color: rgba(59,130,246,.28);
-            box-shadow: 0 10px 26px rgba(0,0,0,.24);
-            transform: translateY(-1px);
+            border-color: rgba(255,255,255,.14);
+            box-shadow: 0 4px 18px rgba(0,0,0,.2);
         }
+        /* Cabecera: fecha + alcance */
         .com-card__head {
-            display: flex; flex-direction: column; gap: 8px;
-        }
-        .com-card__meta {
-            display: flex; align-items: flex-start;
+            display: flex; align-items: center;
             justify-content: space-between; gap: 12px;
-            flex-wrap: wrap;
-        }
-        .com-card__chips {
-            display: flex; align-items: center; gap: 6px;
-            flex-wrap: wrap;
-            min-width: 0;
-        }
-        .com-chip {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: .68rem; font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 50px;
-            border: 1px solid transparent;
-            white-space: nowrap;
-            letter-spacing: .02em;
-            text-transform: uppercase;
-        }
-        .com-chip--destino {
-            background: rgba(59,130,246,.12);
-            color: #60a5fa;
-            border-color: rgba(59,130,246,.22);
-        }
-        .com-chip--alcance {
-            background: rgba(148,163,184,.12);
-            color: #cbd5e1;
-            border-color: rgba(148,163,184,.22);
+            padding: 11px 16px 10px;
+            border-bottom: 1px solid var(--border-subtle);
         }
         .com-card__fecha {
             display: inline-flex; align-items: center; gap: 5px;
             font-size: .72rem; color: var(--text-muted);
             font-variant-numeric: tabular-nums;
-            white-space: nowrap;
+            text-transform: uppercase; letter-spacing: .04em;
+        }
+        .com-card__chips {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .com-chip {
+            font-size: .66rem; font-weight: 700;
+            padding: 2px 8px; border-radius: 4px;
+            border: 1px solid var(--border);
+            white-space: nowrap; letter-spacing: .03em;
+            text-transform: uppercase;
+        }
+        .com-chip--destino { color: var(--text-secondary); background: transparent; }
+        .com-chip--alcance { color: var(--text-muted);    background: transparent; }
+        /* Cuerpo: título + contenido */
+        .com-card__body {
+            padding: 12px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            flex: 1;
         }
         .com-card__titulo {
-            font-size: .98rem; font-weight: 800;
-            color: var(--text-primary); line-height: 1.3;
+            font-size: .95rem; font-weight: 700;
+            color: var(--text-primary); line-height: 1.35;
             margin: 0;
-            letter-spacing: -.01em;
-        }
-        .com-card__body {
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border-subtle);
-            background: rgba(255,255,255,.02);
         }
         .com-card__contenido {
-            font-size: .83rem; color: var(--text-secondary);
-            line-height: 1.6;
+            font-size: .81rem; color: var(--text-muted);
+            line-height: 1.55;
             display: -webkit-box; -webkit-line-clamp: 2;
             -webkit-box-orient: vertical; overflow: hidden;
             margin: 0;
         }
+        /* Pie: autor + expiración */
         .com-card__bottom {
             display: flex; align-items: center;
-            justify-content: space-between;
-            gap: 10px; flex-wrap: wrap;
-            padding-top: 8px; border-top: 1px solid var(--border-subtle);
+            justify-content: space-between; gap: 10px;
+            padding: 8px 16px;
+            border-top: 1px solid var(--border-subtle);
         }
         .com-card__autor {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-size: .75rem; color: var(--text-muted);
-            min-width: 0;
-        }
-        .com-card__autor-icon {
-            width: 22px; height: 22px; border-radius: 50%;
-            background: var(--bg-app);
-            border: 1px solid var(--border-subtle);
-            display: inline-flex; align-items: center; justify-content: center;
-            color: var(--text-secondary);
-            flex-shrink: 0;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: .72rem; color: var(--text-muted); min-width: 0;
         }
         .com-card__autor-nombre {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 320px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            max-width: 280px;
         }
         .com-card__expira {
             display: inline-flex; align-items: center; gap: 4px;
-            font-size: .7rem; font-weight: 700;
+            font-size: .68rem; font-weight: 600;
             color: #f59e0b;
-            background: rgba(245,158,11,.1);
-            border: 1px solid rgba(245,158,11,.18);
-            border-radius: 50px;
-            padding: 3px 8px;
             white-space: nowrap;
         }
         @media (max-width: 620px) {
-            .com-card__autor-nombre { max-width: 220px; }
+            .com-card__autor-nombre { max-width: 180px; }
         }
 
         /* ── Page header (fuera de la card) ─────────────────────── */
@@ -905,6 +865,83 @@
             transition: background .15s, color .15s;
         }
         .modal-form__close:hover { background: rgba(0,0,0,.5); color: #fff; }
+
+        /* ── Pill cobertura FCM ───────────────────────────────────── */
+        .fcm-cobertura-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 14px;
+            background: rgba(99,102,241,.08);
+            border: 1px solid rgba(99,102,241,.22);
+            border-radius: 50px;
+            color: var(--text-secondary);
+            font-size: .8rem;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .15s, border-color .15s, color .15s;
+            line-height: 1.3;
+        }
+        .fcm-cobertura-pill:hover {
+            background: rgba(99,102,241,.16);
+            border-color: rgba(99,102,241,.4);
+            color: var(--text-primary);
+        }
+        .fcm-cobertura-pill--ok   { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.25);  }
+        .fcm-cobertura-pill--warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3);  }
+        .fcm-cobertura-pill--none { background: rgba(220,38,38,.06);  border-color: rgba(220,38,38,.2);   }
+
+        /* ── Items del panel cobertura ──────────────────────────── */
+        .cobertura-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            transition: background .12s;
+        }
+        .cobertura-item:hover { background: var(--bg-card-hover); }
+        .cobertura-item__dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .cobertura-item__dot--si  { background: #22c55e; }
+        .cobertura-item__dot--no  { background: var(--border); }
+        .cobertura-item__info     { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+        .cobertura-item__nombre   { font-size: .85rem; color: var(--text-primary); line-height: 1.3; }
+        .cobertura-item__hijos    { display: flex; flex-direction: column; gap: 1px; }
+        .cobertura-item__hijo     { font-size: .73rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+        .cobertura-item__curso    { background: rgba(99,102,241,.1); color: var(--text-secondary); border-radius: 4px; padding: 0 5px; font-size: .68rem; font-weight: 600; white-space: nowrap; }
+        .cobertura-item__badge    { font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 50px; white-space: nowrap; align-self: flex-start; }
+        .cobertura-item__badge--si  { background: rgba(34,197,94,.12);  color: #22c55e; }
+        .cobertura-item__badge--no  { background: var(--bg-input,rgba(255,255,255,.05)); color: var(--text-muted); }
+
+        /* ── Grupos de curso en panel cobertura ─────────────────── */
+        .cobertura-grupo { margin-bottom: 4px; }
+        .cobertura-grupo__header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 8px; border-radius: 8px; cursor: pointer;
+            transition: background .12s; user-select: none;
+        }
+        .cobertura-grupo__header:hover { background: var(--bg-card-hover); }
+        .cobertura-grupo__chevron {
+            color: var(--text-muted); transition: transform .2s; flex-shrink: 0;
+        }
+        .cobertura-grupo--collapsed .cobertura-grupo__chevron { transform: rotate(-90deg); }
+        .cobertura-grupo__nombre { font-size: .82rem; font-weight: 700; color: var(--text-secondary); flex: 1; }
+        .cobertura-grupo__badge  {
+            font-size: .7rem; font-weight: 700; padding: 2px 9px;
+            border-radius: 50px; white-space: nowrap;
+        }
+        .cobertura-grupo__badge--ok   { background: rgba(34,197,94,.12);  color: #22c55e; }
+        .cobertura-grupo__badge--warn { background: rgba(245,158,11,.12); color: #f59e0b; }
+        .cobertura-grupo__badge--none { background: rgba(220,38,38,.08);  color: #ef4444; }
+        .cobertura-grupo__items { padding-left: 8px; }
+        .cobertura-grupo--collapsed .cobertura-grupo__items { display: none; }
+        .cobertura-empty { padding: 20px; text-align: center; font-size: .83rem; color: var(--text-muted); }
 
         /* ── Stat cards clickeables ───────────────────────────────── */
         .cit-stat-card {
@@ -1277,7 +1314,6 @@
                             <label class="form-label" style="margin-bottom:8px;display:block;">Tipo de citación</label>
                             <div class="radio-group">
                                 <label class="radio-option"><input type="radio" name="tipoCitacion" value="individual" checked> Individual</label>
-                                <label class="radio-option"><input type="radio" name="tipoCitacion" value="curso"> Todo el curso</label>
                                 <label class="radio-option"><input type="radio" name="tipoCitacion" value="grupo"> Grupo de estudiantes</label>
                             </div>
                         </div>
@@ -1318,7 +1354,7 @@
                                 margin-top:8px;
                                 max-height:110px;
                                 overflow-y:auto;
-                                display:flex;
+                                display:none;
                                 flex-direction:column;
                                 gap:3px;
                                 border:1px solid var(--border);
@@ -1407,6 +1443,20 @@
                                 <select id="comCurso" class="form-input form-select"><option value="">— Selecciona curso —</option></select>
                             </div>
                         </div>
+                        <!-- Pill de cobertura FCM -->
+                        <div id="fcmCoberturaWrap" style="display:none;">
+                            <button type="button" id="fcmCoberturaBtn" class="fcm-cobertura-pill">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                </svg>
+                                <span id="fcmCoberturaTexto">Calculando…</span>
+                                <svg id="fcmCoberturaChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;opacity:.7;">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                            </button>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">Título <span class="req">*</span></label>
                             <input id="comTitulo" type="text" class="form-input" placeholder="Ej: Reunión de padres de familia" maxlength="150">
@@ -1544,6 +1594,60 @@ flatpickr.l10ns.es = {
     time_24hr:     true,
 };
 </script>
+<!-- ── Panel flotante: Detalle cobertura FCM ─────────────────────── -->
+<div id="panelCobertura" style="
+    display:none;
+    position:fixed;
+    z-index:2100;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:min(480px,95vw);
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow:0 24px 64px rgba(0,0,0,.55);
+    overflow:hidden;
+    flex-direction:column;
+    animation:fadeScaleIn .18s ease;
+">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <div>
+            <p style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin:0;">Cobertura de notificación</p>
+            <p id="panelCoberturaSubtitle" style="font-size:.75rem;color:var(--text-muted);margin:2px 0 0;"></p>
+        </div>
+        <button id="btnCerrarPanelCobertura" style="background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px;" aria-label="Cerrar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <!-- Buscador -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
+        <div style="position:relative;">
+            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input id="coberturaBuscar" type="text" placeholder="Buscar por padre o estudiante…" style="
+                width:100%;box-sizing:border-box;
+                background:var(--bg-input,rgba(255,255,255,.05));
+                border:1px solid var(--border);border-radius:8px;
+                padding:7px 10px 7px 30px;
+                font-size:.82rem;color:var(--text-primary);
+                font-family:inherit;outline:none;
+                transition:border-color .15s;
+            ">
+        </div>
+    </div>
+    <!-- Lista agrupada por curso -->
+    <div id="panelCoberturaList" style="overflow-y:auto;max-height:380px;padding:8px 12px;">
+        <p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>
+    </div>
+    <!-- Footer resumen -->
+    <div style="padding:10px 20px;border-top:1px solid var(--border);">
+        <p id="panelCoberturaFooter" style="font-size:.76rem;color:var(--text-muted);margin:0;"></p>
+    </div>
+</div>
+<div id="backdropCobertura" style="display:none;position:fixed;inset:0;z-index:2099;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);"></div>
+
 <script src="{% static 'js/main.js' %}"></script>
 <script src="{% static 'js/fcm.js' %}"></script>
 <script src="{% static 'js/comunicados.js' %}"></script>

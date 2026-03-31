@@ -1748,111 +1748,6 @@
                     </div>
                 </div>
             </div>
-            <div style="display:none;" aria-hidden="true">
-            <div class="prox-overlay">
-                <div class="prox-overlay-icon">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </div>
-                <h3>Disponible próximamente</h3>
-                <p>Esta función estará disponible<br>en una próxima actualización.</p>
-            </div>
-            <div class="cit-grid">
-
-                <!-- Formulario nueva citación -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Nueva Citación</h2>
-                    </div>
-                    <div class="card-body">
-                        <form id="formCitacion" style="display:flex;flex-direction:column;gap:14px;">
-
-                            <div class="form-group">
-                                <label class="form-label" for="citCurso">Curso</label>
-                                <select id="citCurso" class="form-input" disabled>
-                                    <option value="">— Cargando cursos… —</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="citEstudiante">Estudiante</label>
-                                <select id="citEstudiante" class="form-input" disabled>
-                                    <option value="">— Selecciona un estudiante —</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="citMotivo">Motivo</label>
-                                <select id="citMotivo" class="form-input" required>
-                                    <option value="">— Selecciona un motivo —</option>
-                                    <option value="FALTAS">Faltas</option>
-                                    <option value="DISCIPLINA">Disciplina</option>
-                                    <option value="ACADEMICO">Académico</option>
-                                    <option value="OTRO">Otro</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="citDescripcion">Descripción</label>
-                                <textarea id="citDescripcion" class="form-input form-textarea"
-                                          rows="9" placeholder="Describe el motivo de la citación…"
-                                          maxlength="500" style="resize:none;"></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label" for="citFechaLimite">Fecha límite de asistencia</label>
-                                <input id="citFechaLimite" class="form-input" type="date" required>
-                            </div>
-
-                            <p id="citError" class="form-error" style="display:none"></p>
-
-                            <button type="submit" class="btn-primary" id="btnEnviarCitacion">
-                                Enviar Citación
-                            </button>
-
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Historial -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Historial de Citaciones</h2>
-                    </div>
-                    <div class="card-body" style="padding:0;">
-
-                        <div class="historial-spinner" id="historialSpinner">
-                            <div class="spinner"></div>
-                        </div>
-
-                        <p class="historial-vacio" id="historialVacio" style="display:none">
-                            Aún no has emitido ninguna citación.
-                        </p>
-
-                        <div class="table-wrapper" style="overflow-x:auto;">
-                            <table class="data-table" style="min-width:560px;">
-                                <thead>
-                                    <tr>
-                                        <th>Estudiante</th>
-                                        <th>Curso</th>
-                                        <th>Motivo</th>
-                                        <th>Estado</th>
-                                        <th>Fecha límite</th>
-                                        <th>Enviada</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyCitaciones"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-            </div><!-- /cit-grid -->
-            </div>
         </div>
 
         <!-- ══ Panel Plan de Trabajo ════════════════════════════════ -->
@@ -2256,6 +2151,85 @@
                 <div class="confirm-cred-actions">
                     <button class="btn-ghost" id="confirmCredCancelar">Cancelar</button>
                     <button class="btn-primary" id="confirmCredAceptar">Sí, confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Nueva Citación ─────────────────────────────────── -->
+    <div class="modal-backdrop" id="modalNuevaCitacionProf">
+        <div class="modal modal-form">
+            <button class="modal-form__close" id="btnCerrarModalCitProf" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <div class="form-card">
+                <div class="form-card__header">
+                    <div class="form-card__icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9"  y1="15" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="form-card__title">Nueva Citación</p>
+                        <p class="form-card__subtitle">Convoca al tutor de un estudiante de tus cursos.</p>
+                    </div>
+                </div>
+                <div class="form-card__body">
+                    <form id="formCitacion" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="citCurso">Curso <span class="req">*</span></label>
+                                <select id="citCurso" class="form-input form-select" disabled>
+                                    <option value="">— Cargando cursos… —</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="citEstudiante">Estudiante <span class="req">*</span></label>
+                                <select id="citEstudiante" class="form-input form-select" disabled>
+                                    <option value="">— Selecciona un estudiante —</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="citMotivo">Motivo <span class="req">*</span></label>
+                                <select id="citMotivo" class="form-input form-select" required>
+                                    <option value="">— Selecciona un motivo —</option>
+                                    <option value="FALTAS">Faltas</option>
+                                    <option value="CONDUCTA">Conducta</option>
+                                    <option value="RENDIMIENTO">Rendimiento</option>
+                                    <option value="DOCUMENTOS">Documentos</option>
+                                    <option value="REUNION">Reunión</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="citFechaLimite">Fecha límite <span class="req">*</span></label>
+                                <input id="citFechaLimite" class="form-input" type="date" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="citDescripcion">Descripción</label>
+                            <textarea id="citDescripcion" class="form-input form-textarea"
+                                      rows="4" placeholder="Describe el motivo de la citación…"
+                                      maxlength="500" style="resize:none;"></textarea>
+                        </div>
+                        <p id="citError" class="form-error" style="display:none"></p>
+                        <div style="display:flex;justify-content:flex-end;gap:10px;">
+                            <button type="button" class="btn-secondary" id="btnCancelarCitProf">Cancelar</button>
+                            <button type="submit" class="btn-primary" id="btnEnviarCitacion">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                                Enviar Citación
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

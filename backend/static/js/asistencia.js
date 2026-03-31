@@ -325,8 +325,9 @@ function _renderTable(d) {
 
     const filas = asistencias.map(a => {
         const dots = (a.asistencias_recientes || []).map(r => _dot(r.estado)).join('');
+        const perfilUrl = `/director/estudiantes/${_cursoId}/${a.estudiante_id}/`;
         return `<tr data-nombre="${(a.nombre_completo || '').toLowerCase()}">
-            <td class="col-name">${a.nombre_completo || '—'}</td>
+            <td class="col-name"><a href="${perfilUrl}" style="color:var(--text-primary);text-decoration:none;">${(a.nombre_completo || '—').replace(', ', ' ')}</a></td>
             <td>${_estadoBadge(a.estado)}</td>
             <td class="col-hora" style="color:var(--text-secondary)">${_formatHora(a.hora)}</td>
             <td class="col-recientes"><div class="dots-row">${dots || '<span style="color:var(--text-muted);font-size:12px">—</span>'}</div></td>

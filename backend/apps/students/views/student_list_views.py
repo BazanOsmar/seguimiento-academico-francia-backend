@@ -1,3 +1,4 @@
+from django.db.models import Exists, OuterRef
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -5,6 +6,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
 from backend.apps.students.models import Estudiante
 from backend.apps.students.serializers import EstudianteListSerializer
+from backend.apps.notifications.models import FCMDevice
 
 
 class EstudiantesPorCursoView(ListAPIView):
@@ -31,7 +33,11 @@ class EstudiantesPorCursoView(ListAPIView):
             if not ProfesorCurso.objects.filter(profesor=user, curso_id=curso_id).exists():
                 raise PermissionDenied("No tienes acceso a los estudiantes de este curso.")
 
-        queryset = Estudiante.objects.filter(curso_id=curso_id, activo=True)
+        queryset = Estudiante.objects.filter(curso_id=curso_id, activo=True).annotate(
+            tutor_tiene_fcm=Exists(
+                FCMDevice.objects.filter(user_id=OuterRef('tutor_id'))
+            )
+        )
 
         if not queryset.exists():
             raise NotFound(

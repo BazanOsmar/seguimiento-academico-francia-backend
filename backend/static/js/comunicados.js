@@ -54,6 +54,14 @@ const MOTIVO_LABELS = {
     OTRO:        'Otro',
 };
 
+function _escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 function formatFecha(iso) {
     if (!iso) return '—';
     const d = new Date(iso + (iso.length === 10 ? 'T12:00:00' : ''));
@@ -404,6 +412,7 @@ function cerrarModalCit() {
 function abrirModalCom() {
     modalNuevaCom.classList.add('visible');
     btnToggleCom.classList.add('is-open');
+    _actualizarCoberturaFCM();
 }
 function cerrarModalCom() {
     modalNuevaCom.classList.remove('visible');
@@ -438,8 +447,12 @@ radiosAlcance.forEach(r => {
         const alcance = getAlcance();
         wrapComGrado.style.display = alcance === 'GRADO' ? '' : 'none';
         wrapComCurso.style.display = alcance === 'CURSO' ? '' : 'none';
+        _actualizarCoberturaFCM();
     });
 });
+
+document.getElementById('comGrado').addEventListener('change', _actualizarCoberturaFCM);
+document.getElementById('comCurso').addEventListener('change', _actualizarCoberturaFCM);
 
 function resetForm() {
     formNueva.reset();
@@ -460,6 +473,7 @@ function resetForm() {
     if (wrapGrupo) wrapGrupo.style.display = 'none';
     _grupoSeleccionados = [];
     _todosEstudiantesCurso = [];
+    _cacheCursos = {};
     _renderChips();
     const lbl = document.getElementById('btnSelectorLabel');
     if (lbl) lbl.textContent = 'Seleccionar estudiantes…';
@@ -490,6 +504,9 @@ function resetFormCom() {
     if (btnEl) { btnEl.disabled = false; }
     const txtEl = document.getElementById('btnEnviarComTexto');
     if (txtEl) txtEl.textContent = 'Enviar comunicado';
+    // Ocultar pill de cobertura
+    const wrap = document.getElementById('fcmCoberturaWrap');
+    if (wrap) wrap.style.display = 'none';
 }
 
 
@@ -528,8 +545,9 @@ function _getTipoCitacion() {
 }
 
 // Estado del grupo seleccionado
-let _grupoSeleccionados = []; // [{ id, nombre }]
+let _grupoSeleccionados = []; // [{ id, nombre, cursoLabel }]
 let _todosEstudiantesCurso = [];
+let _cacheCursos = {}; // cursoId → [estudiantes]  (evita recargas)
 
 document.querySelectorAll('input[name="tipoCitacion"]').forEach(r => {
     r.addEventListener('change', () => {
@@ -540,16 +558,9 @@ document.querySelectorAll('input[name="tipoCitacion"]').forEach(r => {
             wrapEstudiante.style.display = '';
             wrapGrupo.style.display      = 'none';
             if (cursoId) _cargarEstudiantesIndividual(cursoId);
-        } else if (tipo === 'curso') {
-            // Ocultar ambos paneles de selección de estudiante
-            wrapEstudiante.style.display = 'none';
-            wrapGrupo.style.display      = 'none';
         } else { // grupo
             wrapEstudiante.style.display = 'none';
             wrapGrupo.style.display      = '';
-            // Si cambia de curso, limpiar selección previa
-            _grupoSeleccionados = [];
-            _renderChips();
         }
     });
 });
@@ -559,13 +570,12 @@ selectCurso.addEventListener('change', async () => {
     const cursoId = selectCurso.value;
     const tipo = _getTipoCitacion();
 
-    // Reset always
+    // Reset selectores de modo individual
     selectEstud.innerHTML        = '<option value="">— Selecciona estudiante —</option>';
     selectEstud.disabled         = true;
     wrapEstudiante.style.opacity = '0.45';
-    _grupoSeleccionados = [];
+    // No limpiar _grupoSeleccionados: el director puede seleccionar de varios cursos
     _todosEstudiantesCurso = [];
-    _renderChips();
 
     // Habilitar/deshabilitar botón selector
     const btnAbrir = document.getElementById('btnAbrirSelectorEst');
@@ -619,18 +629,21 @@ document.getElementById('btnAbrirSelectorEst').addEventListener('click', async (
     const cursoId = selectCurso.value;
     if (!cursoId) return;
 
-    // Cargar si no hay cache para este curso
-    if (!_todosEstudiantesCurso.length) {
+    const opt       = selectCurso.options[selectCurso.selectedIndex];
+    const cursoLabel = opt ? opt.textContent.trim() : '';
+    const lbl = document.getElementById('selectorCursoLabel');
+    if (lbl) lbl.textContent = cursoLabel;
+
+    // Usar cache si existe, si no cargar
+    if (_cacheCursos[cursoId]) {
+        _todosEstudiantesCurso = _cacheCursos[cursoId];
+        _abrirSelectorEst();
+    } else {
         selectorEstList.innerHTML = '<p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>';
         _abrirSelectorEst();
         const { ok, data } = await fetchAPI(`/api/students/curso/${cursoId}/estudiantes/`);
         _todosEstudiantesCurso = ok ? data.filter(e => e.activo !== false) : [];
-        // Actualizar label del curso
-        const opt = selectCurso.options[selectCurso.selectedIndex];
-        const lbl = document.getElementById('selectorCursoLabel');
-        if (lbl) lbl.textContent = opt ? opt.textContent : '';
-    } else {
-        _abrirSelectorEst();
+        _cacheCursos[cursoId]  = _todosEstudiantesCurso;
     }
     _renderSelectorList('');
     _actualizarContadorSelector();
@@ -642,10 +655,12 @@ backdropSelector.addEventListener('click', _cerrarSelectorEst);
 // Búsqueda en tiempo real
 selectorBuscar.addEventListener('input', () => _renderSelectorList(selectorBuscar.value));
 
-// Seleccionar/Deseleccionar todos (filtrados)
+// Seleccionar/Deseleccionar todos (filtrados del curso actual)
 btnToggleAll.addEventListener('click', () => {
     const q = selectorBuscar.value.toLowerCase();
+    const cursoLabel = document.getElementById('selectorCursoLabel')?.textContent || '';
     const filtrados = _todosEstudiantesCurso.filter(e => {
+        if (!e.tiene_tutor) return false;
         const n = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`.toLowerCase();
         return !q || n.includes(q);
     });
@@ -653,14 +668,12 @@ btnToggleAll.addEventListener('click', () => {
     const yaSeleccionadosTodos = todosIds.every(id => _grupoSeleccionados.some(s => s.id === id));
 
     if (yaSeleccionadosTodos) {
-        // Deseleccionar los filtrados
         _grupoSeleccionados = _grupoSeleccionados.filter(s => !todosIds.includes(s.id));
     } else {
-        // Agregar los que no están
         filtrados.forEach(e => {
             if (!_grupoSeleccionados.some(s => s.id === e.id)) {
                 const nombre = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`;
-                _grupoSeleccionados.push({ id: e.id, nombre });
+                _grupoSeleccionados.push({ id: e.id, nombre, cursoLabel });
             }
         });
     }
@@ -694,28 +707,61 @@ function _renderSelectorList(q) {
     }
 
     selectorEstList.innerHTML = filtrados.map(e => {
-        const nombre = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`;
+        const nombre  = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`;
         const checked = _grupoSeleccionados.some(s => s.id === e.id);
-        const bgStyle = checked ? 'background:var(--accent-dim,rgba(59,130,246,.12));color:var(--accent-text,#60a5fa);' : '';
+        const bgStyle = checked ? 'background:var(--accent-dim,rgba(59,130,246,.12));' : '';
+
+        // Badge "Sin tutor" visible cuando no tiene tutor
+        const badgeSinTutor = !e.tiene_tutor
+            ? `<span title="Sin tutor registrado" style="
+                font-size:.67rem;font-weight:700;letter-spacing:.02em;
+                padding:2px 7px;border-radius:50px;white-space:nowrap;flex-shrink:0;
+                background:rgba(245,158,11,.12);color:#f59e0b;
+                border:1px solid rgba(245,158,11,.25);">
+                Sin tutor
+               </span>`
+            : '';
+
+        // Icono FCM (solo si tiene tutor)
+        const iconFcm = e.tiene_tutor
+            ? (e.tutor_tiene_fcm
+                ? `<span title="Tutor con app instalada" style="display:flex;align-items:center;color:#22c55e;flex-shrink:0;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                   </span>`
+                : `<span title="Tutor sin app instalada" style="display:flex;align-items:center;color:var(--text-muted);opacity:.5;flex-shrink:0;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                   </span>`)
+            : '';
+
+        const sinTutor = !e.tiene_tutor;
+        const rowStyle = sinTutor
+            ? 'opacity:.5;cursor:not-allowed;'
+            : `cursor:pointer;${bgStyle}`;
+
         return `<label style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;
-                      cursor:pointer;font-size:.84rem;user-select:none;transition:background .1s;${bgStyle}"
-                      class="_sel-item" data-id="${e.id}" data-nombre="${nombre.replace(/"/g,'&quot;')}">
-            <input type="checkbox" value="${e.id}" ${checked ? 'checked' : ''}
-                style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
-            <span>${nombre.replace(/</g,'&lt;')}</span>
+                      font-size:.84rem;user-select:none;transition:background .1s;${rowStyle}"
+                      class="_sel-item${sinTutor ? ' _sel-item--disabled' : ''}"
+                      data-id="${e.id}" data-nombre="${nombre.replace(/"/g,'&quot;')}"
+                      data-disabled="${sinTutor}">
+            <input type="checkbox" value="${e.id}" ${checked ? 'checked' : ''} ${sinTutor ? 'disabled' : ''}
+                style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0;${sinTutor ? 'cursor:not-allowed;' : 'cursor:pointer;'}">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nombre.replace(/</g,'&lt;')}</span>
+            <span style="display:flex;align-items:center;gap:5px;">${badgeSinTutor}${iconFcm}</span>
         </label>`;
     }).join('');
 
     // Listeners de cada item
+    const cursoLabel = document.getElementById('selectorCursoLabel')?.textContent || '';
     selectorEstList.querySelectorAll('._sel-item').forEach(item => {
         item.addEventListener('click', () => {
+            if (item.dataset.disabled === 'true') return;
             setTimeout(() => {
                 const cb     = item.querySelector('input');
                 const id     = parseInt(item.dataset.id);
                 const nombre = item.dataset.nombre;
                 if (cb.checked) {
                     if (!_grupoSeleccionados.some(s => s.id === id))
-                        _grupoSeleccionados.push({ id, nombre });
+                        _grupoSeleccionados.push({ id, nombre, cursoLabel });
                     item.style.background = 'var(--accent-dim,rgba(59,130,246,.12))';
                     item.style.color = 'var(--accent-text,#60a5fa)';
                 } else {
@@ -775,9 +821,12 @@ function _renderChips() {
         <div style="display:flex;align-items:center;justify-content:space-between;
                     padding:5px 8px;border-radius:6px;gap:8px;
                     background:${i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.03)'};">
-            <span style="font-size:.81rem;color:var(--text-primary);white-space:nowrap;
-                         overflow:hidden;text-overflow:ellipsis;min-width:0;">
-                ${s.nombre.replace(/</g,'&lt;')}
+            <span style="display:flex;flex-direction:column;gap:1px;min-width:0;">
+                <span style="font-size:.81rem;color:var(--text-primary);white-space:nowrap;
+                             overflow:hidden;text-overflow:ellipsis;">
+                    ${s.nombre.replace(/</g,'&lt;')}
+                </span>
+                ${s.cursoLabel ? `<span style="font-size:.7rem;color:var(--text-muted);">${s.cursoLabel.replace(/</g,'&lt;')}</span>` : ''}
             </span>
             <button type="button" data-id="${s.id}"
                 style="flex-shrink:0;background:none;border:none;cursor:pointer;
@@ -882,38 +931,6 @@ btnEnviarNueva.addEventListener('click', async () => {
             btnEnviarNueva.disabled    = false;
             if (btnEnviarTexto.textContent === 'Enviando…')
                 btnEnviarTexto.textContent = 'Enviar citación';
-        }
-
-    } else if (tipo === 'curso') {
-        // ── Modo todo el curso: cargar todos los estudiantes y enviar ─
-        btnEnviarNueva.disabled    = true;
-        btnEnviarTexto.textContent = 'Cargando curso…';
-        const { ok, data } = await fetchAPI(`/api/students/curso/${cursoId}/estudiantes/`);
-        if (!ok || !data.length) {
-            btnEnviarNueva.disabled    = false;
-            btnEnviarTexto.textContent = 'Enviar citación';
-            return mostrarError('No se pudieron cargar los estudiantes del curso.');
-        }
-        const ids = data.filter(e => e.activo !== false).map(e => e.id);
-        btnEnviarTexto.textContent = `Enviando ${ids.length} citaciones…`;
-        let exitosos = 0, fallidos = 0;
-        for (const estId of ids) {
-            const { ok: okC } = await fetchAPI('/api/discipline/citaciones/crear/', {
-                method: 'POST',
-                body:   JSON.stringify({ estudiante: estId, motivo, descripcion, estado: 'ENVIADA', fecha_limite_asistencia: fechaLimite }),
-            });
-            okC ? exitosos++ : fallidos++;
-        }
-        btnEnviarNueva.disabled    = false;
-        btnEnviarTexto.textContent = 'Enviar citación';
-        if (exitosos === 0) {
-            mostrarError('No se pudo crear ninguna citación.');
-        } else {
-            const msg = `${exitosos} citación${exitosos !== 1 ? 'es' : ''} enviada${exitosos !== 1 ? 's' : ''} al curso${fallidos > 0 ? ` (${fallidos} con error)` : ''}.`;
-            showAppToast('success', 'Citaciones enviadas', msg);
-            resetForm();
-            colapsarForm();
-            await cargarCitaciones();
         }
 
     } else {
@@ -1384,23 +1401,19 @@ function _renderComunicadoCard(c) {
     return `
         <article class="com-card">
             <div class="com-card__head">
-                <div class="com-card__meta">
-                    <div class="com-card__chips">
-                        <span class="com-chip com-chip--destino">${destino}</span>
-                        <span class="com-chip com-chip--alcance">${alcance}</span>
-                    </div>
-                    <span class="com-card__fecha">
-                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        ${fecha}
-                    </span>
+                <span class="com-card__fecha">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ${fecha}
+                </span>
+                <div class="com-card__chips">
+                    <span class="com-chip com-chip--destino">${destino}</span>
+                    <span class="com-chip com-chip--alcance">${alcance}</span>
                 </div>
-                <h3 class="com-card__titulo">${c.titulo}</h3>
             </div>
 
             <div class="com-card__body">
-                <p class="com-card__contenido">
-                ${c.contenido}
-                </p>
+                <h3 class="com-card__titulo">${c.titulo}</h3>
+                <p class="com-card__contenido">${c.contenido}</p>
             </div>
 
             <div class="com-card__bottom">
@@ -1417,6 +1430,185 @@ function _renderComunicadoCard(c) {
             </div>
         </article>`;
 }
+
+// ── Cobertura FCM (cuántos padres recibirán notificación) ─────────
+let _coberturaTimer = null;
+let _coberturaCache = null; // última respuesta para el panel de detalle
+
+async function _actualizarCoberturaFCM() {
+    const wrap  = document.getElementById('fcmCoberturaWrap');
+    const texto = document.getElementById('fcmCoberturaTexto');
+    const btn   = document.getElementById('fcmCoberturaBtn');
+    if (!wrap || !texto || !btn) return;
+
+    const alcance  = getAlcance();
+    const grado    = document.getElementById('comGrado').value;
+    const cursoId  = document.getElementById('comCurso').value;
+
+    // Para GRADO/CURSO esperar a que se seleccione el valor
+    if (alcance === 'GRADO' && !grado)   { wrap.style.display = 'none'; return; }
+    if (alcance === 'CURSO' && !cursoId) { wrap.style.display = 'none'; return; }
+
+    // Debounce leve para no disparar en cada keystroke
+    clearTimeout(_coberturaTimer);
+    _coberturaTimer = setTimeout(async () => {
+        wrap.style.display = '';
+        texto.textContent  = 'Calculando…';
+        btn.className      = 'fcm-cobertura-pill';
+
+        const params = new URLSearchParams({ alcance });
+        if (alcance === 'GRADO') params.set('grado', grado);
+        if (alcance === 'CURSO') params.set('curso_id', cursoId);
+
+        const { ok, data } = await fetchAPI(`/api/notifications/cobertura-comunicado/?${params}`);
+        if (!ok) { wrap.style.display = 'none'; return; }
+
+        _coberturaCache = { data, alcance, grado, cursoId };
+
+        const { total, con_fcm } = data;
+
+        if (total === 0) {
+            texto.textContent = 'Sin padres registrados en este alcance';
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--none';
+        } else if (con_fcm === 0) {
+            texto.textContent = `Ningún padre recibirá la notificación (0 de ${total})`;
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--none';
+        } else if (con_fcm < total) {
+            texto.textContent = `${con_fcm} de ${total} padres recibirán la notificación — ver detalle`;
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--warn';
+        } else {
+            texto.textContent = `Los ${total} padres recibirán la notificación — ver detalle`;
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--ok';
+        }
+    }, 250);
+}
+
+function _renderPanelCobertura(query) {
+    const list = document.getElementById('panelCoberturaList');
+    if (!list || !_coberturaCache) return;
+
+    const { data } = _coberturaCache;
+    const { tutores } = data;
+    const q = (query || '').toLowerCase().trim();
+
+    // Filtrar por búsqueda (nombre padre o nombre/curso estudiante)
+    const filtrados = q
+        ? tutores.filter(t =>
+            t.nombre.toLowerCase().includes(q) ||
+            (t.estudiantes || []).some(e =>
+                e.nombre.toLowerCase().includes(q) || e.curso.toLowerCase().includes(q)
+            )
+        )
+        : tutores;
+
+    if (filtrados.length === 0) {
+        list.innerHTML = `<p class="cobertura-empty">Sin resultados para "${_escapeHtml(q)}".</p>`;
+        return;
+    }
+
+    // Agrupar por curso (usando el primer estudiante de cada padre como referencia)
+    const grupos = {};
+    filtrados.forEach(t => {
+        const hijos = t.estudiantes || [];
+        // Un padre puede tener hijos en varios cursos — lo ponemos en cada grupo relevante
+        const cursosDelPadre = hijos.length
+            ? [...new Set(hijos.map(e => e.curso))]
+            : ['Sin curso'];
+
+        cursosDelPadre.forEach(curso => {
+            if (!grupos[curso]) grupos[curso] = [];
+            // Evitar duplicar el padre si ya está en este grupo
+            if (!grupos[curso].find(x => x.id === t.id)) {
+                grupos[curso].push(t);
+            }
+        });
+    });
+
+    const cursosOrdenados = Object.keys(grupos).sort();
+
+    list.innerHTML = cursosOrdenados.map(curso => {
+        const items     = grupos[curso];
+        const conFcm    = items.filter(t => t.tiene_fcm).length;
+        const total     = items.length;
+        const badgeCls  = conFcm === 0 ? 'none' : conFcm < total ? 'warn' : 'ok';
+        const badgeTxt  = `${conFcm}/${total} activos`;
+
+        const itemsHtml = items.map(t => {
+            // Solo mostrar hijos de este curso
+            const hijosDelCurso = (t.estudiantes || []).filter(e => e.curso === curso || curso === 'Sin curso');
+            const hijosHtml = hijosDelCurso.map(e =>
+                `<span class="cobertura-item__hijo">${_escapeHtml(e.nombre)} <span class="cobertura-item__curso">${_escapeHtml(e.curso)}</span></span>`
+            ).join('');
+            return `
+            <div class="cobertura-item">
+                <span class="cobertura-item__dot cobertura-item__dot--${t.tiene_fcm ? 'si' : 'no'}"></span>
+                <span class="cobertura-item__info">
+                    <span class="cobertura-item__nombre">${_escapeHtml(t.nombre)}</span>
+                    ${hijosHtml ? `<span class="cobertura-item__hijos">${hijosHtml}</span>` : ''}
+                </span>
+                <span class="cobertura-item__badge cobertura-item__badge--${t.tiene_fcm ? 'si' : 'no'}">
+                    ${t.tiene_fcm ? 'Activo' : 'Sin app'}
+                </span>
+            </div>`;
+        }).join('');
+
+        return `
+        <div class="cobertura-grupo cobertura-grupo--collapsed" data-curso="${_escapeHtml(curso)}">
+            <div class="cobertura-grupo__header">
+                <svg class="cobertura-grupo__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                <span class="cobertura-grupo__nombre">${_escapeHtml(curso)}</span>
+                <span class="cobertura-grupo__badge cobertura-grupo__badge--${badgeCls}">${badgeTxt}</span>
+            </div>
+            <div class="cobertura-grupo__items">${itemsHtml}</div>
+        </div>`;
+    }).join('');
+
+    // Colapsar/expandir al clicar cabecera de grupo
+    list.querySelectorAll('.cobertura-grupo__header').forEach(hdr => {
+        hdr.addEventListener('click', () => {
+            hdr.closest('.cobertura-grupo').classList.toggle('cobertura-grupo--collapsed');
+        });
+    });
+}
+
+function _abrirPanelCobertura() {
+    if (!_coberturaCache) return;
+    const panel    = document.getElementById('panelCobertura');
+    const backdrop = document.getElementById('backdropCobertura');
+    const subtitle = document.getElementById('panelCoberturaSubtitle');
+    const footer   = document.getElementById('panelCoberturaFooter');
+    const buscar   = document.getElementById('coberturaBuscar');
+    if (!panel) return;
+
+    const { data, alcance, grado } = _coberturaCache;
+    const { total, con_fcm, sin_fcm } = data;
+
+    const alcanceLabel = { TODOS: 'Todo el colegio', GRADO: `Grado ${grado}`, CURSO: 'Curso seleccionado' };
+    subtitle.textContent = alcanceLabel[alcance] || alcance;
+    footer.textContent   = `${con_fcm} con notificación activa · ${sin_fcm} sin app · ${total} en total`;
+
+    if (buscar) buscar.value = '';
+    _renderPanelCobertura('');
+
+    panel.style.display    = 'flex';
+    backdrop.style.display = 'block';
+    if (buscar) buscar.focus();
+}
+
+function _cerrarPanelCobertura() {
+    const panel    = document.getElementById('panelCobertura');
+    const backdrop = document.getElementById('backdropCobertura');
+    if (panel)    panel.style.display    = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+}
+
+// Listeners del panel de cobertura
+document.getElementById('fcmCoberturaBtn').addEventListener('click', _abrirPanelCobertura);
+document.getElementById('btnCerrarPanelCobertura').addEventListener('click', _cerrarPanelCobertura);
+document.getElementById('backdropCobertura').addEventListener('click', _cerrarPanelCobertura);
+document.getElementById('coberturaBuscar').addEventListener('input', e => {
+    _renderPanelCobertura(e.target.value);
+});
 
 // ── Init ──────────────────────────────────────────────────────────
 cargarCitaciones().then(() => {
