@@ -89,14 +89,34 @@ class CitacionCreateView(APIView):
             import threading
             from backend.apps.notifications.services import enviar_notificacion
             from django.conf import settings
+            _MOTIVOS = {
+                "FALTAS":       "inasistencias reiteradas",
+                "ATRASOS":      "atrasos reiterados",
+                "CONDUCTA":     "problemas de conducta",
+                "RENDIMIENTO":  "bajo rendimiento académico",
+                "DOCUMENTOS":   "entrega de documentos pendientes",
+                "REUNION":      "reunión con la unidad educativa",
+            }
             nombre_estudiante_corto = f"{citacion.estudiante.apellido_paterno} {citacion.estudiante.nombre}".strip()
+            motivo_upper = citacion.motivo.upper()
+            fecha_limite = citacion.fecha_limite_asistencia
+            meses_es = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+            fecha_legible = f"{fecha_limite.day} de {meses_es[fecha_limite.month]}"
+
+            if motivo_upper == "OTROS":
+                cuerpo_notif = f"La unidad educativa le solicita presentarse por {nombre_estudiante_corto}. Preséntese antes del {fecha_legible}."
+            else:
+                motivo_texto = _MOTIVOS.get(motivo_upper, citacion.motivo.lower())
+                cuerpo_notif = f"Su hijo/a {nombre_estudiante_corto} tiene una citación por {motivo_texto}. Preséntese antes del {fecha_legible}."
+
             imagen_url = getattr(settings, 'FCM_NOTIFICATION_IMAGE', None)
             threading.Thread(
                 target=enviar_notificacion,
                 args=(tutor,),
                 kwargs={
-                    "titulo": "Nueva citación escolar",
-                    "cuerpo": f"Se ha emitido una citación para {nombre_estudiante_corto}. Motivo: {citacion.motivo}.",
+                    "titulo": "📋 Citación escolar",
+                    "cuerpo": cuerpo_notif,
                     "datos": {"citacion_id": str(citacion.id)},
                     "imagen": imagen_url,
                 },

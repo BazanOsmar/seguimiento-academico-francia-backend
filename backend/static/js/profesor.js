@@ -876,7 +876,14 @@ async function cargarEstudiantes(cursoId) {
     activos.forEach(e => {
         const opt = document.createElement('option');
         opt.value = e.id;
-        opt.textContent = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`;
+        const nombre = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`;
+        if (e.tiene_tutor) {
+            opt.textContent = nombre;
+        } else {
+            opt.textContent = `${nombre} — sin tutor`;
+            opt.disabled = true;
+            opt.style.color = '#888';
+        }
         sel.appendChild(opt);
     });
     sel.disabled = activos.length === 0;
