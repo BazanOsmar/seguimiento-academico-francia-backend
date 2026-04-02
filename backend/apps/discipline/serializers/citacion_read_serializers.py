@@ -72,6 +72,40 @@ class CitacionListSerializer(CitacionBaseSerializer):
         ]
 
 
+class CitacionTutorSerializer(CitacionBaseSerializer):
+    """
+    Serializer de LECTURA para tutores (app móvil).
+    Muestra las citaciones de sus hijos/estudiantes a cargo.
+    """
+    emisor_nombre = serializers.SerializerMethodField()
+    emisor_cargo  = serializers.SerializerMethodField()
+
+    def get_emisor_nombre(self, obj):
+        return f"{obj.emisor.first_name} {obj.emisor.last_name}".strip() or obj.emisor.username
+
+    def get_emisor_cargo(self, obj):
+        if obj.emisor.tipo_usuario:
+            return obj.emisor.tipo_usuario.nombre
+        return None
+
+    class Meta:
+        model = Citacion
+        fields = [
+            "id",
+            "estudiante_nombre",
+            "curso",
+            "motivo",
+            "descripcion",
+            "estado",
+            "asistencia",
+            "fecha_envio",
+            "fecha_limite_asistencia",
+            "fecha_asistencia",
+            "emisor_nombre",
+            "emisor_cargo",
+        ]
+
+
 class CitacionDetailSerializer(CitacionBaseSerializer):
     """
     Serializer de LECTURA para el detalle completo de una citación.

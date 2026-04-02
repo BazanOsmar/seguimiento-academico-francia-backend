@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..serializers.citacion_write_serializers import CitacionCreateSerializer
 from ..serializers.citacion_read_serializers import CitacionListSerializer
-from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
+from backend.core.permissions import IsDirectorOrRegenteOrProfesor
 from backend.apps.academics.models import ProfesorCurso
 
 

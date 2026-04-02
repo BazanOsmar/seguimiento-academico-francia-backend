@@ -198,3 +198,14 @@ async function fetchAPI(url, options = {}) {
         return { ok: false, status: 0, data: null };
     }
 }
+
+// ── Título de panel con nombre del director ───────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const titleEl = document.querySelector('h1.page-title');
+    if (!titleEl) return;
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user || user.tipo_usuario !== 'Director') return;
+    const nombre = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
+    titleEl.textContent = `Panel de ${nombre}`;
+});
+

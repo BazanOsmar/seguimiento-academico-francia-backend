@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..models import Comunicado, ComunicadoVisto
 from ..serializers.comunicado_read_serializers import ComunicadoSerializer
-from backend.apps.users.permissions import IsTutor
+from backend.core.permissions import IsTutor
 
 
 class ComunicadoMarcarVistoView(APIView):

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from backend.apps.users.permissions import IsTutor
+from backend.core.permissions import IsTutor
 from backend.apps.students.models import Estudiante
 from backend.apps.attendance.models import Asistencia
 from backend.apps.attendance.serializers.attendance_read_serializers import (

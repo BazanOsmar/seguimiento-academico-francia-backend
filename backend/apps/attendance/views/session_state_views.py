@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.core.permissions import IsDirectorOrRegente
 from ..models import AsistenciaSesion
 
 

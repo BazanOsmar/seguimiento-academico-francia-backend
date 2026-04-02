@@ -395,6 +395,7 @@ const btnToggleCom   = document.getElementById('btnToggleCom');
 let fpFechaLimite     = null;
 let fpFechaExpiracion = null;
 let _cursosCache      = [];
+let _estudiantesIndividualData = []; // cache de estudiantes del select individual
 
 // ── Modales de formulario ─────────────────────────────────────────
 const modalNuevaCit = document.getElementById('modalNuevaCitacion');
@@ -468,6 +469,9 @@ function resetForm() {
     selectEstud.disabled         = true;
     wrapEstudiante.style.opacity = '0.45';
     wrapEstudiante.style.display = '';
+    _estudiantesIndividualData   = [];
+    const infTutor = document.getElementById('infTutorIndiv');
+    if (infTutor) infTutor.style.display = 'none';
 
     // Limpiar grupo (modo grupo) — ocultar panel
     if (wrapGrupo) wrapGrupo.style.display = 'none';
@@ -574,6 +578,10 @@ selectCurso.addEventListener('change', async () => {
     selectEstud.innerHTML        = '<option value="">— Selecciona estudiante —</option>';
     selectEstud.disabled         = true;
     wrapEstudiante.style.opacity = '0.45';
+    _estudiantesIndividualData   = [];
+    const _infDiv = document.getElementById('infTutorIndiv');
+    if (_infDiv) _infDiv.style.display = 'none';
+    btnEnviarNueva.disabled = false;
     // No limpiar _grupoSeleccionados: el director puede seleccionar de varios cursos
     _todosEstudiantesCurso = [];
 
@@ -594,13 +602,56 @@ async function _cargarEstudiantesIndividual(cursoId) {
     const { ok, data } = await fetchAPI(`/api/students/curso/${cursoId}/estudiantes/`);
     if (!ok || !data.length) {
         selectEstud.innerHTML = '<option value="">— Sin estudiantes —</option>';
+        _estudiantesIndividualData = [];
         return;
     }
+    _estudiantesIndividualData = data;
     selectEstud.innerHTML = '<option value="">— Selecciona estudiante —</option>'
-        + data.map(e => `<option value="${e.id}">${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}</option>`).join('');
+        + data.map(e => `<option value="${e.id}">${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()} ${e.nombre}</option>`).join('');
     selectEstud.disabled         = false;
     wrapEstudiante.style.opacity = '1';
 }
+
+function _actualizarInfoTutor(estudId) {
+    const div = document.getElementById('infTutorIndiv');
+    if (!div) return;
+
+    if (!estudId) { div.style.display = 'none'; btnEnviarNueva.disabled = false; return; }
+
+    const est = _estudiantesIndividualData.find(e => String(e.id) === String(estudId));
+    if (!est) { div.style.display = 'none'; return; }
+
+    if (!est.tiene_tutor) {
+        div.innerHTML = `<div style="
+            display:flex;align-items:center;gap:8px;
+            padding:9px 13px;border-radius:8px;
+            background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+            font-size:.8rem;color:#f87171;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Este estudiante <strong>no tiene tutor registrado</strong> — no se puede enviar la citación.</span>
+        </div>`;
+        div.style.display = 'block';
+        btnEnviarNueva.disabled = true;
+    } else {
+        const fcm = est.tutor_tiene_fcm;
+        div.innerHTML = `<div style="
+            display:flex;align-items:center;gap:8px;
+            padding:9px 13px;border-radius:8px;
+            background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);
+            font-size:.8rem;color:#4ade80;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Tiene tutor registrado · ${fcm
+                ? '<strong>Recibirá notificación push</strong>'
+                : 'Sin notificación push <span style=\'opacity:.65;font-size:.75rem;\'>(tutor sin app)</span>'
+            }</span>
+        </div>`;
+        div.style.display = 'block';
+        btnEnviarNueva.disabled = false;
+    }
+}
+
+// Listener: al seleccionar estudiante individual → mostrar info tutor
+selectEstud.addEventListener('change', () => _actualizarInfoTutor(selectEstud.value));
 
 // ── Panel flotante: Selector de estudiantes ───────────────────────
 const panelSelector    = document.getElementById('panelSelectorEst');

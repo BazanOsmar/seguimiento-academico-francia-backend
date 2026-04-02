@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from ..models import Comunicado
 from ..serializers.comunicado_write_serializers import ComunicadoCreateSerializer
 from ..serializers.comunicado_read_serializers import ComunicadoSerializer
-from backend.apps.users.permissions import IsDirectorOrProfesor
+from backend.core.permissions import IsDirectorOrProfesor
 
 
 class ComunicadoCreateView(APIView):

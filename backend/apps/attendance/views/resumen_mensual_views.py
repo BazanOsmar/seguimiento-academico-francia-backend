@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from backend.apps.academics.models import Curso
 from backend.apps.attendance.models import Asistencia
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.core.permissions import IsDirectorOrRegente
 
 _MESES_ES = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',

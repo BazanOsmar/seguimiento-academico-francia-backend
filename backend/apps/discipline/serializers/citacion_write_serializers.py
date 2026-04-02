@@ -25,6 +25,10 @@ class CitacionCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "No se pueden crear citaciones para estudiantes inactivos."
             )
+        if value.tutor is None:
+            raise serializers.ValidationError(
+                "El estudiante no tiene tutor registrado. Registra un tutor antes de enviar una citación."
+            )
         return value
 
     def validate_fecha_limite_asistencia(self, value):

@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..models import Citacion
 from ..serializers.citacion_read_serializers import CitacionDetailSerializer
-from backend.apps.users.permissions import IsDirectorOrRegente, IsTutor, IsDirectorOrRegenteOrProfesor
+from backend.core.permissions import IsDirectorOrRegente, IsTutor, IsDirectorOrRegenteOrProfesor
 
 
 class CitacionDetailView(APIView):

@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     _initTabs();
     _initCitacionesVisualOnly();
     _initDragDrop();
+    _initNotasFolderTabs();
+    _initNotasNavigation();
     _initCitacionForm();
     _initPlanForm();
     _initPrimerIngreso();
@@ -226,10 +228,23 @@ function _initLogout() {
 }
 
 // ── Info del usuario en sidebar ───────────────────────────────────
+function _getProfesorHeaderName(user) {
+    if (!user) return 'Profesor';
+    const primerNombre = (user.first_name || '').trim().split(/\s+/).filter(Boolean)[0] || '';
+    const apellidos = (user.last_name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).join(' ');
+    const nombreCorto = [primerNombre, apellidos].filter(Boolean).join(' ').trim();
+    return nombreCorto || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'Profesor';
+}
+
 function _initUserInfo() {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (!user) return;
     const nombre = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
+    const nombreHeader = _getProfesorHeaderName(user);
+    const pageTitle = document.getElementById('pageTitle');
+    const pageSubtitle = document.getElementById('pageSubtitle');
+    if (pageTitle) pageTitle.textContent = `Panel de ${nombreHeader}`;
+    if (pageSubtitle) pageSubtitle.textContent = user.tipo_usuario || 'Profesor';
     document.getElementById('profileName').textContent = nombre;
     document.getElementById('profileRole').textContent = user.tipo_usuario || 'Profesor';
 }
@@ -254,7 +269,7 @@ function _initDragDrop() {
         nameEl.style.display = 'block';
         btnUp.disabled = false;
         zone.classList.add('drop-zone--has-file');
-        document.getElementById('notasResultado').style.display = 'none';
+        _resetCnResult();
     }
 
     zone.addEventListener('click', () => input.click());
@@ -278,29 +293,22 @@ function _initDragDrop() {
 }
 
 async function _validarPlanilla(archivo, btnUp) {
-    const selectAsig   = document.getElementById('selectAsignacion');
-    const errorAsig    = document.getElementById('notasAsignacionError');
-    const resultadoEl  = document.getElementById('notasResultado');
-    const profesorCursoId = selectAsig.value;
+    const profesorCursoId = document.getElementById('selectAsignacion').value;
+    const errorAsig       = document.getElementById('notasAsignacionError');
 
     errorAsig.style.display = 'none';
-
-    if (!profesorCursoId) {
-        errorAsig.style.display = 'block';
-        return;
-    }
+    if (!profesorCursoId) { errorAsig.style.display = 'block'; return; }
     if (!archivo) return;
 
-    btnUp.disabled = true;
-    btnUp.textContent = 'Validando…';
-    resultadoEl.style.display = 'none';
+    btnUp.disabled     = true;
+    btnUp.textContent  = 'Validando…';
+    _resetCnResult();
 
     const formData = new FormData();
     formData.append('archivo', archivo);
     formData.append('profesor_curso_id', profesorCursoId);
 
-    // Fetch nativo: fetchAPI fuerza Content-Type:application/json
-    // lo que rompe el boundary de multipart/form-data
+    // fetch nativo: fetchAPI fuerza Content-Type json, rompería el multipart
     const token = localStorage.getItem('access_token');
     let ok, data;
     try {
@@ -316,18 +324,105 @@ async function _validarPlanilla(archivo, btnUp) {
         ok   = false;
     }
 
-    btnUp.disabled = false;
+    btnUp.disabled    = false;
     btnUp.textContent = 'Validar Planilla';
 
     if (!ok) {
-        const msg = data?.errores || 'Error al procesar el archivo.';
-        resultadoEl.innerHTML = _renderResultado({ es_valido: false, errores: [msg], advertencias: [], metadatos: {} });
-        resultadoEl.style.display = 'block';
+        _mostrarResultadoCarga({ es_valido: false, errores: [data?.errores || 'Error al procesar el archivo.'], metadatos: {} });
+        return;
+    }
+    _mostrarResultadoCarga(data);
+}
+
+// ── Muestra resultado en el layout de dos columnas ────────────────
+function _mostrarResultadoCarga(r) {
+    const metaCard   = document.getElementById('cnMetaCard');
+    const metaContent = document.getElementById('cnMetaContent');
+    const statusBadge = document.getElementById('cnStatusBadge');
+    const emptyState = document.getElementById('cnEmptyState');
+    const errorState = document.getElementById('cnErrorState');
+    const notasData  = document.getElementById('cnNotasData');
+    const tableBadge = document.getElementById('cnTableBadge');
+    const meta       = r.metadatos || {};
+
+    // ── Badge de estado ──────────────────────────────────────────
+    if (r.es_valido) {
+        statusBadge.innerHTML = `<span class="cn-status-badge cn-status-badge--ok">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Planilla válida</span>`;
+    } else {
+        statusBadge.innerHTML = `<span class="cn-status-badge cn-status-badge--err">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            Planilla inválida</span>`;
+    }
+
+    // ── Meta rows ────────────────────────────────────────────────
+    const metaRows = [
+        ['Maestro/a',        meta.maestro],
+        ['Área',             meta.area],
+        ['Año escolaridad',  meta.año_escolaridad],
+        ['Unidad educativa', meta.unidad_educativa],
+        ['Estudiantes',      meta.cantidad_estudiantes],
+    ].filter(([, v]) => v !== undefined && v !== null && v !== '')
+     .map(([l, v]) => `<div class="cn-meta-row">
+        <span class="cn-meta-row__label">${l}</span>
+        <span class="cn-meta-row__val">${_escapeHtml(String(v))}</span>
+    </div>`).join('');
+
+    const trimBadges = ['1TRIM','2TRIM','3TRIM'].map(t => {
+        const tiene = meta[`${t}_tiene_notas`];
+        return `<span style="font-size:.68rem;padding:2px 8px;border-radius:99px;font-weight:700;
+            background:${tiene ? 'rgba(34,197,94,.1)' : 'rgba(255,255,255,.04)'};
+            border:1px solid ${tiene ? 'rgba(34,197,94,.25)' : 'var(--border-subtle)'};
+            color:${tiene ? '#22c55e' : 'var(--text-muted)'};">${t}</span>`;
+    }).join('');
+
+    metaContent.innerHTML = metaRows
+        + (Object.keys(meta).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 2px;">${trimBadges}</div>` : '');
+
+    metaCard.style.display = '';
+
+    // ── Panel derecho ────────────────────────────────────────────
+    emptyState.style.display = 'none';
+
+    if (!r.es_valido) {
+        const items = (r.errores || []).map(e =>
+            `<div class="cn-error-item">${_escapeHtml(e)}</div>`
+        ).join('');
+        errorState.innerHTML = `<ul class="cn-error-list">${items}</ul>`;
+        errorState.style.display = '';
+        notasData.style.display  = 'none';
+        tableBadge.textContent   = `${(r.errores || []).length} error(es)`;
+
+        // Advertencias si hay
+        if (r.advertencias && r.advertencias.length) {
+            errorState.innerHTML += `<div style="margin:0 20px 16px;padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:8px;">
+                <p style="font-size:.75rem;font-weight:700;color:var(--warning);margin:0 0 4px;">Advertencias</p>
+                <ul style="margin:0;padding-left:16px;">${r.advertencias.map(a =>
+                    `<li style="font-size:.78rem;color:var(--text-muted);padding:2px 0;">${_escapeHtml(a)}</li>`
+                ).join('')}</ul></div>`;
+        }
         return;
     }
 
-    resultadoEl.innerHTML = _renderResultado(data);
-    resultadoEl.style.display = 'block';
+    // Planilla válida: mostrar tabla de notas + estudiantes
+    errorState.style.display = 'none';
+    const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
+    const notasHtml       = r.notas       ? _renderNotas(r.notas)             : '';
+    notasData.innerHTML   = `<div style="padding:0 20px 20px;">${estudiantesHtml}${notasHtml}</div>`;
+    notasData.style.display = '';
+
+    const total = meta.cantidad_estudiantes || '';
+    tableBadge.textContent = total ? `${total} estudiantes` : '';
+}
+
+// ── Resetea el panel derecho y meta card ──────────────────────────
+function _resetCnResult() {
+    document.getElementById('cnEmptyState').style.display  = '';
+    document.getElementById('cnErrorState').style.display  = 'none';
+    document.getElementById('cnNotasData').style.display   = 'none';
+    document.getElementById('cnMetaCard').style.display    = 'none';
+    document.getElementById('cnTableBadge').textContent    = '';
 }
 
 function _renderResultado(r) {
@@ -558,21 +653,150 @@ function _metaRow(label, valor) {
     </div>`;
 }
 
+
 // ── Cargar asignaciones para el panel de Notas ────────────────────
 async function cargarAsignacionesNotas() {
-    const sel = document.getElementById('selectAsignacion');
+    const grid = document.getElementById('notasClasesGrid');
+    const countEl = document.getElementById('notasMateriasCount');
     const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+
     if (!ok || !data || !data.length) {
-        sel.innerHTML = '<option value="">— Sin asignaciones registradas —</option>';
+        grid.innerHTML = `<div class="notas-empty">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M9 9h6M9 13h6M9 17h4"/>
+            </svg>
+            <p>No tienes asignaciones registradas.</p>
+        </div>`;
+        if (countEl) countEl.textContent = '0 materias';
         return;
     }
-    sel.innerHTML = '<option value="">— Selecciona materia y curso —</option>';
-    data.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value       = a.id;
-        opt.textContent = `${a.materia_nombre} — ${a.curso_nombre}`;
-        sel.appendChild(opt);
+
+    if (countEl) countEl.textContent = `${data.length} materia${data.length !== 1 ? 's' : ''}`;
+
+    grid.innerHTML = data.map((a) => {
+        const sinNotas = !a.tiene_notas;
+        return `
+        <div class="notas-clase-card${sinNotas ? ' notas-clase-card--sin-notas' : ''}">
+            <div class="notas-clase-card__band"></div>
+            <div class="notas-clase-card__body">
+                <div class="notas-clase-card__top">
+                    <span class="notas-clase-card__curso-tag">${_escapeHtml(a.materia_nombre)}</span>
+                    <span class="notas-clase-card__icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                    </span>
+                </div>
+                <p class="notas-clase-card__materia">${_escapeHtml(a.curso_nombre)}</p>
+                <div class="notas-clase-card__footer">
+                    <span class="notas-clase-card__planes">
+                        ${sinNotas
+                            ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Sin registro`
+                            : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Con notas`
+                        }
+                    </span>
+                    <button class="notas-clase-card__btn"
+                            data-pc-id="${a.id}"
+                            data-label="${_escapeHtml(a.materia_nombre)} — ${_escapeHtml(a.curso_nombre)}"
+                            data-materia="${_escapeHtml(a.materia_nombre)}"
+                            data-curso="${_escapeHtml(a.curso_nombre)}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        Gestionar
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mesLabel = document.querySelector('.notas-folder-tab.active')?.textContent.trim() || '';
+            _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesLabel, btn.dataset.materia, btn.dataset.curso);
+        });
     });
+}
+
+// ── Folder tabs de meses (Marzo–Diciembre, meses futuros bloqueados) ─
+function _initNotasFolderTabs() {
+    const MESES_ESCOLAR = [
+        { nombre: 'Marzo', idx: 2 }, { nombre: 'Abril',      idx: 3 },
+        { nombre: 'Mayo',  idx: 4 }, { nombre: 'Junio',      idx: 5 },
+        { nombre: 'Julio', idx: 6 }, { nombre: 'Agosto',     idx: 7 },
+        { nombre: 'Sep.',  idx: 8 }, { nombre: 'Octubre',    idx: 9 },
+        { nombre: 'Nov.',  idx:10 }, { nombre: 'Diciembre',  idx:11 },
+    ];
+    const mesActual  = new Date().getMonth(); // 0-based
+    const container  = document.getElementById('notasFolderTabs');
+    const periodLabel = document.getElementById('notasPeriodLabel');
+
+    // El mes activo es el actual (o Marzo si estamos antes de Marzo)
+    const mesActivoIdx = Math.max(mesActual, 2);
+
+    container.innerHTML = MESES_ESCOLAR.map(({ nombre, idx }) => {
+        const locked = idx > mesActual;
+        const active = idx === mesActivoIdx;
+        return `<button class="notas-folder-tab${active ? ' active' : ''}${locked ? ' locked' : ''}"
+                        data-mes="${idx}" data-nombre="${nombre}" ${locked ? 'disabled' : ''}>
+            ${nombre}${locked ? '<span class="tab-lock">🔒</span>' : ''}
+        </button>`;
+    }).join('');
+
+    // Inicializar label del período activo
+    const activeTab = container.querySelector('.active');
+    if (activeTab && periodLabel) periodLabel.textContent = activeTab.dataset.nombre;
+
+    container.addEventListener('click', e => {
+        const btn = e.target.closest('.notas-folder-tab');
+        if (!btn || btn.classList.contains('locked')) return;
+        container.querySelectorAll('.notas-folder-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (periodLabel) periodLabel.textContent = btn.dataset.nombre;
+        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+
+    if (activeTab) activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
+// ── Navegación entre sub-vistas del panel Notas ───────────────────
+function _initNotasNavigation() {
+    document.getElementById('btnVolverClases').addEventListener('click', _irAVistaClases);
+}
+
+function _actualizarHeaderNotas(label, mes = '', materiaSel = '', cursoSel = '') {
+    const partes = String(label || '').split(/\s+—\s+/);
+    const materia = (partes.shift() || '').trim() || '—';
+    const curso = partes.join(' — ').trim() || '—';
+    const periodo = (mes || '').trim() || '—';
+
+    document.getElementById('cnTitulo').textContent = 'Carga de Notas';
+    document.getElementById('notasClaseSeleccionada').textContent = 'Revisa la planilla antes de validar y confirmar la carga.';
+    document.getElementById('cnMateria').textContent = materiaSel || materia;
+    document.getElementById('cnCurso').textContent = cursoSel || curso;
+    document.getElementById('cnPeriodo').textContent = periodo;
+}
+
+function _irASubirNotas(pcId, label, mes = '', materia = '', curso = '') {
+    document.getElementById('selectAsignacion').value = pcId;
+    _actualizarHeaderNotas(label, mes, materia, curso);
+    // Resetear estado de carga
+    document.getElementById('dropZone').classList.remove('drop-zone--has-file');
+    document.getElementById('nombreArchivo').textContent = '';
+    document.getElementById('nombreArchivo').style.display = 'none';
+    document.getElementById('excelInput').value = '';
+    document.getElementById('btnSubirNotas').disabled = true;
+    _resetCnResult();
+    // Cambiar vista
+    document.getElementById('vistaClases').style.display = 'none';
+    document.getElementById('vistaSubirNotas').style.display = '';
+}
+
+function _irAVistaClases() {
+    document.getElementById('vistaSubirNotas').style.display = 'none';
+    document.getElementById('vistaClases').style.display = '';
 }
 
 // ── Modal nueva citación: abrir / cerrar ──────────────────────────

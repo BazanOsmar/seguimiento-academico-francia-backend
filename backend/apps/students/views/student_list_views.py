@@ -3,7 +3,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound, PermissionDenied
 
-from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
+from backend.core.permissions import IsDirectorOrRegenteOrProfesor
 from backend.apps.students.models import Estudiante
 from backend.apps.students.serializers import EstudianteListSerializer
 from backend.apps.notifications.models import FCMDevice

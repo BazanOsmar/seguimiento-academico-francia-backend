@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
 
-from backend.apps.users.permissions import IsDirector
+from backend.core.permissions import IsDirector
 from backend.apps.students.services import importar_estudiantes_desde_excel, validar_formato_excel
 
 

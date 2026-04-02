@@ -1,0 +1,2 @@
+from .read_serializers import RegistroActividadSerializer
+from .write_serializers import RegistrarActividadSerializer

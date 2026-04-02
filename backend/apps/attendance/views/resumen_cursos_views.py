@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 from backend.apps.academics.models import Curso
 from backend.apps.attendance.models import Asistencia
 from backend.apps.students.models import Estudiante
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.core.permissions import IsDirectorOrRegente
 
 
 def _rango_mes(year, month):

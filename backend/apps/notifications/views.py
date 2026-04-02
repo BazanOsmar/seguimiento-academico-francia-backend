@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from backend.apps.students.models import Estudiante
-from backend.apps.users.permissions import IsDirector
+from backend.core.permissions import IsDirector
 
 from .models import FCMDevice
 

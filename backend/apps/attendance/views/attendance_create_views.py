@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.core.permissions import IsDirectorOrRegente
 from backend.apps.attendance.models import AsistenciaSesion, Asistencia
 from backend.apps.academics.models import Curso
 from backend.apps.students.models import Estudiante

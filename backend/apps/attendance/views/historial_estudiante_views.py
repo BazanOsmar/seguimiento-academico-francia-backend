@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.core.permissions import IsDirectorOrRegente
 from backend.apps.students.models import Estudiante
 from backend.apps.attendance.models import Asistencia
 from backend.apps.attendance.serializers.attendance_read_serializers import (

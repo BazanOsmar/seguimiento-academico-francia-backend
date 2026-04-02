@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from backend.apps.attendance.models import AsistenciaSesion
-from backend.apps.users.permissions import IsDirectorOrRegente
+from backend.core.permissions import IsDirectorOrRegente
 
 
 class RegistrosRecientesView(APIView):

@@ -1,9 +1,12 @@
 from django.urls import path
-from .views import CitacionListView, CitacionCreateView, CitacionDetailView, CitacionVistoView
+from .views import CitacionListView, CitacionCreateView, CitacionDetailView, CitacionVistoView, CitacionTutorListView
 
 urlpatterns = [
     # Lista todas las citaciones (con filtros opcionales)
     path("citaciones/", CitacionListView.as_view(), name="citacion-list"),
+
+    # App móvil: citaciones del tutor autenticado
+    path("citaciones/mis-citaciones/", CitacionTutorListView.as_view(), name="citacion-tutor-list"),
 
     # Crea una nueva citación
     path("citaciones/crear/", CitacionCreateView.as_view(), name="citacion-create"),

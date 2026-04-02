@@ -1,3 +1,9 @@
+# Documentación local de endpoints
+docs_endpoint_*.md
+
+# Credenciales Firebase (nunca versionar)
+backend/config/secrets/
+
 # Scripts locales
 scrips de python/
 

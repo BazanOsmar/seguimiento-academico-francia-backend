@@ -20,8 +20,27 @@
     </script>
 
     <style>
+        :root { --topbar-h: 76px; }
+
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
+
+        .topbar-title-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+        }
+        .topbar-title-group .page-title {
+            margin: 0;
+            line-height: 1.05;
+        }
+        .page-subtitle {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            line-height: 1.15;
+        }
 
         /* ── Card base (no definida en director.css) ─────────────── */
         .card {
@@ -1399,37 +1418,320 @@
         }
         .confirm-cred-actions button { flex: 1; justify-content: center; }
 
-        /* ── Overlay "Próximamente" ──────────────────────────────── */
-        .prox-overlay {
-            position: absolute; inset: 0;
-            background: rgba(17,24,39,.78);
-            backdrop-filter: blur(7px);
-            -webkit-backdrop-filter: blur(7px);
-            border-radius: inherit;
+        /* ── Notas: vista "Mis Clases" ───────────────────────────── */
+        .notas-header { margin-bottom: 24px; padding-top: 4px; }
+        .notas-header__title {
+            font-size: 1.8rem; font-weight: 800;
+            color: var(--text-primary); line-height: 1.2;
+        }
+        .notas-header__sub {
+            color: var(--text-muted); font-size: .875rem; margin-top: 6px;
+        }
+
+        /* Folder tabs */
+        .notas-folder-tabs {
+            display: flex; overflow-x: auto; gap: 0;
+            scrollbar-width: none; position: relative; z-index: 1;
+        }
+        .notas-folder-tabs::-webkit-scrollbar { display: none; }
+        .notas-folder-tab {
+            display: flex; align-items: center; gap: 5px;
+            padding: 9px 24px 9px 18px;
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; border: none; cursor: pointer;
+            clip-path: polygon(0 0, 88% 0, 100% 100%, 0% 100%);
+            margin-right: -10px; white-space: nowrap;
+            transition: background .15s, color .15s;
+            background: rgba(255,255,255,.03);
+            color: var(--text-muted);
+            border-top: 2px solid transparent;
+            user-select: none;
+        }
+        .notas-folder-tab:hover:not(.active):not(.locked) {
+            background: rgba(255,255,255,.06);
+            color: var(--text-secondary);
+        }
+        .notas-folder-tab.active {
+            background: var(--bg-card);
+            color: var(--accent-text);
+            border-top-color: var(--accent);
+            position: relative; z-index: 2;
+        }
+        .notas-folder-tab.locked {
+            cursor: not-allowed;
+            opacity: .38;
+        }
+        .notas-folder-tab.locked .tab-lock {
+            font-size: .6rem; opacity: .8;
+        }
+
+        .notas-classes-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 0 12px 12px 12px;
+            padding: 0;
+            position: relative; z-index: 0;
+            overflow: hidden;
+        }
+        .notas-period-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,.015);
+        }
+        .notas-period-bar__title {
+            font-size: .78rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .08em; color: var(--text-secondary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .notas-period-bar__dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent); display: inline-block;
+            box-shadow: 0 0 6px var(--accent);
+        }
+        .notas-period-bar__count {
+            font-size: .75rem; color: var(--text-muted);
+        }
+        .notas-classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 24px;
+        }
+
+        /* Cards de materias */
+        .notas-clase-card {
+            background: var(--bg-surface);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: transform .22s, box-shadow .25s, border-color .2s;
+            border: 1px solid var(--border-subtle);
+            display: flex; flex-direction: column;
+        }
+        .notas-clase-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0,0,0,.35);
+            border-color: var(--border);
+        }
+        .notas-clase-card__band {
+            height: 3px; width: 100%;
+            background: linear-gradient(90deg, var(--accent), #818cf8);
+        }
+        /* Estado: sin notas cargadas — pendiente, clicable */
+        .notas-clase-card--sin-notas {
+            border-style: dashed;
+        }
+        .notas-clase-card--sin-notas .notas-clase-card__band {
+            background: var(--border);
+        }
+        .notas-clase-card--sin-notas .notas-clase-card__icon {
+            background: rgba(255,255,255,.03);
+            border-color: var(--border-subtle);
+            color: var(--text-muted);
+        }
+        .notas-clase-card--sin-notas .notas-clase-card__curso-tag { color: var(--text-muted); }
+        .notas-clase-card--sin-notas .notas-clase-card__materia   { color: var(--text-secondary); }
+        .notas-clase-card--sin-notas .notas-clase-card__btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+        .notas-clase-card--sin-notas:hover { border-color: var(--accent); border-style: solid; }
+        .notas-clase-card--sin-notas .notas-clase-card__btn:hover {
+            background: var(--accent); color: #fff; border-color: var(--accent);
+        }
+        .notas-clase-card__body { padding: 20px 20px 16px; flex: 1; display: flex; flex-direction: column; }
+        .notas-clase-card__top {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+        }
+        .notas-clase-card__curso-tag {
+            font-size: .67rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: .1em; color: var(--text-muted);
+        }
+        .notas-clase-card__icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,130,246,.2);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent-text);
+        }
+        .notas-clase-card__materia {
+            font-size: 1.3rem; font-weight: 800; color: var(--text-primary);
+            line-height: 1.25; margin-bottom: auto; padding-bottom: 16px;
+        }
+        .notas-clase-card__footer {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-subtle);
+            margin-top: 12px;
+        }
+        .notas-clase-card__planes {
+            font-size: .73rem; color: var(--text-muted);
+            display: flex; align-items: center; gap: 5px;
+        }
+        .notas-clase-card__planes svg { opacity: .5; }
+        .notas-clase-card__btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 16px;
+            background: var(--accent-dim); color: var(--accent-text);
+            border: 1px solid rgba(59,130,246,.2);
+            border-radius: 8px; font-size: .78rem; font-weight: 700;
+            cursor: pointer; transition: background .2s, color .2s, border-color .2s;
+            white-space: nowrap;
+        }
+        .notas-clase-card__btn:hover {
+            background: var(--accent); color: #fff; border-color: var(--accent);
+        }
+        .notas-empty {
+            grid-column: 1/-1; text-align: center;
+            padding: 56px 20px; color: var(--text-muted);
+        }
+        .notas-empty svg { opacity: .25; display: block; margin: 0 auto 12px; }
+
+        /* ── Carga de Notas (vistaSubirNotas) ───────────────────── */
+        .cn-header {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            z-index: 10;
-            min-height: 260px;
+            gap: 16px;
+            margin-bottom: 22px;
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(59,130,246,.12), rgba(255,255,255,.02) 62%);
         }
-        .prox-overlay-icon {
-            width: 64px; height: 64px;
-            border-radius: 50%;
-            background: rgba(99,102,241,.15);
-            border: 1.5px solid rgba(99,102,241,.3);
-            display: flex; align-items: center; justify-content: center;
-            color: var(--accent);
+        .btn-back-notas {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0;
+            min-height: 44px;
+            background: rgba(59,130,246,.16); border: 1px solid rgba(96,165,250,.28);
+            color: #dbeafe; border-radius: 12px;
+            padding: 10px 16px; font-size: .9rem; font-weight: 700;
+            cursor: pointer; transition: border-color .2s, color .2s, background .2s, transform .2s;
         }
-        .prox-overlay h3 {
-            font-size: 1.1rem; font-weight: 700;
-            color: #fff; margin: 0;
+        .btn-back-notas:hover {
+            background: rgba(59,130,246,.24); border-color: var(--accent); color: #fff;
+            transform: translateY(-1px);
         }
-        .prox-overlay p {
-            font-size: .83rem; color: rgba(255,255,255,.55);
-            margin: 0; text-align: center;
+        .cn-header-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
+        .cn-eyebrow {
+            font-size: .76rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--accent-text);
+        }
+        .cn-page-title { margin: 0; }
+        .cn-page-title h2 {
+            font-size: 1.6rem; font-weight: 800; color: var(--text-primary); line-height: 1.2;
+        }
+        .cn-page-subtitle {
+            font-size: .92rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 70ch;
+        }
+        .cn-header-meta {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .cn-header-meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(13,23,38,.28);
+            border: 1px solid rgba(255,255,255,.06);
+            min-width: 0;
+        }
+        .cn-header-meta-label {
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .cn-header-meta-value {
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.35;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cn-card-sub { font-size: .75rem; color: var(--text-muted); margin-top: 3px; }
+        .cn-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 820px) {
+            .btn-back-notas {
+                width: 100%;
+            }
+            .cn-page-subtitle { white-space: normal; }
+            .cn-header-meta { grid-template-columns: 1fr; }
+        }
+        .cn-col-left { display: flex; flex-direction: column; gap: 16px; }
+        .cn-warning-note {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 10px 12px; border-radius: 8px;
+            background: rgba(245,158,11,.06);
+            border: 1px solid rgba(245,158,11,.18);
+            font-size: .75rem; color: var(--text-muted); line-height: 1.55;
+        }
+        .cn-warning-note svg { flex-shrink: 0; color: var(--warning); margin-top: 1px; }
+        /* Tabla de preview */
+        .cn-table-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+        }
+        .cn-empty-state {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 72px 24px;
+            color: var(--text-muted); text-align: center; min-height: 280px;
+        }
+        .cn-empty-state svg { opacity: .18; display: block; margin: 0 auto 16px; }
+        .cn-empty-state p { font-size: .9rem; margin: 0; }
+        .cn-empty-state small { font-size: .75rem; margin-top: 6px; display: block; opacity: .6; }
+        .cn-status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+        }
+        .cn-status-badge--ok { background: rgba(34,197,94,.12); color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
+        .cn-status-badge--err { background: rgba(239,68,68,.1); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
+        /* Meta card */
+        .cn-meta-row {
+            display: flex; gap: 8px; font-size: .82rem; padding: 5px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .cn-meta-row:last-child { border-bottom: none; }
+        .cn-meta-row__label { color: var(--text-muted); min-width: 120px; flex-shrink: 0; }
+        .cn-meta-row__val { color: var(--text-secondary); font-weight: 600; }
+        /* Error list */
+        .cn-error-list {
+            margin: 0; padding: 16px 20px; list-style: none;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .cn-error-item {
+            display: flex; align-items: flex-start; gap: 8px;
+            font-size: .83rem; color: var(--text-secondary); padding: 6px 0;
+            border-bottom: 1px solid rgba(239,68,68,.08);
+        }
+        .cn-error-item:last-child { border-bottom: none; }
+        .cn-error-item::before {
+            content: ''; width: 5px; height: 5px; border-radius: 50%;
+            background: #ef4444; flex-shrink: 0; margin-top: 6px;
+        }
+        @media (max-width: 900px) { .cn-layout { grid-template-columns: 1fr; } }
 
         /* ── Badge ───────────────────────────────────────────────── */
         .badge {
@@ -1528,7 +1830,10 @@
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
             </button>
-            <h1 class="page-title">Panel Profesor</h1>
+            <div class="topbar-title-group">
+                <h1 class="page-title" id="pageTitle">Panel Profesor</h1>
+                <span class="page-subtitle" id="pageSubtitle">Profesor</span>
+            </div>
         </div>
     </header>
 
@@ -1538,55 +1843,166 @@
 
         <!-- ══ Panel Notas ══════════════════════════════════════════ -->
         <div class="tab-panel active" id="panelNotas" role="tabpanel">
-            <div class="card" style="max-width:520px;margin:0 auto;position:relative;overflow:hidden;">
-                <div style="height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);"></div>
-                <div class="card-header">
-                    <h2 class="card-title">Subir Notas</h2>
+
+            <!-- Sub-vista A: Mis Clases ──────────────────────── -->
+            <div id="vistaClases" class="page-inner">
+                <div class="notas-header">
+                    <h1 class="notas-header__title">Calificaciones</h1>
+                    <p class="notas-header__sub">Selecciona un curso para gestionar la planilla de notas</p>
                 </div>
-                <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
-                    <div class="drop-zone" id="dropZone" role="button" tabindex="0"
-                         aria-label="Zona para arrastrar archivo Excel">
-                        <div class="drop-zone__icon-wrap">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="1.8"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                <polyline points="14 2 14 8 20 8"/>
-                                <line x1="12" y1="18" x2="12" y2="12"/>
-                                <line x1="9" y1="15" x2="12" y2="12"/>
-                                <line x1="15" y1="15" x2="12" y2="12"/>
-                            </svg>
-                        </div>
-                        <p class="drop-zone__text">
-                            <strong>Arrastra tu archivo aquí</strong><br>
-                            o haz clic para seleccionar
-                        </p>
-                        <div class="drop-zone__formats">
-                            <span class="drop-zone__fmt-badge">.xlsx</span>
-                            <span class="drop-zone__fmt-badge">.xls</span>
-                        </div>
-                        <p class="drop-zone__filename" id="nombreArchivo"></p>
+                <!-- Folder tabs de meses -->
+                <div class="notas-folder-tabs" id="notasFolderTabs"></div>
+                <div class="notas-classes-container">
+                    <div class="notas-period-bar">
+                        <span class="notas-period-bar__title">
+                            <span class="notas-period-bar__dot"></span>
+                            Período: <span id="notasPeriodLabel">—</span>
+                        </span>
+                        <span class="notas-period-bar__count" id="notasMateriasCount"></span>
                     </div>
-                    <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
-                    <button class="btn-primary" id="btnSubirNotas" disabled>
-                        Subir Notas
-                    </button>
+                    <div class="notas-classes-grid" id="notasClasesGrid">
+                        <div class="notas-empty">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M9 9h6M9 13h6M9 17h4"/>
+                            </svg>
+                            <p>Cargando asignaciones...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Overlay próximamente -->
-            <div class="prox-overlay">
-                <div class="prox-overlay-icon">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
+            <!-- Sub-vista B: Carga de Notas ──────────────────── -->
+            <div id="vistaSubirNotas" class="page-inner" style="display:none;">
+                <input type="hidden" id="selectAsignacion" value="">
+
+                <div class="cn-header">
+                    <button class="btn-back-notas" id="btnVolverClases">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        Volver a los cursos
+                    </button>
+                    <div class="cn-header-copy">
+                        <span class="cn-eyebrow">Gestión de planilla</span>
+                        <div class="cn-page-title">
+                            <h2 id="cnTitulo">Carga de Notas</h2>
+                        </div>
+                        <p class="cn-page-subtitle" id="notasClaseSeleccionada">Revisa la planilla antes de validar y confirmar la carga.</p>
+                        <div class="cn-header-meta">
+                            <div class="cn-header-meta-item">
+                                <span class="cn-header-meta-label">Materia</span>
+                                <span class="cn-header-meta-value" id="cnMateria">—</span>
+                            </div>
+                            <div class="cn-header-meta-item">
+                                <span class="cn-header-meta-label">Curso</span>
+                                <span class="cn-header-meta-value" id="cnCurso">—</span>
+                            </div>
+                            <div class="cn-header-meta-item">
+                                <span class="cn-header-meta-label">Período</span>
+                                <span class="cn-header-meta-value" id="cnPeriodo">—</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h3>Disponible próximamente</h3>
-                <p>Esta función estará disponible<br>en una próxima actualización.</p>
+
+                <!-- Layout dos columnas -->
+                <div class="cn-layout">
+
+                    <!-- Columna izquierda: upload + meta -->
+                    <div class="cn-col-left">
+
+                        <!-- Card upload -->
+                        <div class="card">
+                            <div style="height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);"></div>
+                            <div class="card-header">
+                                <h3 class="card-title">Importar Planilla</h3>
+                                <p class="cn-card-sub">Formatos soportados: .xlsx · .xls</p>
+                            </div>
+                            <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+                                <div class="drop-zone" id="dropZone" role="button" tabindex="0"
+                                     aria-label="Zona para arrastrar archivo Excel">
+                                    <div class="drop-zone__icon-wrap">
+                                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="1.8"
+                                             stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="12" y1="18" x2="12" y2="12"/>
+                                            <line x1="9" y1="15" x2="12" y2="12"/>
+                                            <line x1="15" y1="15" x2="12" y2="12"/>
+                                        </svg>
+                                    </div>
+                                    <p class="drop-zone__text">
+                                        <strong>Arrastra tu archivo aquí</strong><br>
+                                        o haz clic para seleccionar
+                                    </p>
+                                    <div class="drop-zone__formats">
+                                        <span class="drop-zone__fmt-badge">.xlsx</span>
+                                        <span class="drop-zone__fmt-badge">.xls</span>
+                                    </div>
+                                    <p class="drop-zone__filename" id="nombreArchivo"></p>
+                                </div>
+                                <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
+                                <div class="cn-warning-note">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                    Asegúrese de que la planilla corresponda al curso seleccionado para evitar errores de sincronización.
+                                </div>
+                                <p class="form-error" id="notasAsignacionError" style="display:none;">
+                                    Sin asignación seleccionada.
+                                </p>
+                                <button class="btn-primary" id="btnSubirNotas" disabled>
+                                    Validar Planilla
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Card metadata (aparece tras validación) -->
+                        <div class="card" id="cnMetaCard" style="display:none;">
+                            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                                <h3 class="card-title">Resumen</h3>
+                                <span id="cnStatusBadge"></span>
+                            </div>
+                            <div class="card-body" id="cnMetaContent" style="padding-top:0;"></div>
+                        </div>
+
+                    </div><!-- /cn-col-left -->
+
+                    <!-- Columna derecha: tabla preview -->
+                    <div class="cn-col-right">
+                        <div class="card" style="overflow:hidden;">
+                            <div class="cn-table-header">
+                                <h3 class="card-title">Vista Previa</h3>
+                                <span id="cnTableBadge" style="font-size:.75rem;color:var(--text-muted);"></span>
+                            </div>
+
+                            <!-- Estado vacío -->
+                            <div class="cn-empty-state" id="cnEmptyState">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="9" y1="13" x2="15" y2="13"/>
+                                    <line x1="9" y1="17" x2="15" y2="17"/>
+                                </svg>
+                                <p>Carga la planilla para ver la vista previa</p>
+                                <small>Los datos del Excel aparecerán aquí antes de confirmar</small>
+                            </div>
+
+                            <!-- Errores -->
+                            <div id="cnErrorState" style="display:none;padding:16px 20px;"></div>
+
+                            <!-- Datos validados -->
+                            <div id="cnNotasData" style="display:none;"></div>
+
+                        </div>
+                    </div><!-- /cn-col-right -->
+
+                </div><!-- /cn-layout -->
             </div>
+
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->

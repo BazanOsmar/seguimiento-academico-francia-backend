@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Prefetch
 
 from ..models import Citacion
-from ..serializers import CitacionListSerializer
-from backend.apps.users.permissions import IsDirectorOrRegenteOrProfesor
+from ..serializers import CitacionListSerializer, CitacionTutorSerializer
+from backend.core.permissions import IsDirectorOrRegenteOrProfesor, IsTutor
 from ..services.citacion_vencimiento import marcar_citaciones_vencidas
 from backend.apps.academics.models import ProfesorCurso
 
@@ -90,4 +90,61 @@ class CitacionListView(APIView):
             queryset = queryset.filter(fecha_asistencia=fecha_actualizacion)
 
         serializer = CitacionListSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CitacionTutorListView(APIView):
+    """
+    GET api/discipline/citaciones/mis-citaciones/
+
+    Devuelve las citaciones de todos los estudiantes vinculados al tutor
+    autenticado (estudiante.tutor == request.user).
+
+    Permisos: Solo Tutores (app móvil).
+
+    Parámetros opcionales de query:
+        ?estado=ENVIADA|VISTO    → filtra por estado de envío
+        ?asistencia=PENDIENTE    → filtra por estado de asistencia
+
+    Respuesta exitosa (200):
+    [
+        {
+            "id": 1,
+            "estudiante_nombre": "Pérez García Juan",
+            "curso": "Tercero A",
+            "motivo": "FALTAS",
+            "descripcion": "...",
+            "estado": "ENVIADA",
+            "asistencia": "PENDIENTE",
+            "fecha_envio": "2025-10-15T08:30:00Z",
+            "fecha_limite_asistencia": "2025-10-20",
+            "fecha_asistencia": null,
+            "emisor_nombre": "Ana Mamani",
+            "emisor_cargo": "Profesor"
+        },
+        ...
+    ]
+    """
+
+    permission_classes = [IsAuthenticated, IsTutor]
+
+    def get(self, request):
+        marcar_citaciones_vencidas()
+
+        queryset = Citacion.objects.select_related(
+            "estudiante",
+            "estudiante__curso",
+            "emisor",
+            "emisor__tipo_usuario",
+        ).filter(estudiante__tutor=request.user)
+
+        estado = request.query_params.get("estado")
+        if estado:
+            queryset = queryset.filter(estado=estado)
+
+        asistencia = request.query_params.get("asistencia")
+        if asistencia:
+            queryset = queryset.filter(asistencia=asistencia)
+
+        serializer = CitacionTutorSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

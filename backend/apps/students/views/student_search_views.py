@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from backend.apps.users.permissions import IsRegente
+from backend.core.permissions import IsRegente
 from backend.apps.students.models import Estudiante
 from backend.apps.students.serializers import EstudianteBusquedaSerializer
 

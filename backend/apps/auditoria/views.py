@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from backend.apps.users.permissions import IsDirector
+from backend.core.permissions import IsDirector
 from .models import RegistroActividad
 from .serializers import RegistroActividadSerializer, RegistrarActividadSerializer
 from .services import registrar

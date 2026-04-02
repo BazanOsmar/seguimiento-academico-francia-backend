@@ -163,6 +163,26 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
     return {'insertados': insertados, 'actualizados': actualizados, 'errores': errores}
 
 
+def asignaciones_con_notas(pares):
+    """
+    Dado una lista de (materia_id, curso_id), retorna el set de pares que
+    tienen al menos un documento de notas en MongoDB (cualquier trimestre).
+    Devuelve set vacío si hay error de conexión.
+    """
+    if not pares:
+        return set()
+    try:
+        db  = _get_db()
+        col = db['detalle_notas']
+        pipeline = [
+            {'$match': {'$or': [{'materia_id': m, 'curso_id': c} for m, c in pares]}},
+            {'$group': {'_id': {'materia_id': '$materia_id', 'curso_id': '$curso_id'}}},
+        ]
+        return {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}
+    except Exception:
+        return set()
+
+
 def obtener_notas(materia_id, curso_id, trimestre):
     """
     Recupera todas las notas de una materia/curso/trimestre desde MongoDB.

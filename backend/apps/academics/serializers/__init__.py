@@ -1,0 +1,3 @@
+from .curso_serializers import CursoSerializer
+from .asignacion_serializers import MateriaSerializer, AsignacionSerializer, ProfesorAsignacionSerializer
+from .plan_serializers import ProfesorPlanSerializer, DirectorPlanSerializer

@@ -197,10 +197,11 @@
 
 <script>
     const _user = JSON.parse(localStorage.getItem('user') || 'null');
+    const _nombreDir = _user ? (`${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username) : '';
     if (_user) {
-        const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
-        document.getElementById('profileName').textContent = nombre;
+        document.getElementById('profileName').textContent = _nombreDir;
         document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
+        document.getElementById('pageTitle').textContent   = `Panel de ${_nombreDir}`;
     }
 
     // ── Hamburguesa (móvil/tablet) ───────────────────────────────
@@ -251,7 +252,7 @@
             const href = item.getAttribute('href');
             if (!href || href === '#') {
                 e.preventDefault();
-                pageTitle.textContent = item.dataset.title;
+                pageTitle.textContent = `Panel de ${_nombreDir}`;
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
             }
