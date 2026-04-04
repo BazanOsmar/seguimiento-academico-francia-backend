@@ -5,12 +5,16 @@ from ..validators import validar_password, validar_username
 
 class RegistroTutorBaseSerializer(serializers.Serializer):
     """Valida todos los datos del registro sin exigir aceptación de términos."""
-    identificador_estudiante = serializers.CharField()
-    username                 = serializers.CharField()
-    nombre                   = serializers.CharField()
-    apellidos                = serializers.CharField()
-    password                 = serializers.CharField(write_only=True)
-    password_confirmacion    = serializers.CharField(write_only=True)
+    identificadores_estudiantes = serializers.ListField(
+        child=serializers.CharField(),
+        min_length=1,
+        max_length=5,
+    )
+    username              = serializers.CharField()
+    nombre                = serializers.CharField()
+    apellidos             = serializers.CharField()
+    password              = serializers.CharField(write_only=True)
+    password_confirmacion = serializers.CharField(write_only=True)
 
     def validate_username(self, value):
         from backend.apps.users.models import User
@@ -22,19 +26,35 @@ class RegistroTutorBaseSerializer(serializers.Serializer):
     def validate_password(self, value):
         return validar_password(value)
 
-    def validate_identificador_estudiante(self, value):
+    def validate_identificadores_estudiantes(self, value):
         from backend.apps.students.models import Estudiante
-        try:
-            estudiante = Estudiante.objects.select_related('curso', 'tutor').get(
-                identificador=value, activo=True
-            )
-        except Estudiante.DoesNotExist:
-            raise serializers.ValidationError("No se encontró un estudiante activo con este identificador.")
 
-        if estudiante.tutor is not None:
-            raise serializers.ValidationError("Este estudiante ya tiene un tutor asignado.")
+        estudiantes = []
+        seen = set()
+        for identificador in value:
+            if identificador in seen:
+                raise serializers.ValidationError(
+                    f"El identificador '{identificador}' está duplicado."
+                )
+            seen.add(identificador)
 
-        self._estudiante = estudiante
+            try:
+                estudiante = Estudiante.objects.select_related('curso', 'tutor').get(
+                    identificador=identificador, activo=True
+                )
+            except Estudiante.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"No se encontró un estudiante activo con el identificador '{identificador}'."
+                )
+
+            if estudiante.tutor is not None:
+                raise serializers.ValidationError(
+                    f"El estudiante '{identificador}' ya tiene un tutor asignado."
+                )
+
+            estudiantes.append(estudiante)
+
+        self._estudiantes = estudiantes
         return value
 
     def validate(self, data):
@@ -42,7 +62,7 @@ class RegistroTutorBaseSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 "password_confirmacion": ["Las contraseñas no coinciden."]
             })
-        data['_estudiante'] = self._estudiante
+        data['_estudiantes'] = self._estudiantes
         return data
 
 

@@ -6,3 +6,4 @@ from .plan_views import (
     DirectorPlanesView, DirectorPlanesExportarView,
 )
 from .planilla_views import ValidarPlanillaView, NotasMongoView
+from .comparador_views import ComparadorNombresView

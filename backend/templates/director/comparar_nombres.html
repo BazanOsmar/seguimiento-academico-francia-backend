@@ -1,0 +1,436 @@
+{% load static static_v %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Comparar Nombres — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        const user  = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
+            window.location.replace('/login/');
+        }
+    </script>
+    <style>
+        .upload-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 28px;
+        }
+        .upload-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .file-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: .85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: border-color .15s;
+        }
+        .file-label:hover { border-color: var(--accent); }
+        #fileInput { display: none; }
+        #fileName {
+            font-size: .82rem;
+            color: var(--text-muted);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .btn-comparar {
+            background: var(--accent);
+            color: var(--accent-text);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: .88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+            white-space: nowrap;
+        }
+        .btn-comparar:hover { opacity: .85; }
+        .btn-comparar:disabled { opacity: .5; cursor: not-allowed; }
+
+        #cursoDetectado {
+            display: none;
+            margin-top: 14px;
+            font-size: .82rem;
+            color: var(--text-secondary);
+        }
+        #cursoDetectado strong { color: var(--text-primary); }
+
+        #errorBanner {
+            display: none;
+            background: rgba(239,68,68,.1);
+            border: 1px solid rgba(239,68,68,.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: .84rem;
+            color: #f87171;
+            margin-top: 14px;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .stat-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: .78rem;
+            color: var(--text-secondary);
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+        }
+        .stat-chip__val {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .stat-chip--ok   .stat-chip__val { color: #22c55e; }
+        .stat-chip--warn .stat-chip__val { color: #f59e0b; }
+        .stat-chip--err  .stat-chip__val { color: #ef4444; }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) { .results-grid { grid-template-columns: 1fr; } }
+
+        .result-col {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .result-col__hdr {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .result-col__hdr--excel { color: #f59e0b; }
+        .result-col__hdr--bd    { color: #ef4444; }
+
+        .result-item {
+            padding: 9px 16px;
+            font-size: .83rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-item:last-child { border-bottom: none; }
+        .result-item__dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .result-item__dot--excel { background: #f59e0b; }
+        .result-item__dot--bd    { background: #ef4444; }
+
+        .empty-msg {
+            padding: 20px 16px;
+            font-size: .82rem;
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+        }
+
+        #resultSection { display: none; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Comunicados</span>
+            </a>
+            <a href="/director/actividad/" class="nav-item" aria-label="Actividad">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <span class="nav-label">Actividad</span>
+            </a>
+            <a href="/director/academico/" class="nav-item" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <a href="/director/mi-perfil/" class="nav-item" aria-label="Mi Perfil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="nav-label">Mi Perfil</span>
+            </a>
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ────────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Comparar nombres del Excel</h1>
+        </div>
+    </header>
+
+    <!-- ── Contenido ─────────────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="content-wrap">
+
+            <p style="font-size:.83rem;color:var(--text-muted);margin:0 0 20px;">
+                Sube el mismo Excel de notas. El sistema detecta el curso automáticamente y compara los nombres.
+            </p>
+
+            <div class="upload-card">
+                <div class="upload-row">
+                    <label class="file-label" for="fileInput">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Seleccionar Excel
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls">
+                    <span id="fileName">Ningún archivo seleccionado</span>
+                    <button class="btn-comparar" id="btnComparar" disabled>Comparar</button>
+                </div>
+                <div id="cursoDetectado"></div>
+                <div id="errorBanner"></div>
+            </div>
+
+            <div id="resultSection">
+                <div class="stats-row" id="statsRow"></div>
+                <div class="results-grid">
+                    <div class="result-col">
+                        <div class="result-col__hdr result-col__hdr--excel">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            En Excel, NO en BD
+                        </div>
+                        <div class="result-col__body" id="listExcel"></div>
+                    </div>
+                    <div class="result-col">
+                        <div class="result-col__hdr result-col__hdr--bd">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            En BD, NO en Excel
+                        </div>
+                        <div class="result-col__body" id="listBd"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+<script src="{% static_v 'js/main.js' %}"></script>
+<script>
+const fileInput     = document.getElementById('fileInput');
+const fileNameEl    = document.getElementById('fileName');
+const btnComparar   = document.getElementById('btnComparar');
+const errorBanner   = document.getElementById('errorBanner');
+const cursoDetEl    = document.getElementById('cursoDetectado');
+const resultSection = document.getElementById('resultSection');
+
+fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    fileNameEl.textContent      = f ? f.name : 'Ningún archivo seleccionado';
+    btnComparar.disabled        = !f;
+    errorBanner.style.display   = 'none';
+    cursoDetEl.style.display    = 'none';
+    resultSection.style.display = 'none';
+});
+
+btnComparar.addEventListener('click', async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+
+    btnComparar.disabled    = true;
+    btnComparar.innerHTML   = '<span class="spinner"></span>';
+    errorBanner.style.display   = 'none';
+    cursoDetEl.style.display    = 'none';
+    resultSection.style.display = 'none';
+
+    const form = new FormData();
+    form.append('archivo', f);
+
+    const { ok, data } = await fetchAPI('/api/academics/director/comparar-nombres/', {
+        method: 'POST',
+        body: form,
+    });
+
+    btnComparar.disabled     = false;
+    btnComparar.textContent  = 'Comparar';
+
+    if (!ok) {
+        errorBanner.textContent   = data?.errores || 'Error al procesar el archivo.';
+        errorBanner.style.display = 'block';
+        return;
+    }
+
+    cursoDetEl.innerHTML     = `Curso detectado: <strong>${_esc(data.curso_nombre)}</strong>`;
+    cursoDetEl.style.display = 'block';
+    _renderResultados(data);
+});
+
+function _renderResultados(d) {
+    document.getElementById('statsRow').innerHTML = `
+        <div class="stat-chip stat-chip--ok">
+            <span class="stat-chip__val">${d.en_ambos}</span>coinciden
+        </div>
+        <div class="stat-chip ${d.solo_en_excel.length ? 'stat-chip--warn' : ''}">
+            <span class="stat-chip__val">${d.solo_en_excel.length}</span>solo en Excel
+        </div>
+        <div class="stat-chip ${d.solo_en_bd.length ? 'stat-chip--err' : ''}">
+            <span class="stat-chip__val">${d.solo_en_bd.length}</span>solo en BD
+        </div>
+        <div class="stat-chip">
+            <span class="stat-chip__val">${d.total_excel}</span>total Excel
+        </div>
+        <div class="stat-chip">
+            <span class="stat-chip__val">${d.total_bd}</span>total BD
+        </div>
+    `;
+
+    document.getElementById('listExcel').innerHTML = d.solo_en_excel.length
+        ? d.solo_en_excel.map(n => `
+            <div class="result-item">
+                <span class="result-item__dot result-item__dot--excel"></span>${_esc(n)}
+            </div>`).join('')
+        : '<p class="empty-msg">Sin diferencias</p>';
+
+    document.getElementById('listBd').innerHTML = d.solo_en_bd.length
+        ? d.solo_en_bd.map(n => `
+            <div class="result-item">
+                <span class="result-item__dot result-item__dot--bd"></span>${_esc(n)}
+            </div>`).join('')
+        : '<p class="empty-msg">Sin diferencias</p>';
+
+    resultSection.style.display = 'block';
+}
+
+function _esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

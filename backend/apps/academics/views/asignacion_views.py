@@ -104,7 +104,7 @@ class ProfesorMisAsignacionesView(APIView):
         }
 
         pares = [(pc.materia.id, pc.curso.id) for pc in qs]
-        con_notas = asignaciones_con_notas(pares)
+        con_notas = asignaciones_con_notas(pares, mes=mes)
 
         return Response(
             ProfesorAsignacionSerializer(

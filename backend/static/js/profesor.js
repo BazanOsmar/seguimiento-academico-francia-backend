@@ -33,13 +33,25 @@ const ASISTENCIA_BADGES = {
 // ── Estado local ──────────────────────────────────────────────────
 let _cursos = [];
 
+// ── Estado citaciones / comunicados ──────────────────────────────
+let _todasCitaciones  = [];
+let _todosComunicados = [];
+let _citMesObj        = null;   // { year, month } — se inicializa en _initCitaciones
+let _comMesObj        = null;
+let _citFiltroEstado  = 'PENDIENTE';
+let _citFiltroEmisor  = '';
+let _comFiltroEmisor  = '';
+let _citPage          = 0;
+const _CIT_PER_PAGE   = 8;
+let _marcarCitId      = null;
+
 // ── Inicialización ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     _initSidebar();
     _initLogout();
     _initUserInfo();
     _initTabs();
-    _initCitacionesVisualOnly();
+    _initCitaciones();
     _initDragDrop();
     _initNotasFolderTabs();
     _initNotasNavigation();
@@ -47,7 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
     _initPlanForm();
     _initPrimerIngreso();
     cargarCursos();
-    cargarAsignacionesNotas();
+    // Cargar con el mes activo del folder tab (0-based idx + 1 = mes API)
+    const _tabActivo = document.querySelector('.notas-folder-tab.active');
+    cargarAsignacionesNotas(_tabActivo ? parseInt(_tabActivo.dataset.mes) + 1 : null);
     _verificarDotPlan();  // dot de notificación en background
 });
 
@@ -67,7 +81,7 @@ function _activarTab(panelId) {
         const btn = document.getElementById(_TAB_BTNS[id]);
         if (btn) btn.classList.toggle('active', id === panelId);
     });
-    if (panelId === 'panelCitaciones') cargarHistorial();
+    if (panelId === 'panelCitaciones') { cargarCitaciones(); cargarComunicados(); }
     if (panelId === 'panelPlan')       cargarPlanes();
     if (panelId === 'panelCuenta')     _initCuentaTab();
 }
@@ -79,23 +93,21 @@ function _initTabs() {
     document.getElementById('sideCuenta').addEventListener('click',     () => _activarTab('panelCuenta'));
 }
 
-// ── Citaciones/Comunicados (solo interfaz visual, sin backend) ──
-function _initCitacionesVisualOnly() {
-    const secCit = document.getElementById('secTitleCitProf');
-    const secCom = document.getElementById('secTitleComProf');
-    const search = document.getElementById('searchInputProf');
-    const btnCit = document.getElementById('btnToggleCitProf');
-    const btnCom = document.getElementById('btnToggleComProf');
-    const stats  = document.getElementById('statsRowProf');
+// ── Citaciones/Comunicados — inicialización completa ─────────────
+function _initCitaciones() {
+    const secCit     = document.getElementById('secTitleCitProf');
+    const secCom     = document.getElementById('secTitleComProf');
+    const search     = document.getElementById('searchInputProf');
+    const btnCit     = document.getElementById('btnToggleCitProf');
+    const btnCom     = document.getElementById('btnToggleComProf');
+    const stats      = document.getElementById('statsRowProf');
     const secCitCard = document.getElementById('sectionCitCardProf');
     const secComCard = document.getElementById('sectionComCardProf');
-    if (!secCit || !secCom || !search || !btnCit || !btnCom || !stats || !secCitCard || !secComCard) return;
+    if (!secCit) return;
 
     const ahora = new Date();
-    const limiteAnio = ahora.getFullYear();
-    const limiteMes = ahora.getMonth();
-    let mesCit = { year: limiteAnio, month: limiteMes };
-    let mesCom = { year: limiteAnio, month: limiteMes };
+    _citMesObj  = { year: ahora.getFullYear(), month: ahora.getMonth() };
+    _comMesObj  = { year: ahora.getFullYear(), month: ahora.getMonth() };
 
     const fmtMes = ({ year, month }) =>
         new Date(year, month, 1).toLocaleDateString('es-BO', { month: 'long', year: 'numeric' });
@@ -104,65 +116,113 @@ function _initCitacionesVisualOnly() {
         const esCit = sec === 'cit';
         secCit.classList.toggle('sec-title--active', esCit);
         secCom.classList.toggle('sec-title--active', !esCit);
-        stats.style.display = esCit ? '' : 'none';
+        stats.style.display    = esCit ? '' : 'none';
         secCitCard.style.display = esCit ? '' : 'none';
         secComCard.style.display = esCit ? 'none' : '';
-        btnCit.style.display = esCit ? '' : 'none';
-        btnCom.style.display = esCit ? 'none' : '';
-        search.placeholder = esCit
+        btnCit.style.display   = esCit ? '' : 'none';
+        btnCom.style.display   = esCit ? 'none' : '';
+        search.placeholder     = esCit
             ? 'Buscar por nombre del estudiante...'
-            : 'Buscar por titulo del comunicado...';
+            : 'Buscar por título del comunicado...';
     };
 
-    const _setupMonthNav = (prevId, nextId, labelId, getter, setter) => {
-        const prev = document.getElementById(prevId);
-        const next = document.getElementById(nextId);
-        const lbl  = document.getElementById(labelId);
-        if (!prev || !next || !lbl) return;
-        const paint = () => {
-            const v = getter();
-            lbl.textContent = fmtMes(v);
-            prev.disabled = (v.year === limiteAnio && v.month === 0);
-            next.disabled = (v.year === limiteAnio && v.month === limiteMes);
-        };
-        prev.addEventListener('click', () => {
-            const v = getter();
-            if (v.year === limiteAnio && v.month === 0) return;
-            const d = new Date(v.year, v.month - 1, 1);
-            setter({ year: d.getFullYear(), month: d.getMonth() });
-            paint();
-        });
-        next.addEventListener('click', () => {
-            const v = getter();
-            if (v.year === limiteAnio && v.month === limiteMes) return;
-            const d = new Date(v.year, v.month + 1, 1);
-            setter({ year: d.getFullYear(), month: d.getMonth() });
-            paint();
-        });
-        paint();
+    // ── Navegación de mes para citaciones ──
+    const prevCit = document.getElementById('btnMesPrevProf');
+    const nextCit = document.getElementById('btnMesNextProf');
+    const lblCit  = document.getElementById('citMesLabelProf');
+    const _paintCitMes = () => {
+        lblCit.textContent  = fmtMes(_citMesObj);
+        prevCit.disabled    = (_citMesObj.year <= 2026 && _citMesObj.month === 0);
+        nextCit.disabled    = (_citMesObj.year === ahora.getFullYear() && _citMesObj.month >= ahora.getMonth());
     };
+    prevCit.addEventListener('click', () => {
+        if (_citMesObj.month === 0) { _citMesObj.year--; _citMesObj.month = 11; }
+        else { _citMesObj.month--; }
+        _paintCitMes();
+        _aplicarFiltroCit();
+    });
+    nextCit.addEventListener('click', () => {
+        if (_citMesObj.year === ahora.getFullYear() && _citMesObj.month >= ahora.getMonth()) return;
+        if (_citMesObj.month === 11) { _citMesObj.year++; _citMesObj.month = 0; }
+        else { _citMesObj.month++; }
+        _paintCitMes();
+        _aplicarFiltroCit();
+    });
+    _paintCitMes();
 
-    const _setupChipGroup = (id) => {
-        const wrap = document.getElementById(id);
-        if (!wrap) return;
-        wrap.addEventListener('click', (e) => {
-            const chip = e.target.closest('.rol-chip');
-            if (!chip) return;
-            wrap.querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
-            chip.classList.add('rol-chip--active');
-        });
+    // ── Navegación de mes para comunicados ──
+    const prevCom = document.getElementById('btnComMesPrevProf');
+    const nextCom = document.getElementById('btnComMesNextProf');
+    const lblCom  = document.getElementById('comMesLabelProf');
+    const _paintComMes = () => {
+        lblCom.textContent  = fmtMes(_comMesObj);
+        prevCom.disabled    = (_comMesObj.year <= 2026 && _comMesObj.month === 0);
+        nextCom.disabled    = (_comMesObj.year === ahora.getFullYear() && _comMesObj.month >= ahora.getMonth());
     };
+    prevCom.addEventListener('click', () => {
+        if (_comMesObj.month === 0) { _comMesObj.year--; _comMesObj.month = 11; }
+        else { _comMesObj.month--; }
+        _paintComMes();
+        _aplicarFiltroCom();
+    });
+    nextCom.addEventListener('click', () => {
+        if (_comMesObj.year === ahora.getFullYear() && _comMesObj.month >= ahora.getMonth()) return;
+        if (_comMesObj.month === 11) { _comMesObj.year++; _comMesObj.month = 0; }
+        else { _comMesObj.month++; }
+        _paintComMes();
+        _aplicarFiltroCom();
+    });
+    _paintComMes();
 
+    // ── Stats card click → filtrar por estado ──
     stats.addEventListener('click', (e) => {
         const card = e.target.closest('.cit-stat-card');
         if (!card) return;
         stats.querySelectorAll('.cit-stat-card').forEach(c => c.classList.remove('cit-stat-card--active'));
         card.classList.add('cit-stat-card--active');
+        _citFiltroEstado = card.dataset.filter;
+        _citPage = 0;
+        _aplicarFiltroCit();
     });
 
+    // ── Chips de rol ──
+    document.getElementById('rolChipsProf').addEventListener('click', (e) => {
+        const chip = e.target.closest('.rol-chip');
+        if (!chip) return;
+        document.querySelectorAll('#rolChipsProf .rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+        chip.classList.add('rol-chip--active');
+        _citFiltroEmisor = chip.dataset.emisor;
+        _citPage = 0;
+        _aplicarFiltroCit();
+    });
+    document.getElementById('rolChipsComProf').addEventListener('click', (e) => {
+        const chip = e.target.closest('.rol-chip');
+        if (!chip) return;
+        document.querySelectorAll('#rolChipsComProf .rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+        chip.classList.add('rol-chip--active');
+        _comFiltroEmisor = chip.dataset.emisor;
+        _aplicarFiltroCom();
+    });
+
+    // ── Búsqueda con debounce ──
+    let _searchTimer;
+    search.addEventListener('input', () => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(() => {
+            if (secCitCard.style.display !== 'none') {
+                _citPage = 0;
+                _aplicarFiltroCit();
+            } else {
+                _aplicarFiltroCom();
+            }
+        }, 280);
+    });
+
+    // ── Toggle de sección ──
     secCit.addEventListener('click', () => _setSec('cit'));
     secCom.addEventListener('click', () => _setSec('com'));
 
+    // ── Botones de acción ──
     btnCit.addEventListener('click', () => {
         btnCit.classList.add('is-open');
         setTimeout(() => btnCit.classList.remove('is-open'), 180);
@@ -171,13 +231,12 @@ function _initCitacionesVisualOnly() {
     btnCom.addEventListener('click', () => {
         btnCom.classList.add('is-open');
         setTimeout(() => btnCom.classList.remove('is-open'), 180);
+        _abrirModalNuevoComunicadoProf();
     });
 
-    _setupChipGroup('rolChipsProf');
-    _setupChipGroup('rolChipsComProf');
-    _setupMonthNav('btnMesPrevProf', 'btnMesNextProf', 'citMesLabelProf', () => mesCit, v => { mesCit = v; });
-    _setupMonthNav('btnComMesPrevProf', 'btnComMesNextProf', 'comMesLabelProf', () => mesCom, v => { mesCom = v; });
     _setSec('cit');
+    _initComunicadoForm();
+    _initDetalleCitModals();
 }
 
 // ── Sidebar (hamburguesa) ─────────────────────────────────────────
@@ -391,7 +450,6 @@ function _mostrarResultadoCarga(r) {
         ).join('');
         errorState.innerHTML = `<ul class="cn-error-list">${items}</ul>`;
         errorState.style.display = '';
-        notasData.style.display  = 'none';
         tableBadge.textContent   = `${(r.errores || []).length} error(es)`;
 
         // Advertencias si hay
@@ -401,6 +459,14 @@ function _mostrarResultadoCarga(r) {
                 <ul style="margin:0;padding-left:16px;">${r.advertencias.map(a =>
                     `<li style="font-size:.78rem;color:var(--text-muted);padding:2px 0;">${_escapeHtml(a)}</li>`
                 ).join('')}</ul></div>`;
+        }
+
+        // Mostrar lista de estudiantes aunque la planilla sea inválida
+        if (r.estudiantes) {
+            notasData.innerHTML = `<div style="padding:0 20px 20px;">${_renderEstudiantes(r.estudiantes)}</div>`;
+            notasData.style.display = '';
+        } else {
+            notasData.style.display = 'none';
         }
         return;
     }
@@ -488,77 +554,114 @@ function _renderResultado(r) {
 }
 
 function _renderEstudiantes(est) {
-    const { activos, inactivos, no_encontrados, total_excel, total_bd, curso_verificado } = est;
-    const encontrados = activos + inactivos;
+    const { activos = 0, inactivos = 0, no_encontrados = [], lista_estudiantes = [],
+            total_excel = 0, total_bd = 0, curso_verificado } = est;
 
-    const contadores = `
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;font-weight:700;
-                background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#22c55e;">
-                ${activos} activo${activos !== 1 ? 's' : ''}
-            </span>
-            ${inactivos > 0 ? `<span style="font-size:.75rem;padding:3px 10px;border-radius:99px;font-weight:700;
-                background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);color:#ca8a04;">
-                ${inactivos} inactivo${inactivos !== 1 ? 's' : ''}
-            </span>` : ''}
-            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;font-weight:600;
-                background:var(--bg-hover);border:1px solid var(--border);color:var(--text-muted);">
-                ${encontrados} / ${total_excel} del Excel · ${total_bd} en BD
-            </span>
-        </div>`;
+    const encontrados  = activos + inactivos;
+    const hayProblemas = no_encontrados.length > 0;
+    const bdMatch      = total_bd > 0 ? total_bd : total_excel;
 
-    if (no_encontrados && no_encontrados.length > 0) {
-        const lista = no_encontrados.slice(0, 10).map(n =>
-            `<li style="padding:3px 0;font-size:.82rem;">${_escapeHtml(n)}</li>`
-        ).join('');
-        const masMsg = no_encontrados.length > 10
-            ? `<li style="color:var(--text-muted);font-size:.8rem;">... y ${no_encontrados.length - 10} más</li>` : '';
+    // ── Badge principal "X/Y estudiantes" ────────────────────────
+    const allOk       = encontrados === total_excel && total_excel > 0;
+    const badgeColor  = allOk ? '#22c55e' : '#ef4444';
+    const badgeBg     = allOk ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)';
+    const badgeBorder = allOk ? 'rgba(34,197,94,.25)' : 'rgba(239,68,68,.25)';
+    const badgeIcon   = allOk
+        ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
 
-        // Debug para diagnosticar el formato exacto de nombres
-        const debugExcel = (est._debug_nombres_excel || []).map(n =>
-            `<code style="display:block;font-size:.75rem;background:rgba(0,0,0,.2);padding:2px 6px;border-radius:4px;margin-bottom:2px;">${_escapeHtml(JSON.stringify(n))}</code>`
-        ).join('');
-        const debugBd = (est._debug_nombres_bd || []).map(n =>
-            `<code style="display:block;font-size:.75rem;background:rgba(0,0,0,.2);padding:2px 6px;border-radius:4px;margin-bottom:2px;">${_escapeHtml(JSON.stringify(n))}</code>`
-        ).join('');
-        const debugHtml = (debugExcel || debugBd) ? `
-            <details style="margin-top:10px;">
-                <summary style="cursor:pointer;font-size:.78rem;color:var(--text-muted);user-select:none;">Debug: comparación de nombres</summary>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-                    <div><p style="font-size:.75rem;color:var(--text-muted);margin:0 0 4px;">Excel (primeros 5):</p>${debugExcel || '<em style="font-size:.75rem;color:var(--text-muted)">vacío</em>'}</div>
-                    <div><p style="font-size:.75rem;color:var(--text-muted);margin:0 0 4px;">BD curso ${est._debug_curso_id} (primeros 5):</p>${debugBd || '<em style="font-size:.75rem;color:var(--text-muted)">vacío</em>'}</div>
-                </div>
-            </details>` : '';
+    const headerBadge = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;
+        padding:3px 10px;border-radius:99px;background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};">
+        ${badgeIcon} ${encontrados} / ${total_excel} estudiantes
+    </span>`;
 
-        return `
-        <div style="margin-top:10px;border:1px solid rgba(239,68,68,.3);border-radius:12px;overflow:hidden;">
-            <div style="background:rgba(239,68,68,.08);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(239,68,68,.15);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                <span style="font-weight:700;font-size:.85rem;color:#ef4444;">Estudiantes no encontrados en la BD</span>
-            </div>
-            <div style="padding:12px 16px;">
-                <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 8px;">
-                    Los siguientes estudiantes del Excel no existen en el curso
-                    ${curso_verificado ? `<strong style="color:var(--text);">${_escapeHtml(curso_verificado)}</strong>` : 'asignado'}:
-                </p>
-                <ul style="margin:0;padding-left:20px;color:var(--text);">${lista}${masMsg}</ul>
-                ${contadores}
-                ${debugHtml}
-            </div>
+    const inactivosBadge = inactivos > 0
+        ? `<span style="font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;
+            background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#ca8a04;">
+            ${inactivos} inactivo${inactivos !== 1 ? 's' : ''}
+        </span>` : '';
+
+    // ── Header de la sección ──────────────────────────────────────
+    const headerColor  = hayProblemas ? '#ef4444' : '#22c55e';
+    const headerBg     = hayProblemas ? 'rgba(239,68,68,.07)' : 'rgba(34,197,94,.07)';
+    const headerBorder = hayProblemas ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.15)';
+    const headerIcon   = hayProblemas
+        ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${headerColor}" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`
+        : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${headerColor}" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
+    const headerTitle  = hayProblemas
+        ? `${no_encontrados.length} estudiante${no_encontrados.length !== 1 ? 's' : ''} no encontrado${no_encontrados.length !== 1 ? 's' : ''} en la BD`
+        : 'Todos los estudiantes verificados';
+
+    // ── Lista de estudiantes ──────────────────────────────────────
+    let listaHtml = '';
+    if (lista_estudiantes.length > 0) {
+        const filas = lista_estudiantes.map((e, i) => {
+            const nro      = String(i + 1).padStart(2, '0');
+            if (!e.encontrado) {
+                return `<tr style="background:rgba(239,68,68,.06);">
+                    <td style="padding:5px 10px;font-size:.72rem;color:rgba(239,68,68,.6);font-variant-numeric:tabular-nums;">${nro}</td>
+                    <td style="padding:5px 10px;font-size:.82rem;font-weight:600;color:#ef4444;">${_escapeHtml(e.nombre)}</td>
+                    <td style="padding:5px 10px;text-align:right;">
+                        <span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;
+                            background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2);">NO ENCONTRADO</span>
+                    </td>
+                </tr>`;
+            }
+            if (!e.activo) {
+                return `<tr>
+                    <td style="padding:5px 10px;font-size:.72rem;color:var(--text-muted);font-variant-numeric:tabular-nums;">${nro}</td>
+                    <td style="padding:5px 10px;font-size:.82rem;color:var(--text-secondary);">${_escapeHtml(e.nombre)}</td>
+                    <td style="padding:5px 10px;text-align:right;">
+                        <span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;
+                            background:rgba(245,158,11,.1);color:#ca8a04;border:1px solid rgba(245,158,11,.2);">INACTIVO</span>
+                    </td>
+                </tr>`;
+            }
+            return `<tr>
+                <td style="padding:5px 10px;font-size:.72rem;color:var(--text-muted);font-variant-numeric:tabular-nums;">${nro}</td>
+                <td style="padding:5px 10px;font-size:.82rem;color:var(--text);">${_escapeHtml(e.nombre)}</td>
+                <td></td>
+            </tr>`;
+        }).join('');
+
+        listaHtml = `
+        <div style="margin-top:12px;border:1px solid var(--border-subtle);border-radius:8px;overflow:hidden;max-height:280px;overflow-y:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="background:var(--bg-hover);position:sticky;top:0;">
+                        <th style="padding:6px 10px;font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:left;text-transform:uppercase;letter-spacing:.07em;width:36px;">#</th>
+                        <th style="padding:6px 10px;font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:left;text-transform:uppercase;letter-spacing:.07em;">Estudiante</th>
+                        <th style="padding:6px 10px;font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:right;text-transform:uppercase;letter-spacing:.07em;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>${filas}</tbody>
+            </table>
         </div>`;
     }
 
+    const bdInfo = `<p style="font-size:.75rem;color:var(--text-muted);margin:8px 0 0;">
+        Estudiantes en la BD del curso: <strong style="color:var(--text-secondary);">${total_bd}</strong>
+    </p>`;
+
     return `
-    <div style="margin-top:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-        <div style="background:var(--bg-hover);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-            <span style="font-weight:700;font-size:.85rem;color:var(--text);">Estudiantes verificados</span>
+    <div style="margin-top:10px;border:1px solid ${headerBorder};border-radius:12px;overflow:hidden;">
+        <div style="background:${headerBg};padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid ${headerBorder};flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                ${headerIcon}
+                <span style="font-weight:700;font-size:.85rem;color:${headerColor};">${headerTitle}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                ${headerBadge}
+                ${inactivosBadge}
+            </div>
         </div>
         <div style="padding:12px 16px;">
-            <p style="font-size:.83rem;color:var(--text-muted);margin:0;">
-                Todos los estudiantes del Excel fueron encontrados en la base de datos del curso.
-            </p>
-            ${contadores}
+            ${hayProblemas ? `<p style="font-size:.8rem;color:var(--text-muted);margin:0 0 4px;">
+                Verifica que los nombres del Excel coincidan exactamente con los registrados en el curso
+                ${curso_verificado ? `<strong style="color:var(--text);">${_escapeHtml(curso_verificado)}</strong>` : ''}.
+            </p>` : ''}
+            ${listaHtml}
+            ${bdInfo}
         </div>
     </div>`;
 }
@@ -655,10 +758,13 @@ function _metaRow(label, valor) {
 
 
 // ── Cargar asignaciones para el panel de Notas ────────────────────
-async function cargarAsignacionesNotas() {
+async function cargarAsignacionesNotas(mes = null) {
     const grid = document.getElementById('notasClasesGrid');
     const countEl = document.getElementById('notasMateriasCount');
-    const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+    const url = mes !== null
+        ? `/api/academics/profesor/mis-asignaciones/?mes=${mes}`
+        : '/api/academics/profesor/mis-asignaciones/';
+    const { ok, data } = await fetchAPI(url);
 
     if (!ok || !data || !data.length) {
         grid.innerHTML = `<div class="notas-empty">
@@ -699,6 +805,8 @@ async function cargarAsignacionesNotas() {
                     </span>
                     <button class="notas-clase-card__btn"
                             data-pc-id="${a.id}"
+                            data-curso-id="${a.curso_id}"
+                            data-tiene-notas="${a.tiene_notas ? '1' : '0'}"
                             data-label="${_escapeHtml(a.materia_nombre)} — ${_escapeHtml(a.curso_nombre)}"
                             data-materia="${_escapeHtml(a.materia_nombre)}"
                             data-curso="${_escapeHtml(a.curso_nombre)}">
@@ -714,8 +822,12 @@ async function cargarAsignacionesNotas() {
 
     grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const mesLabel = document.querySelector('.notas-folder-tab.active')?.textContent.trim() || '';
-            _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesLabel, btn.dataset.materia, btn.dataset.curso);
+            if (btn.dataset.tieneNotas === '1') {
+                _irAVerNotas(btn.dataset.pcId, btn.dataset.cursoId, btn.dataset.label, btn.dataset.materia, btn.dataset.curso);
+            } else {
+                const mesLabel = document.querySelector('.notas-folder-tab.active')?.textContent.trim() || '';
+                _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesLabel, btn.dataset.materia, btn.dataset.curso);
+            }
         });
     });
 }
@@ -756,6 +868,8 @@ function _initNotasFolderTabs() {
         btn.classList.add('active');
         if (periodLabel) periodLabel.textContent = btn.dataset.nombre;
         btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        // data-mes es 0-based (JS), la API espera 1-based
+        cargarAsignacionesNotas(parseInt(btn.dataset.mes) + 1);
     });
 
     if (activeTab) activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -764,6 +878,14 @@ function _initNotasFolderTabs() {
 // ── Navegación entre sub-vistas del panel Notas ───────────────────
 function _initNotasNavigation() {
     document.getElementById('btnVolverClases').addEventListener('click', _irAVistaClases);
+    document.getElementById('btnVolverDesdeVer').addEventListener('click', _irAVistaClases);
+    document.getElementById('vnTrimNav').addEventListener('click', e => {
+        const btn = e.target.closest('.vn-trim-btn');
+        if (!btn) return;
+        document.querySelectorAll('.vn-trim-btn').forEach(b => b.classList.remove('vn-trim-btn--active'));
+        btn.classList.add('vn-trim-btn--active');
+        _cargarVnTrimestre(parseInt(btn.dataset.trim));
+    });
 }
 
 function _actualizarHeaderNotas(label, mes = '', materiaSel = '', cursoSel = '') {
@@ -777,6 +899,108 @@ function _actualizarHeaderNotas(label, mes = '', materiaSel = '', cursoSel = '')
     document.getElementById('cnMateria').textContent = materiaSel || materia;
     document.getElementById('cnCurso').textContent = cursoSel || curso;
     document.getElementById('cnPeriodo').textContent = periodo;
+}
+
+// ── Vista Notas (solo lectura) ────────────────────────────────────
+const _vnState = { pcId: null, cursoId: null, label: '', materia: '', curso: '' };
+let _vnStudents = null; // cache estudiantes del curso actual
+
+function _irAVerNotas(pcId, cursoId, label, materia, curso) {
+    Object.assign(_vnState, { pcId, cursoId, label, materia, curso });
+    _vnStudents = null;
+
+    document.getElementById('vnTitulo').textContent  = label;
+    document.getElementById('vnMateria').textContent = materia;
+    document.getElementById('vnCurso').textContent   = curso;
+
+    document.querySelectorAll('.vn-trim-btn').forEach((b, i) => {
+        b.classList.toggle('vn-trim-btn--active', i === 0);
+    });
+    document.getElementById('vnTablas').innerHTML = '';
+
+    document.getElementById('vistaClases').style.display     = 'none';
+    document.getElementById('vistaSubirNotas').style.display = 'none';
+    document.getElementById('vistaVerNotas').style.display   = '';
+
+    _cargarVnTrimestre(1);
+}
+
+async function _cargarVnTrimestre(trimestre) {
+    const tablas  = document.getElementById('vnTablas');
+    const spinner = document.getElementById('vnSpinner');
+
+    tablas.innerHTML = '';
+    spinner.style.display = 'flex';
+
+    const [notasRes, estRes] = await Promise.all([
+        fetchAPI(`/api/academics/profesor/notas/?profesor_curso_id=${_vnState.pcId}&trimestre=${trimestre}`),
+        _vnStudents
+            ? Promise.resolve({ ok: true, data: _vnStudents })
+            : fetchAPI(`/api/students/curso/${_vnState.cursoId}/estudiantes/`),
+    ]);
+
+    spinner.style.display = 'none';
+
+    if (estRes.ok && Array.isArray(estRes.data)) _vnStudents = estRes.data;
+
+    const actividades = notasRes.data?.actividades;
+    if (!notasRes.ok || !actividades?.length) {
+        tablas.innerHTML = `<div class="vn-empty">Sin notas registradas para este trimestre.</div>`;
+        return;
+    }
+
+    tablas.innerHTML = _renderVnTablas(actividades, _vnStudents || []);
+}
+
+function _renderVnTablas(actividades, estudiantes) {
+    const mesActual = new Date().getMonth() + 1;
+    const porDim = { saber: [], hacer: [] };
+    actividades.forEach(a => { if (porDim[a.dimension]) porDim[a.dimension].push(a); });
+
+    const DIM_INFO = { saber: 'Saber', hacer: 'Hacer' };
+    let html = '';
+
+    for (const [dim, cols] of Object.entries(porDim)) {
+        if (!cols.length) continue;
+
+        const thCols = cols.map(c => {
+            const esMes = c.fecha_actividad && new Date(c.fecha_actividad).getMonth() + 1 === mesActual;
+            const fecha = c.fecha_actividad
+                ? new Date(c.fecha_actividad).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' })
+                : '—';
+            const titulo = c.titulo.replace(/^\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}\s*[-–]\s*/, '');
+            return `<th class="${esMes ? 'vn-col--mes' : ''}" title="${_escapeHtml(c.titulo)}">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                    <span>${fecha}</span>
+                    <span style="font-size:.68rem;font-weight:400;max-width:72px;overflow:hidden;text-overflow:ellipsis;opacity:.7;">${_escapeHtml(titulo.substring(0, 22))}</span>
+                </div>
+            </th>`;
+        }).join('');
+
+        const rows = estudiantes.map((est, idx) => {
+            const nro    = idx + 1;
+            const nombre = `${est.apellidos}, ${est.nombre}`;
+            const tds = cols.map(c => {
+                const esMes = c.fecha_actividad && new Date(c.fecha_actividad).getMonth() + 1 === mesActual;
+                const n = c.notas.find(x => x.estudiante_id === nro);
+                return `<td class="${esMes ? 'vn-col--mes' : ''}">${n ? n.nota : '<span style="opacity:.35">—</span>'}</td>`;
+            }).join('');
+            return `<tr><td>${nro}</td><td>${_escapeHtml(nombre)}</td>${tds}</tr>`;
+        }).join('');
+
+        html += `
+        <div class="vn-dim-section">
+            <div class="vn-dim-label">${DIM_INFO[dim]} — máx ${cols[0]?.nota_maxima ?? '—'} pts</div>
+            <div class="vn-table-wrap">
+                <table class="vn-table">
+                    <thead><tr><th>N°</th><th>Estudiante</th>${thCols}</tr></thead>
+                    <tbody>${rows || '<tr><td colspan="99" class="vn-empty">Sin estudiantes</td></tr>'}</tbody>
+                </table>
+            </div>
+        </div>`;
+    }
+
+    return html || `<div class="vn-empty">Sin datos para este trimestre.</div>`;
 }
 
 function _irASubirNotas(pcId, label, mes = '', materia = '', curso = '') {
@@ -796,7 +1020,8 @@ function _irASubirNotas(pcId, label, mes = '', materia = '', curso = '') {
 
 function _irAVistaClases() {
     document.getElementById('vistaSubirNotas').style.display = 'none';
-    document.getElementById('vistaClases').style.display = '';
+    document.getElementById('vistaVerNotas').style.display   = 'none';
+    document.getElementById('vistaClases').style.display     = '';
 }
 
 // ── Modal nueva citación: abrir / cerrar ──────────────────────────
@@ -933,6 +1158,7 @@ async function enviarCitacion() {
 
     showAppToast('success', 'Citación enviada', 'La citación fue registrada correctamente.');
     _cerrarModalNuevaCitProf();
+    cargarCitaciones();
 }
 
 // ── Plan de Trabajo ───────────────────────────────────────────────
@@ -1337,62 +1563,434 @@ function _escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// ── Historial de citaciones ───────────────────────────────────────
-const CIT_CARD_CLASS = {
-    PENDIENTE:  'cit-card--pendiente',
-    ASISTIO:    'cit-card--asistio',
-    NO_ASISTIO: 'cit-card--no_asistio',
-    ATRASO:     'cit-card--atraso',
-};
+// ── Cargar citaciones ─────────────────────────────────────────────
+async function cargarCitaciones() {
+    const spinner = document.getElementById('citSpinner');
+    const grid    = document.getElementById('citCardsGrid');
+    const empty   = document.getElementById('citEmpty');
 
-async function cargarHistorial() {
-    const lista   = document.getElementById('listaCitaciones');
-    const spinner = document.getElementById('historialSpinner');
-    const empty   = document.getElementById('historialVacio');
-
-    lista.innerHTML = '';
-    spinner.style.display = 'flex';
-    empty.style.display = 'none';
+    if (spinner) spinner.style.display = 'flex';
+    if (grid)    grid.innerHTML = '';
+    if (empty)   empty.style.display = 'none';
 
     const { ok, data } = await fetchAPI('/api/discipline/citaciones/');
 
+    if (spinner) spinner.style.display = 'none';
+
+    if (!ok) return;
+
+    _todasCitaciones = data || [];
+    _aplicarFiltroCit();
+}
+
+function _aplicarFiltroCit() {
+    const q = (document.getElementById('searchInputProf')?.value || '').toLowerCase().trim();
+
+    // 1. Filtrar por mes
+    let porMes = _todasCitaciones.filter(c => {
+        if (!c.fecha_envio) return false;
+        const d = new Date(c.fecha_envio);
+        return d.getFullYear() === _citMesObj.year && d.getMonth() === _citMesObj.month;
+    });
+
+    // 2. Actualizar stats con datos del mes (antes de filtrar por estado)
+    _actualizarStatsCit(porMes);
+
+    // 3. Filtrar por estado
+    let filtradas = _citFiltroEstado
+        ? porMes.filter(c => c.asistencia === _citFiltroEstado)
+        : porMes;
+
+    // 4. Filtrar por emisor (irrelevante para el profesor, pero consistente con UI)
+    if (_citFiltroEmisor) {
+        filtradas = filtradas.filter(c => c.emisor_tipo === _citFiltroEmisor);
+    }
+
+    // 5. Filtrar por búsqueda
+    if (q) {
+        filtradas = filtradas.filter(c =>
+            (c.estudiante_nombre || '').toLowerCase().includes(q) ||
+            (c.curso || '').toLowerCase().includes(q)
+        );
+    }
+
+    _renderCitCards(filtradas);
+}
+
+function _actualizarStatsCit(citaciones) {
+    const stats = document.getElementById('statsRowProf');
+    if (!stats) return;
+    const counts = { total: citaciones.length, PENDIENTE: 0, NO_ASISTIO: 0, ASISTIO: 0 };
+    citaciones.forEach(c => { if (counts[c.asistencia] !== undefined) counts[c.asistencia]++; });
+    stats.querySelectorAll('.cit-stat-card').forEach(card => {
+        const val = card.querySelector('.cit-stat-card__value');
+        if (!val) return;
+        const f = card.dataset.filter;
+        val.textContent = f === '' ? counts.total : (counts[f] ?? 0);
+    });
+}
+
+function _renderCitCards(filtradas) {
+    const grid    = document.getElementById('citCardsGrid');
+    const empty   = document.getElementById('citEmpty');
+    const pagin   = document.getElementById('citPagination');
+
+    if (!filtradas.length) {
+        grid.innerHTML = '';
+        if (empty)  empty.style.display = '';
+        if (pagin)  pagin.innerHTML = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    const total = filtradas.length;
+    const pages = Math.ceil(total / _CIT_PER_PAGE);
+    if (_citPage >= pages) _citPage = pages - 1;
+    const slice = filtradas.slice(_citPage * _CIT_PER_PAGE, (_citPage + 1) * _CIT_PER_PAGE);
+
+    const BADGE_CLASS = {
+        PENDIENTE:  'cit-badge-status--pendiente',
+        ASISTIO:    'cit-badge-status--asistio',
+        NO_ASISTIO: 'cit-badge-status--no_asistio',
+        ATRASO:     'cit-badge-status--atraso',
+        VENCIDA:    'cit-badge-status--vencida',
+    };
+
+    grid.innerHTML = slice.map(c => {
+        const asist    = c.asistencia || 'PENDIENTE';
+        const fechaLim = c.fecha_limite_asistencia
+            ? new Date(c.fecha_limite_asistencia + 'T00:00:00').toLocaleDateString('es-BO')
+            : '—';
+        return `
+        <article class="citacion-card" data-status="${asist}" data-id="${c.id}" style="cursor:pointer;">
+            <div class="citacion-card__header">
+                <div style="flex:1;min-width:0;">
+                    <div class="citacion-card__nombre">${_escapeHtml(c.estudiante_nombre)}</div>
+                    <div class="citacion-card__meta">
+                        <span class="cit-row__curso">${_escapeHtml(c.curso || '—')}</span>
+                        <span class="citacion-card__motivo">${_escapeHtml(MOTIVOS[c.motivo] || c.motivo)}</span>
+                    </div>
+                    ${c.materia_nombre ? `<div class="cit-emisor">
+                        <span class="cit-emisor__materia">${_escapeHtml(c.materia_nombre)}</span>
+                    </div>` : ''}
+                </div>
+                <span class="cit-badge-status ${BADGE_CLASS[asist] || ''}">
+                    <span class="cit-status-dot"></span>${_escapeHtml(ASISTENCIA_LABELS[asist] || asist)}
+                </span>
+            </div>
+            <div class="citacion-card__foot">
+                <span class="citacion-card__foot-label">Fecha límite</span>
+                <span class="citacion-card__foot-val">${fechaLim}</span>
+            </div>
+        </article>`;
+    }).join('');
+
+    grid.querySelectorAll('.citacion-card').forEach(card => {
+        card.addEventListener('click', () => _abrirModalDetalleCit(parseInt(card.dataset.id)));
+    });
+
+    // Paginación
+    if (pagin) {
+        if (pages <= 1) {
+            pagin.innerHTML = '';
+        } else {
+            const btnStyle = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-size:.85rem;padding:6px 14px;transition:background .15s,color .15s;';
+            pagin.innerHTML = `
+                <button style="${btnStyle}" onclick="_citPage=Math.max(0,_citPage-1);_aplicarFiltroCit();" ${_citPage===0?'disabled':''}>&#8249;</button>
+                <span style="font-size:.82rem;color:var(--text-muted);min-width:70px;text-align:center;">${_citPage+1} / ${pages}</span>
+                <button style="${btnStyle}" onclick="_citPage=Math.min(${pages-1},_citPage+1);_aplicarFiltroCit();" ${_citPage>=pages-1?'disabled':''}>&#8250;</button>`;
+        }
+    }
+}
+
+// ── Cargar comunicados ────────────────────────────────────────────
+async function cargarComunicados() {
+    const spinner = document.getElementById('comSpinner');
+    const list    = document.getElementById('comCardsList');
+    const empty   = document.getElementById('comEmpty');
+
+    if (spinner) spinner.style.display = 'flex';
+    if (list)    list.innerHTML = '';
+    if (empty)   empty.style.display = 'none';
+
+    const { ok, data } = await fetchAPI('/api/comunicados/');
+
+    if (spinner) spinner.style.display = 'none';
+
+    if (!ok) return;
+
+    _todosComunicados = data || [];
+    _aplicarFiltroCom();
+}
+
+function _aplicarFiltroCom() {
+    const q     = (document.getElementById('searchInputProf')?.value || '').toLowerCase().trim();
+    const list  = document.getElementById('comCardsList');
+    const empty = document.getElementById('comEmpty');
+    if (!list) return;
+
+    let filtrados = _todosComunicados.filter(c => {
+        if (!c.fecha_envio) return false;
+        const d = new Date(c.fecha_envio);
+        return d.getFullYear() === _comMesObj.year && d.getMonth() === _comMesObj.month;
+    });
+
+    if (_comFiltroEmisor) {
+        filtrados = filtrados.filter(c => c.emisor_tipo === _comFiltroEmisor);
+    }
+
+    if (q) {
+        filtrados = filtrados.filter(c =>
+            (c.titulo || '').toLowerCase().includes(q) ||
+            (c.emisor_nombre || '').toLowerCase().includes(q)
+        );
+    }
+
+    if (!filtrados.length) {
+        list.innerHTML = '';
+        if (empty) empty.style.display = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    list.innerHTML = filtrados.map(_renderComCard).join('');
+}
+
+function _renderComCard(c) {
+    const fecha = c.fecha_envio
+        ? new Date(c.fecha_envio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—';
+    const alcanceClass = c.alcance === 'TODOS' ? 'com-chip--destino' : 'com-chip--alcance';
+    const autor = `
+        <div class="com-card__bottom">
+            <div class="com-card__autor">
+                <span class="com-card__autor-icon">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <span class="com-card__autor-nombre">${_escapeHtml(c.emisor_nombre || '—')} · ${_escapeHtml(c.emisor_tipo || '')}</span>
+            </div>
+        </div>`;
+    return `
+    <article class="com-card">
+        <div class="com-card__head">
+            <div class="com-card__meta">
+                <div class="com-card__chips">
+                    <span class="com-chip ${alcanceClass}">${_escapeHtml(c.alcance_display || c.alcance)}</span>
+                    ${c.curso_nombre ? `<span class="com-chip com-chip--alcance">${_escapeHtml(c.curso_nombre)}</span>` : ''}
+                </div>
+                <span class="com-card__fecha">${fecha}</span>
+            </div>
+            <h3 class="com-card__titulo">${_escapeHtml(c.titulo)}</h3>
+        </div>
+        <div class="com-card__body">
+            <p class="com-card__contenido">${_escapeHtml((c.contenido || '').substring(0, 200))}${(c.contenido || '').length > 200 ? '…' : ''}</p>
+        </div>
+        ${autor}
+    </article>`;
+}
+
+// ── Modal: Detalle citación ───────────────────────────────────────
+function _initDetalleCitModals() {
+    document.getElementById('btnCerrarDetalleCitProf').addEventListener('click', _cerrarModalDetalleCit);
+    document.getElementById('btnCerrarDetalleCitBtn').addEventListener('click', _cerrarModalDetalleCit);
+    document.getElementById('modalDetalleCitProf').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalDetalleCit();
+    });
+    document.getElementById('btnCerrarMarcarCitProf').addEventListener('click', _cerrarModalMarcarCit);
+    document.getElementById('btnCancelarMarcarCitProf').addEventListener('click', _cerrarModalMarcarCit);
+    document.getElementById('btnConfirmarMarcarCitProf').addEventListener('click', _confirmarMarcarCit);
+    document.getElementById('modalMarcarCitProf').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalMarcarCit();
+    });
+}
+
+async function _abrirModalDetalleCit(id) {
+    const modal   = document.getElementById('modalDetalleCitProf');
+    const spinner = document.getElementById('detalleCitSpinner');
+    const body    = document.getElementById('detalleCitBody');
+
+    body.style.display   = 'none';
+    spinner.style.display = 'flex';
+    modal.classList.add('visible');
+
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${id}/`);
     spinner.style.display = 'none';
 
-    if (!ok || !data.length) {
-        empty.style.display = 'block';
+    if (!ok) {
+        modal.classList.remove('visible');
+        showAppToast('error', 'Error', data?.errores || 'No se pudo cargar el detalle.');
         return;
     }
 
-    data.forEach(c => {
-        const asistBadge = ASISTENCIA_BADGES[c.asistencia] || 'badge--neutral';
-        const asistLabel = ASISTENCIA_LABELS[c.asistencia] || c.asistencia;
-        const cardClass  = CIT_CARD_CLASS[c.asistencia] || '';
-        const fechaEnvio = new Date(c.fecha_envio).toLocaleDateString('es-BO');
-        const fechaLim   = c.fecha_limite_asistencia
-            ? new Date(c.fecha_limite_asistencia + 'T00:00:00').toLocaleDateString('es-BO')
-            : '—';
+    // Rellenar contenido
+    const asist     = data.asistencia || 'PENDIENTE';
+    const heroEl    = document.getElementById('detalleCitHero');
+    const HERO_CLS  = { PENDIENTE: 'modal-det__hero--PENDIENTE', ASISTIO: 'modal-det__hero--ASISTIO', NO_ASISTIO: 'modal-det__hero--NO_ASISTIO', ATRASO: 'modal-det__hero--ATRASO' };
+    heroEl.className = `modal-det__hero ${HERO_CLS[asist] || ''}`;
 
-        const div = document.createElement('div');
-        div.className = `cit-card ${cardClass}`;
-        div.innerHTML = `
-            <div class="cit-card__info">
-                <span class="cit-card__estudiante">${_escapeHtml(c.estudiante_nombre)}</span>
-                <div class="cit-card__meta">
-                    <span>${_escapeHtml(c.curso)}</span>
-                    <span>·</span>
-                    <span>${MOTIVOS[c.motivo] || c.motivo}</span>
-                    <span>·</span>
-                    <span>Límite: ${fechaLim}</span>
-                    <span>·</span>
-                    <span>Enviada: ${fechaEnvio}</span>
-                </div>
-            </div>
-            <div class="cit-card__badge">
-                <span class="badge ${asistBadge}">${asistLabel}</span>
-            </div>
-        `;
-        lista.appendChild(div);
+    document.getElementById('detalleCitNombre').textContent = data.estudiante_nombre || '—';
+    document.getElementById('detalleCitCurso').textContent  = data.curso || '—';
+
+    const BADGE_CLS = { PENDIENTE: 'estado-badge--pendiente', ASISTIO: 'estado-badge--asistio', NO_ASISTIO: 'estado-badge--no_asistio', ATRASO: 'estado-badge--atraso' };
+    document.getElementById('detalleCitBadge').innerHTML =
+        `<span class="estado-badge ${BADGE_CLS[asist] || ''}">${_escapeHtml(ASISTENCIA_LABELS[asist] || asist)}</span>`;
+
+    document.getElementById('detalleCitMotivo').textContent  = MOTIVOS[data.motivo] || data.motivo || '—';
+    document.getElementById('detalleCitTutor').textContent   = data.tutor_nombre || 'Sin tutor';
+    document.getElementById('detalleCitEmisor').textContent  = `${data.emitido_por_nombre || '—'} (${data.emitido_por_cargo || '—'})`;
+
+    const fmtFecha = s => s ? new Date(s).toLocaleDateString('es-BO') : '—';
+    const fmtDate  = s => s ? new Date(s + 'T00:00:00').toLocaleDateString('es-BO') : '—';
+    document.getElementById('detalleCitFechaEnvio').textContent = fmtFecha(data.fecha_envio);
+    document.getElementById('detalleCitFechaLim').textContent   = fmtDate(data.fecha_limite_asistencia);
+    document.getElementById('detalleCitFechaAsist').textContent = fmtDate(data.fecha_asistencia);
+
+    const descWrap = document.getElementById('detalleCitDescWrap');
+    if (data.motivo_descripcion) {
+        document.getElementById('detalleCitDesc').textContent = data.motivo_descripcion;
+        descWrap.style.display = '';
+    } else {
+        descWrap.style.display = 'none';
+    }
+
+    // Botón marcar asistencia: solo si el usuario actual es el emisor y no está marcada
+    const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const puedeMarcar = currentUser && data.emisor_id === currentUser.id && !['ASISTIO', 'ATRASO'].includes(asist);
+    const btnMarcar   = document.getElementById('btnIrAMarcarCit');
+    btnMarcar.style.display = puedeMarcar ? '' : 'none';
+    if (puedeMarcar) {
+        btnMarcar.onclick = () => {
+            _cerrarModalDetalleCit();
+            _abrirModalMarcarCit(data.id, data.estudiante_nombre);
+        };
+    }
+
+    body.style.display = '';
+}
+
+function _cerrarModalDetalleCit() {
+    document.getElementById('modalDetalleCitProf').classList.remove('visible');
+}
+
+function _abrirModalMarcarCit(id, nombre) {
+    _marcarCitId = id;
+    document.getElementById('marcarCitNombre').textContent  = nombre || '—';
+    document.getElementById('marcarCitError').style.display = 'none';
+    document.getElementById('modalMarcarCitProf').classList.add('visible');
+}
+
+function _cerrarModalMarcarCit() {
+    document.getElementById('modalMarcarCitProf').classList.remove('visible');
+    _marcarCitId = null;
+}
+
+async function _confirmarMarcarCit() {
+    if (!_marcarCitId) return;
+    const btn = document.getElementById('btnConfirmarMarcarCitProf');
+    const err = document.getElementById('marcarCitError');
+
+    const btnHtml = btn.innerHTML;
+    btn.disabled    = true;
+    btn.textContent = 'Confirmando…';
+    err.style.display = 'none';
+
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_marcarCitId}/`, { method: 'PATCH' });
+
+    btn.disabled  = false;
+    btn.innerHTML = btnHtml;
+
+    if (!ok) {
+        err.textContent   = data?.errores || 'Error al registrar asistencia.';
+        err.style.display = '';
+        return;
+    }
+
+    _cerrarModalMarcarCit();
+    showAppToast('success', 'Asistencia registrada', `Estado: ${ASISTENCIA_LABELS[data.asistencia] || data.asistencia}.`);
+    cargarCitaciones();  // Refrescar lista
+}
+
+// ── Modal: Nuevo Comunicado (Profesor) ───────────────────────────
+function _initComunicadoForm() {
+    const modal = document.getElementById('modalNuevoComunicadoProf');
+    if (!modal) return;
+
+    document.getElementById('comProfAlcance').addEventListener('change', function () {
+        document.getElementById('comProfCursoWrap').style.display = this.value === 'CURSO' ? '' : 'none';
     });
+
+    document.getElementById('btnCerrarModalComProf').addEventListener('click', _cerrarModalNuevoComunicadoProf);
+    document.getElementById('btnCancelarComProf').addEventListener('click', _cerrarModalNuevoComunicadoProf);
+    modal.addEventListener('click', e => { if (e.target === e.currentTarget) _cerrarModalNuevoComunicadoProf(); });
+
+    document.getElementById('formComunicadoProf').addEventListener('submit', async e => {
+        e.preventDefault();
+        await _enviarComunicadoProf();
+    });
+}
+
+function _abrirModalNuevoComunicadoProf() {
+    const sel = document.getElementById('comProfCurso');
+    sel.innerHTML = '<option value="">— Selecciona un curso —</option>';
+    _cursos.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.grado} "${c.paralelo}"`;
+        sel.appendChild(opt);
+    });
+    document.getElementById('formComunicadoProf').reset();
+    document.getElementById('comProfCursoWrap').style.display = 'none';
+    document.getElementById('comProfError').style.display     = 'none';
+    document.getElementById('modalNuevoComunicadoProf').classList.add('visible');
+}
+
+function _cerrarModalNuevoComunicadoProf() {
+    document.getElementById('modalNuevoComunicadoProf').classList.remove('visible');
+}
+
+async function _enviarComunicadoProf() {
+    const titulo    = document.getElementById('comProfTitulo').value.trim();
+    const contenido = document.getElementById('comProfContenido').value.trim();
+    const alcance   = document.getElementById('comProfAlcance').value;
+    const cursoId   = document.getElementById('comProfCurso').value;
+    const btn       = document.getElementById('btnEnviarComProf');
+    const errEl     = document.getElementById('comProfError');
+
+    errEl.style.display = 'none';
+    if (!titulo || !contenido) {
+        errEl.textContent = 'Completa todos los campos obligatorios.';
+        errEl.style.display = '';
+        return;
+    }
+    if (alcance === 'CURSO' && !cursoId) {
+        errEl.textContent = 'Selecciona un curso específico.';
+        errEl.style.display = '';
+        return;
+    }
+
+    const payload = { titulo, contenido, alcance };
+    if (alcance === 'CURSO') payload.curso = parseInt(cursoId);
+
+    const btnHtml = btn.innerHTML;
+    btn.disabled    = true;
+    btn.textContent = 'Enviando…';
+
+    const { ok, data } = await fetchAPI('/api/comunicados/crear/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+
+    btn.disabled  = false;
+    btn.innerHTML = btnHtml;
+
+    if (!ok) {
+        errEl.textContent   = data?.errores || data?.titulo?.[0] || data?.contenido?.[0] || 'Error al enviar el comunicado.';
+        errEl.style.display = '';
+        return;
+    }
+
+    showAppToast('success', 'Comunicado enviado', 'El anuncio fue registrado y enviado correctamente.');
+    _cerrarModalNuevoComunicadoProf();
+    cargarComunicados();
 }
 
 // ── Checklist de contraseña en tiempo real ────────────────────────

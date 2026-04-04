@@ -12,27 +12,26 @@ class MiEstudianteView(APIView):
     """
     GET /api/students/me/student/
 
-    Devuelve el estudiante vinculado al tutor autenticado.
-    Si el tutor tiene varios estudiantes vinculados, prioriza
-    uno activo y, en empate, el de menor id.
+    Devuelve todos los estudiantes vinculados al tutor autenticado,
+    ordenados por activo primero y luego por id.
+    La app móvil usa esta lista para el selector de hijo activo.
     """
 
     permission_classes = (IsAuthenticated, IsTutor)
 
     def get(self, request):
-        estudiante = (
+        estudiantes = (
             Estudiante.objects
             .select_related("curso")
             .filter(tutor=request.user)
             .order_by("-activo", "id")
-            .first()
         )
 
-        if estudiante is None:
+        if not estudiantes.exists():
             return Response(
                 {"errores": "No existe un estudiante vinculado a este tutor."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = EstudianteTutorPerfilSerializer(estudiante)
+        serializer = EstudianteTutorPerfilSerializer(estudiantes, many=True)
         return Response(serializer.data)

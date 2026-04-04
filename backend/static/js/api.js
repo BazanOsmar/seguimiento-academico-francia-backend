@@ -47,13 +47,13 @@ const _TOAST_TITLES = {
 };
 
 /* ----------------------------------------------------------------
-   showToast(message, type, onAccept)
-   Muestra una ventana flotante informativa.
+   _apiToast(message, type, onAccept)
+   Modal de error/aviso usado internamente por fetchAPI.
+   No debe llamarse desde fuera de este archivo — usar showAppToast.
    type: 'error' | 'warning' | 'info' | 'success'
    onAccept: callback opcional al presionar Aceptar
 ----------------------------------------------------------------- */
-function showToast(message, type = 'error', onAccept = null) {
-    // Eliminar toast anterior si existe
+function _apiToast(message, type = 'error', onAccept = null) {
     const prev = document.getElementById('_appToast');
     if (prev) prev.remove();
 
@@ -130,7 +130,9 @@ async function _renovarToken() {
 async function fetchAPI(url, options = {}) {
     const token = localStorage.getItem('access_token');
 
-    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    const headers = options.body instanceof FormData
+        ? { ...options.headers }
+        : { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
@@ -158,7 +160,7 @@ async function fetchAPI(url, options = {}) {
                 if (reintento.ok) return { ok: true, status: reintento.status, data: dataReintento };
             }
             // Renovación fallida → logout
-            showToast(
+            _apiToast(
                 'Tu sesión ha expirado. Serás redirigido al inicio de sesión.',
                 'error',
                 () => _logout()
@@ -167,13 +169,13 @@ async function fetchAPI(url, options = {}) {
         }
 
         if (res.status === 403) {
-            showToast('No tienes permisos para realizar esta acción.', 'warning');
+            _apiToast('No tienes permisos para realizar esta acción.', 'warning');
             return { ok: false, status: 403, data };
         }
 
         if (res.status === 404) {
             const msg = data?.errores || data?.detail || 'El recurso solicitado no fue encontrado.';
-            showToast(msg, 'info');
+            _apiToast(msg, 'info');
             return { ok: false, status: 404, data };
         }
 
@@ -181,12 +183,12 @@ async function fetchAPI(url, options = {}) {
             const msg = data?.errores || data?.detail
                 || Object.values(data || {}).flat().join(' ')
                 || 'Los datos enviados no son válidos.';
-            showToast(msg, 'warning');
+            _apiToast(msg, 'warning');
             return { ok: false, status: 400, data };
         }
 
         if (res.status >= 500) {
-            showToast('Error interno del servidor. Por favor intenta nuevamente.', 'error');
+            _apiToast('Error interno del servidor. Por favor intenta nuevamente.', 'error');
             return { ok: false, status: res.status, data };
         }
 
@@ -194,7 +196,7 @@ async function fetchAPI(url, options = {}) {
         return { ok: true, status: res.status, data };
 
     } catch (_err) {
-        showToast('No se pudo conectar con el servidor. Verifica tu conexión a internet.', 'error');
+        _apiToast('No se pudo conectar con el servidor. Verifica tu conexión a internet.', 'error');
         return { ok: false, status: 0, data: null };
     }
 }

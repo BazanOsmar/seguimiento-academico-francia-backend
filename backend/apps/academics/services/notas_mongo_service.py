@@ -37,26 +37,40 @@ from datetime import datetime, timezone
 from django.conf import settings
 from pymongo import MongoClient, ASCENDING
 
-_client = None
-_db     = None
+_client          = None
+_db              = None
+_indexes_ensured = False
 
 def _get_db():
     global _client, _db
     if _db is None:
-        _client = MongoClient(settings.MONGO_URI, serverSelectionTimeoutMS=5000)
+        _client = MongoClient(
+            settings.MONGO_URI,
+            serverSelectionTimeoutMS=2000,
+            connectTimeoutMS=2000,
+            socketTimeoutMS=4000,
+        )
         _db = _client[settings.MONGO_DB_NAME]
-        _ensure_indexes(_db)
     return _db
 
-def _ensure_indexes(db):
-    col = db['detalle_notas']
-    col.create_index([
-        ('estudiante_id', ASCENDING),
-        ('materia_id',    ASCENDING),
-        ('trimestre',     ASCENDING),
-        ('dimension',     ASCENDING),
-        ('columna_idx',   ASCENDING),
-    ], unique=True, name='upsert_key')
+def ensure_indexes():
+    """Crea los índices necesarios. Llamar una sola vez al arrancar el servidor."""
+    global _indexes_ensured
+    if _indexes_ensured:
+        return
+    try:
+        db  = _get_db()
+        col = db['detalle_notas']
+        col.create_index([
+            ('estudiante_id', ASCENDING),
+            ('materia_id',    ASCENDING),
+            ('trimestre',     ASCENDING),
+            ('dimension',     ASCENDING),
+            ('columna_idx',   ASCENDING),
+        ], unique=True, name='upsert_key')
+        _indexes_ensured = True
+    except Exception:
+        pass  # Si Atlas no está disponible, se reintentará en el próximo arranque
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -163,10 +177,11 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
     return {'insertados': insertados, 'actualizados': actualizados, 'errores': errores}
 
 
-def asignaciones_con_notas(pares):
+def asignaciones_con_notas(pares, mes=None):
     """
     Dado una lista de (materia_id, curso_id), retorna el set de pares que
-    tienen al menos un documento de notas en MongoDB (cualquier trimestre).
+    tienen al menos un documento de notas en MongoDB.
+    Si se pasa mes (1-12), filtra solo documentos de ese mes.
     Devuelve set vacío si hay error de conexión.
     """
     if not pares:
@@ -174,8 +189,11 @@ def asignaciones_con_notas(pares):
     try:
         db  = _get_db()
         col = db['detalle_notas']
+        match = {'$or': [{'materia_id': m, 'curso_id': c} for m, c in pares]}
+        if mes is not None:
+            match['mes'] = mes
         pipeline = [
-            {'$match': {'$or': [{'materia_id': m, 'curso_id': c} for m, c in pares]}},
+            {'$match': match},
             {'$group': {'_id': {'materia_id': '$materia_id', 'curso_id': '$curso_id'}}},
         ]
         return {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}

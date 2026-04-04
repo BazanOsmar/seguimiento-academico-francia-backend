@@ -42,18 +42,21 @@ class ComunicadoListView(APIView):
     def _comunicados_para_tutor(self, tutor):
         from backend.apps.students.models import Estudiante
 
-        estudiante = Estudiante.objects.filter(
+        estudiantes = Estudiante.objects.filter(
             tutor=tutor, activo=True
-        ).select_related('curso').first()
+        ).select_related('curso')
 
-        if not estudiante:
+        if not estudiantes.exists():
             return Comunicado.objects.filter(
                 alcance=Comunicado.ALCANCE_TODOS
             ).select_related('emisor', 'curso')
 
+        cursos = [e.curso for e in estudiantes]
+        grados = list({e.curso.grado for e in estudiantes})
+
         return Comunicado.objects.filter(
             Q(alcance=Comunicado.ALCANCE_TODOS) |
-            Q(alcance=Comunicado.ALCANCE_CURSO, curso=estudiante.curso) |
-            Q(alcance=Comunicado.ALCANCE_GRADO, grado=estudiante.curso.grado) |
-            Q(alcance=Comunicado.ALCANCE_MIS_CURSOS, emisor__profesorcurso__curso=estudiante.curso)
+            Q(alcance=Comunicado.ALCANCE_CURSO,      curso__in=cursos) |
+            Q(alcance=Comunicado.ALCANCE_GRADO,      grado__in=grados) |
+            Q(alcance=Comunicado.ALCANCE_MIS_CURSOS, emisor__profesorcurso__curso__in=cursos)
         ).distinct().select_related('emisor', 'curso')

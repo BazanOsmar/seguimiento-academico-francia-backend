@@ -454,3 +454,7 @@ def director_mi_perfil_view(request):
 def profesor_view(request):
     return render(request, 'profesor/dashboard.html')
 
+
+def director_comparar_nombres_view(request):
+    return render(request, 'director/comparar_nombres.html')
+

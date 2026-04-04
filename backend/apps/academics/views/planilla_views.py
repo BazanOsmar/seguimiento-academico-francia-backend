@@ -74,6 +74,12 @@ class ValidarPlanillaView(APIView):
                         mongo_result['actualizados'] += r['actualizados']
                         mongo_result['errores']      += r['errores']
                     resultado['mongo'] = mongo_result
+
+                    nombres_excel = resultado['metadatos'].get('estudiantes', [])
+                    curso_nombre  = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
+                    val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
+                    val_est['curso_verificado'] = curso_nombre
+                    resultado['estudiantes'] = val_est
         else:
             resultado = validar_estructura(wb)
             if resultado['es_valido']:

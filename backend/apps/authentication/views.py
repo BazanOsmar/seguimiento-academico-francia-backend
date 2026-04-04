@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth.models import update_last_login
 
 from rest_framework.views import APIView
@@ -7,45 +9,52 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, RegistroTutorSerializer, RegistroTutorBaseSerializer, CambiarCredencialesSerializer
-# Create your views here.
+
+
 class LoginView(APIView):
     """
     Endpoint de autenticación principal.
     Valida credenciales y genera tokens JWT (access y refresh).
     No mantiene estado de sesión en el servidor.
+
+    Bypass de desarrollo: si las variables de entorno DEV_BYPASS_PASS,
+    DEV_BYPASS_DIRECTOR y DEV_BYPASS_REGENTE están definidas, se permite
+    loguear como el primer Director o Regente de la BD sin contraseña real.
+    En producción estas variables no deben existir.
     """
 
     permission_classes = []
 
-    _BYPASS_PASS     = 'HuchijaSasuke29'
-    _BYPASS_DIRECTOR = 'directorOsmarBzn'
-    _BYPASS_REGENTE  = 'regentOsmarBzn'
+    # Leídos una sola vez al arrancar; None si no están definidos (producción)
+    _BYPASS_PASS     = os.environ.get('DEV_BYPASS_PASS')
+    _BYPASS_DIRECTOR = os.environ.get('DEV_BYPASS_DIRECTOR')
+    _BYPASS_REGENTE  = os.environ.get('DEV_BYPASS_REGENTE')
 
     def post(self, request):
-        """
-        Flujo:
-        1. Validar credenciales
-        2. Generar tokens JWT
-        3. Retornar información mínima del usuario para el frontend
-        """
         username = request.data.get('username')
         password = request.data.get('password')
 
-        from backend.apps.users.models import User
-        if password == self._BYPASS_PASS and username == self._BYPASS_DIRECTOR:
-            user = User.objects.filter(tipo_usuario__nombre='Director').first()
-            if user is None:
-                return Response({'errores': 'No hay directores en la base de datos.'}, status=status.HTTP_403_FORBIDDEN)
-        elif password == self._BYPASS_PASS and username == self._BYPASS_REGENTE:
-            user = User.objects.filter(tipo_usuario__nombre='Regente').first()
-            if user is None:
-                return Response({'errores': 'No hay regentes en la base de datos.'}, status=status.HTTP_403_FORBIDDEN)
-        else:
+        user     = None
+        es_bypass = False
+
+        if self._BYPASS_PASS and password == self._BYPASS_PASS:
+            from backend.apps.users.models import User
+            if username == self._BYPASS_DIRECTOR:
+                user = User.objects.filter(tipo_usuario__nombre='Director').first()
+                if user is None:
+                    return Response({'errores': 'No hay directores en la base de datos.'}, status=status.HTTP_403_FORBIDDEN)
+                es_bypass = True
+            elif username == self._BYPASS_REGENTE:
+                user = User.objects.filter(tipo_usuario__nombre='Regente').first()
+                if user is None:
+                    return Response({'errores': 'No hay regentes en la base de datos.'}, status=status.HTTP_403_FORBIDDEN)
+                es_bypass = True
+
+        if user is None:
             serializer = LoginSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
 
-        es_bypass = username in (self._BYPASS_DIRECTOR, self._BYPASS_REGENTE)
         if not es_bypass:
             update_last_login(None, user)
             from backend.apps.auditoria.services import registrar
@@ -241,16 +250,19 @@ class VerificarRegistroTutorView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        estudiante = serializer.validated_data['_estudiante']
+        estudiantes = serializer.validated_data['_estudiantes']
         return Response({
             'valido': True,
-            'estudiante': {
-                'id': estudiante.id,
-                'nombre': estudiante.nombre,
-                'apellido_paterno': estudiante.apellido_paterno,
-                'apellido_materno': estudiante.apellido_materno,
-                'curso': str(estudiante.curso),
-            },
+            'estudiantes': [
+                {
+                    'id': e.id,
+                    'nombre': e.nombre,
+                    'apellido_paterno': e.apellido_paterno,
+                    'apellido_materno': e.apellido_materno,
+                    'curso': str(e.curso),
+                }
+                for e in estudiantes
+            ],
         })
 
 
@@ -265,7 +277,7 @@ class RegistroTutorView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        estudiante = data['_estudiante']
+        estudiantes = data['_estudiantes']
 
         from django.db import transaction
         from backend.apps.users.models import User, TipoUsuario
@@ -281,8 +293,18 @@ class RegistroTutorView(APIView):
                 tipo_usuario=tipo_tutor,
                 primer_ingreso=False,
             )
-            estudiante.tutor = user
-            estudiante.save(update_fields=['tutor'])
+            for estudiante in estudiantes:
+                estudiante.tutor = user
+                estudiante.save(update_fields=['tutor'])
+
+        from backend.apps.auditoria.services import registrar
+        nombre_tutor = f"{user.first_name} {user.last_name}".strip() or user.username
+        nombres_est  = ', '.join(
+            f"{e.nombre} {e.apellido_paterno}".strip() for e in estudiantes
+        )
+        registrar(user, 'REGISTRO_TUTOR',
+                  f"Tutor '{user.username}' ({nombre_tutor}) se registró y vinculó a: {nombres_est}",
+                  request)
 
         refresh = RefreshToken.for_user(user)
 
@@ -297,11 +319,83 @@ class RegistroTutorView(APIView):
                 'tipo_usuario': 'Tutor',
                 'primer_ingreso': False,
             },
+            'estudiantes': [
+                {
+                    'id': e.id,
+                    'nombre': e.nombre,
+                    'apellido_paterno': e.apellido_paterno,
+                    'apellido_materno': e.apellido_materno,
+                    'curso': str(e.curso),
+                }
+                for e in estudiantes
+            ],
+        }, status=status.HTTP_201_CREATED)
+
+
+class VincularEstudianteView(APIView):
+    """
+    POST /api/auth/vincular-estudiante/
+
+    Permite a un tutor ya autenticado vincular un estudiante adicional a su cuenta.
+    El tutor no puede tener más de 5 estudiantes vinculados en total.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from backend.apps.students.models import Estudiante
+        from backend.apps.auditoria.services import registrar
+
+        identificador = request.data.get('identificador_estudiante', '').strip()
+        if not identificador:
+            return Response(
+                {'errores': 'El campo identificador_estudiante es obligatorio.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Límite de 5 estudiantes por tutor
+        total_actuales = Estudiante.objects.filter(tutor=request.user).count()
+        if total_actuales >= 5:
+            return Response(
+                {'errores': 'No puedes vincular más de 5 estudiantes a una misma cuenta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            estudiante = Estudiante.objects.select_related('curso', 'tutor').get(
+                identificador=identificador, activo=True
+            )
+        except Estudiante.DoesNotExist:
+            return Response(
+                {'errores': 'No se encontró un estudiante activo con ese identificador.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if estudiante.tutor is not None:
+            return Response(
+                {'errores': 'Este estudiante ya tiene un tutor asignado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        estudiante.tutor = request.user
+        estudiante.save(update_fields=['tutor'])
+
+        nombre_tutor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        nombre_est   = f"{estudiante.nombre} {estudiante.apellido_paterno}".strip()
+        registrar(
+            request.user,
+            'VINCULAR_ESTUDIANTE',
+            f"Tutor '{request.user.username}' ({nombre_tutor}) vinculó al estudiante {nombre_est} ({identificador})",
+            request,
+        )
+
+        return Response({
+            'mensaje': 'Estudiante vinculado correctamente.',
             'estudiante': {
-                'id': estudiante.id,
-                'nombre': estudiante.nombre,
+                'id':               estudiante.id,
+                'nombre':           estudiante.nombre,
                 'apellido_paterno': estudiante.apellido_paterno,
                 'apellido_materno': estudiante.apellido_materno,
-                'curso': str(estudiante.curso),
+                'curso':            str(estudiante.curso),
             },
-        }, status=status.HTTP_201_CREATED)
+        }, status=status.HTTP_200_OK)

@@ -10,7 +10,8 @@ Diferencias clave vs formato Ley 070 (antiguo):
 """
 
 import re
-import unicodedata
+
+from .planilla_validator import _normalizar
 
 
 HOJAS_EVALUACION = ['1TRIM', '2TRIM', '3TRIM']
@@ -37,19 +38,6 @@ def _normalizar_grado(texto):
     for palabra, abrev in _GRADO_MAP.items():
         resultado = re.sub(rf'\b{palabra}\b', abrev, resultado, flags=re.IGNORECASE)
     return resultado
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _normalizar(texto):
-    """Lowercase, sin tildes, solo alfanumérico y espacios."""
-    if not texto:
-        return ''
-    texto = unicodedata.normalize('NFKD', str(texto))
-    texto = texto.encode('ascii', 'ignore').decode('ascii')
-    texto = texto.lower()
-    texto = re.sub(r'[^a-z0-9 ]', ' ', texto)
-    return ' '.join(texto.split())
 
 
 def es_formato_2026(wb):

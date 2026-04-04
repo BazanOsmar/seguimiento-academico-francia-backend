@@ -607,7 +607,13 @@ async function _cargarEstudiantesIndividual(cursoId) {
     }
     _estudiantesIndividualData = data;
     selectEstud.innerHTML = '<option value="">— Selecciona estudiante —</option>'
-        + data.map(e => `<option value="${e.id}">${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()} ${e.nombre}</option>`).join('');
+        + data.map(e => {
+            const nombre = `${e.apellidos || (e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}`;
+            if (e.tiene_tutor) {
+                return `<option value="${e.id}">${nombre}</option>`;
+            }
+            return `<option value="${e.id}" disabled style="color:#888">${nombre} — sin tutor</option>`;
+        }).join('');
     selectEstud.disabled         = false;
     wrapEstudiante.style.opacity = '1';
 }

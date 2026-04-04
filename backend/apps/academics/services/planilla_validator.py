@@ -336,9 +336,10 @@ def validar_estudiantes(nombres_excel, curso_id):
             'activo':   e['activo'],
         })
 
-    activos        = 0
-    inactivos      = 0
-    no_encontrados = []
+    activos           = 0
+    inactivos         = 0
+    no_encontrados    = []
+    lista_estudiantes = []
 
     for nombre_excel in nombres_excel:
         palabras_exc = _palabras(nombre_excel)
@@ -348,10 +349,13 @@ def validar_estudiantes(nombres_excel, curso_id):
         )
         if match is None:
             no_encontrados.append(nombre_excel)
+            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': False, 'activo': None})
         elif match['activo']:
             activos += 1
+            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': True, 'activo': True})
         else:
             inactivos += 1
+            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': True, 'activo': False})
 
     debug_bd = [
         f"{e['apellido_paterno']} {e['apellido_materno']} {e['nombre']}"
@@ -359,12 +363,13 @@ def validar_estudiantes(nombres_excel, curso_id):
     ]
 
     return {
-        'es_valido':      len(no_encontrados) == 0,
-        'no_encontrados': no_encontrados,
-        'activos':        activos,
-        'inactivos':      inactivos,
-        'total_excel':    len(nombres_excel),
-        'total_bd':       len(db_entries),
+        'es_valido':          len(no_encontrados) == 0,
+        'no_encontrados':     no_encontrados,
+        'lista_estudiantes':  lista_estudiantes,
+        'activos':            activos,
+        'inactivos':          inactivos,
+        'total_excel':        len(nombres_excel),
+        'total_bd':           len(db_entries),
         '_debug_nombres_excel': nombres_excel[:5],
         '_debug_nombres_bd':    debug_bd,
         '_debug_curso_id':      curso_id,

@@ -9,6 +9,7 @@ from .views import (
     DirectorPlanesView, DirectorPlanesExportarView,
     ValidarPlanillaView,
     NotasMongoView,
+    ComparadorNombresView,
 )
 
 urlpatterns = [
@@ -27,4 +28,5 @@ urlpatterns = [
     path("asignaciones/<int:asignacion_id>/", AsignacionDetailView.as_view(),       name="asignacion-detail"),
     path("director/planes/",                  DirectorPlanesView.as_view(),         name="director-planes"),
     path("director/planes/exportar/",         DirectorPlanesExportarView.as_view(), name="director-planes-exportar"),
+    path("director/comparar-nombres/",        ComparadorNombresView.as_view(),      name="director-comparar-nombres"),
 ]

@@ -1716,6 +1716,41 @@
         .cn-meta-row:last-child { border-bottom: none; }
         .cn-meta-row__label { color: var(--text-muted); min-width: 120px; flex-shrink: 0; }
         .cn-meta-row__val { color: var(--text-secondary); font-weight: 600; }
+
+        /* ── Vista Notas (solo lectura) ──────────────────────────── */
+        .vn-trim-nav { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .vn-trim-btn {
+            padding: 7px 18px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg-card);
+            color: var(--text-secondary); font-size: .8rem; font-weight: 600;
+            cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+        }
+        .vn-trim-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .vn-trim-btn--active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .vn-dim-section { margin-bottom: 28px; }
+        .vn-dim-label {
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; color: var(--text-muted); margin-bottom: 10px;
+        }
+        .vn-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+        .vn-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+        .vn-table th, .vn-table td {
+            padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+        }
+        .vn-table tr:last-child td { border-bottom: none; }
+        .vn-table thead th {
+            background: var(--bg-hover); color: var(--text-muted);
+            font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+        }
+        .vn-table td:first-child, .vn-table th:first-child {
+            width: 36px; text-align: center; color: var(--text-muted); font-size: .75rem;
+        }
+        .vn-table td:nth-child(2) { min-width: 170px; font-weight: 600; color: var(--text); }
+        .vn-table tbody tr:hover td { background: var(--bg-hover); }
+        .vn-table th.vn-col--mes { background: rgba(99,102,241,.18); color: var(--accent); }
+        .vn-table td.vn-col--mes { background: rgba(99,102,241,.07); }
+        .vn-table tbody tr:hover td.vn-col--mes { background: rgba(99,102,241,.14); }
+        .vn-empty { padding: 36px; text-align: center; color: var(--text-muted); font-size: .85rem; }
         /* Error list */
         .cn-error-list {
             margin: 0; padding: 16px 20px; list-style: none;
@@ -2003,6 +2038,48 @@
                 </div><!-- /cn-layout -->
             </div>
 
+            <!-- ══ Vista Notas (solo lectura) ════════════════════════ -->
+            <div id="vistaVerNotas" class="page-inner" style="display:none;">
+
+                <div class="cn-header">
+                    <button class="btn-back-notas" id="btnVolverDesdeVer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        Volver a los cursos
+                    </button>
+                    <div class="cn-header-copy">
+                        <span class="cn-eyebrow">Planilla registrada</span>
+                        <div class="cn-page-title">
+                            <h2 id="vnTitulo">Notas</h2>
+                        </div>
+                        <p class="cn-page-subtitle">Vista de solo lectura. Las columnas <span style="color:var(--accent);font-weight:700;">resaltadas</span> corresponden al mes actual.</p>
+                        <div class="cn-header-meta" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+                            <div class="cn-header-meta-item">
+                                <span class="cn-header-meta-label">Materia</span>
+                                <span class="cn-header-meta-value" id="vnMateria">—</span>
+                            </div>
+                            <div class="cn-header-meta-item">
+                                <span class="cn-header-meta-label">Curso</span>
+                                <span class="cn-header-meta-value" id="vnCurso">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vn-trim-nav" id="vnTrimNav">
+                    <button class="vn-trim-btn vn-trim-btn--active" data-trim="1">1er Trimestre</button>
+                    <button class="vn-trim-btn" data-trim="2">2do Trimestre</button>
+                    <button class="vn-trim-btn" data-trim="3">3er Trimestre</button>
+                </div>
+
+                <div id="vnSpinner" class="historial-spinner" style="display:none;">
+                    <div class="spinner"></div>
+                </div>
+                <div id="vnTablas"></div>
+
+            </div>
+
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->
@@ -2062,14 +2139,14 @@
                             <div class="cit-stat-card__value">0</div>
                         </div>
                     </div>
-                    <div class="cit-stat-card" data-filter="VENCIDA">
+                    <div class="cit-stat-card" data-filter="NO_ASISTIO">
                         <div class="cit-stat-card__icon cit-stat-card__icon--red">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
                             </svg>
                         </div>
                         <div>
-                            <div class="cit-stat-card__label">VENCIDAS</div>
+                            <div class="cit-stat-card__label">NO ASISTIÓ</div>
                             <div class="cit-stat-card__value">0</div>
                         </div>
                     </div>
@@ -2104,26 +2181,13 @@
                         </div>
                     </div>
                     <div class="cit-section__body">
-                        <div class="cit-cards-grid">
-                            <article class="citacion-card" data-status="PENDIENTE">
-                                <div class="citacion-card__header">
-                                    <div style="flex:1;min-width:0;">
-                                        <div class="citacion-card__nombre">Sin registros por mostrar</div>
-                                        <div class="citacion-card__meta">
-                                            <span class="cit-row__curso">Visual de referencia</span>
-                                            <span class="citacion-card__motivo">Interfaz</span>
-                                        </div>
-                                    </div>
-                                    <span class="cit-badge-status cit-badge-status--pendiente">
-                                        <span class="cit-status-dot"></span>Pendiente
-                                    </span>
-                                </div>
-                                <div class="citacion-card__foot">
-                                    <span class="citacion-card__foot-label">Fecha limite</span>
-                                    <span class="citacion-card__foot-val">--</span>
-                                </div>
-                            </article>
+                        <div class="historial-spinner" id="citSpinner" style="display:none;"><div class="spinner"></div></div>
+                        <div class="cit-cards-grid" id="citCardsGrid"></div>
+                        <div class="empty-cards" id="citEmpty" style="display:none;">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <p>No hay citaciones registradas en este período.</p>
                         </div>
+                        <div id="citPagination" style="margin-top:16px;display:flex;justify-content:center;align-items:center;gap:8px;"></div>
                     </div>
                 </div>
                 <div class="list-section" id="sectionComCardProf" style="display:none;">
@@ -2144,22 +2208,11 @@
                         </div>
                     </div>
                     <div class="cit-section__body">
-                        <div class="comunicados-list">
-                            <article class="com-card">
-                                <div class="com-card__head">
-                                    <div class="com-card__meta">
-                                        <div class="com-card__chips">
-                                            <span class="com-chip com-chip--destino">Visual</span>
-                                            <span class="com-chip com-chip--alcance">Comunicados</span>
-                                        </div>
-                                        <span class="com-card__fecha">Sin datos</span>
-                                    </div>
-                                    <h3 class="com-card__titulo">Sin comunicados por mostrar</h3>
-                                </div>
-                                <div class="com-card__body">
-                                    <p class="com-card__contenido">Vista de interfaz clonada del director. Luego conectamos datos reales.</p>
-                                </div>
-                            </article>
+                        <div class="historial-spinner" id="comSpinner" style="display:none;"><div class="spinner"></div></div>
+                        <div class="comunicados-list" id="comCardsList"></div>
+                        <div class="empty-cards" id="comEmpty" style="display:none;">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <p>No hay comunicados en este período.</p>
                         </div>
                     </div>
                 </div>
@@ -2651,6 +2704,154 @@
         </div>
     </div>
 
+    <!-- ── Modal: Detalle Citación ──────────────────────────────────── -->
+    <div class="modal-backdrop" id="modalDetalleCitProf">
+        <div class="modal modal-detalle">
+            <button class="modal-detalle__close" id="btnCerrarDetalleCitProf" aria-label="Cerrar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div id="detalleCitSpinner" class="historial-spinner" style="padding:52px;"><div class="spinner"></div></div>
+            <div id="detalleCitBody" style="display:none;">
+                <div id="detalleCitHero" class="modal-det__hero">
+                    <div class="modal-det__nombre" id="detalleCitNombre"></div>
+                    <div class="modal-det__sub">
+                        <span id="detalleCitCurso" style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;"></span>
+                        <span id="detalleCitBadge"></span>
+                    </div>
+                </div>
+                <div class="modal-det__body">
+                    <div class="modal-det__info-grid">
+                        <div class="modal-det__info-item">
+                            <div class="modal-det__info-label">Motivo</div>
+                            <div class="modal-det__info-val" id="detalleCitMotivo"></div>
+                        </div>
+                        <div class="modal-det__info-item">
+                            <div class="modal-det__info-label">Tutor</div>
+                            <div class="modal-det__info-val" id="detalleCitTutor"></div>
+                        </div>
+                        <div class="modal-det__info-item modal-det__info-item--full">
+                            <div class="modal-det__info-label">Emitido por</div>
+                            <div class="modal-det__info-val" id="detalleCitEmisor"></div>
+                        </div>
+                    </div>
+                    <div class="modal-det__dates">
+                        <div class="modal-det__date-item">
+                            <div class="modal-det__date-label">Enviada</div>
+                            <div class="modal-det__date-val" id="detalleCitFechaEnvio"></div>
+                        </div>
+                        <div class="modal-det__date-item">
+                            <div class="modal-det__date-label">Fecha límite</div>
+                            <div class="modal-det__date-val" id="detalleCitFechaLim"></div>
+                        </div>
+                        <div class="modal-det__date-item">
+                            <div class="modal-det__date-label">Asistencia</div>
+                            <div class="modal-det__date-val" id="detalleCitFechaAsist"></div>
+                        </div>
+                    </div>
+                    <div class="modal-det__desc" id="detalleCitDescWrap" style="display:none;">
+                        <div class="modal-det__desc-label">Descripción</div>
+                        <p class="modal-det__desc-text" id="detalleCitDesc"></p>
+                    </div>
+                </div>
+                <div class="modal-det__footer" style="display:flex;justify-content:flex-end;gap:10px;">
+                    <button class="btn-secondary" id="btnCerrarDetalleCitBtn">Cerrar</button>
+                    <button class="btn-primary" id="btnIrAMarcarCit" style="display:none;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Marcar asistencia
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Marcar Asistencia ─────────────────────────────────── -->
+    <div class="modal-backdrop" id="modalMarcarCitProf">
+        <div class="modal modal-form" style="max-width:420px;">
+            <button class="modal-form__close" id="btnCerrarMarcarCitProf" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="form-card">
+                <div class="form-card__header">
+                    <div class="form-card__icon" style="background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3);color:#22c55e;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div>
+                        <p class="form-card__title">Marcar Asistencia</p>
+                        <p class="form-card__subtitle">Registrar presencia del tutor a la citación.</p>
+                    </div>
+                </div>
+                <div class="form-card__body" style="display:flex;flex-direction:column;gap:14px;">
+                    <p style="font-size:.9rem;color:var(--text);margin:0;">¿Confirmas la asistencia del tutor de <strong id="marcarCitNombre"></strong>?</p>
+                    <p style="font-size:.83rem;color:var(--text-muted);margin:0;">El estado se calculará automáticamente según la fecha límite.</p>
+                    <p id="marcarCitError" class="form-error" style="display:none;"></p>
+                    <div style="display:flex;justify-content:flex-end;gap:10px;">
+                        <button class="btn-secondary" id="btnCancelarMarcarCitProf">Cancelar</button>
+                        <button class="btn-primary" id="btnConfirmarMarcarCitProf">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            Confirmar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Nuevo Comunicado (Profesor) ───────────────────────── -->
+    <div class="modal-backdrop" id="modalNuevoComunicadoProf">
+        <div class="modal modal-form">
+            <button class="modal-form__close" id="btnCerrarModalComProf" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="form-card">
+                <div class="form-card__header">
+                    <div class="form-card__icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </div>
+                    <div>
+                        <p class="form-card__title">Nuevo Comunicado</p>
+                        <p class="form-card__subtitle">Envía un anuncio a los tutores de tus cursos asignados.</p>
+                    </div>
+                </div>
+                <div class="form-card__body">
+                    <form id="formComunicadoProf" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
+                        <div class="form-group">
+                            <label class="form-label" for="comProfTitulo">Título <span class="req">*</span></label>
+                            <input id="comProfTitulo" class="form-input" type="text" maxlength="150" placeholder="Título del comunicado" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="comProfContenido">Contenido <span class="req">*</span></label>
+                            <textarea id="comProfContenido" class="form-input form-textarea" rows="4"
+                                      placeholder="Escribe el contenido del comunicado…" maxlength="2000"
+                                      style="resize:none;" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="comProfAlcance">Alcance <span class="req">*</span></label>
+                            <select id="comProfAlcance" class="form-input form-select" required>
+                                <option value="MIS_CURSOS">Mis cursos (todos mis cursos asignados)</option>
+                                <option value="CURSO">Curso específico</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="comProfCursoWrap" style="display:none;">
+                            <label class="form-label" for="comProfCurso">Curso <span class="req">*</span></label>
+                            <select id="comProfCurso" class="form-input form-select">
+                                <option value="">— Selecciona un curso —</option>
+                            </select>
+                        </div>
+                        <p id="comProfError" class="form-error" style="display:none;"></p>
+                        <div style="display:flex;justify-content:flex-end;gap:10px;">
+                            <button type="button" class="btn-secondary" id="btnCancelarComProf">Cancelar</button>
+                            <button type="submit" class="btn-primary" id="btnEnviarComProf">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                Enviar Comunicado
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/profesor.js' %}"></script>
 
 </body>

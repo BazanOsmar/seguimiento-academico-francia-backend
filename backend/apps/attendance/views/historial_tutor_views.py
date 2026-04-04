@@ -15,27 +15,36 @@ from backend.apps.attendance.serializers.attendance_read_serializers import (
 
 class HistorialTutorView(APIView):
     """
-    GET /api/attendance/parents/me/historial/?mes=YYYY-MM
+    GET /api/attendance/parents/me/historial/?mes=YYYY-MM&estudiante_id=<id>
 
-    Devuelve el historial de asistencia del estudiante vinculado
-    al tutor autenticado.
+    Devuelve el historial de asistencia del estudiante indicado.
+    El parámetro estudiante_id es obligatorio cuando el tutor tiene más de un
+    hijo vinculado; si solo tiene uno se usa ese por defecto.
+    Solo se permite consultar estudiantes vinculados al tutor autenticado.
     """
 
     permission_classes = (IsAuthenticated, IsTutor)
 
     def get(self, request):
-        estudiante = (
-            Estudiante.objects
-            .filter(tutor=request.user)
-            .order_by("-activo", "id")
-            .first()
-        )
+        estudiante_id = request.query_params.get("estudiante_id")
 
-        if estudiante is None:
-            return Response(
-                {"errores": "No existe un estudiante vinculado a este tutor."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        qs_base = Estudiante.objects.filter(tutor=request.user).order_by("-activo", "id")
+
+        if estudiante_id:
+            try:
+                estudiante = qs_base.get(pk=estudiante_id)
+            except Estudiante.DoesNotExist:
+                return Response(
+                    {"errores": "Estudiante no encontrado o no vinculado a este tutor."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            estudiante = qs_base.first()
+            if estudiante is None:
+                return Response(
+                    {"errores": "No existe un estudiante vinculado a este tutor."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
         qs = (
             Asistencia.objects
