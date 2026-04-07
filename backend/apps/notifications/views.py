@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from backend.apps.students.models import Estudiante
-from backend.core.permissions import IsDirector
+from backend.core.permissions import IsDirector, IsDirectorOrProfesor
 
 from .models import FCMDevice
 
@@ -89,11 +89,11 @@ class CoberturaComunicadoView(APIView):
     según el alcance del comunicado a enviar.
 
     Params:
-        alcance  = TODOS | GRADO | CURSO
+        alcance  = TODOS | GRADO | CURSO | MIS_CURSOS
         grado    = nombre del grado  (requerido si alcance=GRADO)
         curso_id = id del curso      (requerido si alcance=CURSO)
     """
-    permission_classes = (IsDirector,)
+    permission_classes = (IsDirectorOrProfesor,)
 
     def get(self, request):
         alcance  = request.query_params.get('alcance', 'TODOS')
@@ -122,6 +122,12 @@ class CoberturaComunicadoView(APIView):
                     {'errores': 'curso_id inválido.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+        elif alcance == 'MIS_CURSOS':
+            from backend.apps.academics.models import ProfesorCurso
+            cursos_ids = ProfesorCurso.objects.filter(
+                profesor=request.user
+            ).values_list('curso_id', flat=True).distinct()
+            qs = qs.filter(curso_id__in=cursos_ids)
 
         tutor_ids = qs.values_list('tutor_id', flat=True).distinct()
 

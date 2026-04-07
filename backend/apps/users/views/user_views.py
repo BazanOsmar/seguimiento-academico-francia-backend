@@ -82,6 +82,10 @@ class UserDetailView(APIView):
         except User.DoesNotExist:
             return Response({'errores': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
+        password_director = request.data.get('password_director', '').strip()
+        if not password_director or not request.user.check_password(password_director):
+            return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
         first_name = request.data.get('first_name', '').strip()
         last_name  = request.data.get('last_name',  '').strip()
         errors = {}

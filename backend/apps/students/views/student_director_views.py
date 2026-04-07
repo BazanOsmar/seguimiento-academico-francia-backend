@@ -139,7 +139,64 @@ class EstudianteDetailView(APIView):
             estudiante.apellido_materno = materno
             estudiante.save(update_fields=['nombre', 'apellido_paterno', 'apellido_materno'])
 
+        elif 'tutor_id' in request.data:
+            return self._gestionar_tutor(request, estudiante)
+
         else:
             return Response({'errores': 'No se especificaron campos a actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(EstudianteDirectorSerializer(estudiante).data)
+
+    def _gestionar_tutor(self, request, estudiante):
+        from backend.apps.users.models import User
+        from backend.apps.auditoria.services import registrar
+
+        tutor_id   = request.data.get('tutor_id')
+        director   = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        est_nombre = f"{estudiante.apellido_paterno} {estudiante.apellido_materno} {estudiante.nombre}".strip()
+
+        if tutor_id is None:
+            # ── Desvincular ─────────────────────────────────────────
+            tutor_anterior = estudiante.tutor
+            if tutor_anterior is None:
+                return Response({'errores': 'Este estudiante no tiene tutor asignado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            tutor_nombre = f"{tutor_anterior.first_name} {tutor_anterior.last_name}".strip() or tutor_anterior.username
+            estudiante.tutor = None
+            estudiante.save(update_fields=['tutor'])
+
+            registrar(
+                request.user, 'DESVINCULAR_TUTOR',
+                f"{director} desvinculó al tutor '{tutor_anterior.username}' ({tutor_nombre}) del estudiante {est_nombre}",
+                request,
+            )
+        else:
+            # ── Reasignar ────────────────────────────────────────────
+            try:
+                nuevo_tutor = User.objects.select_related('tipo_usuario').get(pk=tutor_id)
+            except User.DoesNotExist:
+                return Response({'errores': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+            if getattr(nuevo_tutor.tipo_usuario, 'nombre', None) != 'Tutor':
+                return Response({'errores': 'El usuario seleccionado no es de tipo Tutor.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # No contar al propio estudiante si ya está vinculado al mismo tutor
+            ya_vinculado = estudiante.tutor_id == nuevo_tutor.pk
+            total = Estudiante.objects.filter(tutor=nuevo_tutor).count()
+            if not ya_vinculado and total >= 5:
+                return Response({'errores': 'Este tutor ya tiene 5 estudiantes vinculados.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            tutor_anterior = estudiante.tutor
+            estudiante.tutor = nuevo_tutor
+            estudiante.save(update_fields=['tutor'])
+
+            tutor_nombre = f"{nuevo_tutor.first_name} {nuevo_tutor.last_name}".strip() or nuevo_tutor.username
+            if tutor_anterior:
+                ant_nombre = f"{tutor_anterior.first_name} {tutor_anterior.last_name}".strip() or tutor_anterior.username
+                msg = f"{director} reasignó el tutor de {est_nombre}: '{tutor_anterior.username}' ({ant_nombre}) → '{nuevo_tutor.username}' ({tutor_nombre})"
+            else:
+                msg = f"{director} asignó al tutor '{nuevo_tutor.username}' ({tutor_nombre}) al estudiante {est_nombre}"
+
+            registrar(request.user, 'ASIGNAR_TUTOR', msg, request)
 
         return Response(EstudianteDirectorSerializer(estudiante).data)

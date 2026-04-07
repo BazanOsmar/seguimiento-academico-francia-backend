@@ -132,33 +132,7 @@ let _cachedData = null;
     // Estudiantes vinculados (solo Tutores)
     if (data.estudiantes && data.estudiantes.length > 0) {
         estudianteSection.classList.remove('hidden');
-        estudiantesLista.innerHTML = data.estudiantes.map(e => {
-            const iniciales = (
-                (e.nombre?.[0] || '') + (e.apellido_paterno?.[0] || '')
-            ).toUpperCase();
-            const curso  = `${e.curso__grado} ${e.curso__paralelo}`;
-            const identificador = e.identificador ? `ID: ${e.identificador}` : 'Sin identificador';
-            const activoBadge = e.activo
-                ? `<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:rgba(34,197,94,.12);color:#22c55e;font-weight:600;">Activo</span>`
-                : `<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:rgba(239,68,68,.12);color:#ef4444;font-weight:600;">Baja</span>`;
-            return `
-                <a class="estudiante-card"
-                   href="/director/estudiantes/${e.curso__id}/?highlight=${e.id}">
-                    <div class="estudiante-avatar">${iniciales}</div>
-                    <div class="estudiante-info">
-                        <div class="estudiante-nombre" style="display:flex;align-items:center;gap:8px;">
-                            <span>${(e.apellido_paterno + ' ' + e.apellido_materno).trim()}, ${e.nombre}</span>
-                            ${activoBadge}
-                        </div>
-                        <div class="estudiante-meta">${curso} &middot; ${identificador}</div>
-                    </div>
-                    <svg class="estudiante-arrow" width="16" height="16" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                </a>`;
-        }).join('');
+        _renderEstudiantesLista(data.estudiantes);
     }
 
     // Citaciones recientes (solo Tutores)
@@ -341,6 +315,41 @@ document.getElementById('planDetOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('planDetOverlay'))
         document.getElementById('planDetOverlay').classList.remove('visible');
 });
+
+// ── Estudiantes del tutor ─────────────────────────────────────────
+
+function _escPU(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _renderEstudiantesLista(lista) {
+    estudianteSection.classList.remove('hidden');
+    estudiantesLista.innerHTML = lista.map(e => {
+        const iniciales     = ((e.nombre?.[0] || '') + (e.apellido_paterno?.[0] || '')).toUpperCase();
+        const curso         = `${e.curso__grado} ${e.curso__paralelo}`;
+        const identificador = e.identificador ? `ID: ${e.identificador}` : 'Sin identificador';
+        const activoBadge   = e.activo
+            ? `<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:rgba(34,197,94,.12);color:#22c55e;font-weight:600;">Activo</span>`
+            : `<span style="font-size:.7rem;padding:2px 7px;border-radius:20px;background:rgba(239,68,68,.12);color:#ef4444;font-weight:600;">Baja</span>`;
+        return `
+            <a class="estudiante-card"
+               href="/director/estudiantes/${e.curso__id}/${e.id}/">
+                <div class="estudiante-avatar">${_escPU(iniciales)}</div>
+                <div class="estudiante-info">
+                    <div class="estudiante-nombre" style="display:flex;align-items:center;gap:8px;">
+                        <span>${_escPU((e.apellido_paterno + ' ' + e.apellido_materno).trim())}, ${_escPU(e.nombre)}</span>
+                        ${activoBadge}
+                    </div>
+                    <div class="estudiante-meta">${_escPU(curso)} &middot; ${_escPU(identificador)}</div>
+                </div>
+                <svg class="estudiante-arrow" width="16" height="16" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                </svg>
+            </a>`;
+    }).join('');
+}
 
 // ── Copiar credenciales ───────────────────────────────────────────
 document.querySelectorAll('.cred-copy').forEach(btn => {

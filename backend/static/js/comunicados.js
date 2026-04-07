@@ -1151,6 +1151,10 @@ async function abrirModalDetalle(id) {
             </button>
         </div>` : '';
 
+    const estadoEnvioBadge = data.estado === 'VISTO'
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(34,197,94,.13);color:#22c55e;">&#10003; Visto</span>`
+        : `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(148,163,184,.12);color:var(--text-muted);">Enviada</span>`;
+
     modalDetalleConten.innerHTML = `
         <div class="modal-det__hero modal-det__hero--${data.asistencia}">
             <p class="modal-det__nombre">${data.estudiante_nombre}</p>
@@ -1158,6 +1162,7 @@ async function abrirModalDetalle(id) {
                 <span class="badge-curso">${data.curso}</span>
                 <span class="citacion-card__motivo citacion-card__motivo--${data.motivo}">${MOTIVO_LABELS[data.motivo] || data.motivo}</span>
                 ${estadoBadgeHTML(data.asistencia)}
+                ${estadoEnvioBadge}
             </div>
         </div>
 

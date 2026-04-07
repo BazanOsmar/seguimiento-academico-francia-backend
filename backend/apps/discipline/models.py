@@ -28,8 +28,19 @@ class Citacion(models.Model):
         on_delete=models.PROTECT
     )
 
+    MOTIVOS = [
+        ('FALTAS',       'Faltas'),
+        ('ATRASOS',      'Atrasos'),
+        ('CONDUCTA',     'Conducta'),
+        ('RENDIMIENTO',  'Rendimiento'),
+        ('DOCUMENTOS',   'Documentos'),
+        ('REUNION',      'Reunión'),
+        ('OTROS',        'Otros'),
+    ]
+
     motivo = models.CharField(
-        max_length=20
+        max_length=20,
+        choices=MOTIVOS,
     )
 
     descripcion = models.TextField()

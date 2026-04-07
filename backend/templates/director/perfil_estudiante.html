@@ -135,6 +135,28 @@
         .perfil-tutor-info { display: flex; flex-direction: column; gap: 2px; }
         .perfil-tutor-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
         .perfil-tutor-user { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+        .tutor-acciones { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .btn-tutor-accion {
+            font-size: 0.75rem; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--bg-input); color: var(--text-secondary); cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .btn-tutor-accion:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .btn-tutor-accion--danger { border-color: rgba(239,68,68,.35); color: #ef4444; }
+        .btn-tutor-accion--danger:hover { background: rgba(239,68,68,.1); border-color: #ef4444; }
+        /* ── Modal búsqueda de tutor ── */
+        .modal-tutor-search { max-width: 420px; width: 100%; }
+        .tutor-search-input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box; }
+        .tutor-search-results { margin-top: 8px; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+        .tutor-result-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg-input); cursor: pointer;
+            transition: background .15s;
+        }
+        .tutor-result-item:hover, .tutor-result-item.selected { background: var(--bg-hover); border-color: var(--accent); }
+        .tutor-result-item__name { font-size: 0.83rem; font-weight: 600; color: var(--text-primary); }
+        .tutor-result-item__meta { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; }
+        .tutor-search-empty { font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 16px 0; }
 
         /* ── Citaciones — sección ── */
         .cit-section-hdr {
@@ -759,6 +781,7 @@
                                 <span class="perfil-tutor-user" id="pTutorUsername"></span>
                             </div>
                         </div>
+                        <div class="tutor-acciones" id="tutorAcciones"></div>
                     </div>
 
                     <button id="btnCambiarEstado" class="btn-baja" style="display:none;"></button>
@@ -836,7 +859,8 @@
                 </div>
                 <!-- Tabs -->
                 <div class="cit-tabs">
-                    <button class="cit-tab active" data-filtro="pendiente">Pendientes<span class="cit-tab__count" id="countPendiente">0</span></button>
+                    <button class="cit-tab active" data-filtro="todos">Todos<span class="cit-tab__count" id="countTodos">0</span></button>
+                    <button class="cit-tab" data-filtro="pendiente">Pendientes<span class="cit-tab__count" id="countPendiente">0</span></button>
                     <button class="cit-tab" data-filtro="vencidas">Vencidas<span class="cit-tab__count" id="countVencidas">0</span></button>
                     <button class="cit-tab" data-filtro="asistencia">Con asistencia<span class="cit-tab__count" id="countAsistencia">0</span></button>
                 </div>
@@ -848,6 +872,30 @@
 
         </div><!-- /.content-wrap -->
     </main>
+
+    <!-- ── Modal asignar / reasignar tutor ──────────────────────── -->
+    <div class="confirm-modal-backdrop" id="modalTutorBackdrop">
+        <div class="confirm-modal modal-tutor-search">
+            <div class="confirm-modal-icon" style="background:var(--accent-dim);color:var(--accent-text);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <h3 id="modalTutorTitle">Asignar tutor</h3>
+            <p id="modalTutorDesc">Busca el tutor por nombre o usuario.</p>
+            <input type="text" class="tutor-search-input" id="tutorSearchInput" placeholder="Nombre o usuario…" autocomplete="off" maxlength="60">
+            <div class="tutor-search-results" id="tutorSearchResults">
+                <p class="tutor-search-empty">Escribe para buscar tutores.</p>
+            </div>
+            <div class="confirm-pass-wrap" style="margin-top:12px;">
+                <label for="modalTutorPassword">Confirma tu contraseña</label>
+                <input type="password" id="modalTutorPassword" placeholder="Tu contraseña de acceso" maxlength="64" autocomplete="current-password">
+                <p class="confirm-pass-error" id="modalTutorPasswordError"></p>
+            </div>
+            <div class="confirm-modal-actions">
+                <button class="btn-ghost" id="btnModalTutorCancelar">Cancelar</button>
+                <button class="btn-confirm btn-confirm--success" id="btnModalTutorGuardar" disabled>Guardar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ── Modal editar nombre del estudiante ───────────────────── -->
     <div class="confirm-modal-backdrop" id="editNombreBackdrop">
@@ -954,7 +1002,7 @@ function fmtFecha(str) {
 }
 
 let _todasCitaciones = [];
-let _filtroActivo    = 'pendiente';
+let _filtroActivo    = 'todos';
 let _citMes          = new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -969,18 +1017,20 @@ function _citacionesDelMes() {
 }
 
 const FILTROS = {
+    todos:      () => true,
     pendiente:  c => c.asistencia === 'PENDIENTE',
     vencidas:   c => c.asistencia === 'VENCIDA',
     asistencia: c => ['ASISTIO', 'ATRASO', 'NO_ASISTIO', 'VISTO'].includes(c.asistencia),
 };
 const FILTRO_EMPTY = {
+    todos:      'Sin citaciones registradas.',
     pendiente:  'Sin citaciones pendientes este mes.',
     vencidas:   'Sin citaciones vencidas este mes.',
     asistencia: 'Sin citaciones con asistencia registrada este mes.',
 };
 
 // Color/icon por estado del tab
-const CIT_TAB_CLASS = { pendiente: 'pendiente', vencidas: 'vencida', asistencia: 'asistencia' };
+const CIT_TAB_CLASS = { todos: 'asistencia', pendiente: 'pendiente', vencidas: 'vencida', asistencia: 'asistencia' };
 
 function _citItemClass(asistencia) {
     if (asistencia === 'PENDIENTE') return 'pendiente';
@@ -998,6 +1048,7 @@ function renderCitaciones(lista) {
 function _actualizarContadores() {
     const delMes = _citacionesDelMes();
     document.getElementById('citTotalBadge').textContent   = `${delMes.length} TOTAL`;
+    document.getElementById('countTodos').textContent      = _todasCitaciones.length;
     document.getElementById('countPendiente').textContent  = delMes.filter(FILTROS.pendiente).length;
     document.getElementById('countVencidas').textContent   = delMes.filter(FILTROS.vencidas).length;
     document.getElementById('countAsistencia').textContent = delMes.filter(FILTROS.asistencia).length;
@@ -1006,7 +1057,8 @@ function _actualizarContadores() {
 function renderFiltro(filtro) {
     _filtroActivo = filtro;
     const cont  = document.getElementById('citacionesContainer');
-    const lista = _citacionesDelMes().filter(FILTROS[filtro]);
+    const base  = filtro === 'todos' ? _todasCitaciones : _citacionesDelMes();
+    const lista = base.filter(FILTROS[filtro]);
 
     if (!lista.length) {
         cont.innerHTML = `<p class="cit-empty">${FILTRO_EMPTY[filtro]}</p>`;
@@ -1224,6 +1276,181 @@ document.getElementById('perfilCalNext').addEventListener('click', () => {
     loadCalendario();
 });
 
+/* ── Gestión de Tutor ────────────────────────────────────── */
+
+function _renderTutor(d) {
+    const lista   = document.getElementById('tutorFieldList');
+    const acciones = document.getElementById('tutorAcciones');
+    if (d.tutor_nombre) {
+        document.getElementById('pTutorNombre').textContent   = d.tutor_nombre;
+        document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
+        acciones.innerHTML = `
+            <button class="btn-tutor-accion btn-tutor-accion--danger" id="btnDesvinculatTutor">Desvincular</button>
+            <button class="btn-tutor-accion" id="btnReasignarTutor">Reasignar</button>`;
+        document.getElementById('btnDesvinculatTutor').addEventListener('click', () => _abrirConfirmTutor('desvincular'));
+        document.getElementById('btnReasignarTutor').addEventListener('click',   () => _abrirModalBusqueda('reasignar'));
+    } else {
+        lista.innerHTML = '<p style="font-size:0.82rem;color:var(--text-muted);font-style:italic;margin:0;padding:4px 0;">Sin tutor asignado aún.</p>';
+        lista.insertAdjacentHTML('beforeend', '<div class="tutor-acciones" id="tutorAcciones"></div>');
+        document.getElementById('tutorAcciones').innerHTML =
+            `<button class="btn-tutor-accion" id="btnAsignarTutor">Asignar tutor</button>`;
+        document.getElementById('btnAsignarTutor').addEventListener('click', () => _abrirModalBusqueda('asignar'));
+    }
+}
+
+// ── Modal búsqueda tutor ──────────────────────────────────
+let _tutorSeleccionado  = null;
+let _modalTutorAccion   = null; // 'asignar' | 'reasignar'
+let _searchTimer        = null;
+
+const _modalTutorBackdrop = document.getElementById('modalTutorBackdrop');
+const _tutorSearchInput   = document.getElementById('tutorSearchInput');
+const _tutorSearchResults = document.getElementById('tutorSearchResults');
+const _modalTutorPassword = document.getElementById('modalTutorPassword');
+const _modalTutorPassErr  = document.getElementById('modalTutorPasswordError');
+const _btnTutorGuardar    = document.getElementById('btnModalTutorGuardar');
+
+function _abrirModalBusqueda(accion) {
+    _tutorSeleccionado  = null;
+    _modalTutorAccion   = accion;
+    _tutorSearchInput.value   = '';
+    _modalTutorPassword.value = '';
+    _modalTutorPassErr.textContent = '';
+    _modalTutorPassErr.style.display = 'none';
+    _tutorSearchResults.innerHTML = '<p class="tutor-search-empty">Escribe para buscar tutores.</p>';
+    _btnTutorGuardar.disabled = true;
+    document.getElementById('modalTutorTitle').textContent = accion === 'asignar' ? 'Asignar tutor' : 'Reasignar tutor';
+    _modalTutorBackdrop.classList.add('visible');
+    setTimeout(() => _tutorSearchInput.focus(), 50);
+}
+
+function _cerrarModalTutor() {
+    _modalTutorBackdrop.classList.remove('visible');
+    clearTimeout(_searchTimer);
+}
+
+_tutorSearchInput.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    const q = _tutorSearchInput.value.trim();
+    if (q.length < 2) {
+        _tutorSearchResults.innerHTML = '<p class="tutor-search-empty">Escribe al menos 2 caracteres.</p>';
+        return;
+    }
+    _searchTimer = setTimeout(async () => {
+        _tutorSearchResults.innerHTML = '<p class="tutor-search-empty">Buscando…</p>';
+        const { ok, data } = await fetchAPI(`/api/users/?q=${encodeURIComponent(q)}`);
+        const tutores = ok ? (data?.usuarios || []).filter(u => u.rol === 'Tutor') : [];
+        if (!tutores.length) {
+            _tutorSearchResults.innerHTML = '<p class="tutor-search-empty">Sin resultados.</p>';
+            return;
+        }
+        _tutorSearchResults.innerHTML = tutores.map(t => {
+            const nombre = `${t.first_name} ${t.last_name}`.trim() || t.username;
+            return `<div class="tutor-result-item" data-id="${t.id}" data-nombre="${_escPE(nombre)}" data-user="${_escPE(t.username)}">
+                <div>
+                    <div class="tutor-result-item__name">${_escPE(nombre)}</div>
+                    <div class="tutor-result-item__meta">@${_escPE(t.username)}</div>
+                </div>
+            </div>`;
+        }).join('');
+        _tutorSearchResults.querySelectorAll('.tutor-result-item').forEach(item => {
+            item.addEventListener('click', () => {
+                _tutorSearchResults.querySelectorAll('.tutor-result-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                _tutorSeleccionado = { id: Number(item.dataset.id), nombre: item.dataset.nombre, username: item.dataset.user };
+                _btnTutorGuardar.disabled = false;
+            });
+        });
+    }, 350);
+});
+
+_btnTutorGuardar.addEventListener('click', async () => {
+    if (!_tutorSeleccionado) return;
+    const pwd = _modalTutorPassword.value.trim();
+    if (!pwd) {
+        _modalTutorPassErr.textContent = 'Ingresa tu contraseña.';
+        _modalTutorPassErr.style.display = 'block';
+        _modalTutorPassword.focus();
+        return;
+    }
+    _btnTutorGuardar.disabled = true;
+    const { ok, status, data } = await fetchAPI(`/api/students/${ESTUDIANTE_ID}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ tutor_id: _tutorSeleccionado.id, password: pwd }),
+    });
+    _btnTutorGuardar.disabled = false;
+    if (!ok) {
+        _modalTutorPassErr.textContent = status === 403 ? 'Contraseña incorrecta.' : (data?.errores || 'Error al guardar.');
+        _modalTutorPassErr.style.display = 'block';
+        return;
+    }
+    _estudiante = data;
+    _cerrarModalTutor();
+    _renderTutor(data);
+});
+
+document.getElementById('btnModalTutorCancelar').addEventListener('click', _cerrarModalTutor);
+_modalTutorBackdrop.addEventListener('click', e => { if (e.target === _modalTutorBackdrop) _cerrarModalTutor(); });
+
+// ── Confirmar desvincular tutor (reutiliza confirmBackdrop) ───
+function _abrirConfirmTutor(accion) {
+    const pwd   = document.getElementById('confirmPassword');
+    const err   = document.getElementById('confirmPasswordError');
+    const title = document.getElementById('confirmTitle');
+    const desc  = document.getElementById('confirmDesc');
+    const btn   = document.getElementById('btnConfirmAceptar');
+    const icon  = document.getElementById('confirmIcon');
+
+    pwd.value = '';
+    err.textContent = '';
+    err.style.display = 'none';
+    icon.style.background = 'rgba(239,68,68,.12)';
+    icon.style.color = '#ef4444';
+    title.textContent = 'Desvincular tutor';
+    desc.textContent  = `¿Seguro que deseas quitar al tutor de este estudiante? El padre perderá acceso a la app si no tiene otros hijos activos.`;
+    btn.textContent   = 'Desvincular';
+    btn.className     = 'btn-confirm btn-confirm--danger';
+
+    // Override temporal del listener
+    const nuevoBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(nuevoBtn, btn);
+    nuevoBtn.textContent = 'Desvincular';
+    nuevoBtn.className   = 'btn-confirm btn-confirm--danger';
+    nuevoBtn.addEventListener('click', () => _ejecutarDesvinculacion(nuevoBtn));
+
+    document.getElementById('confirmBackdrop').classList.add('visible');
+    setTimeout(() => pwd.focus(), 50);
+}
+
+async function _ejecutarDesvinculacion(btn) {
+    const pwd = document.getElementById('confirmPassword').value.trim();
+    const err = document.getElementById('confirmPasswordError');
+    if (!pwd) {
+        err.textContent = 'Ingresa tu contraseña.';
+        err.style.display = 'block';
+        document.getElementById('confirmPassword').focus();
+        return;
+    }
+    btn.disabled = true;
+    const { ok, status, data } = await fetchAPI(`/api/students/${ESTUDIANTE_ID}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ tutor_id: null, password: pwd }),
+    });
+    btn.disabled = false;
+    if (!ok) {
+        err.textContent = status === 403 ? 'Contraseña incorrecta.' : (data?.errores || 'Error al desvincular.');
+        err.style.display = 'block';
+        return;
+    }
+    _estudiante = data;
+    document.getElementById('confirmBackdrop').classList.remove('visible');
+    _renderTutor(data);
+}
+
+function _escPE(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 /* ── Inicializar ─────────────────────────────────────────── */
 (async () => {
     const [resEstudiante, resCitaciones] = await Promise.all([
@@ -1243,13 +1470,7 @@ document.getElementById('perfilCalNext').addEventListener('click', () => {
         document.getElementById('pNombre').textContent        = d.nombre_completo;
         document.getElementById('pCurso').textContent         = d.curso_nombre;
         document.getElementById('pIdentificador').textContent  = d.identificador || '—';
-        if (d.tutor_nombre) {
-            document.getElementById('pTutorNombre').textContent   = d.tutor_nombre;
-            document.getElementById('pTutorUsername').textContent = d.tutor_username || '—';
-        } else {
-            document.getElementById('tutorFieldList').innerHTML =
-                '<p style="font-size:0.82rem;color:var(--text-muted);font-style:italic;margin:0;padding:4px 0;">Sin tutor asignado aún.</p>';
-        }
+        _renderTutor(d);
         renderEstado(_activo);
     }
 

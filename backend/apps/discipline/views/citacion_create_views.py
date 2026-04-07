@@ -115,7 +115,7 @@ class CitacionCreateView(APIView):
                 target=enviar_notificacion,
                 args=(tutor,),
                 kwargs={
-                    "titulo": "📋 Citación escolar",
+                    "titulo": "Citación escolar",
                     "cuerpo": cuerpo_notif,
                     "datos": {"citacion_id": str(citacion.id)},
                     "imagen": imagen_url,

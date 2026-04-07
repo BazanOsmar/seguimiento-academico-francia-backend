@@ -55,6 +55,16 @@ class LoginView(APIView):
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
 
+        # Tutores sin estudiantes activos no pueden ingresar
+        if (not es_bypass
+                and getattr(user.tipo_usuario, 'nombre', None) == 'Tutor'):
+            from backend.apps.students.models import Estudiante
+            if not Estudiante.objects.filter(tutor=user, activo=True).exists():
+                return Response(
+                    {'errores': 'Tu cuenta no tiene estudiantes activos. Contacta a la unidad educativa.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         if not es_bypass:
             update_last_login(None, user)
             from backend.apps.auditoria.services import registrar
@@ -210,6 +220,15 @@ class RegistrarIngresoView(APIView):
         from django.utils import timezone
         from django.db.models import F
         user = request.user
+
+        if getattr(user.tipo_usuario, 'nombre', None) == 'Tutor':
+            from backend.apps.students.models import Estudiante
+            if not Estudiante.objects.filter(tutor=user, activo=True).exists():
+                return Response(
+                    {'errores': 'Tu cuenta no tiene estudiantes activos. Contacta a la unidad educativa.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         user.last_login    = timezone.now()
         user.total_ingresos = F('total_ingresos') + 1
         user.save(update_fields=['last_login', 'total_ingresos'])
@@ -330,6 +349,48 @@ class RegistroTutorView(APIView):
                 for e in estudiantes
             ],
         }, status=status.HTTP_201_CREATED)
+
+
+class DesvincularEstudianteView(APIView):
+    """
+    DELETE /api/auth/desvincular-estudiante/<estudiante_id>/
+
+    Permite al tutor autenticado quitar un estudiante de su propia cuenta.
+    Si tras la operación queda sin estudiantes activos, su acceso queda
+    bloqueado en el próximo login/registrar-ingreso.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, estudiante_id):
+        from backend.apps.students.models import Estudiante
+        from backend.apps.auditoria.services import registrar
+
+        if getattr(request.user.tipo_usuario, 'nombre', None) != 'Tutor':
+            return Response({'errores': 'Solo los tutores pueden usar este endpoint.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            estudiante = Estudiante.objects.select_related('curso').get(pk=estudiante_id, tutor=request.user)
+        except Estudiante.DoesNotExist:
+            return Response({'errores': 'Estudiante no encontrado en tu cuenta.'}, status=status.HTTP_404_NOT_FOUND)
+
+        nombre_tutor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        nombre_est   = f"{estudiante.apellido_paterno} {estudiante.nombre}".strip()
+
+        estudiante.tutor = None
+        estudiante.save(update_fields=['tutor'])
+
+        registrar(
+            request.user, 'DESVINCULAR_TUTOR',
+            f"Tutor '{request.user.username}' ({nombre_tutor}) se desvinculó del estudiante {nombre_est}",
+            request,
+        )
+
+        quedan_activos = Estudiante.objects.filter(tutor=request.user, activo=True).exists()
+        return Response({
+            'mensaje': 'Estudiante desvinculado correctamente.',
+            'quedan_activos': quedan_activos,
+        })
 
 
 class VincularEstudianteView(APIView):

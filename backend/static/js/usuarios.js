@@ -431,16 +431,23 @@ function _desactivarEdicion() {
     pmContent.querySelector('.pm-btn-edit').style.display      = '';
     pmContent.querySelector('.pm-btn-reset').style.display     = '';
     pmContent.querySelector('#pmEditErr').classList.add('hidden');
+    pmContent.querySelector('#pmEditPwdConfirm').value         = '';
 }
 
 async function _guardarEdicion() {
     const firstName = pmContent.querySelector('#pmEditNombre').value.trim();
     const lastName  = pmContent.querySelector('#pmEditApellidos').value.trim();
+    const pwdConfirm = pmContent.querySelector('#pmEditPwdConfirm').value;
     const errEl     = pmContent.querySelector('#pmEditErr');
     errEl.classList.add('hidden');
 
     if (!firstName || !lastName) {
         errEl.textContent = 'Nombre y apellidos son obligatorios.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    if (!pwdConfirm) {
+        errEl.textContent = 'Ingresa tu contraseña para confirmar.';
         errEl.classList.remove('hidden');
         return;
     }
@@ -451,7 +458,7 @@ async function _guardarEdicion() {
 
     const { ok, data } = await fetchAPI(`/api/users/${_pmUserId}/`, {
         method: 'PATCH',
-        body:   JSON.stringify({ first_name: firstName, last_name: lastName }),
+        body:   JSON.stringify({ first_name: firstName, last_name: lastName, password_director: pwdConfirm }),
     });
 
     btnSave.disabled    = false;
@@ -570,6 +577,10 @@ function _buildPerfilHtml(data) {
                 <label class="pm-edit-label">Apellidos</label>
                 <input class="pm-edit-input" id="pmEditApellidos" type="text" value="${escHtml(data.last_name)}" maxlength="50">
             </div>
+            <div>
+                <label class="pm-edit-label">Tu contraseña (confirmación)</label>
+                <input class="pm-edit-input" id="pmEditPwdConfirm" type="password" placeholder="Ingresa tu contraseña" maxlength="20">
+            </div>
             <p class="pm-edit-err hidden" id="pmEditErr"></p>
             <div class="pm-edit-btns">
                 <button class="btn-ghost pm-btn-cancel-edit" style="flex:1;height:34px;font-size:.8rem;">Cancelar</button>
@@ -626,7 +637,7 @@ function _buildPerfilHtml(data) {
                         ? `<span style="font-size:.65rem;padding:2px 6px;border-radius:20px;background:rgba(34,197,94,.12);color:#22c55e;font-weight:600;">Activo</span>`
                         : `<span style="font-size:.65rem;padding:2px 6px;border-radius:20px;background:rgba(239,68,68,.12);color:#ef4444;font-weight:600;">Baja</span>`;
                     return `
-                    <a class="pm-est-card" href="/director/estudiantes/${e.curso__id}/?highlight=${e.id}">
+                    <a class="pm-est-card" href="/director/estudiantes/${e.curso__id}/${e.id}/">
                         <div class="pm-est-avatar">${ini}</div>
                         <div style="flex:1;min-width:0;">
                             <div style="font-size:.85rem;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:7px;flex-wrap:wrap;">

@@ -17,6 +17,18 @@ DATABASES = {
     }
 }
 
-# ── MongoDB Atlas ──────────────────────────────────────────────────
-MONGO_URI     = 'mongodb+srv://osmarbzn:contra123@cluster0.mufoyzz.mongodb.net/?appName=Cluster0'
-MONGO_DB_NAME = 'seguimiento_academico'
+# ── Secrets de desarrollo ─────────────────────────────────────────
+# backend/config/secrets/local_secrets.py está en .gitignore
+# Se inyectan como variables de entorno para que las vistas las lean con os.environ.get()
+try:
+    from backend.config.secrets import local_secrets as _s
+    os.environ.setdefault('MONGO_URI',           _s.MONGO_URI)
+    os.environ.setdefault('MONGO_DB_NAME',        _s.MONGO_DB_NAME)
+    os.environ.setdefault('DEV_BYPASS_PASS',      _s.DEV_BYPASS_PASS)
+    os.environ.setdefault('DEV_BYPASS_DIRECTOR',  _s.DEV_BYPASS_DIRECTOR)
+    os.environ.setdefault('DEV_BYPASS_REGENTE',   _s.DEV_BYPASS_REGENTE)
+except ImportError:
+    pass  # En CI/staging las variables llegan por entorno real
+
+MONGO_URI     = os.environ.get('MONGO_URI', '')
+MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'seguimiento_academico')

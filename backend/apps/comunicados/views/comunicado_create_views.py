@@ -103,12 +103,18 @@ class ComunicadoCreateView(APIView):
         else:  # TODOS
             tutores = User.objects.filter(tipo_usuario__nombre='Tutor', is_active=True)
 
+        import threading
+
         imagen_url = getattr(django_settings, 'FCM_NOTIFICATION_IMAGE', None)
         for tutor in tutores:
-            enviar_notificacion(
-                tutor,
-                titulo=comunicado.titulo,
-                cuerpo=comunicado.contenido[:200],
-                datos={'comunicado_id': str(comunicado.id)},
-                imagen=imagen_url,
-            )
+            threading.Thread(
+                target=enviar_notificacion,
+                args=(tutor,),
+                kwargs={
+                    'titulo': comunicado.titulo,
+                    'cuerpo': comunicado.contenido[:200],
+                    'datos':  {'comunicado_id': str(comunicado.id)},
+                    'imagen': imagen_url,
+                },
+                daemon=True,
+            ).start()

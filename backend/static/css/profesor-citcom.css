@@ -245,6 +245,8 @@
         .cit-badge-status--asistio    { background: rgba(34,197,94,.12);  color: #22c55e; }
         .cit-badge-status--no_asistio { background: rgba(239,68,68,.12);  color: #ef4444; }
         .cit-badge-status--atraso     { background: rgba(220,38,38,.12);  color: #dc2626; }
+        .cit-badge-status--vencida    { background: rgba(148,163,184,.12); color: #94a3b8; }
+        .citacion-card[data-status="VENCIDA"] .citacion-card__header { border-left-color: #94a3b8; background: rgba(148,163,184,.07); }
 
         /* Skeleton */
         .cit-row--skeleton { pointer-events: none; min-height: 56px; }
