@@ -200,364 +200,431 @@
             font-size: .9rem;
         }
 
-        /* ── Plan de Trabajo — tarjetas por asignación ───────────── */
-        .plan-asig-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        /* ── Plan de Trabajo — cabecera con mes ─────────────────────── */
+        .ptw-header {
+            display: flex;
+            align-items: center;
             gap: 16px;
-            padding: 20px;
+            padding: 28px 28px 8px;
         }
-        .plan-asig-card {
+        .ptw-nav-btn {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color .15s, color .15s;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .ptw-nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+        .ptw-nav-btn:disabled { opacity: .3; cursor: default; }
+        .ptw-title {
+            flex: 1;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--text);
+            margin: 0;
+        }
+        .ptw-title-mes { color: var(--accent); }
+
+        /* ── Grid de tarjetas ────────────────────────────────────────── */
+        .ptw-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px 28px 32px;
+        }
+        @media (max-width: 640px) { .ptw-grid { grid-template-columns: 1fr; padding: 12px 16px 20px; } }
+
+        /* ── Tarjeta individual ──────────────────────────────────────── */
+        .ptw-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 18px 20px;
-            cursor: pointer;
-            transition: border-color .15s, box-shadow .15s, transform .15s;
-            user-select: none;
+            border-radius: 16px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 20px;
+            cursor: pointer;
+            transition: border-color .2s, box-shadow .2s, transform .15s;
         }
-        .plan-asig-card:hover {
-            border-color: var(--accent);
-            box-shadow: 0 4px 20px rgba(0,0,0,.18);
+        .ptw-card:hover {
+            border-color: rgba(99,102,241,.45);
+            box-shadow: 0 8px 32px rgba(0,0,0,.22);
             transform: translateY(-2px);
         }
-        .plan-asig-card__materia {
-            font-weight: 700;
+        .ptw-course {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .ptw-subject {
             font-size: .95rem;
-            color: var(--text);
-            margin-bottom: 2px;
-        }
-        .plan-asig-card__curso {
-            font-size: .8rem;
             color: var(--text-muted);
         }
-        .plan-asig-dots {
+        .ptw-progress-label {
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        .ptw-weeks {
             display: flex;
-            gap: 7px;
-            align-items: center;
+            gap: 8px;
         }
-        .plan-asig-week {
-            width: 22px; height: 22px;
-            border-radius: 50%;
-            background: rgba(99,102,241,.15);
-            border: 1.5px solid rgba(99,102,241,.4);
-            color: var(--accent);
-            font-size: .65rem;
+        .ptw-week {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .ptw-week-bar {
+            width: 100%;
+            height: 5px;
+            border-radius: 99px;
+            background: rgba(255,255,255,.09);
+        }
+        .ptw-week-bar--filled { background: #22c55e; }
+        .ptw-week-name {
+            font-size: .55rem;
             font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.3);
+            white-space: nowrap;
         }
-        .plan-asig-week--empty {
-            background: var(--bg-hover);
-            border-color: var(--border);
-            color: var(--text-muted);
-        }
-        .plan-asig-card__count {
-            font-size: .75rem;
-            color: var(--text-muted);
-        }
-        .plan-asig-card--complete {
-            border-color: rgba(34,197,94,.35);
-            background: linear-gradient(135deg, rgba(34,197,94,.06), rgba(34,197,94,.02));
-        }
-        .plan-asig-card--complete:hover {
-            border-color: rgba(34,197,94,.6);
-            box-shadow: 0 4px 20px rgba(34,197,94,.12);
-        }
-        .plan-asig-card--complete .plan-asig-card__count {
-            color: #22c55e;
+        .ptw-week--filled .ptw-week-name { color: #22c55e; }
+        .ptw-btn {
+            width: 100%;
+            padding: 11px 0;
+            border-radius: 8px;
+            font-size: .85rem;
             font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+            text-align: center;
         }
-        .plan-asig-card--complete .plan-asig-card__materia {
-            color: var(--text);
+        .ptw-btn--primary {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
         }
-        .plan-asig-card__badge-complete {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: .68rem;
-            font-weight: 700;
-            color: #22c55e;
-            background: rgba(34,197,94,.1);
-            border: 1px solid rgba(34,197,94,.25);
-            border-radius: 20px;
-            padding: 2px 8px;
-            align-self: flex-start;
+        .ptw-btn--primary:hover { background: rgba(99,102,241,.1); }
+        .ptw-btn--ghost {
+            background: rgba(255,255,255,.05);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
+        .ptw-btn--ghost:hover { background: rgba(255,255,255,.09); color: var(--text); }
 
         /* ── Modal plan de trabajo ────────────────────────────────── */
-        .plan-modal-overlay {
+        @keyframes pmIn {
+            from { opacity: 0; transform: scale(.97) translateY(12px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .pm-overlay {
             display: none;
             position: fixed; inset: 0;
-            background: rgba(0,0,0,.55);
+            background: rgba(8,13,28,.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 500;
             align-items: center;
             justify-content: center;
             padding: 16px;
-            backdrop-filter: blur(2px);
         }
-        .plan-modal-overlay.visible { display: flex; }
-        .plan-modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            width: min(920px, 100%);
-            max-height: 85vh;
+        .pm-overlay.visible { display: flex; }
+        .pm-modal {
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 18px;
+            width: min(860px, 100%);
+            max-height: 88vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 24px 64px rgba(0,0,0,.45);
-            animation: planModalIn .18s ease;
+            box-shadow: 0 32px 80px rgba(0,0,0,.65);
+            animation: pmIn .2s ease;
             overflow: hidden;
         }
-        @keyframes planModalIn {
-            from { opacity: 0; transform: scale(.96) translateY(10px); }
-            to   { opacity: 1; transform: none; }
-        }
-        .plan-modal-strip {
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent), #818cf8);
+        .pm-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 24px 28px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
             flex-shrink: 0;
         }
-        .plan-modal-head {
+        .pm-eyebrow {
+            display: block;
+            font-size: .6rem;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .pm-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--text);
+            margin: 0;
+            line-height: 1.2;
+        }
+        .pm-close {
+            background: none; border: none;
+            cursor: pointer; color: var(--text-muted);
+            font-size: 1.4rem; line-height: 1;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: color .15s, background .15s;
+            flex-shrink: 0;
+        }
+        .pm-close:hover { color: var(--text); background: rgba(255,255,255,.07); }
+        .pm-body {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .pm-sidebar {
+            width: 210px;
+            flex-shrink: 0;
+            padding: 20px 14px;
+            border-right: 1px solid rgba(255,255,255,.07);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+        }
+        .pm-sidebar-label {
+            font-size: .58rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 8px;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .pm-week-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: .875rem;
+            font-weight: 500;
+            width: 100%;
+            text-align: left;
+            transition: background .15s, color .15s;
+        }
+        .pm-week-item:hover:not(.pm-week-item--active) { background: rgba(255,255,255,.05); color: var(--text); }
+        .pm-week-item--active {
+            background: rgba(99,102,241,.12);
+            color: var(--text);
+            font-weight: 600;
+            border-left: 3px solid var(--accent);
+        }
+        .pm-week-icon {
+            width: 26px; height: 26px;
+            border-radius: 6px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.09);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .pm-week-item--active .pm-week-icon {
+            background: rgba(99,102,241,.2);
+            border-color: rgba(99,102,241,.4);
+            color: var(--accent);
+        }
+        .pm-week-saved-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+        .pm-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            gap: 16px;
+            overflow-y: auto;
+            min-width: 0;
+        }
+        .pm-content::-webkit-scrollbar { width: 5px; }
+        .pm-content::-webkit-scrollbar-track { background: transparent; }
+        .pm-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+        .pm-content-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+        .pm-content-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: rgba(99,102,241,.15);
+            border: 1px solid rgba(99,102,241,.3);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+        .pm-content-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 3px;
+        }
+        .pm-content-sub {
+            font-size: .8rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+        .pm-textarea {
+            flex: 1;
+            min-height: 260px;
+            resize: none;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
+            padding: 16px 18px;
+            color: var(--text);
+            font-size: .9rem;
+            font-family: inherit;
+            line-height: 1.65;
+            transition: border-color .15s;
+        }
+        .pm-textarea:focus { outline: none; border-color: rgba(99,102,241,.5); }
+        .pm-textarea.pm-invalid { border-color: #dc2626; }
+        .pm-readonly-text {
+            flex: 1;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 12px;
+            padding: 16px 18px;
+            color: var(--text);
+            font-size: .9rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 260px;
+        }
+        .pm-error-msg {
+            font-size: .78rem;
+            color: #dc2626;
+            display: none;
+            flex-shrink: 0;
+        }
+        .pm-footer {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 24px 16px;
-            border-bottom: 1px solid var(--border);
-            gap: 14px;
+            gap: 12px;
+            padding: 14px 24px;
+            border-top: 1px solid rgba(255,255,255,.07);
             flex-shrink: 0;
-            background: linear-gradient(135deg, rgba(99,102,241,.07) 0%, transparent 60%);
+            background: rgba(255,255,255,.02);
         }
-        .plan-modal-head-left {
+        .pm-footer-hint {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 6px;
+            font-size: .75rem;
+            color: var(--text-muted);
         }
-        .plan-modal-icon {
-            width: 42px; height: 42px;
-            border-radius: 10px;
+        .pm-footer-actions { display: flex; align-items: center; gap: 10px; }
+        .pm-btn-cancel {
+            background: none;
+            border: 1px solid rgba(255,255,255,.12);
+            color: var(--text-muted);
+            padding: 9px 22px;
+            border-radius: 8px;
+            font-size: .875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .pm-btn-cancel:hover { background: rgba(255,255,255,.06); color: var(--text); }
+        .pm-btn-action {
+            padding: 9px 22px;
+            border-radius: 8px;
+            font-size: .875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+            border: none;
+        }
+        .pm-btn-action--save {
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            color: #fff;
+        }
+        .pm-btn-action--save:hover { opacity: .88; }
+        .pm-btn-action--save:disabled { opacity: .45; cursor: not-allowed; }
+        .pm-btn-action--edit {
+            background: rgba(99,102,241,.15);
+            border: 1px solid rgba(99,102,241,.4);
+            color: #a5b4fc;
+        }
+        .pm-btn-action--edit:hover { background: rgba(99,102,241,.25); }
+        @media (max-width: 600px) {
+            .pm-body { flex-direction: column; }
+            .pm-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,.07); padding: 12px 10px; flex-direction: row; overflow-x: auto; overflow-y: visible; gap: 6px; }
+            .pm-sidebar-label { display: none; }
+            .pm-week-item { min-width: 90px; flex-shrink: 0; }
+        }
+
+        /* ── Panel bloqueado (próximamente) ─────────────────────── */
+        .panel-bloqueado {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            background: rgba(10,14,26,.82);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            pointer-events: all;
+            border-radius: inherit;
+        }
+        .panel-bloqueado__icon {
+            width: 56px; height: 56px;
+            border-radius: 14px;
             background: rgba(99,102,241,.12);
             border: 1px solid rgba(99,102,241,.25);
             display: flex; align-items: center; justify-content: center;
             color: var(--accent);
-            flex-shrink: 0;
         }
-        .plan-modal-head h3 {
-            font-size: 1rem;
+        .panel-bloqueado__titulo {
+            font-size: 1.1rem;
             font-weight: 700;
-            margin: 0 0 5px;
             color: var(--text);
+            margin: 0;
         }
-        .plan-modal-curso-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: .72rem;
-            font-weight: 600;
-            color: var(--accent);
-            background: rgba(99,102,241,.1);
-            border: 1px solid rgba(99,102,241,.25);
-            border-radius: 99px;
-            padding: 2px 9px;
-        }
-        .plan-modal-close {
-            background: none; border: none; cursor: pointer;
-            color: var(--text-muted);
-            padding: 6px;
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            transition: color .15s, background .15s;
-            flex-shrink: 0;
-        }
-        .plan-modal-close:hover { color: var(--text); background: var(--bg-hover); }
-        .plan-modal-body {
-            overflow-y: auto;
-            flex: 1;
-            padding: 0;
-        }
-        .plan-modal-body::-webkit-scrollbar { width: 6px; }
-        .plan-modal-body::-webkit-scrollbar-track { background: var(--bg-hover); }
-        .plan-modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-        .plan-modal-body::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-        .plan-modal-footer {
-            display: none;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 24px;
-            border-top: 1px solid var(--border);
-            flex-shrink: 0;
-            background: var(--bg-hover);
-        }
-        .plan-modal-footer-hint {
-            font-size: .75rem;
-            color: var(--text-muted);
-            margin-right: auto;
-        }
-
-        /* ── Tabla dentro del modal ───────────────────────────────── */
-        .plan-table-wrap { overflow-x: auto; }
-
-        .plan-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .plan-table th {
-            padding: 10px 16px;
-            text-align: left;
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-            background: var(--bg-hover);
-        }
-        .plan-table td {
-            padding: 14px 16px;
-            vertical-align: top;
-            border-bottom: 1px solid var(--border);
-            font-size: .875rem;
-            color: var(--text);
-        }
-        .plan-table tr:last-child td { border-bottom: none; }
-        .plan-table tbody tr:hover td { background: var(--bg-hover); }
-        .plan-table tbody tr:has(.plan-inline-form) td,
-        .plan-table tbody tr:has(.plan-inline-form):hover td { background: var(--bg-hover); }
-
-        .plan-semana-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
+        .panel-bloqueado__sub {
             font-size: .85rem;
-            color: var(--text);
-            white-space: nowrap;
-        }
-        .plan-semana-num {
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            background: rgba(99,102,241,.15);
-            border: 1.5px solid rgba(99,102,241,.4);
-            color: var(--accent);
-            font-size: .72rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .plan-semana-num--empty {
-            background: var(--bg-hover);
-            border-color: var(--border);
             color: var(--text-muted);
-        }
-
-        .plan-periodo {
-            font-size: .78rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
-        .plan-desc-vacia {
-            color: var(--text-muted);
-            font-style: italic;
-            font-size: .84rem;
-        }
-        .plan-desc-text {
-            line-height: 1.55;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-size: .875rem;
-        }
-        .btn-icon-sm {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 5px 7px;
-            border-radius: 6px;
-            transition: color .15s, background .15s;
-            display: inline-flex;
-            align-items: center;
-        }
-        .btn-icon-sm:hover { color: #dc2626; background: rgba(239,68,68,.1); }
-
-        .plan-btn-add {
-            font-size: .78rem;
-            padding: 5px 12px;
-            border-radius: 99px;
-            border: 1px dashed var(--border);
-            background: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            white-space: nowrap;
-            transition: border-color .15s, color .15s, background .15s;
-        }
-        .plan-btn-add:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: var(--accent-dim, rgba(99,102,241,.06));
-        }
-
-        /* Inline form */
-        .plan-inline-form {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .plan-inline-form textarea {
-            width: 100%;
-            min-height: 90px;
-            resize: none;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 12px;
-            color: var(--text);
-            font-size: .875rem;
-            font-family: inherit;
-            line-height: 1.5;
-            transition: border-color .15s;
-        }
-        .plan-inline-form textarea:focus { outline: none; border-color: var(--accent); }
-        .plan-inline-form textarea.invalid { border-color: #dc2626; }
-        .plan-inline-btns {
-            display: flex;
-            gap: 8px;
-        }
-        .plan-btn-save {
-            font-size: .8rem;
-            padding: 6px 16px;
-            border-radius: 99px;
-            border: none;
-            background: var(--accent);
-            color: #fff;
-            cursor: pointer;
-            font-weight: 600;
-            transition: opacity .15s;
-        }
-        .plan-btn-save:disabled { opacity: .55; cursor: not-allowed; }
-        .plan-btn-cancel {
-            font-size: .8rem;
-            padding: 6px 14px;
-            border-radius: 99px;
-            border: 1px solid var(--border);
-            background: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: background .15s;
-        }
-        .plan-btn-cancel:hover { background: var(--bg-hover); }
-        .plan-inline-error {
-            font-size: .78rem;
-            color: #dc2626;
-            display: none;
+            margin: 0;
         }
 
         /* Dot de notificación en sidebar */
@@ -575,205 +642,6 @@
         }
         .nav-dot.visible { display: block; }
 
-        /* Banner de aviso */
-        .plan-banner {
-            display: none;
-            align-items: center;
-            gap: 14px;
-            margin: 16px 20px 0;
-            padding: 14px 18px;
-            border-radius: 12px;
-            background: rgba(234,179,8,.08);
-            border: 1px solid rgba(234,179,8,.3);
-            font-size: .845rem;
-            color: var(--text);
-            line-height: 1.4;
-        }
-        .plan-banner.visible { display: flex; }
-        .plan-banner-icon {
-            width: 36px; height: 36px;
-            border-radius: 9px;
-            background: rgba(234,179,8,.15);
-            border: 1px solid rgba(234,179,8,.3);
-            display: flex; align-items: center; justify-content: center;
-            color: #ca8a04;
-            flex-shrink: 0;
-        }
-
-        /* Botón ver historial */
-        .btn-ver-historial {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 20px;
-            border-radius: var(--radius);
-            border: 1px solid rgba(167,139,250,.35);
-            background: rgba(167,139,250,.08);
-            color: #a78bfa;
-            font-size: .82rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background .15s, border-color .15s;
-            letter-spacing: .01em;
-        }
-        .btn-ver-historial svg { flex-shrink: 0; }
-        .btn-ver-historial:hover,
-        .btn-ver-historial.active {
-            background: rgba(167,139,250,.18);
-            border-color: rgba(167,139,250,.6);
-        }
-
-        /* Sección historial */
-        .plan-historial-wrap {
-            border-top: 1px solid var(--border);
-            padding-bottom: 8px;
-        }
-        .plan-historial-mes-group { margin-bottom: 8px; }
-        .plan-historial-mes-label {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 16px 16px 10px;
-            padding: 10px 14px;
-            font-size: .78rem;
-            font-weight: 700;
-            color: #a78bfa;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            background: rgba(167,139,250,.07);
-            border: 1px solid rgba(167,139,250,.2);
-            border-left: 3px solid #a78bfa;
-            border-radius: var(--radius);
-        }
-        .plan-historial-vacio {
-            text-align: center;
-            padding: 48px 20px;
-            color: var(--text-muted);
-            font-size: .88rem;
-        }
-
-        /* ── Vista tablero solo lectura ───────────────────────────── */
-        .plan-board {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            padding: 20px;
-        }
-        @media (max-width: 860px) { .plan-board { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 480px) { .plan-board { grid-template-columns: 1fr; } }
-
-        .plan-col {
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 230px;
-            transition: transform .2s, box-shadow .2s;
-        }
-        .plan-col--filled {
-            border-left: 3px solid var(--accent);
-            box-shadow: 0 2px 10px rgba(0,0,0,.1);
-        }
-        .plan-col--empty {
-            border-left: 3px solid var(--border);
-        }
-        .plan-col:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0,0,0,.18);
-            border-color: rgba(99,130,220,.45);
-        }
-
-        .plan-col-header {
-            position: relative;
-            padding: 20px 20px 18px;
-            border-bottom: 1px solid var(--border);
-            overflow: hidden;
-        }
-        .plan-col--filled .plan-col-header {
-            background: linear-gradient(135deg, var(--accent-dim) 0%, var(--bg-hover) 75%);
-        }
-        .plan-col--empty .plan-col-header { background: var(--bg-hover); }
-
-        /* badge de estado */
-        .plan-col-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: .65rem;
-            font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 99px;
-            text-transform: uppercase;
-            letter-spacing: .07em;
-            margin-bottom: 10px;
-        }
-        .plan-col-badge--ok {
-            background: rgba(34,197,94,.15);
-            color: #22c55e;
-            border: 1px solid rgba(34,197,94,.3);
-        }
-        .plan-col-badge--vacio {
-            background: var(--bg-input);
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-        }
-
-        .plan-col-label {
-            display: block;
-            font-size: .85rem;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 4px;
-        }
-        .plan-col-date {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: .72rem;
-            color: var(--text-muted);
-        }
-
-        /* número grande arriba a la derecha */
-        .plan-col-bignum {
-            position: absolute;
-            top: 12px;
-            right: 14px;
-            font-size: 2.2rem;
-            font-weight: 900;
-            line-height: 1;
-            opacity: .12;
-            color: var(--accent);
-            user-select: none;
-            pointer-events: none;
-        }
-        .plan-col--empty .plan-col-bignum { color: var(--text-muted); opacity: .15; }
-
-        .plan-col-body {
-            padding: 20px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .plan-col-text {
-            font-size: .875rem;
-            line-height: 1.65;
-            color: var(--text);
-            white-space: pre-wrap;
-            word-break: break-word;
-            margin: 0;
-        }
-        .plan-col-vacia {
-            margin: auto;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-muted);
-        }
-        .plan-col-vacia svg { opacity: .3; }
-        .plan-col-vacia-text { font-size: .82rem; font-style: italic; }
 
         /* ── Modal advertencia salir sin guardar ─────────────────── */
         .warn-modal-overlay {
@@ -839,103 +707,6 @@
             justify-content: center;
         }
 
-        /* ── Modal doble confirmación plan ────────────────────────── */
-        .plan-confirm-backdrop {
-            display: none;
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 500;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .plan-confirm-backdrop.visible { display: flex; }
-        .plan-confirm-modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 32px 28px 24px;
-            max-width: 420px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,.35);
-        }
-        .plan-confirm-modal h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text);
-            margin: 0 0 6px;
-        }
-        .plan-confirm-modal .plan-confirm-sub {
-            font-size: .8rem;
-            color: var(--text-muted);
-            margin: 0 0 16px;
-        }
-        .plan-confirm-preview {
-            background: var(--bg-hover);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--accent);
-            border-radius: var(--radius);
-            padding: 12px 14px;
-            font-size: .84rem;
-            color: var(--text);
-            line-height: 1.55;
-            white-space: pre-wrap;
-            word-break: break-word;
-            max-height: 140px;
-            overflow-y: auto;
-            margin-bottom: 22px;
-        }
-        .plan-confirm-detalle {
-            background: var(--bg-hover);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--accent);
-            border-radius: var(--radius);
-            padding: 12px 16px;
-            margin-bottom: 22px;
-            font-size: .88rem;
-            font-weight: 600;
-            color: var(--text);
-        }
-        .plan-confirm-tag {
-            color: var(--accent);
-            font-weight: 700;
-        }
-        .plan-confirm-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        /* Mobile → cards */
-        @media (max-width: 640px) {
-            .plan-table thead { display: none; }
-            .plan-table,
-            .plan-table tbody,
-            .plan-table tr,
-            .plan-table td { display: block; width: 100%; }
-            .plan-table tr {
-                margin: 0 0 10px;
-                border: 1px solid var(--border);
-                border-radius: var(--radius);
-                overflow: hidden;
-            }
-            .plan-table tbody tr:hover td { background: transparent; }
-            .plan-table td {
-                border-bottom: 1px solid var(--border);
-                padding: 10px 14px;
-            }
-            .plan-table td:last-child { border-bottom: none; }
-            .plan-table td[data-label]::before {
-                content: attr(data-label);
-                display: block;
-                font-size: .68rem;
-                font-weight: 600;
-                color: var(--text-muted);
-                text-transform: uppercase;
-                letter-spacing: .04em;
-                margin-bottom: 5px;
-            }
-        }
 
         /* ── Modal primer ingreso / cambiar credenciales ─────────── */
         .cred-modal-overlay {
@@ -1877,7 +1648,17 @@
 
 
         <!-- ══ Panel Notas ══════════════════════════════════════════ -->
-        <div class="tab-panel active" id="panelNotas" role="tabpanel">
+        <div class="tab-panel active" id="panelNotas" role="tabpanel" style="position:relative;">
+            <div class="panel-bloqueado">
+                <div class="panel-bloqueado__icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <p class="panel-bloqueado__titulo">Sección en desarrollo</p>
+                <p class="panel-bloqueado__sub">Esta funcionalidad estará disponible próximamente.</p>
+            </div>
 
             <!-- Sub-vista A: Mis Clases ──────────────────────── -->
             <div id="vistaClases" class="page-inner">
@@ -2083,7 +1864,17 @@
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->
-        <div class="tab-panel" id="panelCitaciones" role="tabpanel">
+        <div class="tab-panel" id="panelCitaciones" role="tabpanel" style="position:relative;">
+            <div class="panel-bloqueado">
+                <div class="panel-bloqueado__icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <p class="panel-bloqueado__titulo">Sección en desarrollo</p>
+                <p class="panel-bloqueado__sub">Esta funcionalidad estará disponible próximamente.</p>
+            </div>
             <div class="page-inner">
                 <div class="sec-hdr">
                     <div class="sec-hdr__title-row">
@@ -2220,48 +2011,21 @@
         </div>
 
         <!-- ══ Panel Plan de Trabajo ════════════════════════════════ -->
-        <div class="tab-panel" id="panelPlan" role="tabpanel">
-            <div class="card">
-                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-                    <h2 class="card-title" style="margin:0;">Plan de Trabajo</h2>
-                    <button class="btn-ver-historial" id="btnVerHistorial">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 8 12 12 14 14"/>
-                        </svg>
-                        Ver planes pasados
-                    </button>
-                </div>
-                <div class="card-body" style="padding:0;">
+        <div class="tab-panel" id="panelPlan" role="tabpanel" style="padding:0;">
 
-                    <!-- Banner de aviso -->
-                    <div class="plan-banner" id="planBanner">
-                        <div class="plan-banner-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                        </div>
-                        <span>Tienes semanas sin plan registrado en <strong id="planBannerMes"></strong>. Completa tu plan del mes actual.</span>
-                    </div>
-
-                    <div class="historial-spinner" id="planSpinner">
-                        <div class="spinner"></div>
-                    </div>
-
-                    <!-- Tarjetas por asignación (mes actual) -->
-                    <div class="plan-asig-grid" id="planAsigGrid" style="display:none;"></div>
-
-                    <!-- Historial de planes pasados -->
-                    <div class="plan-historial-wrap" id="planHistorialWrap" style="display:none;">
-                        <div id="planHistorialContent"></div>
-                    </div>
-
-                </div>
+            <div class="historial-spinner" id="planSpinner">
+                <div class="spinner"></div>
             </div>
+
+            <div id="ptwMain" style="display:none;">
+                <div class="ptw-header">
+                    <button class="ptw-nav-btn" id="ptwPrevMes" aria-label="Mes anterior">&#8249;</button>
+                    <h1 class="ptw-title">Plan de Trabajo:&nbsp;<span class="ptw-title-mes" id="ptwMesLabel"></span></h1>
+                    <button class="ptw-nav-btn" id="ptwNextMes" aria-label="Mes siguiente">&#8250;</button>
+                </div>
+                <div class="ptw-grid" id="planAsigGrid"></div>
+            </div>
+
         </div>
 
         <!-- ══ Panel Cuenta ═════════════════════════════════════════ -->
@@ -2330,51 +2094,34 @@
 
     </main>
 
-    <!-- ── Modal detalle plan de trabajo ─────────────────────────── -->
-    <div class="plan-modal-overlay" id="planModalOverlay">
-        <div class="plan-modal">
-            <div class="plan-modal-strip"></div>
-            <div class="plan-modal-head">
-                <div class="plan-modal-head-left">
-                    <div class="plan-modal-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/>
-                            <line x1="8" y1="2" x2="8" y2="6"/>
-                            <line x1="3" y1="10" x2="21" y2="10"/>
-                            <line x1="8" y1="15" x2="13" y2="15"/>
-                            <line x1="8" y1="18" x2="11" y2="18"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 id="planModalMateria"></h3>
-                        <span class="plan-modal-curso-badge" id="planModalCurso"></span>
-                    </div>
+    <!-- ── Modal plan de trabajo ─────────────────────────────────── -->
+    <div class="pm-overlay" id="planModalOverlay">
+        <div class="pm-modal">
+            <div class="pm-header">
+                <div>
+                    <span class="pm-eyebrow">Registro de Plan Académico</span>
+                    <h2 class="pm-title" id="pmTitle">Planificación Semanal</h2>
                 </div>
-                <button class="plan-modal-close" id="planModalClose" aria-label="Cerrar">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                <button class="pm-close" id="planModalClose" aria-label="Cerrar">&#10005;</button>
+            </div>
+            <div class="pm-body">
+                <nav class="pm-sidebar">
+                    <span class="pm-sidebar-label">Semanas Académicas</span>
+                    <div id="pmWeekList"></div>
+                </nav>
+                <div class="pm-content" id="pmContent"></div>
+            </div>
+            <div class="pm-footer">
+                <span class="pm-footer-hint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                </button>
-            </div>
-            <div class="plan-modal-body">
-                <div class="plan-table-wrap">
-                    <table class="plan-table">
-                        <thead>
-                            <tr>
-                                <th style="width:130px;">Semana</th>
-                                <th style="width:160px;">Período</th>
-                                <th>Plan de Trabajo</th>
-                                <th style="width:50px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="planModalTbody"></tbody>
-                    </table>
+                    El plan se guarda por semana seleccionada.
+                </span>
+                <div class="pm-footer-actions">
+                    <button class="pm-btn-cancel" id="planModalCancelar">Cancelar</button>
+                    <button class="pm-btn-action pm-btn-action--save" id="planModalGuardar">Guardar Cambios</button>
                 </div>
-            </div>
-            <div class="plan-modal-footer" id="planModalFooter">
-                <span class="plan-modal-footer-hint">Mínimo 20 caracteres por semana</span>
-                <button class="btn-primary" id="planModalGuardar">Guardar planes</button>
             </div>
         </div>
     </div>
@@ -2394,25 +2141,12 @@
                     </svg>
                 </div>
                 <h3>¿Salir sin guardar?</h3>
-                <p>Tienes planes escritos que aún no se han guardado. Si cierras ahora, perderás esos cambios.</p>
+                <p id="warnSinGuardarMsg">Tienes contenido sin guardar que se perderá si cierras ahora.</p>
                 <div class="warn-modal-actions">
                     <button class="btn-ghost" id="warnSinGuardarQuedarme">Quedarme</button>
                     <button class="btn-primary" id="warnSinGuardarSalir"
                             style="background:var(--danger,#dc2626);">Salir de todas formas</button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Modal doble confirmación plan de trabajo ──────────────── -->
-    <div class="plan-confirm-backdrop" id="planConfirmBackdrop">
-        <div class="plan-confirm-modal">
-            <h3 id="planConfirmTitulo">¿Subir plan de trabajo?</h3>
-            <p class="plan-confirm-sub" id="planConfirmSub"></p>
-            <div class="plan-confirm-detalle" id="planConfirmDetalle"></div>
-            <div class="plan-confirm-actions">
-                <button class="btn-ghost" id="planConfirmCancelar">Cancelar</button>
-                <button class="btn-primary" id="planConfirmAceptar">Sí, subir plan</button>
             </div>
         </div>
     </div>

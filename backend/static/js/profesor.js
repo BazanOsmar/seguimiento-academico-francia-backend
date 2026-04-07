@@ -1173,42 +1173,34 @@ const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
 </svg>`;
 
 // ── Estado del plan ────────────────────────────────────────────────
-let _planAsignaciones = [];         // ProfesorCurso[] del profesor
-let _planPlanesCache  = {};         // { mes: { pc_id: [plan, ...] } }
-let _planModalPcId    = null;
-let _planModalMes     = null;
-let _planModalEditable = true;
-let _planHistCargado  = false;
+let _planAsignaciones = [];   // ProfesorCurso[] del profesor
+let _planPlanesCache  = {};   // { mes: { pc_id: [plan, ...] } }
+let _planMesVista     = new Date().getMonth() + 1;
 
 function _initPlanForm() {
-    // botón Ver historial
-    const btn  = document.getElementById('btnVerHistorial');
-    const wrap = document.getElementById('planHistorialWrap');
-
-    btn.addEventListener('click', async () => {
-        const visible = wrap.style.display !== 'none';
-        if (visible) {
-            wrap.style.display = 'none';
-            btn.classList.remove('active');
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ver planes pasados`;
-        } else {
-            wrap.style.display = 'block';
-            btn.classList.add('active');
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ocultar planes pasados`;
-            if (!_planHistCargado) {
-                await cargarHistorialPlanes();
-                _planHistCargado = true;
-            }
-        }
+    // Navegación de mes
+    document.getElementById('ptwPrevMes').addEventListener('click', async () => {
+        if (_planMesVista <= 1) return;
+        _planMesVista--;
+        await _cambiarMesPlan();
+    });
+    document.getElementById('ptwNextMes').addEventListener('click', async () => {
+        if (_planMesVista >= new Date().getMonth() + 1) return;
+        _planMesVista++;
+        await _cambiarMesPlan();
     });
 
-    // modal plan — cerrar
+    // modal — cerrar
     document.getElementById('planModalClose').addEventListener('click', _cerrarPlanModal);
+    document.getElementById('planModalCancelar').addEventListener('click', _cerrarPlanModal);
     document.getElementById('planModalOverlay').addEventListener('click', e => {
         if (e.target === e.currentTarget) _cerrarPlanModal();
     });
 
-    // modal advertencia sin guardar
+    // modal — guardar semana activa
+    document.getElementById('planModalGuardar').addEventListener('click', _guardarSemana);
+
+    // advertencia sin guardar
     document.getElementById('warnSinGuardarQuedarme').addEventListener('click', () => {
         document.getElementById('warnSinGuardarOverlay').classList.remove('visible');
     });
@@ -1216,19 +1208,26 @@ function _initPlanForm() {
         document.getElementById('warnSinGuardarOverlay').classList.remove('visible');
         _forzarCerrarPlanModal();
     });
+}
 
-    // modal plan — guardar todos
-    document.getElementById('planModalGuardar').addEventListener('click', _pedirConfirmGuardar);
+function _actualizarHeaderMes() {
+    const mesActual = new Date().getMonth() + 1;
+    document.getElementById('ptwMesLabel').textContent = `${MESES[_planMesVista]} ${new Date().getFullYear()}`;
+    document.getElementById('ptwPrevMes').disabled = _planMesVista <= 1;
+    document.getElementById('ptwNextMes').disabled = _planMesVista >= mesActual;
+}
 
-    // confirmación antes de guardar
-    const backdrop = document.getElementById('planConfirmBackdrop');
-    document.getElementById('planConfirmCancelar').addEventListener('click', () => {
-        backdrop.classList.remove('visible');
-    });
-    document.getElementById('planConfirmAceptar').addEventListener('click', async () => {
-        backdrop.classList.remove('visible');
-        await _guardarPlanesModal();
-    });
+async function _cambiarMesPlan() {
+    const main    = document.getElementById('ptwMain');
+    const spinner = document.getElementById('planSpinner');
+    main.style.display    = 'none';
+    spinner.style.display = 'flex';
+    await _refrescarPlanesCache(_planMesVista);
+    spinner.style.display = 'none';
+    main.style.display    = '';
+    _actualizarHeaderMes();
+    _renderPlanCards(_planMesVista);
+    _actualizarNotificaciones(_planMesVista);
 }
 
 // ── Utilidades de calendario ──────────────────────────────────────
@@ -1247,18 +1246,20 @@ function _semanasMes(mes, año) {
 function _periodoSemana(mes, semana) {
     const año = new Date().getFullYear();
     const { inicio, fin } = _semanasMes(mes, año)[semana - 1];
-    const fmt = d => d.toLocaleDateString('es-BO', { day: 'numeric', month: 'short' });
+    const fmt = d => {
+        const m = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        return `${d.getDate()} de ${m[d.getMonth()]}`;
+    };
     return { display: `${fmt(inicio)} – ${fmt(fin)}` };
 }
 
 // ── Carga principal del mes actual ────────────────────────────────
 async function cargarPlanes() {
-    const grid    = document.getElementById('planAsigGrid');
     const spinner = document.getElementById('planSpinner');
-    grid.style.display = 'none';
+    const main    = document.getElementById('ptwMain');
+    main.style.display    = 'none';
     spinner.style.display = 'flex';
 
-    // Cargar asignaciones una sola vez
     if (!_planAsignaciones.length) {
         const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
         if (!ok) {
@@ -1269,13 +1270,14 @@ async function cargarPlanes() {
         _planAsignaciones = data;
     }
 
-    const mes = new Date().getMonth() + 1;
-    await _refrescarPlanesCache(mes);
+    _planMesVista = new Date().getMonth() + 1;
+    await _refrescarPlanesCache(_planMesVista);
 
     spinner.style.display = 'none';
-    grid.style.display = 'grid';
-    _renderPlanCards(mes);
-    _actualizarNotificaciones(mes);
+    main.style.display    = '';
+    _actualizarHeaderMes();
+    _renderPlanCards(_planMesVista);
+    _actualizarNotificaciones(_planMesVista);
 }
 
 async function _refrescarPlanesCache(mes) {
@@ -1289,55 +1291,86 @@ async function _refrescarPlanesCache(mes) {
 
 // ── Tarjetas de asignaciones ──────────────────────────────────────
 function _renderPlanCards(mes) {
-    const grid = document.getElementById('planAsigGrid');
+    const grid  = document.getElementById('planAsigGrid');
     const pcMap = _planPlanesCache[mes] || {};
 
     grid.innerHTML = _planAsignaciones.map(asig => {
-        const plans = pcMap[asig.id] || [];
-        const dots  = [1, 2, 3, 4].map(s => {
-            const ok = plans.some(p => p.semana === s);
-            return `<span class="plan-asig-week${ok ? '' : ' plan-asig-week--empty'}">${s}</span>`;
-        }).join('');
+        const plans    = pcMap[asig.id] || [];
         const complete = plans.length === 4;
-        return `<div class="plan-asig-card${complete ? ' plan-asig-card--complete' : ''}" data-pc-id="${asig.id}" data-mes="${mes}">
+        const weeksHtml = [1, 2, 3, 4].map(s => {
+            const ok = plans.some(p => p.semana === s);
+            return `<div class="ptw-week${ok ? ' ptw-week--filled' : ''}">
+                <div class="ptw-week-bar${ok ? ' ptw-week-bar--filled' : ''}"></div>
+                <span class="ptw-week-name">Semana ${s}</span>
+            </div>`;
+        }).join('');
+
+        return `<div class="ptw-card" data-pc-id="${asig.id}" data-mes="${mes}">
             <div>
-                <div class="plan-asig-card__materia">${_escapeHtml(asig.materia_nombre)}</div>
-                <div class="plan-asig-card__curso">${_escapeHtml(asig.curso_nombre)}</div>
+                <div class="ptw-course">${_escapeHtml(asig.curso_nombre)}</div>
+                <div class="ptw-subject">${_escapeHtml(asig.materia_nombre)}</div>
             </div>
-            <div class="plan-asig-dots">${dots}</div>
-            ${complete
-                ? `<span class="plan-asig-card__badge-complete"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>Completo</span>`
-                : `<div class="plan-asig-card__count">${plans.length} de 4 semanas</div>`
-            }
+            <div>
+                <div class="ptw-progress-label">Progreso semanal</div>
+                <div class="ptw-weeks">${weeksHtml}</div>
+            </div>
+            <button class="ptw-btn ${complete ? 'ptw-btn--primary' : 'ptw-btn--ghost'}">
+                ${complete ? 'Editar Plan' : 'Definir Plan'}
+            </button>
         </div>`;
     }).join('');
 
-    grid.querySelectorAll('.plan-asig-card').forEach(card => {
+    grid.querySelectorAll('.ptw-card').forEach(card => {
         card.addEventListener('click', () =>
-            _abrirPlanModal(parseInt(card.dataset.pcId), parseInt(card.dataset.mes), true)
+            _abrirPlanModal(parseInt(card.dataset.pcId), parseInt(card.dataset.mes))
         );
     });
 }
 
-// ── Modal de plan por asignación ──────────────────────────────────
-function _abrirPlanModal(pcId, mes, editable) {
-    _planModalPcId     = pcId;
-    _planModalMes      = mes;
-    _planModalEditable = editable;
+// ── Estado del modal de plan ──────────────────────────────────────
+let _pmPcId   = null;   // profesor_curso id
+let _pmMes    = null;   // mes del modal
+let _pmSemana = 1;      // semana activa en sidebar
+let _pmPlanes = {};     // { semana: plan_obj } — guardados en BD
+let _pmModos  = {};     // { semana: 'view'|'edit'|'new' }
+let _pmDrafts = {};     // { semana: string } — borrador en memoria
 
-    const asig = _planAsignaciones.find(a => a.id === pcId);
+// ── Modal de plan por asignación ──────────────────────────────────
+function _abrirPlanModal(pcId, mes) {
+    _pmPcId   = pcId;
+    _pmMes    = mes;
+    _pmSemana = 1;
+    _pmDrafts = { 1: '', 2: '', 3: '', 4: '' };
+
+    const asig   = _planAsignaciones.find(a => a.id === pcId);
     if (!asig) return;
 
-    document.getElementById('planModalMateria').textContent = asig.materia_nombre;
-    document.getElementById('planModalCurso').textContent   = asig.curso_nombre;
-    _renderPlanModalTbody(pcId, mes, editable);
+    const planes = (_planPlanesCache[mes] || {})[pcId] || [];
+    _pmPlanes = {};
+    planes.forEach(p => { _pmPlanes[p.semana] = p; });
+
+    _pmModos = {};
+    for (let s = 1; s <= 4; s++) {
+        _pmModos[s] = _pmPlanes[s] ? 'view' : 'new';
+    }
+
+    document.getElementById('pmTitle').textContent =
+        `Planificación Semanal: ${MESES[mes]} ${new Date().getFullYear()}`;
+
+    _renderPmSidebar();
+    _renderPmContent();
     document.getElementById('planModalOverlay').classList.add('visible');
 }
 
 function _cerrarPlanModal() {
-    const hayContenido = [...document.querySelectorAll('#planModalTbody textarea')]
-        .some(ta => ta.value.trim());
-    if (hayContenido) {
+    // Guardar borrador de la semana activa antes de revisar
+    _guardarDraftActivo();
+
+    const pendientes = [1, 2, 3, 4].filter(s => _pmDrafts[s].trim().length > 0);
+    if (pendientes.length) {
+        const nombres = pendientes.map(s => `Semana ${s}`).join(', ');
+        document.getElementById('warnSinGuardarMsg').textContent =
+            `Tienes contenido sin guardar en ${nombres}. Si cierras ahora, se perderá.`;
         document.getElementById('warnSinGuardarOverlay').classList.add('visible');
         return;
     }
@@ -1346,105 +1379,141 @@ function _cerrarPlanModal() {
 
 function _forzarCerrarPlanModal() {
     document.getElementById('planModalOverlay').classList.remove('visible');
-    _planModalPcId = null;
-    _planModalMes  = null;
+    _pmPcId = _pmMes = null;
+    _pmPlanes = _pmModos = _pmDrafts = {};
 }
 
-function _renderPlanModalTbody(pcId, mes, editable) {
-    const tbody  = document.getElementById('planModalTbody');
-    const footer = document.getElementById('planModalFooter');
-    const plans  = (_planPlanesCache[mes] || {})[pcId] || [];
-    const mapa   = {};
-    plans.forEach(p => { mapa[p.semana] = p; });
+function _guardarDraftActivo() {
+    const ta = document.getElementById('pmTextarea');
+    if (ta) _pmDrafts[_pmSemana] = ta.value;
+}
 
-    tbody.innerHTML = '';
-    let hayVacias = false;
+// ── Sidebar ───────────────────────────────────────────────────────
+const _SVG_CAL_OK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>`;
+const _SVG_CAL    = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
 
-    for (let semana = 1; semana <= 4; semana++) {
-        const plan = mapa[semana] || null;
-        const { display } = _periodoSemana(mes, semana);
-        const tr = document.createElement('tr');
+function _renderPmSidebar() {
+    const list = document.getElementById('pmWeekList');
+    list.innerHTML = [1, 2, 3, 4].map(s => {
+        const saved  = !!_pmPlanes[s];
+        const active = s === _pmSemana;
+        return `<button class="pm-week-item${active ? ' pm-week-item--active' : ''}" data-s="${s}">
+            <span class="pm-week-icon">${saved ? _SVG_CAL_OK : _SVG_CAL}</span>
+            <span>Semana ${s}</span>
+            ${saved ? '<span class="pm-week-saved-dot"></span>' : ''}
+        </button>`;
+    }).join('');
 
-        const numCls     = plan ? 'plan-semana-num' : 'plan-semana-num plan-semana-num--empty';
-        const semanaCell = `<td data-label="Semana"><span class="plan-semana-badge"><span class="${numCls}">${semana}</span>Semana ${semana}</span></td>`;
-        const periodoCell = `<td data-label="Período"><span class="plan-periodo">${display}</span></td>`;
-
-        if (plan) {
-            tr.innerHTML = `${semanaCell}${periodoCell}
-                <td data-label="Plan"><span class="plan-desc-text">${_escapeHtml(plan.descripcion)}</span></td>
-                <td></td>`;
-        } else {
-            hayVacias = true;
-            tr.innerHTML = `${semanaCell}${periodoCell}
-                <td data-label="Plan">${editable
-                    ? `<div class="plan-inline-form"><textarea data-semana="${semana}" placeholder="Plan de trabajo para la semana ${semana}… (mín. 20 caracteres)" maxlength="500" minlength="20"></textarea><span class="plan-inline-error"></span></div>`
-                    : '<span class="plan-desc-vacia">Sin plan registrado</span>'
-                }</td>
-                <td></td>`;
-        }
-        tbody.appendChild(tr);
-    }
-
-    if (footer) footer.style.display = editable && hayVacias ? 'flex' : 'none';
-
-    // Habilitar botón solo cuando todos los textareas tengan ≥ 20 chars
-    if (editable && hayVacias) {
-        const btn = document.getElementById('planModalGuardar');
-        btn.disabled = true;
-        tbody.querySelectorAll('textarea').forEach(ta => {
-            ta.addEventListener('input', _actualizarBtnGuardar);
+    list.querySelectorAll('.pm-week-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const s = parseInt(btn.dataset.s);
+            if (s === _pmSemana) return;
+            _guardarDraftActivo();
+            _pmSemana = s;
+            _renderPmSidebar();
+            _renderPmContent();
         });
+    });
+}
+
+// ── Panel de contenido ────────────────────────────────────────────
+function _renderPmContent() {
+    const content = document.getElementById('pmContent');
+    const btnSave = document.getElementById('planModalGuardar');
+    const modo    = _pmModos[_pmSemana];
+    const plan    = _pmPlanes[_pmSemana];
+
+    const _ordinal = ['','primera','segunda','tercera','cuarta'];
+    const { display: rango } = _periodoSemana(_pmMes, _pmSemana);
+    const headerHtml = `
+        <div class="pm-content-header">
+            <div class="pm-content-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+            </div>
+            <div>
+                <p class="pm-content-title">${_escapeHtml(rango)}</p>
+                <p class="pm-content-sub">Describa las metas curriculares para la ${_ordinal[_pmSemana]} semana de ${MESES[_pmMes]}.</p>
+            </div>
+        </div>`;
+
+    if (modo === 'view') {
+        content.innerHTML = `${headerHtml}
+            <div class="pm-readonly-text">${_escapeHtml(plan.descripcion)}</div>`;
+        btnSave.textContent = 'Editar';
+        btnSave.className   = 'pm-btn-action pm-btn-action--edit';
+        btnSave.disabled    = false;
+        btnSave.onclick     = () => {
+            _pmModos[_pmSemana] = 'edit';
+            _pmDrafts[_pmSemana] = plan.descripcion;
+            _renderPmContent();
+        };
+    } else {
+        const draft = _pmDrafts[_pmSemana];
+        content.innerHTML = `${headerHtml}
+            <textarea class="pm-textarea" id="pmTextarea"
+                placeholder="Describa las actividades y objetivos para la semana ${_pmSemana}… (mín. 20 caracteres)"
+                maxlength="500">${_escapeHtml(draft)}</textarea>
+            <span class="pm-error-msg" id="pmErrorMsg"></span>`;
+        btnSave.textContent = 'Guardar Cambios';
+        btnSave.className   = 'pm-btn-action pm-btn-action--save';
+        btnSave.disabled    = false;
+        btnSave.onclick     = null;  // usa el listener global de _initPlanForm
     }
 }
 
-function _actualizarBtnGuardar() {
-    const textareas = [...document.querySelectorAll('#planModalTbody textarea')];
-    const btn = document.getElementById('planModalGuardar');
-    if (!btn) return;
-    btn.disabled = textareas.length === 0 || !textareas.every(ta => ta.value.trim().length >= 20);
-}
+// ── Guardar semana activa ─────────────────────────────────────────
+async function _guardarSemana() {
+    const modo = _pmModos[_pmSemana];
+    if (modo === 'view') return;  // botón en modo editar se maneja via onclick
 
-function _pedirConfirmGuardar() {
-    const asig  = _planAsignaciones.find(a => a.id === _planModalPcId);
-    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    document.getElementById('planConfirmSub').textContent =
-        `Estás a punto de registrar los planes de trabajo de ${meses[_planModalMes]} para:`;
-    document.getElementById('planConfirmDetalle').innerHTML =
-        `<span class="plan-confirm-tag">${_escapeHtml(asig.materia_nombre)}</span> &mdash; <span class="plan-confirm-tag">${_escapeHtml(asig.curso_nombre)}</span>`;
-    document.getElementById('planConfirmBackdrop').classList.add('visible');
-}
+    const ta  = document.getElementById('pmTextarea');
+    const err = document.getElementById('pmErrorMsg');
+    if (!ta) return;
 
-async function _guardarPlanesModal() {
-    const textareas  = [...document.querySelectorAll('#planModalTbody textarea')];
-    const pendientes = textareas.map(ta => ({ semana: parseInt(ta.dataset.semana), desc: ta.value.trim(), ta }));
+    const desc = ta.value.trim();
+    if (desc.length < 20) {
+        ta.classList.add('pm-invalid');
+        err.textContent = 'Mínimo 20 caracteres.';
+        err.style.display = 'block';
+        return;
+    }
+    ta.classList.remove('pm-invalid');
+    if (err) err.style.display = 'none';
 
     const btn = document.getElementById('planModalGuardar');
     btn.disabled    = true;
     btn.textContent = 'Guardando…';
 
-    let errores = 0;
-    for (const { semana, desc, ta } of pendientes) {
-        const { ok, data } = await fetchAPI('/api/academics/profesor/planes/', {
+    let ok, data;
+    if (modo === 'new') {
+        ({ ok, data } = await fetchAPI('/api/academics/profesor/planes/', {
             method: 'POST',
-            body: JSON.stringify({ mes: _planModalMes, semana, descripcion: desc, profesor_curso_id: _planModalPcId }),
-        });
-        if (!ok) {
-            errores++;
-            ta.classList.add('invalid');
-            const err = ta.closest('.plan-inline-form')?.querySelector('.plan-inline-error');
-            if (err) { err.textContent = data?.errores || 'Error al guardar.'; err.style.display = 'block'; }
-        }
+            body: JSON.stringify({ mes: _pmMes, semana: _pmSemana, descripcion: desc, profesor_curso_id: _pmPcId }),
+        }));
+    } else {
+        ({ ok, data } = await fetchAPI(`/api/academics/profesor/planes/${_pmPlanes[_pmSemana].id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ descripcion: desc }),
+        }));
     }
 
-    btn.textContent = 'Guardar planes';
-
-    await _refrescarPlanesCache(_planModalMes);
-    _renderPlanModalTbody(_planModalPcId, _planModalMes, true);
-    _renderPlanCards(_planModalMes);
-    _actualizarNotificaciones(_planModalMes);
-
-    if (!errores) {
-        showAppToast('success', 'Guardado', `Plan de trabajo registrado correctamente.`);
+    if (ok) {
+        _pmPlanes[_pmSemana]  = data;
+        _pmModos[_pmSemana]   = 'view';
+        _pmDrafts[_pmSemana]  = '';
+        await _refrescarPlanesCache(_pmMes);
+        _renderPlanCards(_pmMes);
+        _actualizarNotificaciones(_pmMes);
+        _renderPmSidebar();
+        _renderPmContent();
+        showAppToast('success', 'Guardado', `Semana ${_pmSemana} registrada correctamente.`);
+    } else {
+        btn.disabled    = false;
+        btn.textContent = 'Guardar Cambios';
+        showAppToast('error', 'Error', data?.errores || 'No se pudo guardar el plan.');
     }
 }
 
@@ -1470,94 +1539,11 @@ async function _verificarDotPlan() {
 }
 
 function _actualizarNotificaciones(mes) {
-    const pcMap     = _planPlanesCache[mes] || {};
+    const pcMap      = _planPlanesCache[mes] || {};
     const incompleto = _planAsignaciones.some(a => (pcMap[a.id] || []).length < 4);
     document.getElementById('planDot').classList.toggle('visible', incompleto);
-    document.getElementById('planBanner').classList.toggle('visible', incompleto);
-    if (incompleto) document.getElementById('planBannerMes').textContent = MESES[mes];
 }
 
-// ── Historial ─────────────────────────────────────────────────────
-async function cargarHistorialPlanes() {
-    const content = document.getElementById('planHistorialContent');
-    content.innerHTML = `<div class="historial-spinner" style="padding:32px 0;"><div class="spinner"></div></div>`;
-
-    const { ok, data } = await fetchAPI('/api/academics/profesor/planes/historial/');
-    if (!ok) {
-        content.innerHTML = `<p class="plan-historial-vacio">Error al cargar el historial.</p>`;
-        return;
-    }
-    if (!data.length) {
-        content.innerHTML = `<p class="plan-historial-vacio">No hay planes de trabajo anteriores registrados.</p>`;
-        return;
-    }
-
-    // Agrupar por mes → por pc_id
-    const porMes = {};
-    data.forEach(p => {
-        if (!porMes[p.mes]) porMes[p.mes] = {};
-        if (!porMes[p.mes][p.profesor_curso_id]) porMes[p.mes][p.profesor_curso_id] = [];
-        porMes[p.mes][p.profesor_curso_id].push(p);
-    });
-
-    // Guardar en cache para que el modal pueda mostrar el contenido
-    Object.entries(porMes).forEach(([mes, pcMap]) => {
-        _planAsignaciones.forEach(a => { if (!pcMap[a.id]) pcMap[a.id] = []; });
-        _planPlanesCache[parseInt(mes)] = pcMap;
-    });
-
-    const frag = document.createDocumentFragment();
-    Object.keys(porMes).sort((a, b) => b - a).forEach(mesStr => {
-        const mesNum = parseInt(mesStr);
-        const pcMap  = porMes[mesStr];
-
-        // Obtener pc_ids que tienen al menos 1 plan en este mes
-        const pcIds = Object.keys(pcMap).map(Number).filter(id => pcMap[id].length > 0);
-
-        const group = document.createElement('div');
-        group.className = 'plan-historial-mes-group';
-
-        const label = document.createElement('div');
-        label.className = 'plan-historial-mes-label';
-        label.textContent = MESES[mesNum];
-        group.appendChild(label);
-
-        const grid = document.createElement('div');
-        grid.className = 'plan-asig-grid';
-        grid.style.paddingTop = '8px';
-
-        pcIds.forEach(pcId => {
-            const plans = pcMap[pcId] || [];
-            const asig  = _planAsignaciones.find(a => a.id === pcId);
-            if (!asig) return;
-            const dots = [1, 2, 3, 4].map(s => {
-                const ok = plans.some(p => p.semana === s);
-                return `<span class="plan-asig-week${ok ? '' : ' plan-asig-week--empty'}">${s}</span>`;
-            }).join('');
-            const complete2 = plans.length === 4;
-            const card = document.createElement('div');
-            card.className = `plan-asig-card${complete2 ? ' plan-asig-card--complete' : ''}`;
-            card.innerHTML = `
-                <div>
-                    <div class="plan-asig-card__materia">${_escapeHtml(asig.materia_nombre)}</div>
-                    <div class="plan-asig-card__curso">${_escapeHtml(asig.curso_nombre)}</div>
-                </div>
-                <div class="plan-asig-dots">${dots}</div>
-                ${complete2
-                    ? `<span class="plan-asig-card__badge-complete"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>Completo</span>`
-                    : `<div class="plan-asig-card__count">${plans.length} de 4 semanas</div>`
-                }`;
-            card.addEventListener('click', () => _abrirPlanModal(pcId, mesNum, false));
-            grid.appendChild(card);
-        });
-
-        group.appendChild(grid);
-        frag.appendChild(group);
-    });
-
-    content.innerHTML = '';
-    content.appendChild(frag);
-}
 
 function _escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

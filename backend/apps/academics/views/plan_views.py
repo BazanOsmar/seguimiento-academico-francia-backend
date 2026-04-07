@@ -26,7 +26,7 @@ class ProfesorPlanListCreateView(APIView):
     def get(self, request):
         mes = request.query_params.get('mes')
         qs  = ProfesorPlan.objects.filter(
-            profesor_curso__profesor=request.user
+            profesor_curso__profesor=request.user, eliminado=False
         ).select_related('plan', 'profesor_curso__materia', 'profesor_curso__curso')
         if mes:
             try:
@@ -73,7 +73,7 @@ class ProfesorPlanListCreateView(APIView):
         except (ValueError, TypeError, ProfesorCurso.DoesNotExist):
             return Response({'errores': 'Asignación no válida o no te pertenece.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if ProfesorPlan.objects.filter(profesor_curso=profesor_curso, mes=mes).count() >= 4:
+        if ProfesorPlan.objects.filter(profesor_curso=profesor_curso, mes=mes, eliminado=False).count() >= 4:
             return Response(
                 {'errores': f'Ya tienes 4 planes registrados para {profesor_curso.materia.nombre} en este mes. No se pueden agregar más.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -87,7 +87,7 @@ class ProfesorPlanListCreateView(APIView):
         fecha_fin       = fecha_inicio + timedelta(days=6)
 
         if ProfesorPlan.objects.filter(
-            profesor_curso=profesor_curso, mes=mes, plan__fecha_inicio=fecha_inicio
+            profesor_curso=profesor_curso, mes=mes, plan__fecha_inicio=fecha_inicio, eliminado=False
         ).exists():
             return Response(
                 {'errores': f'Ya tienes un plan para {profesor_curso.materia.nombre} en la Semana {semana} de este mes.'},
@@ -112,7 +112,7 @@ class ProfesorPlanHistorialView(APIView):
         qs = (
             ProfesorPlan.objects
             .select_related('plan', 'profesor_curso__materia', 'profesor_curso__curso')
-            .filter(profesor_curso__profesor=request.user, mes__lt=mes_actual)
+            .filter(profesor_curso__profesor=request.user, mes__lt=mes_actual, eliminado=False)
             .order_by('-mes', 'profesor_curso__materia__nombre', 'plan__fecha_inicio')
         )
         return Response(ProfesorPlanSerializer(qs, many=True).data)
@@ -130,23 +130,39 @@ class ProfesorPlanDetailView(APIView):
         try:
             pp = ProfesorPlan.objects.select_related(
                 'plan', 'profesor_curso__materia', 'profesor_curso__curso'
-            ).get(pk=plan_id, profesor_curso__profesor=request.user)
+            ).get(pk=plan_id, profesor_curso__profesor=request.user, eliminado=False)
         except ProfesorPlan.DoesNotExist:
             return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
         return Response(ProfesorPlanSerializer(pp).data)
 
-    def delete(self, request, plan_id):
+    def patch(self, request, plan_id):
         try:
             pp = ProfesorPlan.objects.select_related('plan').get(
-                pk=plan_id, profesor_curso__profesor=request.user
+                pk=plan_id, profesor_curso__profesor=request.user, eliminado=False
             )
         except ProfesorPlan.DoesNotExist:
             return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        plan = pp.plan
-        pp.delete()
-        if not ProfesorPlan.objects.filter(plan=plan).exists():
-            plan.delete()
+        descripcion = (request.data.get('descripcion') or '').strip()
+        if not descripcion:
+            return Response({'errores': 'La descripción es requerida.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(descripcion) > 500:
+            return Response({'errores': 'La descripción no puede superar los 500 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        pp.plan.descripcion = descripcion
+        pp.plan.save(update_fields=['descripcion'])
+        return Response(ProfesorPlanSerializer(pp).data)
+
+    def delete(self, request, plan_id):
+        try:
+            pp = ProfesorPlan.objects.get(
+                pk=plan_id, profesor_curso__profesor=request.user, eliminado=False
+            )
+        except ProfesorPlan.DoesNotExist:
+            return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        pp.eliminado = True
+        pp.save(update_fields=['eliminado'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -162,7 +178,7 @@ class DirectorPlanesView(APIView):
         mes         = request.query_params.get('mes')
         profesor_id = request.query_params.get('profesor_id')
 
-        qs = ProfesorPlan.objects.select_related(
+        qs = ProfesorPlan.objects.filter(eliminado=False).select_related(
             'plan',
             'profesor_curso__profesor',
             'profesor_curso__materia',
@@ -215,7 +231,7 @@ class DirectorPlanesExportarView(APIView):
 
         planes = (
             ProfesorPlan.objects
-            .filter(mes=mes)
+            .filter(mes=mes, eliminado=False)
             .select_related('plan', 'profesor_curso__profesor', 'profesor_curso__materia', 'profesor_curso__curso')
         )
 

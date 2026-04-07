@@ -126,6 +126,7 @@ class CitacionDetailSerializer(CitacionBaseSerializer):
             "estudiante_nombre",
             "curso",
             "asistencia",
+            "estado",
             "fecha_envio",
             "fecha_limite_asistencia",
             "tutor_nombre",

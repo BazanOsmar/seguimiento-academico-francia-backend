@@ -45,6 +45,7 @@ class ProfesorPlan(models.Model):
     plan = models.ForeignKey(PlanDeTrabajo, on_delete=models.PROTECT, related_name='asignaciones')
     mes = models.PositiveSmallIntegerField()  # 1–12
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    eliminado = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('profesor_curso', 'plan')
