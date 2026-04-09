@@ -52,6 +52,12 @@ class ProfesorPlanListCreateView(APIView):
         except (ValueError, TypeError):
             return Response({'errores': 'El mes debe ser un número entre 1 y 12.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if mes != date.today().month:
+            return Response(
+                {'errores': 'Solo puedes registrar planes del mes actual.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             semana = int(request.data.get('semana', 0))
             if not (1 <= semana <= 4):
@@ -142,6 +148,12 @@ class ProfesorPlanDetailView(APIView):
             )
         except ProfesorPlan.DoesNotExist:
             return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if pp.mes != date.today().month:
+            return Response(
+                {'errores': 'No puedes modificar planes de meses anteriores.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         descripcion = (request.data.get('descripcion') or '').strip()
         if not descripcion:

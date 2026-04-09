@@ -1,4 +1,3 @@
-from django.db.models import Count
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +6,6 @@ from rest_framework import status
 from backend.core.permissions import IsDirector, IsProfesor
 from ..models import ProfesorCurso
 from ..serializers import AsignacionSerializer, ProfesorAsignacionSerializer
-from ..services.notas_mongo_service import asignaciones_con_notas
 
 
 class AsignacionListCreateView(APIView):
@@ -74,17 +72,15 @@ class ProfesorMisAsignacionesView(APIView):
     permission_classes = [IsAuthenticated, IsProfesor]
 
     def get(self, request):
-        mes = request.query_params.get('mes')
-        if mes is not None:
-            try:
-                mes = int(mes)
-                if not (1 <= mes <= 12):
-                    raise ValueError
-            except (ValueError, TypeError):
-                return Response(
-                    {'errores': 'El parámetro mes debe ser un número entre 1 y 12.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        try:
+            mes = int(request.query_params.get('mes', 0))
+            if not (1 <= mes <= 12):
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response(
+                {'errores': 'El parámetro mes es requerido y debe ser un número entre 1 y 12.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         from ..models import ProfesorPlan
         qs = (
@@ -94,21 +90,21 @@ class ProfesorMisAsignacionesView(APIView):
             .order_by('materia__nombre', 'curso__grado', 'curso__paralelo')
         )
 
-        planes_qs = ProfesorPlan.objects.filter(profesor_curso__profesor=request.user)
-        if mes is not None:
-            planes_qs = planes_qs.filter(mes=mes)
+        planes_qs = (
+            ProfesorPlan.objects
+            .filter(profesor_curso__profesor=request.user, mes=mes, eliminado=False)
+            .select_related('plan')
+        )
 
-        planes_counts = {
-            row['profesor_curso_id']: row['total']
-            for row in planes_qs.values('profesor_curso_id').annotate(total=Count('id'))
-        }
-
-        pares = [(pc.materia.id, pc.curso.id) for pc in qs]
-        con_notas = asignaciones_con_notas(pares, mes=mes)
+        semanas_por_asignacion = {}
+        for pp in planes_qs:
+            day = pp.plan.fecha_inicio.day
+            semana = 1 if day <= 7 else 2 if day <= 14 else 3 if day <= 21 else 4
+            semanas_por_asignacion.setdefault(pp.profesor_curso_id, []).append(semana)
 
         return Response(
             ProfesorAsignacionSerializer(
                 qs, many=True,
-                context={'planes_counts': planes_counts, 'con_notas': con_notas},
+                context={'semanas_por_asignacion': semanas_por_asignacion},
             ).data
         )

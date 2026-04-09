@@ -1260,8 +1260,10 @@ async function cargarPlanes() {
     main.style.display    = 'none';
     spinner.style.display = 'flex';
 
+    _planMesVista = new Date().getMonth() + 1;
+
     if (!_planAsignaciones.length) {
-        const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+        const { ok, data } = await fetchAPI(`/api/academics/profesor/mis-asignaciones/?mes=${_planMesVista}`);
         if (!ok) {
             spinner.style.display = 'none';
             showAppToast('error', 'Error', 'No se pudieron cargar las asignaciones.');
@@ -1269,8 +1271,6 @@ async function cargarPlanes() {
         }
         _planAsignaciones = data;
     }
-
-    _planMesVista = new Date().getMonth() + 1;
     await _refrescarPlanesCache(_planMesVista);
 
     spinner.style.display = 'none';
@@ -1328,19 +1328,21 @@ function _renderPlanCards(mes) {
 }
 
 // ── Estado del modal de plan ──────────────────────────────────────
-let _pmPcId   = null;   // profesor_curso id
-let _pmMes    = null;   // mes del modal
-let _pmSemana = 1;      // semana activa en sidebar
-let _pmPlanes = {};     // { semana: plan_obj } — guardados en BD
-let _pmModos  = {};     // { semana: 'view'|'edit'|'new' }
-let _pmDrafts = {};     // { semana: string } — borrador en memoria
+let _pmPcId        = null;   // profesor_curso id
+let _pmMes         = null;   // mes del modal
+let _pmSemana      = 1;      // semana activa en sidebar
+let _pmPlanes      = {};     // { semana: plan_obj } — guardados en BD
+let _pmModos       = {};     // { semana: 'view'|'edit'|'new' }
+let _pmDrafts      = {};     // { semana: string } — borrador en memoria
+let _pmSoloLectura = false;  // true cuando el mes ya pasó
 
 // ── Modal de plan por asignación ──────────────────────────────────
 function _abrirPlanModal(pcId, mes) {
-    _pmPcId   = pcId;
-    _pmMes    = mes;
-    _pmSemana = 1;
-    _pmDrafts = { 1: '', 2: '', 3: '', 4: '' };
+    _pmPcId      = pcId;
+    _pmMes       = mes;
+    _pmSemana    = 1;
+    _pmDrafts    = { 1: '', 2: '', 3: '', 4: '' };
+    _pmSoloLectura = mes < (new Date().getMonth() + 1);
 
     const asig   = _planAsignaciones.find(a => a.id === pcId);
     if (!asig) return;
@@ -1439,7 +1441,16 @@ function _renderPmContent() {
             </div>
         </div>`;
 
-    if (modo === 'view') {
+    if (_pmSoloLectura) {
+        content.innerHTML = `${headerHtml}
+            ${plan
+                ? `<div class="pm-readonly-text">${_escapeHtml(plan.descripcion)}</div>`
+                : `<div class="pm-readonly-text pm-readonly-text--empty">Sin plan registrado para esta semana.</div>`
+            }
+            <p class="pm-mes-pasado-msg">No puedes modificar planes de meses pasados.</p>`;
+        btnSave.style.display = 'none';
+    } else if (modo === 'view') {
+        btnSave.style.display = '';
         content.innerHTML = `${headerHtml}
             <div class="pm-readonly-text">${_escapeHtml(plan.descripcion)}</div>`;
         btnSave.textContent = 'Editar';
@@ -1451,6 +1462,7 @@ function _renderPmContent() {
             _renderPmContent();
         };
     } else {
+        btnSave.style.display = '';
         const draft = _pmDrafts[_pmSemana];
         content.innerHTML = `${headerHtml}
             <textarea class="pm-textarea" id="pmTextarea"
@@ -1522,12 +1534,12 @@ async function _guardarSemana() {
 // ── Verificación background (dot en sidebar) ──────────────────────
 async function _verificarDotPlan() {
     // Necesita asignaciones para saber cuántos se esperan
+    const mes = new Date().getMonth() + 1;
     if (!_planAsignaciones.length) {
-        const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+        const { ok, data } = await fetchAPI(`/api/academics/profesor/mis-asignaciones/?mes=${mes}`);
         if (!ok) return;
         _planAsignaciones = data;
     }
-    const mes = new Date().getMonth() + 1;
     const { ok, data } = await fetchAPI(`/api/academics/profesor/planes/?mes=${mes}`);
     if (!ok) return;
     // Si alguna asignación tiene < 4 planes → dot visible
@@ -2228,7 +2240,8 @@ async function _cargarPerfilStats() {
 
     // Asignaciones — reusar cache si ya se cargaron en el tab Plan
     if (!_planAsignaciones.length) {
-        const { ok, data } = await fetchAPI('/api/academics/profesor/mis-asignaciones/');
+        const mesActual = new Date().getMonth() + 1;
+        const { ok, data } = await fetchAPI(`/api/academics/profesor/mis-asignaciones/?mes=${mesActual}`);
         if (ok) _planAsignaciones = data;
     }
 
