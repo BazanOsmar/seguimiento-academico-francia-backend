@@ -33,7 +33,11 @@ class ComunicadoCreateView(APIView):
             if error:
                 return Response({'errores': error}, status=status.HTTP_400_BAD_REQUEST)
 
+        cursos_grupo = serializer.validated_data.pop('cursos_grupo_objs', [])
+        serializer.validated_data.pop('cursos_grupo_ids', None)
         comunicado = serializer.save(emisor=request.user)
+        if cursos_grupo:
+            comunicado.cursos_grupo.set(cursos_grupo)
 
         from backend.apps.auditoria.services import registrar
         nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
@@ -55,15 +59,24 @@ class ComunicadoCreateView(APIView):
         """Valida que el profesor solo use alcances permitidos y sus propios cursos."""
         from backend.apps.academics.models import ProfesorCurso
 
-        if alcance not in (Comunicado.ALCANCE_CURSO, Comunicado.ALCANCE_MIS_CURSOS):
+        if alcance not in (Comunicado.ALCANCE_CURSO, Comunicado.ALCANCE_MIS_CURSOS, Comunicado.ALCANCE_GRUPO):
             return "Los profesores solo pueden enviar comunicados a sus cursos asignados."
 
         if alcance == Comunicado.ALCANCE_CURSO:
             curso = data.get('curso')
             if not curso:
                 return "Debes seleccionar un curso."
-            asignado = ProfesorCurso.objects.filter(profesor=profesor, curso=curso).exists()
-            if not asignado:
+            if not ProfesorCurso.objects.filter(profesor=profesor, curso=curso).exists():
+                return "Solo puedes enviar comunicados a cursos que tienes asignados."
+
+        if alcance == Comunicado.ALCANCE_GRUPO:
+            cursos = data.get('cursos_grupo_objs', [])
+            sus_cursos = set(
+                ProfesorCurso.objects.filter(profesor=profesor)
+                .values_list('curso_id', flat=True).distinct()
+            )
+            no_asignados = [c for c in cursos if c.id not in sus_cursos]
+            if no_asignados:
                 return "Solo puedes enviar comunicados a cursos que tienes asignados."
 
         return None
@@ -95,6 +108,13 @@ class ComunicadoCreateView(APIView):
             cursos_ids = ProfesorCurso.objects.filter(
                 profesor=comunicado.emisor
             ).values_list('curso_id', flat=True).distinct()
+            ids = Estudiante.objects.filter(
+                curso_id__in=cursos_ids, activo=True
+            ).exclude(tutor=None).values_list('tutor_id', flat=True)
+            tutores = User.objects.filter(pk__in=ids, is_active=True)
+
+        elif comunicado.alcance == Com.ALCANCE_GRUPO:
+            cursos_ids = comunicado.cursos_grupo.values_list('id', flat=True)
             ids = Estudiante.objects.filter(
                 curso_id__in=cursos_ids, activo=True
             ).exclude(tutor=None).values_list('tutor_id', flat=True)

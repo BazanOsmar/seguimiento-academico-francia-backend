@@ -90,12 +90,9 @@ class CitacionCreateView(APIView):
             from backend.apps.notifications.services import enviar_notificacion
             from django.conf import settings
             _MOTIVOS = {
-                "FALTAS":       "inasistencias reiteradas",
-                "ATRASOS":      "atrasos reiterados",
-                "CONDUCTA":     "problemas de conducta",
-                "RENDIMIENTO":  "bajo rendimiento académico",
-                "DOCUMENTOS":   "entrega de documentos pendientes",
-                "REUNION":      "reunión con la unidad educativa",
+                "FALTAS":           "inasistencias reiteradas",
+                "COMPORTAMIENTO":   "problemas de comportamiento",
+                "BAJO_RENDIMIENTO": "bajo rendimiento académico",
             }
             nombre_estudiante_corto = f"{citacion.estudiante.apellido_paterno} {citacion.estudiante.nombre}".strip()
             motivo_upper = citacion.motivo.upper()
@@ -104,8 +101,19 @@ class CitacionCreateView(APIView):
                         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
             fecha_legible = f"{fecha_limite.day} de {meses_es[fecha_limite.month]}"
 
-            if motivo_upper == "OTROS":
-                cuerpo_notif = f"La unidad educativa le solicita presentarse por {nombre_estudiante_corto}. Preséntese antes del {fecha_legible}."
+            if motivo_upper == "OTRO":
+                tipo_emisor = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+                if tipo_emisor == "Profesor":
+                    asignacion = ProfesorCurso.objects.filter(
+                        profesor=request.user,
+                        curso=citacion.estudiante.curso,
+                    ).select_related('materia').first()
+                    if asignacion:
+                        cuerpo_notif = f"Su hijo/a {nombre_estudiante_corto} tiene una observación en {asignacion.materia.nombre}. Preséntese antes del {fecha_legible}."
+                    else:
+                        cuerpo_notif = f"La unidad educativa le solicita presentarse por {nombre_estudiante_corto}. Preséntese antes del {fecha_legible}."
+                else:
+                    cuerpo_notif = f"La unidad educativa le solicita presentarse por {nombre_estudiante_corto}. Preséntese antes del {fecha_legible}."
             else:
                 motivo_texto = _MOTIVOS.get(motivo_upper, citacion.motivo.lower())
                 cuerpo_notif = f"Su hijo/a {nombre_estudiante_corto} tiene una citación por {motivo_texto}. Preséntese antes del {fecha_legible}."

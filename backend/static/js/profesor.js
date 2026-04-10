@@ -1907,6 +1907,43 @@ async function _confirmarMarcarCit() {
     cargarCitaciones();  // Refrescar lista
 }
 
+// ── Selector de cursos en grupo (pills) ──────────────────────────
+let _grupoSeleccionados = [];  // [{ id, label }]
+
+function _renderGrupoPills() {
+    const pillsEl  = document.getElementById('comProfGrupoPills');
+    const grupoSel = document.getElementById('comProfGrupoSelect');
+    if (!pillsEl || !grupoSel) return;
+
+    // Reconstruir opciones del select (solo los no seleccionados)
+    const selIds = new Set(_grupoSeleccionados.map(c => c.id));
+    grupoSel.innerHTML = '<option value="">— Añadir curso —</option>';
+    _cursos.forEach(c => {
+        if (!selIds.has(c.id)) {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.grado} "${c.paralelo}"`;
+            grupoSel.appendChild(opt);
+        }
+    });
+
+    // Renderizar pastillas
+    pillsEl.innerHTML = _grupoSeleccionados.map(c => `
+        <span class="curso-pill" data-id="${c.id}">
+            ${_escapeHtml(c.label)}
+            <button type="button" class="curso-pill__remove" aria-label="Quitar">&#x2715;</button>
+        </span>
+    `).join('');
+
+    pillsEl.querySelectorAll('.curso-pill__remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = parseInt(btn.closest('.curso-pill').dataset.id);
+            _grupoSeleccionados = _grupoSeleccionados.filter(c => c.id !== id);
+            _renderGrupoPills();
+        });
+    });
+}
+
 // ── Modal: Nuevo Comunicado (Profesor) ───────────────────────────
 function _initComunicadoForm() {
     const modal = document.getElementById('modalNuevoComunicadoProf');
@@ -1914,6 +1951,16 @@ function _initComunicadoForm() {
 
     document.getElementById('comProfAlcance').addEventListener('change', function () {
         document.getElementById('comProfCursoWrap').style.display = this.value === 'CURSO' ? '' : 'none';
+        document.getElementById('comProfGrupoWrap').style.display = this.value === 'GRUPO' ? '' : 'none';
+    });
+
+    document.getElementById('comProfGrupoSelect').addEventListener('change', function () {
+        if (!this.value) return;
+        const id    = parseInt(this.value);
+        const label = this.options[this.selectedIndex].textContent;
+        _grupoSeleccionados.push({ id, label });
+        _renderGrupoPills();
+        this.value = '';
     });
 
     document.getElementById('btnCerrarModalComProf').addEventListener('click', _cerrarModalNuevoComunicadoProf);
@@ -1935,8 +1982,11 @@ function _abrirModalNuevoComunicadoProf() {
         opt.textContent = `${c.grado} "${c.paralelo}"`;
         sel.appendChild(opt);
     });
+    _grupoSeleccionados = [];
+    _renderGrupoPills();
     document.getElementById('formComunicadoProf').reset();
     document.getElementById('comProfCursoWrap').style.display = 'none';
+    document.getElementById('comProfGrupoWrap').style.display = 'none';
     document.getElementById('comProfError').style.display     = 'none';
     document.getElementById('modalNuevoComunicadoProf').classList.add('visible');
 }
@@ -1965,8 +2015,16 @@ async function _enviarComunicadoProf() {
         return;
     }
 
+    const cursosGrupo = alcance === 'GRUPO' ? _grupoSeleccionados.map(c => c.id) : [];
+    if (alcance === 'GRUPO' && cursosGrupo.length < 2) {
+        errEl.textContent = 'Selecciona al menos 2 cursos.';
+        errEl.style.display = '';
+        return;
+    }
+
     const payload = { titulo, contenido, alcance };
     if (alcance === 'CURSO') payload.curso = parseInt(cursoId);
+    if (alcance === 'GRUPO') payload.cursos_grupo_ids = cursosGrupo;
 
     const btnHtml = btn.innerHTML;
     btn.disabled    = true;

@@ -9,11 +9,13 @@ class Comunicado(models.Model):
     ALCANCE_GRADO      = 'GRADO'
     ALCANCE_CURSO      = 'CURSO'
     ALCANCE_MIS_CURSOS = 'MIS_CURSOS'
+    ALCANCE_GRUPO      = 'GRUPO'
     ALCANCES = [
         ('TODOS',      'Todos los tutores'),
         ('GRADO',      'Un grado completo'),
         ('CURSO',      'Un curso específico'),
         ('MIS_CURSOS', 'Todos mis cursos asignados'),
+        ('GRUPO',      'Grupo de cursos'),
     ]
 
     titulo = models.CharField(max_length=150)
@@ -26,6 +28,11 @@ class Comunicado(models.Model):
     fecha_envio = models.DateTimeField(auto_now_add=True)
     fecha_expiracion = models.DateField(null=True, blank=True)
     alcance = models.CharField(max_length=10, choices=ALCANCES, default='TODOS')
+    cursos_grupo = models.ManyToManyField(
+        'academics.Curso',
+        blank=True,
+        related_name='comunicados_grupo',
+    )
     curso = models.ForeignKey(
         'academics.Curso',
         on_delete=models.PROTECT,
