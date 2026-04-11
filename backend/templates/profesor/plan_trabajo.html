@@ -1,0 +1,80 @@
+{% extends 'profesor/_base_profesor.html' %}
+
+{% block title %}Plan de Trabajo{% endblock %}
+
+{% block page_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/profesor_plan_trabajo.css' %}">
+{% endblock %}
+
+{% block main %}
+    <div class="historial-spinner" id="planSpinner">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="ptwMain" style="display:none;">
+        <div class="ptw-header">
+            <button class="ptw-nav-btn" id="ptwPrevMes" aria-label="Mes anterior">&#8249;</button>
+            <h1 class="ptw-title">Plan de Trabajo:&nbsp;<span class="ptw-title-mes" id="ptwMesLabel"></span></h1>
+            <button class="ptw-nav-btn" id="ptwNextMes" aria-label="Mes siguiente">&#8250;</button>
+        </div>
+        <div class="ptw-grid" id="planAsigGrid"></div>
+    </div>
+{% endblock %}
+
+{% block page_modals %}
+    <!-- ── Modal plan de trabajo ─────────────────────────────────── -->
+    <div class="pm-overlay" id="planModalOverlay">
+        <div class="pm-modal">
+            <div class="pm-header">
+                <div>
+                    <span class="pm-eyebrow">Registro de Plan Académico</span>
+                    <h2 class="pm-title" id="pmTitle">Planificación Semanal</h2>
+                </div>
+                <button class="pm-close" id="planModalClose" aria-label="Cerrar">&#10005;</button>
+            </div>
+            <div class="pm-body">
+                <nav class="pm-sidebar">
+                    <span class="pm-sidebar-label">Semanas Académicas</span>
+                    <div id="pmWeekList"></div>
+                </nav>
+                <div class="pm-content" id="pmContent"></div>
+            </div>
+            <div class="pm-footer">
+                <span class="pm-footer-hint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    El plan se guarda por semana seleccionada.
+                </span>
+                <div class="pm-footer-actions">
+                    <button class="pm-btn-cancel" id="planModalCancelar">Cancelar</button>
+                    <button class="pm-btn-action pm-btn-action--save" id="planModalGuardar">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal advertencia salir sin guardar ───────────────────── -->
+    <div class="warn-modal-overlay" id="warnSinGuardarOverlay">
+        <div class="warn-modal">
+            <div class="warn-modal-strip"></div>
+            <div class="warn-modal-body">
+                <div class="warn-modal-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h3>¿Salir sin guardar?</h3>
+                <p id="warnSinGuardarMsg">Tienes contenido sin guardar que se perderá si cierras ahora.</p>
+                <div class="warn-modal-actions">
+                    <button class="btn-ghost" id="warnSinGuardarQuedarme">Quedarme</button>
+                    <button class="btn-primary" id="warnSinGuardarSalir"
+                            style="background:var(--danger,#dc2626);">Salir de todas formas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

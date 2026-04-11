@@ -1,0 +1,9 @@
+/* ── Citaciones layout ───────────────────────────────────── */
+    #panelCitaciones .data-table thead th {
+        background: var(--bg-hover);
+        font-size: .68rem;
+        letter-spacing: .06em;
+    }
+    #panelCitaciones .data-table { border-radius: 0; }
+    .cit-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .cit-grid { grid-template-columns: 1fr; } }

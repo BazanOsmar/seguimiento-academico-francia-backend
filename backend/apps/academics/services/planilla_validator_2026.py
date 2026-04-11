@@ -1,17 +1,18 @@
 """
 Validador de planillas Excel formato 2026 (Ministerio de Educación Bolivia).
 
-Diferencias clave vs formato Ley 070 (antiguo):
+Diferencias clave vs formato Ley 070:
   - Tiene hojas LIST 1TRIM / LIST 2TRIM / LIST 3TRIM  (asistencia)
   - No tiene hoja BOLETIN
-  - Los metadatos (ÁREA, MAESTRA/O, PARALELO, AÑO DE ESCOLARIDAD) están en las
-    primeras 6 filas de cada hoja de evaluación, buscados por etiqueta de texto
-    (no por celda fija como en el formato anterior)
+  - Los metadatos están en las primeras 6 filas de cada hoja de evaluación,
+    buscados por etiqueta de texto (no por celda fija)
 """
 
 import re
 
-from .planilla_validator import _normalizar
+from django.utils import timezone
+
+from .planilla_validator import _normalizar, _base_ordinal, _MENSAJE_NO_OFICIAL
 
 
 HOJAS_EVALUACION = ['1TRIM', '2TRIM', '3TRIM']
@@ -30,8 +31,9 @@ _GRADO_MAP = {
     'NOVENO':    '9no',
 }
 
+
 def _normalizar_grado(texto):
-    """Convierte 'PRIMERO' → '1ro', 'SEGUNDO SECUNDARIA' → '2do Secundaria', etc."""
+    """Convierte 'PRIMERO' → '1ro', 'SEGUNDO SECUNDARIA' → '2do Secundaria'."""
     if not texto:
         return texto
     resultado = texto.strip()
@@ -50,21 +52,14 @@ def es_formato_2026(wb):
 def _extraer_meta_trim(ws):
     """
     Extrae ÁREA, MAESTRA/O, CAMPO, PARALELO y AÑO DE ESCOLARIDAD de las
-    primeras 6 filas de una hoja de evaluación, buscando por etiqueta de texto.
-
-    Mapeo documentado del formato 2026:
-        ÁREA:               col V3  (22) → valor en celda siguiente
-        MAESTRA/O:          col V5  (22) → valor en celda siguiente
-        CAMPO:              col A5  (1)  → valor en celda siguiente
-        PARALELO:           col AN3 (40) → valor en celda siguiente
-        AÑO DE ESCOLARIDAD: col AK1 (37) → valor en celda siguiente
+    primeras 6 filas buscando por etiqueta de texto.
     """
     meta = {
-        'area':             None,
-        'maestro':          None,
-        'campo':            None,
-        'paralelo':         None,
-        'año_escolaridad':  None,
+        'area':            None,
+        'maestro':         None,
+        'campo':           None,
+        'paralelo':        None,
+        'año_escolaridad': None,
     }
 
     for row in ws.iter_rows(max_row=6, values_only=True):
@@ -72,7 +67,6 @@ def _extraer_meta_trim(ws):
             if val is None:
                 continue
             etiqueta = str(val).strip().upper()
-            # Valor está en la celda inmediatamente siguiente no vacía
             valor = None
             for j in range(i + 1, min(i + 10, len(row))):
                 if row[j] is not None and str(row[j]).strip():
@@ -95,7 +89,7 @@ def _extraer_meta_trim(ws):
     return meta
 
 
-# Rangos de columnas por dimensión (1-indexed, igual que openpyxl)
+# Rangos de columnas por dimensión (1-indexed)
 _DIMS = {
     'ser':   (14, 17),
     'saber': (19, 28),
@@ -106,9 +100,7 @@ _DIMS = {
 def _extraer_headers_trim(ws):
     """
     Extrae los títulos de actividades/exámenes de las columnas SER, SABER y HACER.
-    Solo incluye columnas que tengan al menos un valor numérico en las filas
-    de estudiantes (fila 15 en adelante) — columnas planificadas sin notas se omiten.
-    Formato esperado del título: 'dd/mm/yyyy - Nombre actividad'
+    Solo incluye columnas con al menos un valor numérico en filas de estudiantes.
     """
     filas_header   = list(ws.iter_rows(min_row=9,  max_row=13,  values_only=True))
     filas_students = list(ws.iter_rows(min_row=15, max_row=200, values_only=True))
@@ -119,7 +111,6 @@ def _extraer_headers_trim(ws):
         for col in range(col_ini, col_fin + 1):
             idx = col - 1
 
-            # 1. Buscar título en filas de cabecera
             titulo = None
             for fila in filas_header:
                 if idx >= len(fila) or fila[idx] is None:
@@ -138,7 +129,6 @@ def _extraer_headers_trim(ws):
             if not titulo:
                 continue
 
-            # 2. Extraer notas de estudiantes en esta columna
             notas = []
             for fila in filas_students:
                 if len(fila) <= max(idx, 1):
@@ -173,10 +163,8 @@ def _es_numero(val):
 
 def _primer_trim_con_datos(wb):
     """
-    Devuelve los metadatos del primer trimestre que tenga al menos
-    uno de los campos de pertenencia llenados. Junto con el nombre
-    de la hoja usada.
-    Retorna (meta_dict, nombre_hoja) o ({...vacíos...}, None).
+    Devuelve los metadatos del primer trimestre con al menos uno de los
+    campos de pertenencia llenados.
     """
     vacios = {k: None for k in ['area', 'maestro', 'campo', 'paralelo', 'año_escolaridad']}
     for hoja in HOJAS_EVALUACION:
@@ -192,20 +180,12 @@ def _primer_trim_con_datos(wb):
 
 def validar_estructura_2026(wb):
     """
-    Verifica que el workbook tenga la estructura del formato 2026 y extrae
-    los metadatos de pertenencia.
-
-    Retorna:
-        {
-            'es_valido':    bool,
-            'errores':      [str, ...],
-            'advertencias': [str, ...],
-            'metadatos':    dict,
-        }
+    Verifica que el workbook tenga la estructura del formato 2026.
+    Retorna: { es_valido, mensaje, advertencias[], metadatos{} }
     """
     resultado = {
         'es_valido':    True,
-        'errores':      [],
+        'mensaje':      None,
         'advertencias': [],
         'metadatos':    {'formato': '2026'},
     }
@@ -216,24 +196,37 @@ def validar_estructura_2026(wb):
     for hoja in HOJAS_BASE:
         if hoja not in hojas:
             resultado['es_valido'] = False
-            resultado['errores'].append(f"Falta la hoja obligatoria: '{hoja}'")
+            resultado['mensaje']   = _MENSAJE_NO_OFICIAL
+            return resultado
 
+    # 2. Advertencia si faltan hojas de asistencia (no bloquea)
     for hoja in HOJAS_ASISTENCIA:
         if hoja not in hojas:
             resultado['advertencias'].append(
                 f"Hoja de asistencia no encontrada: '{hoja}' "
-                "(no afecta la validación de pertenencia)"
+                "(no afecta la validación de pertenencia)."
             )
 
-    if not resultado['es_valido']:
+    # 3. Validar año académico desde CARATULA (celda F14)
+    ws_car = wb['CARATULA']
+    gestion_raw = ws_car['F14'].value
+    gestion_str = str(gestion_raw).strip() if gestion_raw else ''
+    digitos_gestion = re.findall(r'\d{4}', gestion_str)
+    año_actual = timezone.now().year
+    if digitos_gestion and str(año_actual) not in digitos_gestion:
+        resultado['es_valido'] = False
+        resultado['mensaje']   = (
+            f"La planilla corresponde a la gestión {digitos_gestion[0]}, "
+            f"pero el sistema está en {año_actual}."
+        )
         return resultado
 
-    # 2. Extraer metadatos del primer trimestre con datos
+    # 4. Extraer metadatos del primer trimestre con datos
     meta, hoja_origen = _primer_trim_con_datos(wb)
     resultado['metadatos'].update(meta)
     resultado['metadatos']['hoja_origen'] = hoja_origen
 
-    # 3. Advertir campos críticos vacíos
+    # 5. Advertir campos críticos vacíos
     campos_criticos = ['maestro', 'area', 'paralelo', 'año_escolaridad']
     vacios = [c for c in campos_criticos if not meta.get(c)]
     if vacios:
@@ -242,7 +235,7 @@ def validar_estructura_2026(wb):
             "El profesor debe completarlos antes de subir la planilla."
         )
 
-    # 4. Extraer estudiantes de FILIACION
+    # 6. Extraer estudiantes de FILIACION
     ws_fil = wb['FILIACION']
     estudiantes = []
     for fila in range(9, 55):
@@ -252,9 +245,14 @@ def validar_estructura_2026(wb):
         else:
             break
     resultado['metadatos']['cantidad_estudiantes'] = len(estudiantes)
-    resultado['metadatos']['estudiantes'] = estudiantes
+    resultado['metadatos']['estudiantes']          = estudiantes
 
-    # 5. Extraer headers de actividades por trimestre
+    if len(estudiantes) == 0:
+        resultado['es_valido'] = False
+        resultado['mensaje']   = "La planilla no tiene estudiantes registrados en FILIACION."
+        return resultado
+
+    # 7. Extraer headers de actividades por trimestre
     headers_por_trim = {}
     for hoja in HOJAS_EVALUACION:
         if hoja in wb.sheetnames:
@@ -263,6 +261,13 @@ def validar_estructura_2026(wb):
                 headers_por_trim[hoja] = h
     resultado['metadatos']['headers_actividades'] = headers_por_trim
 
+    # 8. Advertencia si todos los trimestres están sin notas
+    trims_con_notas = [h for h in HOJAS_EVALUACION if h in headers_por_trim]
+    if not trims_con_notas:
+        resultado['advertencias'].append(
+            "La planilla no tiene notas en ningún trimestre. ¿Estás seguro de que es la correcta?"
+        )
+
     return resultado
 
 
@@ -270,101 +275,43 @@ def validar_estructura_2026(wb):
 
 def validar_pertenencia_2026(metadatos, profesor_curso):
     """
-    Verifica que los metadatos extraídos del Excel 2026 correspondan al
-    ProfesorCurso indicado.
-
-    Retorna lista de errores (vacía = todo OK).
+    Verifica en orden: nombre → grado → paralelo → área/materia.
+    Retorna el primer error como string, o None si todo OK.
     """
-    errores = []
+    # 1. Nombre del maestro
+    maestro_excel   = _normalizar(metadatos.get('maestro', ''))
+    nombre_completo = f"{profesor_curso.profesor.first_name} {profesor_curso.profesor.last_name}".strip()
+    nombre_db       = _normalizar(nombre_completo or profesor_curso.profesor.username)
 
-    # ── 1. Nombre del maestro ─────────────────────────────────────────────────
-    maestro_excel = _normalizar(metadatos.get('maestro', ''))
-    nombre_completo = (
-        f"{profesor_curso.profesor.first_name} {profesor_curso.profesor.last_name}".strip()
-    )
-    nombre_db = _normalizar(nombre_completo or profesor_curso.profesor.username)
-
-    if not maestro_excel:
-        errores.append(
-            "La planilla no tiene nombre del maestro/a en la hoja de evaluación. "
-            "Completa el campo MAESTRA/O antes de subir."
-        )
-    elif nombre_db:
-        palabras_db    = set(nombre_db.split())
-        palabras_excel = set(maestro_excel.split())
-        coincidencias  = palabras_db & palabras_excel
-        min_match      = min(2, len(palabras_db))
-        if len(coincidencias) < min_match:
-            errores.append(
-                f"El nombre del maestro/a en la planilla (\"{metadatos.get('maestro')}\") "
-                f"no corresponde a tu cuenta ({nombre_completo or profesor_curso.profesor.username}). "
-                "Verifica el campo MAESTRA/O."
-            )
-
-    # ── 2. Área vs Materia ────────────────────────────────────────────────────
-    area_excel  = _normalizar(metadatos.get('area', ''))
-    materia_db  = _normalizar(profesor_curso.materia.nombre)
-
-    if not area_excel:
-        errores.append(
-            "La planilla no tiene el área en la hoja de evaluación. "
-            "Completa el campo ÁREA antes de subir."
-        )
-    elif materia_db:
-        if not (set(area_excel.split()) & set(materia_db.split())):
-            errores.append(
-                f"El área de la planilla (\"{metadatos.get('area')}\") "
-                f"no coincide con tu materia asignada \"{profesor_curso.materia.nombre}\"."
-            )
-
-    # ── 3. Paralelo ───────────────────────────────────────────────────────────
-    paralelo_excel = _normalizar(metadatos.get('paralelo', ''))
-    paralelo_db    = _normalizar(profesor_curso.curso.paralelo)
-
-    if not paralelo_excel:
-        errores.append(
-            "La planilla no tiene el paralelo en la hoja de evaluación. "
-            "Completa el campo PARALELO antes de subir."
-        )
-    elif paralelo_excel != paralelo_db:
-        errores.append(
-            f"El paralelo de la planilla (\"{metadatos.get('paralelo')}\") "
-            f"no coincide con tu curso asignado (paralelo \"{profesor_curso.curso.paralelo}\")."
+    if not maestro_excel or (nombre_db and len(set(nombre_db.split()) & set(maestro_excel.split())) < min(2, len(set(nombre_db.split())))):
+        return (
+            "Este no es tu registro de calificaciones. "
+            "El nombre del docente en la planilla no coincide con tu cuenta."
         )
 
-    # ── 4. Año de escolaridad vs Grado ────────────────────────────────────────
+    # 2. Grado
     año_excel = _normalizar(metadatos.get('año_escolaridad', ''))
     grado_db  = _normalizar(profesor_curso.curso.grado)
 
     if not año_excel:
-        errores.append(
-            "La planilla no tiene el año de escolaridad en la hoja de evaluación. "
-            "Completa el campo AÑO DE ESCOLARIDAD antes de subir."
-        )
-    elif grado_db:
-        _ORDINALES = {
-            'primero': '1', 'primera': '1',
-            'segundo': '2', 'segunda': '2',
-            'tercero': '3', 'tercera': '3',
-            'cuarto':  '4', 'cuarta':  '4',
-            'quinto':  '5', 'quinta':  '5',
-            'sexto':   '6', 'sexta':   '6',
-        }
+        return "Esta plantilla no pertenece a este grado."
+    if grado_db:
+        if _base_ordinal(año_excel) not in _base_ordinal(grado_db) and \
+           _base_ordinal(grado_db) not in _base_ordinal(año_excel):
+            return "Esta plantilla no pertenece a este grado."
 
-        def _base_ordinal(s):
-            for pal, num in _ORDINALES.items():
-                s = re.sub(rf'\b{pal}\b', num, s)
-            s = re.sub(r'[°º]', '', s)
-            s = re.sub(r'\b(\d+)(ro|do|er|to|vo|mo|no)\b', r'\1', s)
-            return s.strip()
+    # 3. Paralelo
+    paralelo_excel = _normalizar(metadatos.get('paralelo', ''))
+    paralelo_db    = _normalizar(profesor_curso.curso.paralelo)
 
-        base_excel = _base_ordinal(año_excel)
-        base_db    = _base_ordinal(grado_db)
+    if not paralelo_excel or paralelo_excel != paralelo_db:
+        return "Esta plantilla no pertenece a este paralelo."
 
-        if base_excel not in base_db and base_db not in base_excel:
-            errores.append(
-                f"El año de escolaridad de la planilla (\"{metadatos.get('año_escolaridad')}\") "
-                f"no coincide con el grado del curso asignado (\"{profesor_curso.curso.grado}\")."
-            )
+    # 4. Área / Materia
+    area_excel = _normalizar(metadatos.get('area', ''))
+    materia_db = _normalizar(profesor_curso.materia.nombre)
 
-    return errores
+    if not area_excel or (materia_db and not (set(area_excel.split()) & set(materia_db.split()))):
+        return "Esta no es la materia correspondiente a tu asignación."
+
+    return None

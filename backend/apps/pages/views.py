@@ -452,9 +452,25 @@ def director_mi_perfil_view(request):
 
 
 def profesor_view(request):
-    return render(request, 'profesor/dashboard.html')
+    return render(request, 'profesor/notas.html', {'active_nav': 'notas'})
+
+
+def profesor_citaciones_view(request):
+    return render(request, 'profesor/citaciones.html', {'active_nav': 'citaciones'})
+
+
+def profesor_plan_view(request):
+    return render(request, 'profesor/plan_trabajo.html', {'active_nav': 'plan'})
+
+
+def profesor_cuenta_view(request):
+    return render(request, 'profesor/cuenta.html', {'active_nav': 'cuenta'})
 
 
 def director_comparar_nombres_view(request):
     return render(request, 'director/comparar_nombres.html')
+
+
+def profesor_carga_calificaciones_view(request):
+    return render(request, 'profesor/carga_calificaciones.html')
 

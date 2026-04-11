@@ -21,5 +21,9 @@ urlpatterns = [
     path('director/comparar-nombres/', views.director_comparar_nombres_view, name='director-comparar-nombres'),
     path('director/academico/',      views.director_academico_view,   name='director-academico'),
     path('director/mi-perfil/',      views.director_mi_perfil_view,   name='director-mi-perfil'),
-    path('profesor/',                views.profesor_view,             name='profesor'),
+    path('profesor/',                views.profesor_view,                          name='profesor'),
+    path('profesor/citaciones/',     views.profesor_citaciones_view,               name='profesor-citaciones'),
+    path('profesor/plan/',           views.profesor_plan_view,                     name='profesor-plan'),
+    path('profesor/cuenta/',         views.profesor_cuenta_view,                   name='profesor-cuenta'),
+    path('profesor/calificaciones/', views.profesor_carga_calificaciones_view,     name='profesor-carga-calificaciones'),
 ]

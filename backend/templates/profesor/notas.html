@@ -1,0 +1,39 @@
+{% extends 'profesor/_base_profesor.html' %}
+
+{% block title %}Calificaciones{% endblock %}
+
+{% block page_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/profesor_notas.css' %}">
+{% endblock %}
+
+{% block main %}
+    <!-- Sub-vista A: Mis Clases ──────────────────────── -->
+    <div id="vistaClases" class="page-inner">
+        <div class="notas-header">
+            <h1 class="notas-header__title">Calificaciones</h1>
+            <p class="notas-header__sub">Selecciona un curso para gestionar la planilla de notas</p>
+        </div>
+        <!-- Folder tabs de meses -->
+        <div class="notas-folder-tabs" id="notasFolderTabs"></div>
+        <div class="notas-classes-container">
+            <div class="notas-period-bar">
+                <span class="notas-period-bar__title">
+                    <span class="notas-period-bar__dot"></span>
+                    Período: <span id="notasPeriodLabel">—</span>
+                </span>
+                <span class="notas-period-bar__count" id="notasMateriasCount"></span>
+            </div>
+            <div class="notas-classes-grid" id="notasClasesGrid">
+                <div class="notas-empty">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 9h6M9 13h6M9 17h4"/>
+                    </svg>
+                    <p>Cargando asignaciones...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

@@ -1,4 +1,5 @@
-# Documentación local de endpoints
+# Documentación local
+docs/
 docs_endpoint_*.md
 
 # Credenciales Firebase (nunca versionar)

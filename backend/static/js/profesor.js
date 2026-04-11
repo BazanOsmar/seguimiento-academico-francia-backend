@@ -52,17 +52,23 @@ document.addEventListener('DOMContentLoaded', () => {
     _initUserInfo();
     _initTabs();
     _initCitaciones();
-    _initDragDrop();
     _initNotasFolderTabs();
-    _initNotasNavigation();
     _initCitacionForm();
     _initPlanForm();
     _initPrimerIngreso();
     cargarCursos();
     // Cargar con el mes activo del folder tab (0-based idx + 1 = mes API)
-    const _tabActivo = document.querySelector('.notas-folder-tab.active');
-    cargarAsignacionesNotas(_tabActivo ? parseInt(_tabActivo.dataset.mes) + 1 : null);
-    _verificarDotPlan();  // dot de notificación en background
+    if (document.getElementById('notasClasesGrid')) {
+        const _tabActivo = document.querySelector('.notas-folder-tab.active');
+        cargarAsignacionesNotas(_tabActivo ? parseInt(_tabActivo.dataset.mes) + 1 : null);
+    }
+    _verificarDotPlan();
+    // Modo páginas separadas: cargar datos de la sección activa directamente
+    if (!document.querySelector('.tab-panel')) {
+        if (document.getElementById('secTitleCitProf')) { cargarCitaciones(); cargarComunicados(); }
+        if (document.getElementById('ptwPrevMes'))       cargarPlanes();
+        if (document.getElementById('perfilAvatar'))     _initCuentaTab();
+    }
 });
 
 // ── Tabs ──────────────────────────────────────────────────────────
@@ -87,10 +93,25 @@ function _activarTab(panelId) {
 }
 
 function _initTabs() {
-    document.getElementById('sideNotas').addEventListener('click',      () => _activarTab('panelNotas'));
-    document.getElementById('sideCitaciones').addEventListener('click', () => _activarTab('panelCitaciones'));
-    document.getElementById('sidePlan').addEventListener('click',       () => _activarTab('panelPlan'));
-    document.getElementById('sideCuenta').addEventListener('click',     () => _activarTab('panelCuenta'));
+    const isSPA = !!document.querySelector('.tab-panel');
+
+    if (isSPA) {
+        // Modo SPA (dashboard.html): los botones cambian de panel
+        document.getElementById('sideNotas')?.addEventListener('click',      () => _activarTab('panelNotas'));
+        document.getElementById('sideCitaciones')?.addEventListener('click', () => _activarTab('panelCitaciones'));
+        document.getElementById('sidePlan')?.addEventListener('click',       () => _activarTab('panelPlan'));
+        document.getElementById('sideCuenta')?.addEventListener('click',     () => _activarTab('panelCuenta'));
+        // Activar tab según hash de URL
+        const _HASH_TAB = { '#citaciones': 'panelCitaciones', '#plan': 'panelPlan', '#cuenta': 'panelCuenta' };
+        const tabInicial = _HASH_TAB[window.location.hash] || 'panelNotas';
+        if (tabInicial !== 'panelNotas') _activarTab(tabInicial);
+    } else {
+        // Modo páginas separadas: los botones navegan a otras URLs
+        document.getElementById('sideNotas')?.addEventListener('click',      () => window.location.href = '/profesor/');
+        document.getElementById('sideCitaciones')?.addEventListener('click', () => window.location.href = '/profesor/citaciones/');
+        document.getElementById('sidePlan')?.addEventListener('click',       () => window.location.href = '/profesor/plan/');
+        document.getElementById('sideCuenta')?.addEventListener('click',     () => window.location.href = '/profesor/cuenta/');
+    }
 }
 
 // ── Citaciones/Comunicados — inicialización completa ─────────────
@@ -308,453 +329,6 @@ function _initUserInfo() {
     document.getElementById('profileRole').textContent = user.tipo_usuario || 'Profesor';
 }
 
-// ── Drag & Drop Excel ─────────────────────────────────────────────
-function _initDragDrop() {
-    const zone    = document.getElementById('dropZone');
-    const input   = document.getElementById('excelInput');
-    const nameEl  = document.getElementById('nombreArchivo');
-    const btnUp   = document.getElementById('btnSubirNotas');
-    let   _archivo = null;
-
-    function setFile(file) {
-        if (!file) return;
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (!['xlsx', 'xls'].includes(ext)) {
-            showToast('Solo se aceptan archivos .xlsx o .xls', 'warning');
-            return;
-        }
-        _archivo = file;
-        nameEl.textContent = file.name;
-        nameEl.style.display = 'block';
-        btnUp.disabled = false;
-        zone.classList.add('drop-zone--has-file');
-        _resetCnResult();
-    }
-
-    zone.addEventListener('click', () => input.click());
-
-    input.addEventListener('change', () => {
-        if (input.files[0]) setFile(input.files[0]);
-    });
-
-    zone.addEventListener('dragover', e => {
-        e.preventDefault();
-        zone.classList.add('drop-zone--over');
-    });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drop-zone--over'));
-    zone.addEventListener('drop', e => {
-        e.preventDefault();
-        zone.classList.remove('drop-zone--over');
-        if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-    });
-
-    btnUp.addEventListener('click', () => _validarPlanilla(_archivo, btnUp));
-}
-
-async function _validarPlanilla(archivo, btnUp) {
-    const profesorCursoId = document.getElementById('selectAsignacion').value;
-    const errorAsig       = document.getElementById('notasAsignacionError');
-
-    errorAsig.style.display = 'none';
-    if (!profesorCursoId) { errorAsig.style.display = 'block'; return; }
-    if (!archivo) return;
-
-    btnUp.disabled     = true;
-    btnUp.textContent  = 'Validando…';
-    _resetCnResult();
-
-    const formData = new FormData();
-    formData.append('archivo', archivo);
-    formData.append('profesor_curso_id', profesorCursoId);
-
-    // fetch nativo: fetchAPI fuerza Content-Type json, rompería el multipart
-    const token = localStorage.getItem('access_token');
-    let ok, data;
-    try {
-        const res = await fetch('/api/academics/profesor/validar-planilla/', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData,
-        });
-        data = await res.json();
-        ok   = res.ok;
-    } catch {
-        data = { errores: 'Error de conexión.' };
-        ok   = false;
-    }
-
-    btnUp.disabled    = false;
-    btnUp.textContent = 'Validar Planilla';
-
-    if (!ok) {
-        _mostrarResultadoCarga({ es_valido: false, errores: [data?.errores || 'Error al procesar el archivo.'], metadatos: {} });
-        return;
-    }
-    _mostrarResultadoCarga(data);
-}
-
-// ── Muestra resultado en el layout de dos columnas ────────────────
-function _mostrarResultadoCarga(r) {
-    const metaCard   = document.getElementById('cnMetaCard');
-    const metaContent = document.getElementById('cnMetaContent');
-    const statusBadge = document.getElementById('cnStatusBadge');
-    const emptyState = document.getElementById('cnEmptyState');
-    const errorState = document.getElementById('cnErrorState');
-    const notasData  = document.getElementById('cnNotasData');
-    const tableBadge = document.getElementById('cnTableBadge');
-    const meta       = r.metadatos || {};
-
-    // ── Badge de estado ──────────────────────────────────────────
-    if (r.es_valido) {
-        statusBadge.innerHTML = `<span class="cn-status-badge cn-status-badge--ok">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Planilla válida</span>`;
-    } else {
-        statusBadge.innerHTML = `<span class="cn-status-badge cn-status-badge--err">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-            Planilla inválida</span>`;
-    }
-
-    // ── Meta rows ────────────────────────────────────────────────
-    const metaRows = [
-        ['Maestro/a',        meta.maestro],
-        ['Área',             meta.area],
-        ['Año escolaridad',  meta.año_escolaridad],
-        ['Unidad educativa', meta.unidad_educativa],
-        ['Estudiantes',      meta.cantidad_estudiantes],
-    ].filter(([, v]) => v !== undefined && v !== null && v !== '')
-     .map(([l, v]) => `<div class="cn-meta-row">
-        <span class="cn-meta-row__label">${l}</span>
-        <span class="cn-meta-row__val">${_escapeHtml(String(v))}</span>
-    </div>`).join('');
-
-    const trimBadges = ['1TRIM','2TRIM','3TRIM'].map(t => {
-        const tiene = meta[`${t}_tiene_notas`];
-        return `<span style="font-size:.68rem;padding:2px 8px;border-radius:99px;font-weight:700;
-            background:${tiene ? 'rgba(34,197,94,.1)' : 'rgba(255,255,255,.04)'};
-            border:1px solid ${tiene ? 'rgba(34,197,94,.25)' : 'var(--border-subtle)'};
-            color:${tiene ? '#22c55e' : 'var(--text-muted)'};">${t}</span>`;
-    }).join('');
-
-    metaContent.innerHTML = metaRows
-        + (Object.keys(meta).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 2px;">${trimBadges}</div>` : '');
-
-    metaCard.style.display = '';
-
-    // ── Panel derecho ────────────────────────────────────────────
-    emptyState.style.display = 'none';
-
-    if (!r.es_valido) {
-        const items = (r.errores || []).map(e =>
-            `<div class="cn-error-item">${_escapeHtml(e)}</div>`
-        ).join('');
-        errorState.innerHTML = `<ul class="cn-error-list">${items}</ul>`;
-        errorState.style.display = '';
-        tableBadge.textContent   = `${(r.errores || []).length} error(es)`;
-
-        // Advertencias si hay
-        if (r.advertencias && r.advertencias.length) {
-            errorState.innerHTML += `<div style="margin:0 20px 16px;padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:8px;">
-                <p style="font-size:.75rem;font-weight:700;color:var(--warning);margin:0 0 4px;">Advertencias</p>
-                <ul style="margin:0;padding-left:16px;">${r.advertencias.map(a =>
-                    `<li style="font-size:.78rem;color:var(--text-muted);padding:2px 0;">${_escapeHtml(a)}</li>`
-                ).join('')}</ul></div>`;
-        }
-
-        // Mostrar lista de estudiantes aunque la planilla sea inválida
-        if (r.estudiantes) {
-            notasData.innerHTML = `<div style="padding:0 20px 20px;">${_renderEstudiantes(r.estudiantes)}</div>`;
-            notasData.style.display = '';
-        } else {
-            notasData.style.display = 'none';
-        }
-        return;
-    }
-
-    // Planilla válida: mostrar tabla de notas + estudiantes
-    errorState.style.display = 'none';
-    const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
-    const notasHtml       = r.notas       ? _renderNotas(r.notas)             : '';
-    notasData.innerHTML   = `<div style="padding:0 20px 20px;">${estudiantesHtml}${notasHtml}</div>`;
-    notasData.style.display = '';
-
-    const total = meta.cantidad_estudiantes || '';
-    tableBadge.textContent = total ? `${total} estudiantes` : '';
-}
-
-// ── Resetea el panel derecho y meta card ──────────────────────────
-function _resetCnResult() {
-    document.getElementById('cnEmptyState').style.display  = '';
-    document.getElementById('cnErrorState').style.display  = 'none';
-    document.getElementById('cnNotasData').style.display   = 'none';
-    document.getElementById('cnMetaCard').style.display    = 'none';
-    document.getElementById('cnTableBadge').textContent    = '';
-}
-
-function _renderResultado(r) {
-    const meta = r.metadatos || {};
-
-    if (!r.es_valido) {
-        const items = r.errores.map(e =>
-            `<li style="padding:4px 0;border-bottom:1px solid rgba(239,68,68,.1);font-size:.85rem;">${_escapeHtml(e)}</li>`
-        ).join('');
-        const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
-        return `
-            <div style="border:1px solid rgba(239,68,68,.35);border-radius:12px;overflow:hidden;">
-                <div style="background:rgba(239,68,68,.1);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(239,68,68,.2);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    <span style="font-weight:700;font-size:.875rem;color:#ef4444;">Planilla inválida</span>
-                </div>
-                <ul style="margin:0;padding:12px 16px 12px 32px;color:var(--text);">${items}</ul>
-            </div>
-            ${estudiantesHtml}`;
-    }
-
-    const advertItems = r.advertencias && r.advertencias.length
-        ? `<div style="margin-top:10px;padding:10px 14px;background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.25);border-radius:8px;">
-               <p style="font-size:.78rem;font-weight:700;color:#ca8a04;margin:0 0 6px;">Advertencias</p>
-               <ul style="margin:0;padding-left:16px;">${r.advertencias.map(a =>
-                   `<li style="font-size:.8rem;color:var(--text);padding:2px 0;">${_escapeHtml(a)}</li>`
-               ).join('')}</ul>
-           </div>` : '';
-
-    const trimBadge = t => {
-        const tiene = meta[`${t}_tiene_notas`];
-        return `<span style="font-size:.7rem;padding:2px 8px;border-radius:99px;font-weight:700;
-            background:${tiene ? 'rgba(34,197,94,.12)' : 'rgba(255,255,255,.05)'};
-            border:1px solid ${tiene ? 'rgba(34,197,94,.3)' : 'var(--border)'};
-            color:${tiene ? '#22c55e' : 'var(--text-muted)'};">
-            ${t}: ${tiene ? 'Con notas' : 'Sin notas'}</span>`;
-    };
-
-    const notasHtml     = r.notas ? _renderNotas(r.notas) : '';
-    const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
-
-    return `
-        <div style="border:1px solid rgba(34,197,94,.35);border-radius:12px;overflow:hidden;">
-            <div style="background:rgba(34,197,94,.1);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(34,197,94,.2);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style="font-weight:700;font-size:.875rem;color:#22c55e;">Planilla válida</span>
-            </div>
-            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
-                ${_metaRow('Maestro/a',        meta.maestro)}
-                ${_metaRow('Área',             meta.area)}
-                ${_metaRow('Año escolaridad',  meta.año_escolaridad)}
-                ${_metaRow('Paralelo',         meta.paralelo)}
-                ${_metaRow('Unidad educativa', meta.unidad_educativa)}
-                ${_metaRow('Estudiantes',      meta.cantidad_estudiantes)}
-                <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;">
-                    ${trimBadge('1TRIM')}${trimBadge('2TRIM')}${trimBadge('3TRIM')}
-                </div>
-                ${advertItems}
-            </div>
-        </div>
-        ${estudiantesHtml}
-        ${notasHtml}`;
-}
-
-function _renderEstudiantes(est) {
-    const { activos = 0, inactivos = 0, no_encontrados = [], lista_estudiantes = [],
-            total_excel = 0, total_bd = 0, curso_verificado } = est;
-
-    const encontrados  = activos + inactivos;
-    const hayProblemas = no_encontrados.length > 0;
-    const bdMatch      = total_bd > 0 ? total_bd : total_excel;
-
-    // ── Badge principal "X/Y estudiantes" ────────────────────────
-    const allOk       = encontrados === total_excel && total_excel > 0;
-    const badgeColor  = allOk ? '#22c55e' : '#ef4444';
-    const badgeBg     = allOk ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)';
-    const badgeBorder = allOk ? 'rgba(34,197,94,.25)' : 'rgba(239,68,68,.25)';
-    const badgeIcon   = allOk
-        ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
-        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
-
-    const headerBadge = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;
-        padding:3px 10px;border-radius:99px;background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};">
-        ${badgeIcon} ${encontrados} / ${total_excel} estudiantes
-    </span>`;
-
-    const inactivosBadge = inactivos > 0
-        ? `<span style="font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;
-            background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#ca8a04;">
-            ${inactivos} inactivo${inactivos !== 1 ? 's' : ''}
-        </span>` : '';
-
-    // ── Header de la sección ──────────────────────────────────────
-    const headerColor  = hayProblemas ? '#ef4444' : '#22c55e';
-    const headerBg     = hayProblemas ? 'rgba(239,68,68,.07)' : 'rgba(34,197,94,.07)';
-    const headerBorder = hayProblemas ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.15)';
-    const headerIcon   = hayProblemas
-        ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${headerColor}" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`
-        : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${headerColor}" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
-    const headerTitle  = hayProblemas
-        ? `${no_encontrados.length} estudiante${no_encontrados.length !== 1 ? 's' : ''} no encontrado${no_encontrados.length !== 1 ? 's' : ''} en la BD`
-        : 'Todos los estudiantes verificados';
-
-    // ── Lista de estudiantes ──────────────────────────────────────
-    let listaHtml = '';
-    if (lista_estudiantes.length > 0) {
-        const filas = lista_estudiantes.map((e, i) => {
-            const nro      = String(i + 1).padStart(2, '0');
-            if (!e.encontrado) {
-                return `<tr style="background:rgba(239,68,68,.06);">
-                    <td style="padding:5px 10px;font-size:.72rem;color:rgba(239,68,68,.6);font-variant-numeric:tabular-nums;">${nro}</td>
-                    <td style="padding:5px 10px;font-size:.82rem;font-weight:600;color:#ef4444;">${_escapeHtml(e.nombre)}</td>
-                    <td style="padding:5px 10px;text-align:right;">
-                        <span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;
-                            background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2);">NO ENCONTRADO</span>
-                    </td>
-                </tr>`;
-            }
-            if (!e.activo) {
-                return `<tr>
-                    <td style="padding:5px 10px;font-size:.72rem;color:var(--text-muted);font-variant-numeric:tabular-nums;">${nro}</td>
-                    <td style="padding:5px 10px;font-size:.82rem;color:var(--text-secondary);">${_escapeHtml(e.nombre)}</td>
-                    <td style="padding:5px 10px;text-align:right;">
-                        <span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;
-                            background:rgba(245,158,11,.1);color:#ca8a04;border:1px solid rgba(245,158,11,.2);">INACTIVO</span>
-                    </td>
-                </tr>`;
-            }
-            return `<tr>
-                <td style="padding:5px 10px;font-size:.72rem;color:var(--text-muted);font-variant-numeric:tabular-nums;">${nro}</td>
-                <td style="padding:5px 10px;font-size:.82rem;color:var(--text);">${_escapeHtml(e.nombre)}</td>
-                <td></td>
-            </tr>`;
-        }).join('');
-
-        listaHtml = `
-        <div style="margin-top:12px;border:1px solid var(--border-subtle);border-radius:8px;overflow:hidden;max-height:280px;overflow-y:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="background:var(--bg-hover);position:sticky;top:0;">
-                        <th style="padding:6px 10px;font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:left;text-transform:uppercase;letter-spacing:.07em;width:36px;">#</th>
-                        <th style="padding:6px 10px;font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:left;text-transform:uppercase;letter-spacing:.07em;">Estudiante</th>
-                        <th style="padding:6px 10px;font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:right;text-transform:uppercase;letter-spacing:.07em;">Estado</th>
-                    </tr>
-                </thead>
-                <tbody>${filas}</tbody>
-            </table>
-        </div>`;
-    }
-
-    const bdInfo = `<p style="font-size:.75rem;color:var(--text-muted);margin:8px 0 0;">
-        Estudiantes en la BD del curso: <strong style="color:var(--text-secondary);">${total_bd}</strong>
-    </p>`;
-
-    return `
-    <div style="margin-top:10px;border:1px solid ${headerBorder};border-radius:12px;overflow:hidden;">
-        <div style="background:${headerBg};padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid ${headerBorder};flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:8px;">
-                ${headerIcon}
-                <span style="font-weight:700;font-size:.85rem;color:${headerColor};">${headerTitle}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-                ${headerBadge}
-                ${inactivosBadge}
-            </div>
-        </div>
-        <div style="padding:12px 16px;">
-            ${hayProblemas ? `<p style="font-size:.8rem;color:var(--text-muted);margin:0 0 4px;">
-                Verifica que los nombres del Excel coincidan exactamente con los registrados en el curso
-                ${curso_verificado ? `<strong style="color:var(--text);">${_escapeHtml(curso_verificado)}</strong>` : ''}.
-            </p>` : ''}
-            ${listaHtml}
-            ${bdInfo}
-        </div>
-    </div>`;
-}
-
-function _renderNotas(notas) {
-    const trimestres = notas.trimestres || {};
-    const orden = ['1TRIM', '2TRIM', '3TRIM'];
-    const labels = { '1TRIM': '1er Trimestre', '2TRIM': '2do Trimestre', '3TRIM': '3er Trimestre' };
-
-    return orden.map(trim => {
-        const td = trimestres[trim];
-        if (!td) return '';
-
-        const saberHtml = _renderTablaDimension(td.saber, 'SABER', '#6366f1', 45);
-        const hacerHtml = _renderTablaDimension(td.hacer, 'HACER', '#0ea5e9', 40);
-
-        const tieneDatos = (td.saber.casilleros.length > 0) || (td.hacer.casilleros.length > 0);
-
-        return `
-        <div style="margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-            <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.trim-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)';"
-                style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-hover);border:none;cursor:pointer;color:var(--text);font-family:inherit;">
-                <span style="font-weight:700;font-size:.9rem;">${labels[trim]}</span>
-                <span style="display:flex;align-items:center;gap:8px;">
-                    ${tieneDatos
-                        ? `<span style="font-size:.7rem;color:#22c55e;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:99px;font-weight:700;">Con notas</span>`
-                        : `<span style="font-size:.7rem;color:var(--text-muted);background:var(--bg-input);border:1px solid var(--border);padding:2px 8px;border-radius:99px;">Sin notas</span>`}
-                    <svg class="trim-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);">
-                        <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                </span>
-            </button>
-            <div style="display:block;">
-                ${saberHtml}
-                ${hacerHtml}
-                ${!tieneDatos ? '<p style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:20px;">Sin notas registradas en este trimestre.</p>' : ''}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function _renderTablaDimension(dim, titulo, color, maxPts) {
-    if (!dim.casilleros.length) return '';
-
-    const headers = dim.casilleros.map(c =>
-        `<th style="min-width:80px;text-align:center;">${_escapeHtml(c)}</th>`
-    ).join('');
-
-    const filas = dim.datos.map(est => {
-        const celdas = dim.casilleros.map(c => {
-            const v = est.notas[c];
-            return `<td style="text-align:center;font-variant-numeric:tabular-nums;">${v !== null && v !== undefined ? v : '<span style="color:var(--text-muted);">—</span>'}</td>`;
-        }).join('');
-        const prom = est.promedio;
-        const promColor = prom === null || prom === undefined ? 'var(--text-muted)' :
-            prom >= maxPts * 0.7 ? '#22c55e' : prom >= maxPts * 0.5 ? '#f59e0b' : '#ef4444';
-        return `<tr>
-            <td style="font-variant-numeric:tabular-nums;color:var(--text-muted);text-align:center;">${est.numero ?? ''}</td>
-            <td style="white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${_escapeHtml(est.nombre)}</td>
-            ${celdas}
-            <td style="text-align:center;font-weight:700;color:${promColor};">${prom !== null && prom !== undefined ? prom : '—'}</td>
-        </tr>`;
-    }).join('');
-
-    return `
-    <div style="padding:14px 16px 0;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="width:3px;height:16px;background:${color};border-radius:2px;display:inline-block;"></span>
-            <span style="font-size:.8rem;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.06em;">${titulo} / ${maxPts} pts</span>
-        </div>
-    </div>
-    <div style="overflow-x:auto;padding-bottom:14px;">
-        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-            <thead>
-                <tr style="background:var(--bg-hover);">
-                    <th style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">#</th>
-                    <th style="padding:8px 10px;text-align:left;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;min-width:160px;">Estudiante</th>
-                    ${headers.replace(/(<th)/g, '<th style="padding:8px 10px;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;"')}
-                    <th style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Promedio</th>
-                </tr>
-            </thead>
-            <tbody>${filas}</tbody>
-        </table>
-    </div>`;
-}
-
-function _metaRow(label, valor) {
-    if (!valor && valor !== 0) return '';
-    return `<div style="display:flex;gap:8px;font-size:.85rem;">
-        <span style="color:var(--text-muted);min-width:130px;flex-shrink:0;">${label}:</span>
-        <span style="color:var(--text);font-weight:600;">${_escapeHtml(String(valor))}</span>
-    </div>`;
-}
 
 
 // ── Cargar asignaciones para el panel de Notas ────────────────────
@@ -780,10 +354,8 @@ async function cargarAsignacionesNotas(mes = null) {
 
     if (countEl) countEl.textContent = `${data.length} materia${data.length !== 1 ? 's' : ''}`;
 
-    grid.innerHTML = data.map((a) => {
-        const sinNotas = !a.tiene_notas;
-        return `
-        <div class="notas-clase-card${sinNotas ? ' notas-clase-card--sin-notas' : ''}">
+    grid.innerHTML = data.map((a) => `
+        <div class="notas-clase-card">
             <div class="notas-clase-card__band"></div>
             <div class="notas-clase-card__body">
                 <div class="notas-clase-card__top">
@@ -797,16 +369,9 @@ async function cargarAsignacionesNotas(mes = null) {
                 </div>
                 <p class="notas-clase-card__materia">${_escapeHtml(a.curso_nombre)}</p>
                 <div class="notas-clase-card__footer">
-                    <span class="notas-clase-card__planes">
-                        ${sinNotas
-                            ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Sin registro`
-                            : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Con notas`
-                        }
-                    </span>
                     <button class="notas-clase-card__btn"
                             data-pc-id="${a.id}"
                             data-curso-id="${a.curso_id}"
-                            data-tiene-notas="${a.tiene_notas ? '1' : '0'}"
                             data-label="${_escapeHtml(a.materia_nombre)} — ${_escapeHtml(a.curso_nombre)}"
                             data-materia="${_escapeHtml(a.materia_nombre)}"
                             data-curso="${_escapeHtml(a.curso_nombre)}">
@@ -817,23 +382,20 @@ async function cargarAsignacionesNotas(mes = null) {
                     </button>
                 </div>
             </div>
-        </div>`;
-    }).join('');
+        </div>`
+    ).join('');
 
     grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (btn.dataset.tieneNotas === '1') {
-                _irAVerNotas(btn.dataset.pcId, btn.dataset.cursoId, btn.dataset.label, btn.dataset.materia, btn.dataset.curso);
-            } else {
-                const mesLabel = document.querySelector('.notas-folder-tab.active')?.textContent.trim() || '';
-                _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesLabel, btn.dataset.materia, btn.dataset.curso);
-            }
+            const mesLabel = document.querySelector('.notas-folder-tab.active')?.textContent.trim() || '';
+            _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesLabel, btn.dataset.materia, btn.dataset.curso);
         });
     });
 }
 
 // ── Folder tabs de meses (Marzo–Diciembre, meses futuros bloqueados) ─
 function _initNotasFolderTabs() {
+    if (!document.getElementById('notasFolderTabs')) return;
     const MESES_ESCOLAR = [
         { nombre: 'Marzo', idx: 2 }, { nombre: 'Abril',      idx: 3 },
         { nombre: 'Mayo',  idx: 4 }, { nombre: 'Junio',      idx: 5 },
@@ -853,7 +415,7 @@ function _initNotasFolderTabs() {
         const active = idx === mesActivoIdx;
         return `<button class="notas-folder-tab${active ? ' active' : ''}${locked ? ' locked' : ''}"
                         data-mes="${idx}" data-nombre="${nombre}" ${locked ? 'disabled' : ''}>
-            ${nombre}${locked ? '<span class="tab-lock">🔒</span>' : ''}
+            ${nombre}
         </button>`;
     }).join('');
 
@@ -875,153 +437,16 @@ function _initNotasFolderTabs() {
     if (activeTab) activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
-// ── Navegación entre sub-vistas del panel Notas ───────────────────
-function _initNotasNavigation() {
-    document.getElementById('btnVolverClases').addEventListener('click', _irAVistaClases);
-    document.getElementById('btnVolverDesdeVer').addEventListener('click', _irAVistaClases);
-    document.getElementById('vnTrimNav').addEventListener('click', e => {
-        const btn = e.target.closest('.vn-trim-btn');
-        if (!btn) return;
-        document.querySelectorAll('.vn-trim-btn').forEach(b => b.classList.remove('vn-trim-btn--active'));
-        btn.classList.add('vn-trim-btn--active');
-        _cargarVnTrimestre(parseInt(btn.dataset.trim));
-    });
-}
-
-function _actualizarHeaderNotas(label, mes = '', materiaSel = '', cursoSel = '') {
-    const partes = String(label || '').split(/\s+—\s+/);
-    const materia = (partes.shift() || '').trim() || '—';
-    const curso = partes.join(' — ').trim() || '—';
-    const periodo = (mes || '').trim() || '—';
-
-    document.getElementById('cnTitulo').textContent = 'Carga de Notas';
-    document.getElementById('notasClaseSeleccionada').textContent = 'Revisa la planilla antes de validar y confirmar la carga.';
-    document.getElementById('cnMateria').textContent = materiaSel || materia;
-    document.getElementById('cnCurso').textContent = cursoSel || curso;
-    document.getElementById('cnPeriodo').textContent = periodo;
-}
-
-// ── Vista Notas (solo lectura) ────────────────────────────────────
-const _vnState = { pcId: null, cursoId: null, label: '', materia: '', curso: '' };
-let _vnStudents = null; // cache estudiantes del curso actual
-
-function _irAVerNotas(pcId, cursoId, label, materia, curso) {
-    Object.assign(_vnState, { pcId, cursoId, label, materia, curso });
-    _vnStudents = null;
-
-    document.getElementById('vnTitulo').textContent  = label;
-    document.getElementById('vnMateria').textContent = materia;
-    document.getElementById('vnCurso').textContent   = curso;
-
-    document.querySelectorAll('.vn-trim-btn').forEach((b, i) => {
-        b.classList.toggle('vn-trim-btn--active', i === 0);
-    });
-    document.getElementById('vnTablas').innerHTML = '';
-
-    document.getElementById('vistaClases').style.display     = 'none';
-    document.getElementById('vistaSubirNotas').style.display = 'none';
-    document.getElementById('vistaVerNotas').style.display   = '';
-
-    _cargarVnTrimestre(1);
-}
-
-async function _cargarVnTrimestre(trimestre) {
-    const tablas  = document.getElementById('vnTablas');
-    const spinner = document.getElementById('vnSpinner');
-
-    tablas.innerHTML = '';
-    spinner.style.display = 'flex';
-
-    const [notasRes, estRes] = await Promise.all([
-        fetchAPI(`/api/academics/profesor/notas/?profesor_curso_id=${_vnState.pcId}&trimestre=${trimestre}`),
-        _vnStudents
-            ? Promise.resolve({ ok: true, data: _vnStudents })
-            : fetchAPI(`/api/students/curso/${_vnState.cursoId}/estudiantes/`),
-    ]);
-
-    spinner.style.display = 'none';
-
-    if (estRes.ok && Array.isArray(estRes.data)) _vnStudents = estRes.data;
-
-    const actividades = notasRes.data?.actividades;
-    if (!notasRes.ok || !actividades?.length) {
-        tablas.innerHTML = `<div class="vn-empty">Sin notas registradas para este trimestre.</div>`;
-        return;
-    }
-
-    tablas.innerHTML = _renderVnTablas(actividades, _vnStudents || []);
-}
-
-function _renderVnTablas(actividades, estudiantes) {
-    const mesActual = new Date().getMonth() + 1;
-    const porDim = { saber: [], hacer: [] };
-    actividades.forEach(a => { if (porDim[a.dimension]) porDim[a.dimension].push(a); });
-
-    const DIM_INFO = { saber: 'Saber', hacer: 'Hacer' };
-    let html = '';
-
-    for (const [dim, cols] of Object.entries(porDim)) {
-        if (!cols.length) continue;
-
-        const thCols = cols.map(c => {
-            const esMes = c.fecha_actividad && new Date(c.fecha_actividad).getMonth() + 1 === mesActual;
-            const fecha = c.fecha_actividad
-                ? new Date(c.fecha_actividad).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' })
-                : '—';
-            const titulo = c.titulo.replace(/^\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}\s*[-–]\s*/, '');
-            return `<th class="${esMes ? 'vn-col--mes' : ''}" title="${_escapeHtml(c.titulo)}">
-                <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-                    <span>${fecha}</span>
-                    <span style="font-size:.68rem;font-weight:400;max-width:72px;overflow:hidden;text-overflow:ellipsis;opacity:.7;">${_escapeHtml(titulo.substring(0, 22))}</span>
-                </div>
-            </th>`;
-        }).join('');
-
-        const rows = estudiantes.map((est, idx) => {
-            const nro    = idx + 1;
-            const nombre = `${est.apellidos}, ${est.nombre}`;
-            const tds = cols.map(c => {
-                const esMes = c.fecha_actividad && new Date(c.fecha_actividad).getMonth() + 1 === mesActual;
-                const n = c.notas.find(x => x.estudiante_id === nro);
-                return `<td class="${esMes ? 'vn-col--mes' : ''}">${n ? n.nota : '<span style="opacity:.35">—</span>'}</td>`;
-            }).join('');
-            return `<tr><td>${nro}</td><td>${_escapeHtml(nombre)}</td>${tds}</tr>`;
-        }).join('');
-
-        html += `
-        <div class="vn-dim-section">
-            <div class="vn-dim-label">${DIM_INFO[dim]} — máx ${cols[0]?.nota_maxima ?? '—'} pts</div>
-            <div class="vn-table-wrap">
-                <table class="vn-table">
-                    <thead><tr><th>N°</th><th>Estudiante</th>${thCols}</tr></thead>
-                    <tbody>${rows || '<tr><td colspan="99" class="vn-empty">Sin estudiantes</td></tr>'}</tbody>
-                </table>
-            </div>
-        </div>`;
-    }
-
-    return html || `<div class="vn-empty">Sin datos para este trimestre.</div>`;
-}
 
 function _irASubirNotas(pcId, label, mes = '', materia = '', curso = '') {
-    document.getElementById('selectAsignacion').value = pcId;
-    _actualizarHeaderNotas(label, mes, materia, curso);
-    // Resetear estado de carga
-    document.getElementById('dropZone').classList.remove('drop-zone--has-file');
-    document.getElementById('nombreArchivo').textContent = '';
-    document.getElementById('nombreArchivo').style.display = 'none';
-    document.getElementById('excelInput').value = '';
-    document.getElementById('btnSubirNotas').disabled = true;
-    _resetCnResult();
-    // Cambiar vista
-    document.getElementById('vistaClases').style.display = 'none';
-    document.getElementById('vistaSubirNotas').style.display = '';
-}
-
-function _irAVistaClases() {
-    document.getElementById('vistaSubirNotas').style.display = 'none';
-    document.getElementById('vistaVerNotas').style.display   = 'none';
-    document.getElementById('vistaClases').style.display     = '';
+    const q = new URLSearchParams({
+        pc_id:   pcId,
+        label:   label,
+        mes:     mes,
+        materia: materia,
+        curso:   curso,
+    });
+    window.location.href = `/profesor/calificaciones/?${q.toString()}`;
 }
 
 // ── Modal nueva citación: abrir / cerrar ──────────────────────────
@@ -1040,6 +465,7 @@ function _cerrarModalNuevaCitProf() {
 // ── Formulario de nueva citación ──────────────────────────────────
 function _initCitacionForm() {
     const selectCurso = document.getElementById('citCurso');
+    if (!selectCurso) return;
     const selectEst   = document.getElementById('citEstudiante');
 
     // No permitir fechas pasadas en la fecha límite de citación
@@ -1073,11 +499,12 @@ function _resetSelect(el, placeholder) {
 
 // ── Cargar cursos del profesor ────────────────────────────────────
 async function cargarCursos() {
+    const sel = document.getElementById('citCurso');
+    if (!sel) return;
     const { ok, data } = await fetchAPI('/api/academics/profesor/cursos/');
     if (!ok) return;
 
     _cursos = data;
-    const sel = document.getElementById('citCurso');
     sel.innerHTML = '<option value="">— Selecciona un curso —</option>';
     data.forEach(c => {
         const opt = document.createElement('option');
@@ -1178,6 +605,7 @@ let _planPlanesCache  = {};   // { mes: { pc_id: [plan, ...] } }
 let _planMesVista     = new Date().getMonth() + 1;
 
 function _initPlanForm() {
+    if (!document.getElementById('ptwPrevMes')) return;
     // Navegación de mes
     document.getElementById('ptwPrevMes').addEventListener('click', async () => {
         if (_planMesVista <= 1) return;

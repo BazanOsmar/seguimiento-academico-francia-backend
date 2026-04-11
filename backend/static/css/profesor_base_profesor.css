@@ -1,0 +1,206 @@
+:root { --topbar-h: 76px; }
+
+        .topbar-title-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+        }
+        .topbar-title-group .page-title { margin: 0; line-height: 1.05; }
+        .page-subtitle {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            line-height: 1.15;
+        }
+
+        /* ── Card base ───────────────────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .card-header { padding: 18px 24px; border-bottom: 1px solid var(--border); }
+        .card-title { font-size: .95rem; font-weight: 700; color: var(--text); margin: 0; }
+        .card-body { padding: 20px 24px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-label {
+            font-size: .8rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .04em;
+        }
+        .form-input {
+            background: var(--bg-input, rgba(255,255,255,.05));
+            border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px 14px;
+            color: var(--text); font-size: .9rem; font-family: inherit;
+            transition: border-color .15s; width: 100%; box-sizing: border-box;
+        }
+        .form-input:focus { outline: none; border-color: var(--accent); }
+        .form-error { font-size: .8rem; color: #dc2626; margin: 0; }
+
+        /* ── Spinner ─────────────────────────────────────────────────── */
+        .historial-spinner { display: flex; justify-content: center; padding: 32px 0; }
+        .spinner {
+            width: 28px; height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .historial-vacio { text-align: center; color: var(--text-muted); padding: 32px 0; font-size: .9rem; }
+
+        /* ── Nav dot ─────────────────────────────────────────────────── */
+        .nav-dot {
+            position: absolute; top: 5px; left: 20px;
+            width: 9px; height: 9px; border-radius: 50%;
+            background: #ef4444;
+            border: 1.5px solid var(--bg-app, #111827);
+            pointer-events: none; display: none;
+        }
+        .nav-dot.visible { display: block; }
+
+        /* ── Badge ───────────────────────────────────────────────────── */
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .75rem; font-weight: 600; }
+        .badge--warning  { background: rgba(234,179,8,.15);  color: #ca8a04; }
+        .badge--success  { background: rgba(34,197,94,.15);  color: #16a34a; }
+        .badge--error    { background: rgba(239,68,68,.15);   color: #dc2626; }
+        .badge--neutral  { background: var(--bg-hover);       color: var(--text-muted); }
+
+        /* ── Checklist contraseña ────────────────────────────────────── */
+        .pass-checks {
+            display: none; flex-direction: column; gap: 7px;
+            padding: 12px 14px; background: var(--bg-hover);
+            border-radius: 10px; border: 1px solid var(--border);
+        }
+        .pass-checks.visible { display: flex; }
+        .pass-check-item { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--text-muted); transition: color .2s; }
+        .pass-check-item.ok { color: #22c55e; }
+        .pass-check-icon {
+            width: 16px; height: 16px; border-radius: 50%;
+            border: 1.5px solid var(--border); display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0; transition: background .2s, border-color .2s;
+        }
+        .pass-check-item.ok .pass-check-icon { background: #22c55e; border-color: #22c55e; }
+        .pass-check-icon svg { display: none; }
+        .pass-check-item.ok .pass-check-icon svg { display: block; }
+
+        /* ── pass-input-wrap ─────────────────────────────────────────── */
+        .pass-input-wrap { position: relative; }
+        .pass-input-wrap .form-input { padding-right: 42px; }
+        .btn-toggle-pass {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; color: var(--text-muted);
+            padding: 4px; border-radius: 6px; display: flex; align-items: center; transition: color .15s;
+        }
+        .btn-toggle-pass:hover { color: var(--text); }
+
+        /* ── Modal primer ingreso / credenciales ─────────────────────── */
+        @keyframes planModalIn {
+            from { opacity: 0; transform: scale(.96) translateY(10px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .cred-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.65); z-index: 800;
+            align-items: center; justify-content: center; padding: 16px;
+            backdrop-filter: blur(3px);
+        }
+        .cred-modal-overlay.visible { display: flex; }
+        .cred-modal {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); width: min(440px, 100%);
+            box-shadow: 0 24px 64px rgba(0,0,0,.5);
+            animation: planModalIn .2s ease; overflow: hidden;
+        }
+        .cred-modal-strip { height: 4px; background: linear-gradient(90deg, var(--accent), #818cf8); }
+        .cred-modal-welcome {
+            display: flex; align-items: center; gap: 16px; padding: 20px 24px 18px;
+            background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(129,140,248,.04));
+            border-bottom: 1px solid var(--border);
+        }
+        .cred-modal-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; box-shadow: 0 4px 14px rgba(99,102,241,.35);
+        }
+        .cred-modal-icon svg { color: #fff; }
+        .cred-modal-title { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+        .cred-modal-sub { font-size: .8rem; color: var(--text-muted); margin: 0; line-height: 1.5; }
+        .cred-modal-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 16px; }
+        .cred-modal-notice {
+            display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px;
+            background: rgba(99,102,241,.07); border: 1px solid rgba(99,102,241,.18);
+            border-radius: 10px; font-size: .8rem; color: var(--text-muted); line-height: 1.5;
+        }
+        .cred-modal-notice svg { flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+        .cred-modal-divider { height: 1px; background: var(--border); margin: 0 -4px; }
+        .cred-modal-form { display: flex; flex-direction: column; gap: 14px; }
+        .cred-modal-error {
+            font-size: .8rem; color: #dc2626; background: rgba(239,68,68,.08);
+            border: 1px solid rgba(239,68,68,.2); border-radius: 6px; padding: 8px 12px; display: none;
+        }
+        .cred-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        /* Modal cambiar credenciales (desde cuenta) */
+        .cred-modal-header {
+            display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 24px 0; gap: 12px;
+        }
+        .cred-modal-close {
+            background: none; border: none; cursor: pointer; color: var(--text-muted);
+            padding: 4px; border-radius: 6px; flex-shrink: 0; transition: color .15s, background .15s;
+        }
+        .cred-modal-close:hover { color: var(--text); background: var(--bg-hover); }
+        .cred-current-user {
+            display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+            background: var(--bg-hover); border: 1px solid var(--border);
+            border-radius: var(--radius); font-size: .82rem; color: var(--text-muted);
+        }
+        .cred-current-user strong { color: var(--accent); }
+        .cuenta-success {
+            display: none; align-items: center; gap: 10px; padding: 12px 16px;
+            border-radius: var(--radius); background: rgba(34,197,94,.1);
+            border-left: 3px solid #22c55e; font-size: .85rem; color: var(--text);
+        }
+        .cuenta-success.visible { display: flex; }
+        .cuenta-success svg { color: #22c55e; flex-shrink: 0; }
+
+        /* ── Modal confirmación cambio de usuario ────────────────────── */
+        .confirm-cred-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 900;
+            align-items: center; justify-content: center; padding: 16px;
+            backdrop-filter: blur(3px);
+        }
+        .confirm-cred-overlay.visible { display: flex; }
+        .confirm-cred-modal {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 18px; width: min(420px, 100%);
+            overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,.5); animation: planModalIn .2s ease;
+        }
+        .confirm-cred-strip { height: 4px; background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .confirm-cred-body {
+            padding: 28px 28px 24px; display: flex; flex-direction: column;
+            align-items: center; gap: 14px; text-align: center;
+        }
+        .confirm-cred-icon {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: rgba(245,158,11,.12); border: 1.5px solid rgba(245,158,11,.3);
+            display: flex; align-items: center; justify-content: center; color: #f59e0b;
+        }
+        .confirm-cred-body h3 { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
+        .confirm-cred-body p { font-size: .84rem; color: var(--text-muted); margin: 0; line-height: 1.55; }
+        .confirm-cred-highlight {
+            background: var(--bg-hover); border: 1px solid var(--border);
+            border-left: 3px solid var(--accent); border-radius: 10px;
+            padding: 10px 16px; font-size: .9rem; font-weight: 700; color: var(--text); width: 100%; text-align: left;
+        }
+        .confirm-cred-highlight span { color: var(--accent); }
+        .confirm-cred-warn {
+            font-size: .78rem; color: #ca8a04; background: rgba(234,179,8,.08);
+            border: 1px solid rgba(234,179,8,.2); border-radius: 8px;
+            padding: 8px 12px; width: 100%; text-align: left;
+        }
+        .confirm-cred-actions { display: flex; gap: 10px; width: 100%; }
+        .confirm-cred-actions button { flex: 1; justify-content: center; }

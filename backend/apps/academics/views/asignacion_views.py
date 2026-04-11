@@ -87,7 +87,7 @@ class ProfesorMisAsignacionesView(APIView):
             ProfesorCurso.objects
             .filter(profesor=request.user)
             .select_related('materia', 'curso')
-            .order_by('materia__nombre', 'curso__grado', 'curso__paralelo')
+            .order_by('curso__grado', 'curso__paralelo', 'materia__nombre')
         )
 
         planes_qs = (

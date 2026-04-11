@@ -13,103 +13,123 @@ from ..services.planilla_validator_2026 import es_formato_2026, validar_estructu
 from ..services.notas_mongo_service import guardar_notas, obtener_notas
 
 
+def _error(mensaje):
+    return Response({'es_valido': False, 'mensaje': mensaje}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class ValidarPlanillaView(APIView):
     """
     POST /api/academics/profesor/validar-planilla/
-    Recibe un Excel (.xlsx/.xls) y un profesor_curso_id, valida la planilla Ley 070
-    y guarda las notas en MongoDB si es válida.
+    Valida la planilla en niveles secuenciales — se detiene en el primero que falla.
     Permiso: Profesor.
     """
     permission_classes = [IsAuthenticated, IsProfesor]
 
     def post(self, request):
+        # ── Nivel 2: recepción ────────────────────────────────────────
         archivo = request.FILES.get('archivo')
         if not archivo:
-            return Response({'errores': 'Se requiere un archivo Excel.'}, status=status.HTTP_400_BAD_REQUEST)
+            return _error('Debes adjuntar un archivo Excel antes de continuar.')
 
         nombre = archivo.name.lower()
         if not (nombre.endswith('.xlsx') or nombre.endswith('.xls')):
-            return Response({'errores': 'Solo se aceptan archivos .xlsx o .xls.'}, status=status.HTTP_400_BAD_REQUEST)
+            return _error('El archivo debe ser .xlsx o .xls. No se aceptan otros formatos.')
 
         profesor_curso_id = request.data.get('profesor_curso_id')
-        profesor_curso = None
-        if profesor_curso_id:
-            try:
-                profesor_curso_id = int(profesor_curso_id)
-            except (ValueError, TypeError):
-                return Response({'errores': 'profesor_curso_id inválido.'}, status=status.HTTP_400_BAD_REQUEST)
-            try:
-                profesor_curso = (
-                    ProfesorCurso.objects
-                    .select_related('profesor', 'materia', 'curso')
-                    .get(pk=profesor_curso_id, profesor=request.user)
-                )
-            except ProfesorCurso.DoesNotExist:
-                return Response(
-                    {'errores': 'Asignación no válida o no te pertenece.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        if not profesor_curso_id:
+            return _error('Asignación no válida.')
+        try:
+            profesor_curso_id = int(profesor_curso_id)
+        except (ValueError, TypeError):
+            return _error('Asignación no válida.')
+        try:
+            profesor_curso = (
+                ProfesorCurso.objects
+                .select_related('profesor', 'materia', 'curso')
+                .get(pk=profesor_curso_id, profesor=request.user)
+            )
+        except ProfesorCurso.DoesNotExist:
+            return _error('Asignación no válida o no te pertenece.')
 
         contenido = archivo.read()
         try:
             wb = _xl.load_workbook(io.BytesIO(contenido), data_only=True)
-        except Exception as e:
-            return Response({'errores': f'No se pudo abrir el archivo: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return _error('No se pudo leer el archivo. Asegúrate de que no esté dañado.')
 
-        if es_formato_2026(wb):
-            resultado = validar_estructura_2026(wb)
-            if resultado['es_valido'] and profesor_curso:
-                errores_pertenencia = validar_pertenencia_2026(resultado['metadatos'], profesor_curso)
-                if errores_pertenencia:
-                    resultado['es_valido'] = False
-                    resultado['errores'].extend(errores_pertenencia)
-                else:
-                    _TRIM_MAP = {'1TRIM': 1, '2TRIM': 2, '3TRIM': 3}
-                    headers_por_trim = resultado['metadatos'].get('headers_actividades', {})
-                    mongo_result = {'insertados': 0, 'actualizados': 0, 'errores': 0}
-                    for hoja, dims in headers_por_trim.items():
-                        t = _TRIM_MAP.get(hoja, 1)
-                        r = guardar_notas(profesor_curso, t, dims)
-                        mongo_result['insertados']  += r['insertados']
-                        mongo_result['actualizados'] += r['actualizados']
-                        mongo_result['errores']      += r['errores']
-                    resultado['mongo'] = mongo_result
+        es_2026 = es_formato_2026(wb)
 
-                    nombres_excel = resultado['metadatos'].get('estudiantes', [])
-                    curso_nombre  = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
-                    val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
-                    val_est['curso_verificado'] = curso_nombre
-                    resultado['estudiantes'] = val_est
+        # ── Nivel 3: estructura ───────────────────────────────────────
+        if es_2026:
+            estructura = validar_estructura_2026(wb)
         else:
-            resultado = validar_estructura(wb)
-            if resultado['es_valido']:
-                errores_pertenencia = validar_pertenencia(resultado['metadatos'], profesor_curso)
-                if errores_pertenencia:
-                    resultado['es_valido'] = False
-                    resultado['errores'].extend(errores_pertenencia)
-                else:
-                    notas = extraer_notas(wb)
-                    resultado['notas'] = notas
+            estructura = validar_estructura(wb)
 
-                    nombres_excel = []
-                    for trim_data in notas['trimestres'].values():
-                        datos = trim_data['saber']['datos'] or trim_data['hacer']['datos']
-                        if datos:
-                            nombres_excel = [e['nombre'] for e in datos]
-                            break
+        if not estructura['es_valido']:
+            return _error(estructura['mensaje'])
 
-                    curso_nombre = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
-                    val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
-                    val_est['curso_verificado'] = curso_nombre
-                    resultado['estudiantes'] = val_est
-                    if not val_est['es_valido']:
-                        resultado['es_valido'] = False
-                        resultado['errores'].append(
-                            f"{len(val_est['no_encontrados'])} estudiante(s) del Excel "
-                            f"no se encontraron en el curso {curso_nombre}."
-                        )
+        # ── Nivel 4: pertenencia ──────────────────────────────────────
+        if es_2026:
+            error_pertenencia = validar_pertenencia_2026(estructura['metadatos'], profesor_curso)
+        else:
+            error_pertenencia = validar_pertenencia(estructura['metadatos'], profesor_curso)
 
-        return Response(resultado)
+        if error_pertenencia:
+            return _error(error_pertenencia)
+
+        # ── Nivel 5: estudiantes ──────────────────────────────────────
+        curso_nombre  = f"{profesor_curso.curso.grado} \"{profesor_curso.curso.paralelo}\""
+        # Ambos formatos almacenan los nombres en metadatos['estudiantes']
+        # (Ley 070 los lee de FILIACION en validar_estructura, igual que 2026)
+        nombres_excel = estructura['metadatos'].get('estudiantes', [])
+
+        val_est = validar_estudiantes(nombres_excel, profesor_curso.curso_id)
+
+        if not val_est['es_valido']:
+            return Response({
+                'es_valido':           False,
+                'errores_estudiantes': val_est['errores'],
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ── Planilla válida: guardar y responder ──────────────────────
+        advertencias = estructura.get('advertencias', []) + val_est.get('advertencias', [])
+        estudiantes_resp = {
+            'lista_estudiantes': val_est['lista_estudiantes'],
+            'activos':           val_est['activos'],
+            'inactivos':         val_est['inactivos'],
+            'no_encontrados':    val_est['no_encontrados'],
+            'total_excel':       val_est['total_excel'],
+            'total_bd':          val_est['total_bd'],
+            'curso_verificado':  curso_nombre,
+        }
+
+        if es_2026:
+            _TRIM_MAP = {'1TRIM': 1, '2TRIM': 2, '3TRIM': 3}
+            headers_por_trim = estructura['metadatos'].get('headers_actividades', {})
+            mongo_result = {'insertados': 0, 'actualizados': 0, 'errores': 0}
+            for hoja, dims in headers_por_trim.items():
+                t = _TRIM_MAP.get(hoja, 1)
+                r = guardar_notas(profesor_curso, t, dims)
+                mongo_result['insertados']   += r['insertados']
+                mongo_result['actualizados'] += r['actualizados']
+                mongo_result['errores']      += r['errores']
+
+            return Response({
+                'es_valido':    True,
+                'advertencias': advertencias,
+                'metadatos':    estructura['metadatos'],
+                'estudiantes':  estudiantes_resp,
+                'mongo':        mongo_result,
+            })
+        else:
+            notas = extraer_notas(wb)
+            return Response({
+                'es_valido':    True,
+                'advertencias': advertencias,
+                'metadatos':    estructura['metadatos'],
+                'estudiantes':  estudiantes_resp,
+                'notas':        notas,
+            })
 
 
 class NotasMongoView(APIView):
