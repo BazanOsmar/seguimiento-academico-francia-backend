@@ -325,7 +325,7 @@ function _initUserInfo() {
     const pageSubtitle = document.getElementById('pageSubtitle');
     if (pageTitle) pageTitle.textContent = `Panel de ${nombreHeader}`;
     if (pageSubtitle) pageSubtitle.textContent = user.tipo_usuario || 'Profesor';
-    document.getElementById('profileName').textContent = nombre;
+    document.getElementById('profileName').textContent = "Republica de Francia 'A'";
     document.getElementById('profileRole').textContent = user.tipo_usuario || 'Profesor';
 }
 
@@ -1558,7 +1558,7 @@ function _initPrimerIngreso() {
 
         // Actualizar nombre en sidebar
         const nombre = `${data.user.first_name || ''} ${data.user.last_name || ''}`.trim() || data.user.username;
-        document.getElementById('profileName').textContent = nombre;
+        document.getElementById('profileName').textContent = "Republica de Francia 'A'";
     });
 }
 
@@ -1696,7 +1696,7 @@ async function _submitCred() {
 
     // Actualizar hero + sidebar
     const nombre = `${data.user.first_name || ''} ${data.user.last_name || ''}`.trim() || data.user.username;
-    document.getElementById('profileName').textContent    = nombre;
+    document.getElementById('profileName').textContent    = "Republica de Francia 'A'";
     document.getElementById('perfilNombre').textContent   = nombre;
     document.getElementById('perfilUsername').textContent = `@${data.user.username}`;
     const partes = nombre.split(' ');

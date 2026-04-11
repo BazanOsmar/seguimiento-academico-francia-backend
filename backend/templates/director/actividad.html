@@ -95,7 +95,7 @@
                 <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
             </div>
             <div class="sidebar-profile-info">
-                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-name" id="profileName">Republica de Francia 'A'</span>
                 <span class="profile-role" id="profileRole">Administración</span>
             </div>
         </div>
@@ -252,7 +252,7 @@
     const _user = JSON.parse(localStorage.getItem('user') || 'null');
     if (_user) {
         const nombre = `${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username;
-        document.getElementById('profileName').textContent = nombre;
+        document.getElementById('profileName').textContent = "Republica de Francia 'A'";
         document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
     }
 

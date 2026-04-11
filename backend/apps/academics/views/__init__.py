@@ -5,5 +5,5 @@ from .plan_views import (
     ProfesorPlanListCreateView, ProfesorPlanHistorialView, ProfesorPlanDetailView,
     DirectorPlanesView, DirectorPlanesExportarView,
 )
-from .planilla_views import ValidarPlanillaView, NotasMongoView
+from .planilla_views import ValidarPlanillaView, ConfirmarPlanillaView, NotasMongoView
 from .comparador_views import ComparadorNombresView

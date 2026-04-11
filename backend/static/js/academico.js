@@ -106,7 +106,7 @@ function _initUserInfo() {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (!user) return;
     const nombre = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
-    document.getElementById('profileName').textContent = nombre;
+    document.getElementById('profileName').textContent = "Republica de Francia 'A'";
     document.getElementById('profileRole').textContent = user.tipo_usuario || 'Director';
 }
 

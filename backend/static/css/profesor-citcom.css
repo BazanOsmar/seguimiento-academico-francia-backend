@@ -974,3 +974,31 @@
             scrollbar-color: rgba(59,130,246,.3) transparent;
         }
 
+        @media (max-width: 760px) {
+            .sec-hdr__title-row {
+                gap: 10px;
+                row-gap: 6px;
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .sec-hdr__title-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+            }
+
+            .sec-hdr__sep {
+                display: none;
+            }
+
+            .sec-title {
+                font-size: clamp(1.55rem, 8.5vw, 2rem);
+                line-height: 1.02;
+            }
+
+            .sec-hdr__sub {
+                font-size: .88rem;
+            }
+        }

@@ -31,11 +31,12 @@ CONEXIÓN:
 """
 
 import re
+from collections import defaultdict
 from datetime import datetime, timezone
 
-# ── Conexión MongoDB Atlas ────────────────────────────────────────────────────
+# ── Conexión MongoDB ──────────────────────────────────────────────────────────
 from django.conf import settings
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient, ASCENDING, UpdateOne, InsertOne
 
 _client          = None
 _db              = None
@@ -59,18 +60,43 @@ def ensure_indexes():
     if _indexes_ensured:
         return
     try:
-        db  = _get_db()
-        col = db['detalle_notas']
-        col.create_index([
+        db = _get_db()
+
+        # detalle_notas
+        db['detalle_notas'].create_index([
             ('estudiante_id', ASCENDING),
             ('materia_id',    ASCENDING),
             ('trimestre',     ASCENDING),
             ('dimension',     ASCENDING),
             ('columna_idx',   ASCENDING),
         ], unique=True, name='upsert_key')
+
+        db['detalle_notas'].create_index([
+            ('materia_id', ASCENDING),
+            ('curso_id',   ASCENDING),
+            ('trimestre',  ASCENDING),
+            ('mes',        ASCENDING),
+        ], name='consulta_mensual')
+
+        # notas_mensuales
+        db['notas_mensuales'].create_index([
+            ('estudiante_id', ASCENDING),
+            ('materia_id',    ASCENDING),
+            ('gestion',       ASCENDING),
+            ('trimestre',     ASCENDING),
+            ('mes',           ASCENDING),
+        ], unique=True, name='upsert_key')
+
+        db['notas_mensuales'].create_index([
+            ('curso_id',  ASCENDING),
+            ('materia_id',ASCENDING),
+            ('gestion',   ASCENDING),
+            ('mes',       ASCENDING),
+        ], name='consulta_curso_mes')
+
         _indexes_ensured = True
     except Exception:
-        pass  # Si Atlas no está disponible, se reintentará en el próximo arranque
+        pass
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,87 +120,108 @@ def _parsear_fecha(titulo):
         return None
 
 
+_NOTA_MAXIMA = {'ser': 10.0, 'saber': 45.0, 'hacer': 40.0}
+
 def _nota_maxima(dimension):
-    return 45.0 if dimension == 'saber' else 40.0
+    return _NOTA_MAXIMA.get(dimension, 10.0)
 
 
 # ── API pública ───────────────────────────────────────────────────────────────
 
 def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
     """
-    Recibe los datos extraídos del Excel y hace upsert en detalle_notas.
+    Guarda las notas del Excel en detalle_notas con lógica de comparación:
+      - Documento nuevo      → INSERT  (fecha_carga = ahora)
+      - Nota o título cambió → UPDATE  (fecha_actualizacion = ahora, fecha_carga intacta)
+      - Sin cambios          → omitir  (no se escribe en Mongo)
 
-    Args:
-        profesor_curso:      instancia ProfesorCurso (con .profesor, .materia, .curso)
-        trimestre:           int (1, 2 o 3)
-        headers_actividades: dict extraído por _extraer_headers_trim()
-                             { 'saber': [{col, titulo, notas:[{nro,nombre,nota}]}], ... }
-        gestion:             año escolar (default 2026)
+    Optimización: un solo find() carga todos los existentes en memoria;
+    todas las escrituras se envían en un único bulk_write al final.
 
     Returns:
-        dict con contadores { insertados, actualizados, errores }
-
-    NOTA: función pendiente de activar cuando haya conexión a Atlas.
-    Por ahora solo construye y retorna los documentos que se guardarían.
+        dict con contadores { insertados, actualizados, sin_cambios, errores }
     """
-    # db  = _get_db()
-    # col = db['detalle_notas']
+    db  = _get_db()
+    col = db['detalle_notas']
 
-    fecha_carga = datetime.now(tz=timezone.utc)
-    documentos  = []
+    materia_id = profesor_curso.materia.id
+    curso_id   = profesor_curso.curso.id
+    profesor_id = profesor_curso.profesor.id
+    ahora      = datetime.now(tz=timezone.utc)
+
+    # ── 1. Cargar todos los existentes de este trimestre en memoria ───────────
+    existentes = {}
+    for doc in col.find(
+        {'materia_id': materia_id, 'curso_id': curso_id, 'trimestre': trimestre},
+        {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1, 'nota': 1, 'titulo': 1},
+    ):
+        clave = (doc['estudiante_id'], doc['dimension'], doc['columna_idx'])
+        existentes[clave] = doc
+
+    # ── 2. Construir operaciones comparando en memoria ────────────────────────
+    operaciones    = []
+    insertados     = actualizados = sin_cambios = 0
 
     for dimension, columnas in headers_actividades.items():
         nota_max = _nota_maxima(dimension)
         for col_data in columnas:
-            col_idx       = col_data['col']
-            titulo        = col_data['titulo']
-            fecha_activ   = _parsear_fecha(titulo)
-            mes           = fecha_activ.month if fecha_activ else None
+            col_idx     = col_data['col']
+            titulo      = col_data['titulo']
+            fecha_activ = _parsear_fecha(titulo)
+            mes         = fecha_activ.month if fecha_activ else None
 
             for n in col_data.get('notas', []):
-                doc = {
-                    'estudiante_id':   n['nro'],          # se reemplaza por FK real al integrar
-                    'materia_id':      profesor_curso.materia.id,
-                    'curso_id':        profesor_curso.curso.id,
-                    'profesor_id':     profesor_curso.profesor.id,
+                clave = (n['nro'], dimension, col_idx)
+                prev  = existentes.get(clave)
 
-                    'gestion':         gestion,
-                    'trimestre':       trimestre,
-                    'mes':             mes,
+                if prev is None:
+                    operaciones.append(InsertOne({
+                        'estudiante_id':   n['nro'],
+                        'materia_id':      materia_id,
+                        'curso_id':        curso_id,
+                        'profesor_id':     profesor_id,
+                        'gestion':         gestion,
+                        'trimestre':       trimestre,
+                        'mes':             mes,
+                        'dimension':       dimension,
+                        'columna_idx':     col_idx,
+                        'titulo':          titulo,
+                        'fecha_actividad': fecha_activ,
+                        'nota':            n['nota'],
+                        'nota_maxima':     nota_max,
+                        'fecha_carga':     ahora,
+                    }))
+                    insertados += 1
 
-                    'dimension':       dimension,
-                    'columna_idx':     col_idx,
-                    'titulo':          titulo,
-                    'fecha_actividad': fecha_activ,
-                    'nota':            n['nota'],
-                    'nota_maxima':     nota_max,
+                elif prev['nota'] != n['nota'] or prev.get('titulo') != titulo:
+                    operaciones.append(UpdateOne(
+                        {'estudiante_id': n['nro'], 'materia_id': materia_id,
+                         'trimestre': trimestre, 'dimension': dimension, 'columna_idx': col_idx},
+                        {'$set': {
+                            'titulo':              titulo,
+                            'fecha_actividad':     fecha_activ,
+                            'nota':                n['nota'],
+                            'nota_maxima':         nota_max,
+                            'mes':                 mes,
+                            'fecha_actualizacion': ahora,
+                        }},
+                    ))
+                    actualizados += 1
 
-                    'fecha_carga':     fecha_carga,
-                }
-                documentos.append(doc)
+                else:
+                    sin_cambios += 1
 
-    db  = _get_db()
-    col = db['detalle_notas']
-
-    insertados = actualizados = errores = 0
-    for doc in documentos:
-        filtro = {
-            'estudiante_id': doc['estudiante_id'],
-            'materia_id':    doc['materia_id'],
-            'trimestre':     doc['trimestre'],
-            'dimension':     doc['dimension'],
-            'columna_idx':   doc['columna_idx'],
-        }
+    # ── 3. Enviar todo en un solo round trip ──────────────────────────────────
+    errores = 0
+    if operaciones:
         try:
-            res = col.update_one(filtro, {'$set': doc}, upsert=True)
-            if res.upserted_id:
-                insertados += 1
-            else:
-                actualizados += 1
+            col.bulk_write(operaciones, ordered=False)
         except Exception:
-            errores += 1
+            errores = len(operaciones)
+            insertados = actualizados = 0
 
-    return {'insertados': insertados, 'actualizados': actualizados, 'errores': errores}
+    return {'insertados': insertados, 'actualizados': actualizados,
+            'sin_cambios': sin_cambios, 'errores': errores}
 
 
 def asignaciones_con_notas(pares, mes=None):
@@ -232,3 +279,179 @@ def obtener_notas(materia_id, curso_id, trimestre):
         })
 
     return list(actividades.values())
+
+
+def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, gestion=2026):
+    """
+    Calcula y guarda notas_mensuales a partir de headers_actividades (ya en memoria).
+    Se llama inmediatamente después de guardar_notas.
+
+    Lógica:
+      - SER/SABER/HACER = promedio de TODAS las notas del mes (incluye 0, que = no presentó)
+      - promedio_examenes/tareas = promedio solo de notas > 0 (rendimiento real, útil para ML)
+      - cantidad_rendidos/entregados = cuántas notas > 0 tuvo el estudiante
+
+    Returns:
+        { procesados: int }
+    """
+    materia_id  = profesor_curso.materia.id
+    curso_id    = profesor_curso.curso.id
+    profesor_id = profesor_curso.profesor.id
+    ahora       = datetime.now(tz=timezone.utc)
+
+    # ── Agrupar notas por (estudiante_id, mes, dimension) ────────────────────
+    # student_data[est_id][mes][dim] = [notas]
+    student_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    # Contar columnas por (mes, dimension) — para los totales
+    cols_por_mes = defaultdict(lambda: defaultdict(int))
+
+    for dimension, columnas in headers_actividades.items():
+        for col_data in columnas:
+            fecha_activ = _parsear_fecha(col_data['titulo'])
+            if not fecha_activ:
+                continue
+            mes = fecha_activ.month
+            cols_por_mes[mes][dimension] += 1
+
+            for n in col_data.get('notas', []):
+                student_data[n['nro']][mes][dimension].append(n['nota'])
+
+    if not student_data:
+        return {'procesados': 0}
+
+    # ── Construir operaciones bulk ────────────────────────────────────────────
+    operaciones = []
+
+    for estudiante_id, meses in student_data.items():
+        for mes, dims in meses.items():
+            ser_notas   = dims.get('ser',   [])
+            saber_notas = dims.get('saber', [])
+            hacer_notas = dims.get('hacer', [])
+
+            total_saber = cols_por_mes[mes].get('saber', 0)
+            total_hacer = cols_por_mes[mes].get('hacer', 0)
+
+            def _promedio_todos(notas, total_cols):
+                """Promedio incluyendo 0s — usa total_cols como denominador."""
+                if not total_cols:
+                    return 0.0
+                return round(sum(notas) / total_cols, 2)
+
+            def _promedio_rendidos(notas):
+                """Promedio solo de notas > 0."""
+                rendidos = [n for n in notas if n > 0]
+                return round(sum(rendidos) / len(rendidos), 2) if rendidos else 0.0
+
+            ser_total   = cols_por_mes[mes].get('ser', 0)
+            ser_val     = _promedio_todos(ser_notas, ser_total)
+            saber_val   = _promedio_todos(saber_notas, total_saber)
+            hacer_val   = _promedio_todos(hacer_notas, total_hacer)
+
+            filtro = {
+                'estudiante_id': estudiante_id,
+                'materia_id':    materia_id,
+                'gestion':       gestion,
+                'trimestre':     trimestre,
+                'mes':           mes,
+            }
+
+            operaciones.append(UpdateOne(filtro, {'$set': {
+                **filtro,
+                'curso_id':                   curso_id,
+                'profesor_id':                profesor_id,
+                'ser':                        ser_val,
+                'saber':                      saber_val,
+                'hacer':                      hacer_val,
+                'nota_mensual':               round(ser_val + saber_val + hacer_val, 2),
+                'promedio_examenes':          _promedio_rendidos(saber_notas),
+                'promedio_tareas':            _promedio_rendidos(hacer_notas),
+                'cantidad_examenes_rendidos': sum(1 for n in saber_notas if n > 0),
+                'cantidad_examenes_total':    total_saber,
+                'cantidad_tareas_entregadas': sum(1 for n in hacer_notas if n > 0),
+                'cantidad_tareas_total':      total_hacer,
+                'fecha_carga':                ahora,
+            }}, upsert=True))
+
+    procesados = len(operaciones)
+    if operaciones:
+        _get_db()['notas_mensuales'].bulk_write(operaciones, ordered=False)
+
+    return {'procesados': procesados}
+
+
+def obtener_detalle_notas_tutor(estudiante_id, materia_id):
+    """
+    Devuelve las notas de SABER y HACER de un estudiante en una materia,
+    agrupadas por trimestre. Usado por el tutor en la app móvil.
+
+    Returns:
+        { trimestre: [ { titulo, fecha_actividad, nota, nota_maxima, dimension } ] }
+        dict vacío si no hay notas.
+    """
+    try:
+        col  = _get_db()['detalle_notas']
+        docs = list(col.find(
+            {
+                'estudiante_id': estudiante_id,
+                'materia_id':    materia_id,
+                'dimension':     {'$in': ['saber', 'hacer']},
+            },
+            {'_id': 0, 'trimestre': 1, 'dimension': 1, 'titulo': 1,
+             'fecha_actividad': 1, 'nota': 1, 'nota_maxima': 1},
+        ).sort([('trimestre', 1), ('dimension', 1), ('columna_idx', 1)]))
+
+        agrupado = {}
+        for doc in docs:
+            t = doc['trimestre']
+            agrupado.setdefault(t, []).append({
+                'dimension':       doc['dimension'],
+                'titulo':          doc.get('titulo'),
+                'fecha_actividad': doc['fecha_actividad'].isoformat() if doc.get('fecha_actividad') else None,
+                'nota':            doc['nota'],
+                'nota_maxima':     doc['nota_maxima'],
+            })
+
+        return agrupado
+
+    except Exception:
+        return {}
+
+
+def promedios_saber_hacer_por_materia(estudiante_id, materia_ids):
+    """
+    Devuelve el promedio de (saber + hacer) por materia para un estudiante,
+    calculado sobre todos los meses que tengan datos en notas_mensuales.
+
+    Args:
+        estudiante_id: int
+        materia_ids:   lista de ints
+
+    Returns:
+        dict { materia_id: float | None }
+        None si la materia no tiene ningún registro aún.
+    """
+    if not materia_ids:
+        return {}
+
+    try:
+        col  = _get_db()['notas_mensuales']
+        docs = col.find(
+            {'estudiante_id': estudiante_id, 'materia_id': {'$in': list(materia_ids)}},
+            {'materia_id': 1, 'saber': 1, 'hacer': 1, '_id': 0},
+        )
+
+        acumulado = {}   # materia_id → [saber+hacer por mes]
+        for doc in docs:
+            mid = doc['materia_id']
+            acumulado.setdefault(mid, []).append(
+                (doc.get('saber') or 0) + (doc.get('hacer') or 0)
+            )
+
+        resultado = {mid: None for mid in materia_ids}
+        for mid, valores in acumulado.items():
+            resultado[mid] = round(sum(valores) / len(valores), 1)
+
+        return resultado
+
+    except Exception:
+        return {mid: None for mid in materia_ids}

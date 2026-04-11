@@ -1286,8 +1286,7 @@ btnConfirmarMar.addEventListener('click', async () => {
 (function () {
     const u = JSON.parse(localStorage.getItem('user') || 'null');
     if (u) {
-        document.getElementById('profileName').textContent =
-            `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
+        document.getElementById('profileName').textContent = "Republica de Francia 'A'";
         document.getElementById('profileRole').textContent = u.tipo_usuario || 'Administración';
     }
     document.getElementById('btnLogout').addEventListener('click', async () => {

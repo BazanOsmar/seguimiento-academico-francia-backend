@@ -268,7 +268,7 @@
                 <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
             </div>
             <div class="sidebar-profile-info">
-                <span class="profile-name" id="profileName">Portal Director</span>
+                <span class="profile-name" id="profileName">Republica de Francia 'A'</span>
                 <span class="profile-role" id="profileRole">Administración</span>
             </div>
         </div>
@@ -541,7 +541,7 @@
         const userLocal = JSON.parse(localStorage.getItem('user') || 'null');
         if (userLocal) {
             const n = [userLocal.first_name, userLocal.last_name].filter(Boolean).join(' ') || userLocal.username;
-            document.getElementById('profileName').textContent = n;
+            document.getElementById('profileName').textContent = "Republica de Francia 'A'";
         }
         document.getElementById('btnLogout').addEventListener('click', () => {
             localStorage.clear(); window.location.replace('/login/');
@@ -643,7 +643,7 @@
                 const nombre = `${res.data.first_name} ${res.data.last_name}`.trim();
                 document.getElementById('perfilNombre').textContent    = nombre;
                 document.getElementById('perfilNombreRow').textContent = nombre;
-                document.getElementById('profileName').textContent     = nombre;
+                document.getElementById('profileName').textContent     = "Republica de Francia 'A'";
                 document.getElementById('avatarInicial').textContent   =
                     [res.data.first_name?.[0], res.data.last_name?.[0]].filter(Boolean).join('').toUpperCase();
                 const u = JSON.parse(localStorage.getItem('user') || '{}');

@@ -8,13 +8,27 @@ from backend.apps.students.views.student_director_views import (
 )
 from backend.apps.students.views.student_search_views import EstudianteBusquedaView
 from backend.apps.students.views.student_import_views import ImportarEstudiantesExcelView
-from backend.apps.students.views.student_me_views import MiEstudianteView
+from backend.apps.students.views.student_me_views import (
+    MiEstudianteView,
+    MateriasEstudianteTutorView,
+    NotasMateriaEstudianteTutorView,
+)
 
 urlpatterns = [
     path(
         "me/student/",
         MiEstudianteView.as_view(),
         name="mi-estudiante",
+    ),
+    path(
+        "me/student/<int:estudiante_id>/materias/",
+        MateriasEstudianteTutorView.as_view(),
+        name="mi-estudiante-materias",
+    ),
+    path(
+        "me/student/<int:estudiante_id>/materias/<int:materia_id>/notas/",
+        NotasMateriaEstudianteTutorView.as_view(),
+        name="mi-estudiante-materia-notas",
     ),
     path(
         "importar-excel/",

@@ -125,7 +125,7 @@ class CitacionCreateView(APIView):
                 kwargs={
                     "titulo": "Citación escolar",
                     "cuerpo": cuerpo_notif,
-                    "datos": {"citacion_id": str(citacion.id)},
+                    "datos": {"rol": "padre", "citacion_id": str(citacion.id)},
                     "imagen": imagen_url,
                 },
                 daemon=True,

@@ -133,7 +133,7 @@ class ComunicadoCreateView(APIView):
                 kwargs={
                     'titulo': comunicado.titulo,
                     'cuerpo': comunicado.contenido[:200],
-                    'datos':  {'comunicado_id': str(comunicado.id)},
+                    'datos':  {'rol': 'padre', 'comunicado_id': str(comunicado.id)},
                     'imagen': imagen_url,
                 },
                 daemon=True,

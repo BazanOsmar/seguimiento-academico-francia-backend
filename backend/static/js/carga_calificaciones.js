@@ -11,6 +11,8 @@ const _mes     = _params.get('mes')     || '';
 let _archivo = null;
 let _validacionEnCurso = false;
 let _validationStepTimer = null;
+let _draftToken = null;
+let _confirmandoEnCurso = false;
 
 // ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -203,6 +205,7 @@ function _setArchivo(file) {
 function _resetUpload() {
     if (_validacionEnCurso) return;
 
+    _draftToken = null;
     _hideInlineObservation();
     _clearSelectedFileState();
     document.getElementById('ccDropTitle').textContent = 'Arrastra tu archivo Excel aquí';
@@ -267,11 +270,14 @@ async function _validarPlanilla() {
     if (!data.es_valido) {
         if (data.errores_estudiantes?.length) {
             _showInlineObservationList(data.errores_estudiantes);
+        } else if (data.errores_notas?.length) {
+            _showInlineObservationList(data.errores_notas.map(m => ({ mensaje: m })));
         } else {
             _showInlineObservation(data.mensaje || 'Se detectó una observación en la planilla.');
         }
         return;
     }
+    _draftToken = data.draft_token || null;
     _mostrarResultado(data);
 }
 
@@ -683,6 +689,12 @@ function _renderSuccessDashboard(r) {
                         </svg>
                         Exportar a PDF
                     </button>
+                    <button class="cc-success-tool cc-success-tool--primary" id="btnConfirmar" type="button" onclick="_confirmarPlanilla()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Confirmar y subir notas
+                    </button>
                 </div>
             </div>
 
@@ -790,4 +802,125 @@ function _esc(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+// ── Vista previa del dashboard (datos de muestra para revisar UI) ──
+function _previewDashboard() {
+    const nombres = [
+        'AGUILAR MAMANI, Luis',
+        'CHOQUE FLORES, Maria',
+        'CONDORI QUISPE, Carlos',
+        'ESPINOZA LAZO, Ana',
+        'GARCIA TORREZ, Pedro',
+        'HUANCA MAMANI, Rosa',
+        'QUISPE CONDORI, Jorge',
+        'MAMANI FLORES, Carmen',
+        'NINA COPA, Diego',
+        'TORREZ AGUILAR, Patricia',
+        'VARGAS GUTIERREZ, Ivan',
+        'ZENTENO MOLINA, Lucia',
+    ];
+
+    const _nota = (max) => Math.round((Math.random() * max * 0.5 + max * 0.4) * 10) / 10;
+
+    const saberCols = ['15/01 - Evaluación 1', '01/02 - Evaluación 2', '15/02 - Evaluación 3'];
+    const hacerCols = ['20/01 - Práctica Lab 1', '05/02 - Proyecto 1', '18/02 - Práctica Lab 2'];
+    const serCols   = ['Comportamiento', 'Participación', 'Responsabilidad', 'Puntualidad'];
+
+    const buildColData = (titles, max) => titles.map(titulo => ({
+        titulo,
+        notas: nombres.map((nombre, i) => ({
+            nro:   i + 1,
+            nombre,
+            nota:  _nota(max),
+        })),
+    }));
+
+    const mockData = {
+        es_valido:    true,
+        draft_token:  null,
+        metadatos: {
+            maestro:              'Juan Carlos Mamani Quispe',
+            area:                 _materia !== '—' ? _materia : 'Matemáticas',
+            año_escolaridad:      '1ro A',
+            unidad_educativa:     "República de Francia 'A'",
+            cantidad_estudiantes: nombres.length,
+            gestion:              2026,
+            hoja_origen:          '1TRIM',
+            '1TRIM_tiene_notas':  true,
+            '2TRIM_tiene_notas':  false,
+            '3TRIM_tiene_notas':  false,
+            headers_actividades: {
+                '1TRIM': {
+                    saber: buildColData(saberCols, 45),
+                    hacer: buildColData(hacerCols, 40),
+                    ser:   buildColData(serCols,   10),
+                },
+            },
+        },
+        estudiantes: {
+            activos:         nombres.length,
+            inactivos:       0,
+            no_encontrados:  [],
+            lista_estudiantes: nombres.map((nombre, i) => ({ nombre, encontrado: true, activo: true, numero: i + 1 })),
+            total_excel:     nombres.length,
+            total_bd:        nombres.length,
+            curso_verificado: _curso !== '—' ? _curso : '1ro A',
+        },
+    };
+
+    _mostrarResultado(mockData);
+}
+
+// ── Confirmar y subir notas ───────────────────────────────────────
+async function _confirmarPlanilla() {
+    if (_confirmandoEnCurso) return;
+    if (!_draftToken) {
+        showToast('No hay una planilla validada. Vuelve a cargar el archivo.', 'error');
+        return;
+    }
+
+    _confirmandoEnCurso = true;
+    const btn = document.getElementById('btnConfirmar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Subiendo...'; }
+
+    try {
+        const res  = await fetchAPI('/api/academics/profesor/confirmar-planilla/', {
+            method: 'POST',
+            body:   JSON.stringify({ draft_token: _draftToken }),
+        });
+
+        if (!res.ok) {
+            const msg = res.data?.errores || 'Error al subir las notas. Intenta nuevamente.';
+            showToast(msg, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Confirmar y subir notas'; }
+            return;
+        }
+
+        // Éxito — deshabilitar botón y mostrar resultado
+        _draftToken = null;
+        const r = res.data?.resultado || {};
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Notas subidas
+            `;
+            btn.classList.add('cc-success-tool--done');
+        }
+        const detalle = [
+            r.insertados   ? `${r.insertados} nuevas`      : '',
+            r.actualizados ? `${r.actualizados} actualizadas` : '',
+            r.sin_cambios  ? `${r.sin_cambios} sin cambios`  : '',
+        ].filter(Boolean).join(' · ');
+        showToast(`Notas guardadas correctamente${detalle ? ' — ' + detalle : ''}.`, 'success');
+
+    } catch {
+        showToast('Error de conexión al subir las notas.', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar y subir notas'; }
+    } finally {
+        _confirmandoEnCurso = false;
+    }
 }

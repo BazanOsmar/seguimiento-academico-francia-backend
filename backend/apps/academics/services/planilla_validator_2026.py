@@ -90,11 +90,13 @@ def _extraer_meta_trim(ws):
 
 
 # Rangos de columnas por dimensión (1-indexed)
+# SER: 4 columnas sobre 10 | SABER: 10 cols sobre 45 | HACER: 10 cols sobre 40
 _DIMS = {
-    'ser':   (14, 17),
+    'ser':   (14, 17),   # máximo 4 columnas
     'saber': (19, 28),
     'hacer': (30, 39),
 }
+_MAX_COLS = {'ser': 4, 'saber': 10, 'hacer': 10}
 
 
 def _extraer_headers_trim(ws):
@@ -149,14 +151,14 @@ def _extraer_headers_trim(ws):
                 cols.append({'col': col, 'titulo': titulo, 'notas': notas})
 
         if cols:
-            headers[dim] = cols
+            headers[dim] = cols[:_MAX_COLS[dim]]
 
     return headers
 
 
 def _es_numero(val):
     try:
-        return float(val) > 0
+        return float(val) >= 0
     except (TypeError, ValueError):
         return False
 
@@ -315,3 +317,50 @@ def validar_pertenencia_2026(metadatos, profesor_curso):
         return "Esta no es la materia correspondiente a tu asignación."
 
     return None
+
+
+# ── Nivel 6: completitud de notas por actividad ───────────────────────────────
+
+_TRIM_LABEL = {'1TRIM': '1er Trim', '2TRIM': '2do Trim', '3TRIM': '3er Trim'}
+_DIM_LABEL  = {'ser': 'SER', 'saber': 'SABER', 'hacer': 'HACER'}
+
+
+def validar_completitud_notas(headers_por_trim, nombres_activos_excel):
+    """
+    Nivel 6: por cada columna de actividad con al menos una nota,
+    verifica que todos los estudiantes activos del Excel también tengan nota.
+
+    Args:
+        headers_por_trim:       metadatos['headers_actividades'] del validador
+        nombres_activos_excel:  lista de nombres (str) de estudiantes activos en Excel
+
+    Returns:
+        { es_valido: bool, errores: [str] }
+    """
+    from .planilla_validator import _palabras, _coincide_nombre
+
+    errores = []
+    activos = [{'nombre': n, 'palabras': _palabras(n)} for n in nombres_activos_excel]
+
+    for hoja, dims in headers_por_trim.items():
+        trim_label = _TRIM_LABEL.get(hoja, hoja)
+        for dimension, columnas in dims.items():
+            dim_label = _DIM_LABEL.get(dimension, dimension.upper())
+            for col_data in columnas:
+                titulo = col_data['titulo']
+                if 'recuperatorio' in titulo.lower():
+                    continue
+                con_nota = [{'palabras': _palabras(n['nombre'])} for n in col_data['notas']]
+
+                for activo in activos:
+                    tiene = any(
+                        _coincide_nombre(activo['palabras'], c['palabras'])
+                        for c in con_nota
+                    )
+                    if not tiene:
+                        errores.append(
+                            f"{activo['nombre']} no tiene nota en '{titulo}' "
+                            f"({dim_label}, {trim_label}), agrégala antes de continuar."
+                        )
+
+    return {'es_valido': len(errores) == 0, 'errores': errores}

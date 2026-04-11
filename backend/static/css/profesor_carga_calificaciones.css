@@ -81,6 +81,18 @@
 
         .cc-back-btn svg { flex-shrink: 0; }
 
+        .cc-back-btn--preview {
+            border-color: rgba(99,102,241,.22);
+            color: #a5b4fc;
+            background: rgba(99,102,241,.08);
+            font-size: .78rem;
+        }
+        .cc-back-btn--preview:hover {
+            background: rgba(99,102,241,.18);
+            border-color: rgba(99,102,241,.35);
+            color: #e0e7ff;
+        }
+
         .cc-badge-sep { color: var(--text-muted); font-size: .75rem; }
 
         /* ── Título de página ────────────────────────────────────── */
@@ -541,10 +553,29 @@
             font-family: var(--font);
         }
 
-        .cc-success-tool:hover {
+        .cc-success-tool:hover:not(:disabled) {
             border-color: rgba(96,165,250,.28);
             background: rgba(59,130,246,.12);
             transform: translateY(-1px);
+        }
+
+        .cc-success-tool--primary {
+            background: var(--accent, #3b82f6);
+            border-color: var(--accent, #3b82f6);
+            color: #fff;
+        }
+        .cc-success-tool--primary:hover:not(:disabled) {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        .cc-success-tool--primary:disabled {
+            cursor: default;
+            transform: none;
+        }
+        .cc-success-tool--done {
+            background: rgba(34,197,94,.15);
+            border-color: rgba(34,197,94,.35);
+            color: #4ade80;
         }
 
         .cc-success-table-shell {
