@@ -18,6 +18,7 @@ urlpatterns = [
     path('director/actividad/',      views.director_actividad_view,   name='director-actividad'),
     path('director/control-diario/', views.director_control_diario_view, name='director-control-diario'),
     path('director/comunicados/',    views.director_comunicados_view,      name='director-comunicados'),
+    path('director/citaciones/',    views.director_citaciones_view,       name='director-citaciones'),
     path('director/comparar-nombres/', views.director_comparar_nombres_view, name='director-comparar-nombres'),
     path('director/academico/',      views.director_academico_view,   name='director-academico'),
     path('director/mi-perfil/',      views.director_mi_perfil_view,   name='director-mi-perfil'),

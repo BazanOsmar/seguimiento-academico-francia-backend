@@ -442,6 +442,9 @@ def director_control_diario_view(request):
 def director_comunicados_view(request):
     return render(request, 'director/comunicados.html')
 
+def director_citaciones_view(request):
+    return render(request, 'director/comunicados.html')
+
 
 def director_academico_view(request):
     return render(request, 'director/academico.html')
