@@ -582,6 +582,9 @@ def promedios_saber_hacer_por_materia(estudiante_id, materia_ids, trimestre=None
 
         return resultado
 
+    except Exception:
+        return {mid: None for mid in materia_ids}
+
 
 def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
     """
