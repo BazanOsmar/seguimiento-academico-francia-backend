@@ -64,6 +64,16 @@ class MateriasEstudianteTutorView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        trimestre_raw = request.query_params.get("trimestre")
+        trimestre = None
+        if trimestre_raw is not None:
+            if trimestre_raw not in ("1", "2", "3"):
+                return Response(
+                    {"errores": "El trimestre debe ser 1, 2 o 3."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            trimestre = int(trimestre_raw)
+
         asignaciones = list(
             ProfesorCurso.objects
             .select_related("materia", "profesor")
@@ -72,7 +82,7 @@ class MateriasEstudianteTutorView(APIView):
         )
 
         materia_ids = [a.materia.id for a in asignaciones]
-        promedios   = promedios_saber_hacer_por_materia(estudiante.id, materia_ids)
+        promedios   = promedios_saber_hacer_por_materia(estudiante.id, materia_ids, trimestre=trimestre)
 
         data = [
             {
@@ -82,7 +92,7 @@ class MateriasEstudianteTutorView(APIView):
                     f"{a.profesor.first_name} {a.profesor.last_name}".strip()
                     or a.profesor.username
                 ),
-                "promedio": promedios.get(a.materia.id),  # None si aún no hay notas
+                "promedio": promedios.get(a.materia.id),
             }
             for a in asignaciones
         ]

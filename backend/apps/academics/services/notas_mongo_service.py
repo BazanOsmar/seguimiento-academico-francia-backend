@@ -540,28 +540,34 @@ def obtener_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
         return {}
 
 
-def promedios_saber_hacer_por_materia(estudiante_id, materia_ids):
+def promedios_saber_hacer_por_materia(estudiante_id, materia_ids, trimestre=None):
     """
     Devuelve el promedio de (saber + hacer) por materia para un estudiante,
-    calculado sobre todos los meses que tengan datos en notas_mensuales.
+    calculado sobre los meses de notas_mensuales.
 
     Args:
         estudiante_id: int
         materia_ids:   lista de ints
+        trimestre:     int (1, 2 o 3) — si se pasa, filtra solo ese trimestre;
+                       si es None, promedia todos los meses disponibles.
 
     Returns:
         dict { materia_id: float | None }
-        None si la materia no tiene ningún registro aún.
+        None si la materia no tiene ningún registro para ese trimestre.
     """
     if not materia_ids:
         return {}
 
     try:
-        col  = _get_db()['notas_mensuales']
-        docs = col.find(
-            {'estudiante_id': estudiante_id, 'materia_id': {'$in': list(materia_ids)}},
-            {'materia_id': 1, 'saber': 1, 'hacer': 1, '_id': 0},
-        )
+        col = _get_db()['notas_mensuales']
+        filtro = {
+            'estudiante_id': estudiante_id,
+            'materia_id':    {'$in': list(materia_ids)},
+        }
+        if trimestre is not None:
+            filtro['trimestre'] = trimestre
+
+        docs = col.find(filtro, {'materia_id': 1, 'saber': 1, 'hacer': 1, '_id': 0})
 
         acumulado = {}   # materia_id → [saber+hacer por mes]
         for doc in docs:
