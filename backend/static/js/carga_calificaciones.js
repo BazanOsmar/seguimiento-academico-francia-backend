@@ -13,6 +13,9 @@ let _validacionEnCurso = false;
 let _validationStepTimer = null;
 let _draftToken = null;
 let _confirmandoEnCurso = false;
+let _lastResultado = null;
+let _soloLectura = false;
+let _mesLabel = '';
 
 // ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,15 +34,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const mesNum = parseInt(_mes, 10);
     const meses  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const mesLabel = (mesNum >= 1 && mesNum <= 12) ? meses[mesNum] : 'Período actual';
+    _mesLabel = (mesNum >= 1 && mesNum <= 12) ? meses[mesNum] : 'Período actual';
     const periodBadge = document.getElementById('ccPeriodBadge');
     const deptBadge   = document.getElementById('ccDeptBadge');
-    if (periodBadge) periodBadge.textContent = mesLabel.toUpperCase();
+    if (periodBadge) periodBadge.textContent = _mesLabel.toUpperCase();
     if (deptBadge)   deptBadge.textContent   = _materia !== '—' ? _materia : 'Carga de notas';
 
     _initDragDrop();
     _initButtons();
+    if (_pcId && _mes) {
+        const yaSubidas = _params.get('ya_subidas');
+        if (yaSubidas === '0') {
+            // La vista de cards ya sabe que no hay notas → saltar el fetch
+            _mostrarVistaUpload();
+        } else {
+            // '1' o null (acceso directo sin parámetro) → verificar siempre
+            _verificarEstadoNotas();
+        }
+    } else {
+        _mostrarVistaUpload();
+    }
 });
+
+// ── Modo lectura / verificación inicial ───────────────────────────
+async function _verificarEstadoNotas() {
+    // Usa fetch directo para que fetchAPI no dispare toasts automáticos.
+    // Si falla por cualquier razón, se queda en la vista de carga por defecto.
+    try {
+        const token = localStorage.getItem('access_token');
+        const res   = await fetch(
+            `/api/academics/profesor/estado-notas/?pc_id=${encodeURIComponent(_pcId)}&mes=${encodeURIComponent(_mes)}`,
+            { headers: { 'Authorization': `Bearer ${token}` } },
+        );
+        if (!res.ok) { _mostrarVistaUpload(); return; }
+        const data = await res.json();
+        if (data.ya_subidas) {
+            _mostrarVistaLectura(data.headers_por_trim);
+        } else {
+            _mostrarVistaUpload();
+        }
+    } catch {
+        _mostrarVistaUpload();
+    }
+}
+
+function _mostrarVistaLectura(headersPorTrim) {
+    _soloLectura = true;
+    document.getElementById('ccInitLoader').style.display  = 'none';
+    document.getElementById('ccCard').style.display        = 'none';
+    // En modo lectura ocultamos solo el título y meta de "Carga de Calificaciones"
+    document.querySelector('.cc-title').style.display = 'none';
+    document.querySelector('.cc-meta').style.display  = 'none';
+    const r = {
+        metadatos: {
+            headers_actividades: headersPorTrim,
+            hoja_origen: Object.keys(headersPorTrim)[0] || '1TRIM',
+            gestion: new Date().getFullYear(),
+        },
+    };
+    _lastResultado = r;
+    const dashboard = document.getElementById('ccDashboard');
+    dashboard.innerHTML     = _renderSuccessDashboard(r, null, true);
+    dashboard.style.display = '';
+    _initTableScrollSync();
+}
+
+function _mostrarVistaUpload() {
+    _soloLectura = false;
+    document.getElementById('ccInitLoader').style.display = 'none';
+    document.getElementById('ccCard').style.display       = '';
+    document.getElementById('ccDashboard').style.display  = 'none';
+}
 
 // ── Drag & Drop ───────────────────────────────────────────────────
 function _initDragDrop() {
@@ -74,8 +139,8 @@ function _clearSelectedFileState() {
     document.getElementById('excelInput').value = '';
     document.getElementById('ccFilenamePill').classList.remove('visible');
     document.getElementById('ccFilenameText').textContent = '';
-    document.getElementById('ccDropTitle').textContent = 'Arrastra tu archivo Excel aqui';
-    document.getElementById('ccDropSub').textContent = 'O haz clic para buscar en tu ordenador. AsegÃºrate de que el archivo siga el formato de la plantilla oficial para una validaciÃ³n exitosa.';
+    document.getElementById('ccDropTitle').textContent = 'Arrastra tu archivo Excel aquí';
+    document.getElementById('ccDropSub').textContent = 'O haz clic para buscar en tu ordenador. Asegúrate de que el archivo siga el formato de la plantilla oficial para una validación exitosa.';
     document.getElementById('btnSelectFile').style.display = '';
     document.getElementById('btnValidar').style.display = 'none';
     document.getElementById('btnValidar').disabled = true;
@@ -87,10 +152,45 @@ function _initButtons() {
         _validarPlanilla();
     });
 
-    document.getElementById('btnCambiarArchivo').addEventListener('click', () => {
-        if (_validacionEnCurso) return;
-        _resetUpload();
+    // Dialog de confirmación de subida
+    const dlg         = document.getElementById('dlgConfirmarSubida');
+    const dlgCancelar = document.getElementById('dlgBtnCancelar');
+    const dlgConfirm  = document.getElementById('dlgBtnConfirmar');
+    const dlgCerrar   = document.getElementById('dlgBtnCerrar');
+
+    dlgCancelar.addEventListener('click', () => dlg.close());
+    dlgCerrar.addEventListener('click', () => {
+        dlg.close();
+        window.location.reload();
     });
+
+    // Bloquear cierre con backdrop durante la carga
+    dlg.addEventListener('click', (e) => {
+        if (e.target === dlg && !_confirmandoEnCurso) dlg.close();
+    });
+    // Bloquear cierre con Escape durante la carga
+    dlg.addEventListener('cancel', (e) => {
+        if (_confirmandoEnCurso) e.preventDefault();
+    });
+
+    dlgConfirm.addEventListener('click', () => {
+        _dlgSetPanel('loading');
+        _confirmarPlanilla();
+    });
+}
+
+function _dlgSetPanel(panel) {
+    ['Confirm', 'Loading', 'Done'].forEach(p => {
+        const el = document.getElementById('dlgPanel' + p);
+        if (el) el.classList.toggle('dlg-panel--hidden', p.toLowerCase() !== panel);
+    });
+}
+
+function _abrirDialogConfirmar() {
+    const dlg = document.getElementById('dlgConfirmarSubida');
+    if (!dlg) return;
+    _dlgSetPanel('confirm');
+    dlg.showModal();
 }
 
 function _setValidationBusy(isBusy) {
@@ -99,13 +199,11 @@ function _setValidationBusy(isBusy) {
     const card = document.getElementById('ccCard');
     const btnSelect = document.getElementById('btnSelectFile');
     const btnValidar = document.getElementById('btnValidar');
-    const btnCambiar = document.getElementById('btnCambiarArchivo');
     const input = document.getElementById('excelInput');
 
     card.classList.toggle('is-busy', isBusy);
     btnSelect.disabled = isBusy;
     btnValidar.disabled = isBusy || !_archivo;
-    btnCambiar.disabled = isBusy;
     input.disabled = isBusy;
 }
 
@@ -214,10 +312,10 @@ function _resetUpload() {
     document.getElementById('btnValidar').style.display    = 'none';
     document.getElementById('btnValidar').disabled         = true;
 
-    // Ocultar resultado y volver a upload
-    document.getElementById('ccResultView').classList.remove('visible');
-    document.getElementById('ccResultView').classList.remove('cc-result-view--success');
-    document.getElementById('ccUploadView').style.display = '';
+    const dashboard = document.getElementById('ccDashboard');
+    dashboard.innerHTML     = '';
+    dashboard.style.display = 'none';
+    document.getElementById('ccCard').style.display = '';
     _setValidationBusy(false);
 }
 
@@ -238,6 +336,7 @@ async function _validarPlanilla() {
     const formData = new FormData();
     formData.append('archivo', _archivo);
     formData.append('profesor_curso_id', _pcId);
+    formData.append('mes', _mes);
 
     const token = localStorage.getItem('access_token');
     const controller = new AbortController();
@@ -250,8 +349,17 @@ async function _validarPlanilla() {
             body: formData,
             signal: controller.signal,
         });
-        data = await res.json();
-        ok   = res.ok;
+        ok = res.ok;
+        if (res.status === 401) {
+            window.location.href = '/login/';
+            return;
+        }
+        try {
+            data = await res.json();
+        } catch {
+            data = { mensaje: `Error del servidor (${res.status}). Intenta nuevamente.` };
+            ok = false;
+        }
     } catch (error) {
         ok   = false;
         data = { mensaje: error?.name === 'AbortError'
@@ -263,11 +371,14 @@ async function _validarPlanilla() {
     btnVal.textContent = 'Validar Planilla';
     _hideValidationModal();
 
-    if (!ok) {
+    // Sin campo es_valido → error de red o servidor (no-JSON, 500, etc.)
+    if (data?.es_valido === undefined) {
+        _clearSelectedFileState();
         _showInlineObservation(data?.mensaje || 'Error de conexión. Intenta nuevamente.');
         return;
     }
     if (!data.es_valido) {
+        _clearSelectedFileState();
         if (data.errores_estudiantes?.length) {
             _showInlineObservationList(data.errores_estudiantes);
         } else if (data.errores_notas?.length) {
@@ -283,78 +394,13 @@ async function _validarPlanilla() {
 
 // ── Mostrar resultado ─────────────────────────────────────────────
 function _mostrarResultado(r) {
-    const meta = r.metadatos || {};
-    const resultView = document.getElementById('ccResultView');
-
+    _lastResultado = r;
     _hideInlineObservation();
-
-    // Pasar de vista upload a vista resultado
-    document.getElementById('ccUploadView').style.display = 'none';
-    resultView.classList.add('visible');
-
-    // Nombre del archivo en topbar de resultado
-    document.getElementById('ccResultFilename').textContent = _archivo ? _archivo.name : '';
-
-    // Badge de estado — solo llega aquí si es_valido: true
-    const statusBadge = document.getElementById('ccStatusBadge');
-    statusBadge.innerHTML = `<span class="cc-status-badge cc-status-badge--ok">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Planilla válida</span>`;
-
-    // Meta rows
-    const metaFields = [
-        ['Maestro/a',        meta.maestro],
-        ['Área',             meta.area],
-        ['Año escolaridad',  meta.año_escolaridad],
-        ['Unidad educativa', meta.unidad_educativa],
-        ['Estudiantes',      meta.cantidad_estudiantes],
-    ].filter(([, v]) => v !== undefined && v !== null && v !== '');
-
-    document.getElementById('ccMetaRows').innerHTML = metaFields.map(([l, v]) => `
-        <div class="cc-meta-row">
-            <span class="cc-meta-row__label">${l}</span>
-            <span class="cc-meta-row__val">${_esc(String(v))}</span>
-        </div>
-    `).join('');
-
-    // Trim chips
-    const trimRow = document.getElementById('ccTrimRow');
-    const chips   = ['1TRIM','2TRIM','3TRIM'].map(t => {
-        const tiene = meta[`${t}_tiene_notas`];
-        return `<span class="cc-trim-chip" style="
-            background:${tiene ? 'rgba(34,197,94,.1)' : 'rgba(255,255,255,.04)'};
-            border:1px solid ${tiene ? 'rgba(34,197,94,.25)' : 'var(--border-subtle)'};
-            color:${tiene ? '#22c55e' : 'var(--text-muted)'};">${t}</span>`;
-    }).join('');
-    document.getElementById('ccTrimChips').innerHTML = chips;
-    trimRow.style.display = Object.keys(meta).length ? '' : 'none';
-
-    // Preview: errores o datos
-    const errorPanel  = document.getElementById('ccErrorPanel');
-    const notasPanel  = document.getElementById('ccNotasPanel');
-    const emptyPanel  = document.getElementById('ccPreviewEmpty');
-    const previewBadge = document.getElementById('ccPreviewBadge');
-
-    errorPanel.style.display = 'none';
-    notasPanel.style.display = 'none';
-    emptyPanel.style.display = 'none';
-    resultView.classList.remove('cc-result-view--success');
-
-    // Advertencias (planilla válida pero con observaciones menores)
-    const dashboardHtml = _renderSuccessDashboard(r);
-    if (dashboardHtml) {
-        resultView.classList.add('cc-result-view--success');
-        notasPanel.innerHTML = dashboardHtml;
-        notasPanel.style.display = '';
-        previewBadge.textContent = '';
-        return;
-    }
-
-    const estudiantesHtml = r.estudiantes ? _renderEstudiantes(r.estudiantes) : '';
-    const notasHtml       = r.notas       ? _renderNotas(r.notas)             : '';
-    notasPanel.innerHTML     = `<div style="padding:0 20px 20px;">${estudiantesHtml}${notasHtml}</div>`;
-    notasPanel.style.display = '';
-    previewBadge.textContent = meta.cantidad_estudiantes ? `${meta.cantidad_estudiantes} estudiantes` : '';
+    document.getElementById('ccCard').style.display = 'none';
+    const dashboard = document.getElementById('ccDashboard');
+    dashboard.innerHTML     = _renderSuccessDashboard(r) || _renderSuccessDashboard(_buildMockResultado());
+    dashboard.style.display = '';
+    _initTableScrollSync();
 }
 
 // ── Render helpers ────────────────────────────────────────────────
@@ -460,30 +506,65 @@ function _renderNotas(notas) {
     const trimestres = notas.trimestres || {};
     const orden  = ['1TRIM', '2TRIM', '3TRIM'];
     const labels = { '1TRIM': '1er Trimestre', '2TRIM': '2do Trimestre', '3TRIM': '3er Trimestre' };
+    const uid    = 'nt' + Math.random().toString(36).slice(2, 7);
 
-    return orden.map(trim => {
+    // Determina cuál tab mostrar por defecto: el primero que tenga datos, o el primero
+    const defaultTrim = orden.find(t => {
+        const td = trimestres[t];
+        return td && (td.saber.casilleros.length > 0 || td.hacer.casilleros.length > 0);
+    }) || orden[0];
+
+    const tabsHtml = orden.map(trim => {
+        const td        = trimestres[trim];
+        const tieneDatos = td && (td.saber.casilleros.length > 0 || td.hacer.casilleros.length > 0);
+        const isActive  = trim === defaultTrim;
+        const dot       = tieneDatos
+            ? `<span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;"></span>`
+            : '';
+        return `<button
+            id="${uid}-tab-${trim}"
+            onclick="_ccSwitchTrim('${uid}','${trim}')"
+            style="flex:1;padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s,color .15s;
+                   background:${isActive ? 'var(--accent)' : 'transparent'};
+                   color:${isActive ? '#fff' : 'var(--text-secondary)'};">
+            ${dot}${labels[trim]}
+        </button>`;
+    }).join('');
+
+    const panelsHtml = orden.map(trim => {
         const td = trimestres[trim];
-        if (!td) return '';
+        if (!td) return `<div id="${uid}-panel-${trim}" style="display:none;"></div>`;
 
         const saberHtml  = _renderDim(td.saber, 'SABER', '#6366f1', 45);
         const hacerHtml  = _renderDim(td.hacer, 'HACER', '#0ea5e9', 40);
         const tieneDatos = td.saber.casilleros.length > 0 || td.hacer.casilleros.length > 0;
+        const contenido  = tieneDatos
+            ? `${saberHtml}${hacerHtml}`
+            : `<p style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:28px 0;">Sin notas registradas en este trimestre.</p>`;
 
-        return `
-        <div style="margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-            <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.trim-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)';"
-                style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-hover);border:none;cursor:pointer;color:var(--text);font-family:inherit;">
-                <span style="font-weight:700;font-size:.9rem;">${labels[trim]}</span>
-                <span style="display:flex;align-items:center;gap:8px;">
-                    ${tieneDatos
-                        ? `<span style="font-size:.7rem;color:#22c55e;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:99px;font-weight:700;">Con notas</span>`
-                        : `<span style="font-size:.7rem;color:var(--text-muted);background:var(--bg-input);border:1px solid var(--border);padding:2px 8px;border-radius:99px;">Sin notas</span>`}
-                    <svg class="trim-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-            </button>
-            <div style="display:block;">${saberHtml}${hacerHtml}${!tieneDatos ? '<p style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:20px;">Sin notas registradas en este trimestre.</p>' : ''}</div>
-        </div>`;
+        return `<div id="${uid}-panel-${trim}" style="display:${trim === defaultTrim ? 'block' : 'none'};">${contenido}</div>`;
     }).join('');
+
+    return `
+    <div style="margin-top:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        <div style="padding:10px;background:var(--bg-hover);border-bottom:1px solid var(--border);display:flex;gap:6px;">
+            ${tabsHtml}
+        </div>
+        <div>${panelsHtml}</div>
+    </div>`;
+}
+
+function _ccSwitchTrim(uid, trim) {
+    ['1TRIM','2TRIM','3TRIM'].forEach(t => {
+        const tab   = document.getElementById(`${uid}-tab-${t}`);
+        const panel = document.getElementById(`${uid}-panel-${t}`);
+        const active = t === trim;
+        if (tab) {
+            tab.style.background = active ? 'var(--accent)' : 'transparent';
+            tab.style.color      = active ? '#fff' : 'var(--text-secondary)';
+        }
+        if (panel) panel.style.display = active ? 'block' : 'none';
+    });
 }
 
 function _renderDim(dim, titulo, color, maxPts) {
@@ -531,21 +612,53 @@ function _renderDim(dim, titulo, color, maxPts) {
     </div>`;
 }
 
-function _renderSuccessDashboard(r) {
+function _ccSwitchDashboard(trim) {
+    if (!_lastResultado) return;
+    const dashboard = document.getElementById('ccDashboard');
+    if (!dashboard) return;
+    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, trim, _soloLectura);
+    _initTableScrollSync();
+}
+
+function _initTableScrollSync() {
+    const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
+    if (!shell) return;
+    const headWrap  = shell.querySelector('.cc-success-table-head-wrap');
+    const headTable = headWrap ? headWrap.querySelector('table') : null;
+    const ghost     = shell.querySelector('.cc-success-ghost-scroll');
+    const bodyWrap  = shell.querySelector('.cc-success-table-body-wrap');
+    if (!headTable || !ghost || !bodyWrap) return;
+
+    const syncHead = (left) => {
+        headWrap.scrollLeft = left;
+    };
+    ghost.addEventListener('scroll', () => {
+        bodyWrap.scrollLeft = ghost.scrollLeft;
+        syncHead(ghost.scrollLeft);
+    });
+    bodyWrap.addEventListener('scroll', () => {
+        ghost.scrollLeft = bodyWrap.scrollLeft;
+        syncHead(bodyWrap.scrollLeft);
+    });
+}
+
+function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const meta = r.metadatos || {};
     const headersByTrim = meta.headers_actividades || {};
     const trimOrder = ['1TRIM', '2TRIM', '3TRIM'];
-    const trimKey = (meta.hoja_origen && headersByTrim[meta.hoja_origen])
-        ? meta.hoja_origen
-        : (trimOrder.find(key => headersByTrim[key]) || Object.keys(headersByTrim)[0]);
+    const trimKey = activeTrim && headersByTrim[activeTrim]
+        ? activeTrim
+        : (meta.hoja_origen && headersByTrim[meta.hoja_origen])
+            ? meta.hoja_origen
+            : (trimOrder.find(key => headersByTrim[key]) || Object.keys(headersByTrim)[0]);
 
     if (!trimKey || !headersByTrim[trimKey]) return '';
 
     const trimData = headersByTrim[trimKey];
     const dimensionDefs = [
-        { key: 'saber', label: 'Saber (Evaluaciones Teoricas)', css: 'saber', short: 'Saber' },
-        { key: 'hacer', label: 'Hacer (Laboratorio y Practica)', css: 'hacer', short: 'Hacer' },
-        { key: 'ser',   label: 'Ser / Decidir',                  css: 'ser',   short: 'Ser' },
+        { key: 'saber', label: 'HACER',  css: 'saber', short: 'Hacer' },
+        { key: 'hacer', label: 'SABER',  css: 'hacer', short: 'Saber' },
+        { key: 'ser',   label: 'SER',    css: 'ser',   short: 'Ser'   },
     ];
 
     const dimensions = dimensionDefs
@@ -615,12 +728,35 @@ function _renderSuccessDashboard(r) {
     const coverage = totalPossible ? (filledCount / totalPossible) * 100 : 0;
     const coverageLabel = coverage >= 95 ? 'Excelente' : coverage >= 80 ? 'Completo' : 'En proceso';
     const gestion = meta.gestion || new Date().getFullYear();
+
+    const totalScoreCols = dimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
+    const tableWidth = 54 + 260 + totalScoreCols * 48 + 80;
+    const colgroup = `<colgroup>
+        <col style="width:54px">
+        <col style="width:260px">
+        ${dimensions.map(dim => dim.columns.map(() => '<col style="width:48px">').join('')).join('')}
+        <col style="width:80px">
+    </colgroup>`;
     const trimLabels = {
-        '1TRIM': 'Primer Trimestre',
-        '2TRIM': 'Segundo Trimestre',
-        '3TRIM': 'Tercer Trimestre',
+        '1TRIM': '1er Trimestre',
+        '2TRIM': '2do Trimestre',
+        '3TRIM': '3er Trimestre',
     };
     const trimLabel = trimLabels[trimKey] || trimKey;
+
+    const trimTabsHtml = trimOrder.map(t => {
+        const hasData = !!headersByTrim[t];
+        const isActive = t === trimKey;
+        return `<button
+            onclick="_ccSwitchDashboard('${t}')"
+            ${!hasData ? 'disabled' : ''}
+            style="padding:7px 18px;border-radius:8px;border:none;cursor:${hasData ? 'pointer' : 'not-allowed'};font-family:inherit;font-size:.82rem;font-weight:600;transition:background .15s,color .15s;
+                   background:${isActive ? 'var(--accent)' : 'var(--bg-input)'};
+                   color:${isActive ? '#fff' : hasData ? 'var(--text-secondary)' : 'var(--text-muted)'};
+                   opacity:${hasData ? '1' : '.45'};">
+            ${trimLabels[t]}
+        </button>`;
+    }).join('');
 
     const groupedHeaders = dimensions.map(dim => `
         <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${dim.columns.length}">
@@ -659,11 +795,39 @@ function _renderSuccessDashboard(r) {
         </div>
     `).join('');
 
+    const headTitle = soloLectura
+        ? `<span style="font-size:2rem;font-weight:800;letter-spacing:-.02em;">Calificaciones - ${_esc(_mesLabel)}</span>`
+        : `Registro de Notas - ${_esc(_materia)} - ${_esc(_curso)}`;
+
+    const headActions = soloLectura
+        ? `<div class="cc-success-actions">
+               <span class="cc-readonly-badge">
+                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                       <polyline points="20 6 9 17 4 12"/>
+                   </svg>
+                   Notas subidas
+               </span>
+           </div>`
+        : `<div class="cc-success-actions">
+               <button class="cc-success-tool" type="button" onclick="_resetUpload()">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                       <polyline points="15 18 9 12 15 6"></polyline>
+                   </svg>
+                   Cambiar archivo
+               </button>
+               <button class="cc-success-tool cc-success-tool--primary" id="btnConfirmar" type="button" onclick="_abrirDialogConfirmar()">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                       <polyline points="20 6 9 17 4 12"></polyline>
+                   </svg>
+                   Confirmar y subir notas
+               </button>
+           </div>`;
+
     return `
         <div class="cc-success-report">
             <div class="cc-success-head">
                 <div>
-                    <h2 class="cc-success-title">Registro de Notas - ${_esc(_materia)} - ${_esc(_curso)}</h2>
+                    <h2 class="cc-success-title">${headTitle}</h2>
                     <p class="cc-success-sub">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -671,45 +835,40 @@ function _renderSuccessDashboard(r) {
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        ${_esc(`${trimLabel} ${gestion}`)}
+                        ${soloLectura
+                            ? `<span style="font-size:1.05rem;">${_esc(_curso)} · ${_esc(_materia)}</span>`
+                            : _esc(`${trimLabel} ${gestion}`)
+                        }
                     </p>
                 </div>
-                <div class="cc-success-actions">
-                    <button class="cc-success-tool" type="button" onclick="_resetUpload()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                        Cambiar archivo
-                    </button>
-                    <button class="cc-success-tool" type="button" onclick="window.print()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M6 9V2h12v7"></path>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
-                        </svg>
-                        Exportar a PDF
-                    </button>
-                    <button class="cc-success-tool cc-success-tool--primary" id="btnConfirmar" type="button" onclick="_confirmarPlanilla()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Confirmar y subir notas
-                    </button>
-                </div>
+                ${headActions}
+            </div>
+
+            <div style="display:flex;gap:8px;padding:0 20px 14px;">
+                ${trimTabsHtml}
             </div>
 
             <div class="cc-success-table-shell">
-                <div class="cc-success-table-wrap">
-                    <table class="cc-success-table">
+                <div class="cc-success-table-head-wrap">
+                    <table class="cc-success-table" style="table-layout:fixed;width:${tableWidth}px;">
+                        ${colgroup}
                         <thead>
                             <tr>
-                                <th class="cc-success-table__head cc-success-table__head--fixed" rowspan="2">Nro</th>
-                                <th class="cc-success-table__head cc-success-table__head--fixed" rowspan="2">Nombre Completo</th>
+                                <th class="cc-success-table__head cc-success-table__head--fixed cc-success-table__nro" rowspan="2">Nro</th>
+                                <th class="cc-success-table__head cc-success-table__head--fixed cc-success-table__name" rowspan="2">Nombre Completo</th>
                                 ${groupedHeaders}
-                                <th class="cc-success-table__head cc-success-table__head--fixed" rowspan="2">Promedio</th>
+                                <th class="cc-success-table__head cc-success-table__head--fixed cc-success-table__avg" rowspan="2">Promedio</th>
                             </tr>
                             <tr>${rotatedHeaders}</tr>
                         </thead>
+                    </table>
+                </div>
+                <div class="cc-success-ghost-scroll">
+                    <div style="width:${tableWidth}px;height:1px;pointer-events:none;"></div>
+                </div>
+                <div class="cc-success-table-body-wrap">
+                    <table class="cc-success-table" style="table-layout:fixed;width:${tableWidth}px;">
+                        ${colgroup}
                         <tbody>${tableRows}</tbody>
                     </table>
                 </div>
@@ -747,17 +906,18 @@ function _buildSuccessSummary({ totalStudents, overallAverage, riskCount, covera
                 <div class="cc-success-metric__value">${_fmt1(overallAverage)}<span class="cc-success-metric__trend">${overallAverage >= 60 ? 'Consolidado' : 'Revisar'}</span></div>
             </div>
         </div>
-        <div class="cc-success-metric cc-success-metric--warn">
+        <div class="cc-success-metric cc-success-metric--neutral">
             <div class="cc-success-metric__icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
             </div>
             <div>
-                <div class="cc-success-metric__label">Estudiantes en Riesgo</div>
-                <div class="cc-success-metric__value">${riskCount}<span class="cc-success-metric__sub">/ ${totalStudents}</span></div>
+                <div class="cc-success-metric__label">Cantidad de Estudiantes</div>
+                <div class="cc-success-metric__value">${totalStudents}</div>
             </div>
         </div>
         <div class="cc-success-metric cc-success-metric--neutral">
@@ -804,8 +964,8 @@ function _esc(str) {
         .replace(/'/g, '&#39;');
 }
 
-// ── Vista previa del dashboard (datos de muestra para revisar UI) ──
-function _previewDashboard() {
+// ── Mock de datos para vista previa del dashboard ────────────────
+function _buildMockResultado() {
     const nombres = [
         'AGUILAR MAMANI, Luis',
         'CHOQUE FLORES, Maria',
@@ -820,25 +980,14 @@ function _previewDashboard() {
         'VARGAS GUTIERREZ, Ivan',
         'ZENTENO MOLINA, Lucia',
     ];
-
     const _nota = (max) => Math.round((Math.random() * max * 0.5 + max * 0.4) * 10) / 10;
-
-    const saberCols = ['15/01 - Evaluación 1', '01/02 - Evaluación 2', '15/02 - Evaluación 3'];
-    const hacerCols = ['20/01 - Práctica Lab 1', '05/02 - Proyecto 1', '18/02 - Práctica Lab 2'];
-    const serCols   = ['Comportamiento', 'Participación', 'Responsabilidad', 'Puntualidad'];
-
     const buildColData = (titles, max) => titles.map(titulo => ({
         titulo,
-        notas: nombres.map((nombre, i) => ({
-            nro:   i + 1,
-            nombre,
-            nota:  _nota(max),
-        })),
+        notas: nombres.map((nombre, i) => ({ nro: i + 1, nombre, nota: _nota(max) })),
     }));
-
-    const mockData = {
-        es_valido:    true,
-        draft_token:  null,
+    return {
+        es_valido:   true,
+        draft_token: null,
         metadatos: {
             maestro:              'Juan Carlos Mamani Quispe',
             area:                 _materia !== '—' ? _materia : 'Matemáticas',
@@ -852,24 +1001,27 @@ function _previewDashboard() {
             '3TRIM_tiene_notas':  false,
             headers_actividades: {
                 '1TRIM': {
-                    saber: buildColData(saberCols, 45),
-                    hacer: buildColData(hacerCols, 40),
-                    ser:   buildColData(serCols,   10),
+                    saber: buildColData(['15/01 - Evaluación 1', '01/02 - Evaluación 2', '15/02 - Evaluación 3'], 45),
+                    hacer: buildColData(['20/01 - Práctica Lab 1', '05/02 - Proyecto 1', '18/02 - Práctica Lab 2'], 40),
+                    ser:   buildColData(['Comportamiento', 'Participación', 'Responsabilidad', 'Puntualidad'], 10),
                 },
             },
         },
         estudiantes: {
-            activos:         nombres.length,
-            inactivos:       0,
-            no_encontrados:  [],
+            activos:           nombres.length,
+            inactivos:         0,
+            no_encontrados:    [],
             lista_estudiantes: nombres.map((nombre, i) => ({ nombre, encontrado: true, activo: true, numero: i + 1 })),
-            total_excel:     nombres.length,
-            total_bd:        nombres.length,
-            curso_verificado: _curso !== '—' ? _curso : '1ro A',
+            total_excel:       nombres.length,
+            total_bd:          nombres.length,
+            curso_verificado:  _curso !== '—' ? _curso : '1ro A',
         },
     };
+}
 
-    _mostrarResultado(mockData);
+// ── Vista previa del dashboard (datos de muestra para revisar UI) ──
+function _previewDashboard() {
+    _mostrarResultado(_buildMockResultado());
 }
 
 // ── Confirmar y subir notas ───────────────────────────────────────
@@ -877,29 +1029,43 @@ async function _confirmarPlanilla() {
     if (_confirmandoEnCurso) return;
     if (!_draftToken) {
         showToast('No hay una planilla validada. Vuelve a cargar el archivo.', 'error');
+        const dlg = document.getElementById('dlgConfirmarSubida');
+        if (dlg) dlg.close();
         return;
     }
 
     _confirmandoEnCurso = true;
-    const btn = document.getElementById('btnConfirmar');
-    if (btn) { btn.disabled = true; btn.textContent = 'Subiendo...'; }
 
     try {
-        const res  = await fetchAPI('/api/academics/profesor/confirmar-planilla/', {
+        const res = await fetchAPI('/api/academics/profesor/confirmar-planilla/', {
             method: 'POST',
             body:   JSON.stringify({ draft_token: _draftToken }),
         });
 
         if (!res.ok) {
             const msg = res.data?.errores || 'Error al subir las notas. Intenta nuevamente.';
+            _dlgSetPanel('confirm');
+            const dlg = document.getElementById('dlgConfirmarSubida');
+            if (dlg) dlg.close();
             showToast(msg, 'error');
-            if (btn) { btn.disabled = false; btn.textContent = 'Confirmar y subir notas'; }
             return;
         }
 
-        // Éxito — deshabilitar botón y mostrar resultado
+        // Éxito — mostrar panel done con detalle
         _draftToken = null;
         const r = res.data?.resultado || {};
+        const detalle = [
+            r.insertados   ? `${r.insertados} nuevas`         : '',
+            r.actualizados ? `${r.actualizados} actualizadas` : '',
+            r.sin_cambios  ? `${r.sin_cambios} sin cambios`   : '',
+        ].filter(Boolean).join(' · ');
+
+        const dlgDetalle = document.getElementById('dlgDoneDetalle');
+        if (dlgDetalle) dlgDetalle.textContent = detalle || 'Notas guardadas correctamente.';
+        _dlgSetPanel('done');
+
+        // Marcar botón externo como completado
+        const btn = document.getElementById('btnConfirmar');
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = `
@@ -910,16 +1076,12 @@ async function _confirmarPlanilla() {
             `;
             btn.classList.add('cc-success-tool--done');
         }
-        const detalle = [
-            r.insertados   ? `${r.insertados} nuevas`      : '',
-            r.actualizados ? `${r.actualizados} actualizadas` : '',
-            r.sin_cambios  ? `${r.sin_cambios} sin cambios`  : '',
-        ].filter(Boolean).join(' · ');
-        showToast(`Notas guardadas correctamente${detalle ? ' — ' + detalle : ''}.`, 'success');
 
     } catch {
+        _dlgSetPanel('confirm');
+        const dlg = document.getElementById('dlgConfirmarSubida');
+        if (dlg) dlg.close();
         showToast('Error de conexión al subir las notas.', 'error');
-        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar y subir notas'; }
     } finally {
         _confirmandoEnCurso = false;
     }

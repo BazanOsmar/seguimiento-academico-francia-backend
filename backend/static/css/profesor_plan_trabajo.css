@@ -1,4 +1,8 @@
 /* ── Plan de Trabajo ─────────────────────────────────────── */
+    .page-inner {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+    }
     .ptw-header { display: flex; align-items: center; gap: 16px; padding: 28px 28px 8px; }
     .ptw-nav-btn {
         width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border);

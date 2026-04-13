@@ -51,3 +51,300 @@
         .perfil-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
         .asig-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Refresh visual de cuenta, sin tocar la estructura HTML ─── */
+    .page-inner {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        padding: 6px 4px 30px;
+    }
+
+    .perfil-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 26px 28px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(148, 163, 184, .14);
+        border-radius: 28px;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top right, rgba(59, 130, 246, .18), transparent 34%),
+            radial-gradient(circle at left center, rgba(96, 165, 250, .08), transparent 26%),
+            linear-gradient(180deg, rgba(24, 40, 67, .96), rgba(20, 35, 58, .98));
+        box-shadow: 0 26px 60px rgba(2, 6, 23, .24);
+    }
+    .perfil-hero::before {
+        content: "";
+        position: absolute;
+        right: -64px;
+        bottom: -88px;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(59, 130, 246, .22), transparent 70%);
+        pointer-events: none;
+    }
+    .perfil-avatar {
+        width: 78px;
+        height: 78px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #2563eb, #60a5fa);
+        border: 1px solid rgba(255,255,255,.18);
+        box-shadow: 0 18px 38px rgba(37, 99, 235, .32);
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+    }
+    .perfil-hero-info {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+    }
+    .perfil-hero-info::before {
+        display: none;
+        content: none;
+    }
+    .perfil-nombre {
+        font-size: clamp(1.72rem, 3.2vw, 2.55rem);
+        font-weight: 900;
+        color: var(--text-primary);
+        line-height: 1.02;
+        letter-spacing: -.03em;
+    }
+    .perfil-username {
+        display: inline-flex;
+        align-items: center;
+        width: max-content;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, .14);
+        border: 1px solid rgba(96, 165, 250, .28);
+        color: #dbeafe;
+        font-size: .78rem;
+        font-weight: 700;
+    }
+    .perfil-rol-badge {
+        display: inline-flex;
+        align-items: center;
+        width: max-content;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.05);
+        border: 1px solid rgba(148, 163, 184, .14);
+        color: var(--text-secondary);
+        font-size: .73rem;
+        font-weight: 700;
+    }
+    .perfil-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .perfil-action-btn {
+        min-height: 38px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, .16);
+        background: rgba(255,255,255,.04);
+        color: var(--text-primary);
+        font-size: .76rem;
+        font-weight: 700;
+        transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+    .perfil-action-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(96, 165, 250, .34);
+        background: rgba(255,255,255,.07);
+        box-shadow: 0 14px 28px rgba(2, 6, 23, .18);
+    }
+    .perfil-action-btn svg {
+        color: #93c5fd;
+    }
+
+    .perfil-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+    .perfil-stat-card {
+        position: relative;
+        min-height: 108px;
+        padding: 18px 20px;
+        border: 1px solid rgba(148, 163, 184, .12);
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(26, 45, 69, .96), rgba(17, 30, 49, .98));
+        box-shadow: 0 18px 36px rgba(2, 6, 23, .16);
+        overflow: hidden;
+    }
+    .perfil-stat-card::before {
+        content: "";
+        position: absolute;
+        inset: auto -28px -38px auto;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(59, 130, 246, .2), transparent 68%);
+        pointer-events: none;
+    }
+    .perfil-stat-num {
+        display: block;
+        margin-bottom: 4px;
+        font-size: clamp(1.6rem, 2.5vw, 2.15rem);
+        font-weight: 900;
+        color: #f8fbff;
+        line-height: 1;
+        letter-spacing: -.03em;
+    }
+    .perfil-stat-label {
+        display: block;
+        font-size: .74rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #8fb8ef;
+    }
+
+    .card {
+        border: 1px solid rgba(148, 163, 184, .12);
+        border-radius: 24px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(21, 34, 55, .98), rgba(16, 27, 44, .99));
+        box-shadow: 0 22px 48px rgba(2, 6, 23, .18);
+    }
+    .card-header {
+        padding: 24px 28px 16px;
+        border-bottom: 1px solid rgba(148, 163, 184, .10);
+        background:
+            radial-gradient(circle at top right, rgba(59, 130, 246, .12), transparent 32%),
+            linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    }
+    .card-title {
+        font-size: 1.18rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -.02em;
+    }
+    .card-body {
+        padding: 22px 24px 24px;
+    }
+
+    .asig-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+    }
+    .asig-card {
+        position: relative;
+        border: 1px solid rgba(96, 165, 250, .12);
+        border-radius: 18px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(17, 28, 49, .98), rgba(20, 31, 55, .98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .asig-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    }
+    .asig-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(96, 165, 250, .28);
+        box-shadow: 0 18px 32px rgba(2, 6, 23, .18);
+    }
+    .asig-card-top {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, .10);
+        background: transparent;
+    }
+    .asig-card-etiqueta {
+        font-size: .68rem;
+        font-weight: 800;
+        color: #8fb8ef;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        margin-bottom: 6px;
+    }
+    .asig-card-curso {
+        font-size: 1.16rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.18;
+        letter-spacing: -.02em;
+    }
+    .asig-card-bottom {
+        padding: 14px 18px 18px;
+        background: transparent;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .asig-card-materia-label {
+        font-size: .68rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .1em;
+    }
+    .asig-card-materia {
+        font-size: .92rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+        .perfil-stats {
+            grid-template-columns: 1fr;
+        }
+        .asig-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 720px) {
+        .page-inner {
+            padding: 0 0 24px;
+        }
+        .perfil-hero {
+            padding: 22px 18px;
+            border-radius: 22px;
+        }
+        .perfil-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 22px;
+            font-size: 1.45rem;
+        }
+        .perfil-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+        .card-header {
+            padding: 20px 18px 14px;
+        }
+        .card-body {
+            padding: 18px;
+        }
+        .asig-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 480px) {
+        .perfil-hero {
+            gap: 18px;
+        }
+        .perfil-nombre {
+            font-size: 1.75rem;
+        }
+        .perfil-username,
+        .perfil-rol-badge {
+            font-size: .72rem;
+        }
+    }

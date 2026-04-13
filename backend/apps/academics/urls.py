@@ -8,7 +8,7 @@ from .views import (
     ProfesorPlanListCreateView, ProfesorPlanDetailView, ProfesorPlanHistorialView,
     DirectorPlanesView, DirectorPlanesExportarView,
     ValidarPlanillaView, ConfirmarPlanillaView,
-    NotasMongoView,
+    NotasMongoView, EstadoNotasView, NotasEstadoMesView,
     ComparadorNombresView,
 )
 
@@ -20,6 +20,8 @@ urlpatterns = [
     path("profesor/validar-planilla/",        ValidarPlanillaView.as_view(),         name="profesor-validar-planilla"),
     path("profesor/confirmar-planilla/",      ConfirmarPlanillaView.as_view(),        name="profesor-confirmar-planilla"),
     path("profesor/notas/",                   NotasMongoView.as_view(),              name="profesor-notas"),
+    path("profesor/estado-notas/",            EstadoNotasView.as_view(),             name="profesor-estado-notas"),
+    path("profesor/notas-estado-mes/",        NotasEstadoMesView.as_view(),          name="profesor-notas-estado-mes"),
     path("profesor/planes/",                  ProfesorPlanListCreateView.as_view(), name="profesor-planes"),
     path("profesor/planes/historial/",        ProfesorPlanHistorialView.as_view(),  name="profesor-planes-historial"),
     path("profesor/planes/<int:plan_id>/",    ProfesorPlanDetailView.as_view(),     name="profesor-plan-detail"),

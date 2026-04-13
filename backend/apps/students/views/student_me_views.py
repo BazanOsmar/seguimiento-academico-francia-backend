@@ -1,6 +1,5 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
 from backend.core.permissions import IsTutor
@@ -22,7 +21,7 @@ class MiEstudianteView(APIView):
     La app móvil usa esta lista para el selector de hijo activo.
     """
 
-    permission_classes = (IsAuthenticated, IsTutor)
+    permission_classes = (IsTutor,)
 
     def get(self, request):
         estudiantes = (
@@ -50,7 +49,7 @@ class MateriasEstudianteTutorView(APIView):
     junto con el nombre del profesor que dicta cada materia.
     """
 
-    permission_classes = (IsAuthenticated, IsTutor)
+    permission_classes = (IsTutor,)
 
     def get(self, request, estudiante_id):
         try:
@@ -99,7 +98,7 @@ class NotasMateriaEstudianteTutorView(APIView):
     agrupadas por trimestre. Solo accesible para el tutor dueño del estudiante.
     """
 
-    permission_classes = (IsAuthenticated, IsTutor)
+    permission_classes = (IsTutor,)
 
     def get(self, request, estudiante_id, materia_id):
         try:
@@ -114,7 +113,23 @@ class NotasMateriaEstudianteTutorView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        notas_por_trim = obtener_detalle_notas_tutor(estudiante.id, materia_id)
+        materia_en_curso = ProfesorCurso.objects.filter(
+            curso_id=estudiante.curso_id,
+            materia_id=materia_id,
+        ).exists()
+        if not materia_en_curso:
+            return Response(
+                {"errores": "La materia no corresponde al curso del estudiante."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            notas_por_trim = obtener_detalle_notas_tutor(estudiante.id, materia_id)
+        except Exception:
+            return Response(
+                {"errores": "No se pudo obtener las notas. Intente nuevamente."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         return Response({
             "estudiante_id": estudiante.id,

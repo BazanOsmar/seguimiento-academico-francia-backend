@@ -263,12 +263,15 @@ def validar_estructura_2026(wb):
                 headers_por_trim[hoja] = h
     resultado['metadatos']['headers_actividades'] = headers_por_trim
 
-    # 8. Advertencia si todos los trimestres están sin notas
+    # 8. Error si no hay notas en ningún trimestre
     trims_con_notas = [h for h in HOJAS_EVALUACION if h in headers_por_trim]
     if not trims_con_notas:
-        resultado['advertencias'].append(
-            "La planilla no tiene notas en ningún trimestre. ¿Estás seguro de que es la correcta?"
+        resultado['es_valido'] = False
+        resultado['mensaje']   = (
+            "La planilla no tiene notas cargadas en ningún trimestre. "
+            "Completa al menos las notas del primer trimestre antes de continuar."
         )
+        return resultado
 
     return resultado
 
@@ -324,6 +327,33 @@ def validar_pertenencia_2026(metadatos, profesor_curso):
 _TRIM_LABEL = {'1TRIM': '1er Trim', '2TRIM': '2do Trim', '3TRIM': '3er Trim'}
 _DIM_LABEL  = {'ser': 'SER', 'saber': 'SABER', 'hacer': 'HACER'}
 
+_HEADER_FORMAT_RE = re.compile(r'^\d{2}/\d{2}/\d{4}\s*-\s*.+$')
+
+
+def validar_formato_headers(headers_por_trim):
+    """
+    Verifica que el título de cada columna de actividad siga el formato
+    DD/MM/AAAA - Nombre de la actividad.
+    Reporta todos los encabezados que no cumplan, no solo el primero.
+    """
+    errores = []
+    for hoja, dims in headers_por_trim.items():
+        trim_label = _TRIM_LABEL.get(hoja, hoja)
+        for dimension, columnas in dims.items():
+            dim_label = _DIM_LABEL.get(dimension, dimension.upper())
+            for col_data in columnas:
+                titulo = str(col_data.get('titulo', '')).strip()
+                if not _HEADER_FORMAT_RE.match(titulo):
+                    errores.append({
+                        'mensaje': (
+                            f"El encabezado '{titulo}' en {dim_label} ({trim_label}) "
+                            f"no cumple el formato requerido. "
+                            f"Debe ser: DD/MM/AAAA - Nombre de la actividad "
+                            f"(ej: 15/01/2026 - Evaluación 1)."
+                        )
+                    })
+    return {'es_valido': len(errores) == 0, 'errores': errores}
+
 
 def validar_completitud_notas(headers_por_trim, nombres_activos_excel):
     """
@@ -352,15 +382,30 @@ def validar_completitud_notas(headers_por_trim, nombres_activos_excel):
                     continue
                 con_nota = [{'palabras': _palabras(n['nombre'])} for n in col_data['notas']]
 
-                for activo in activos:
-                    tiene = any(
+                faltantes = [
+                    activo['nombre'] for activo in activos
+                    if not any(
                         _coincide_nombre(activo['palabras'], c['palabras'])
                         for c in con_nota
                     )
-                    if not tiene:
+                ]
+
+                if not faltantes:
+                    continue
+
+                ctx = f"({dim_label}, {trim_label})"
+                if len(faltantes) <= 2:
+                    for nombre in faltantes:
                         errores.append(
-                            f"{activo['nombre']} no tiene nota en '{titulo}' "
-                            f"({dim_label}, {trim_label}), agrégala antes de continuar."
+                            f"{nombre} no tiene nota en '{titulo}' {ctx}, "
+                            f"agrégala antes de continuar."
                         )
+                else:
+                    primeros = ', '.join(faltantes[:2])
+                    resto    = len(faltantes) - 2
+                    errores.append(
+                        f"Hay {len(faltantes)} estudiantes sin nota en '{titulo}' {ctx}: "
+                        f"{primeros} y {resto} más. Agrégalas antes de continuar."
+                    )
 
     return {'es_valido': len(errores) == 0, 'errores': errores}

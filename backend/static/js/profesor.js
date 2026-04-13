@@ -385,12 +385,53 @@ async function cargarAsignacionesNotas(mes = null) {
         </div>`
     ).join('');
 
+    // Obtener el número de mes activo (1-based) para verificar estado de notas
+    const activeTab = document.querySelector('.notas-folder-tab.active');
+    const mesNum = activeTab ? parseInt(activeTab.dataset.mes, 10) + 1 : null;
+
+    // Wiring de botones con ya_subidas=false por defecto
+    const _pcSubidas = new Set();
     grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const mesLabel = document.querySelector('.notas-folder-tab.active')?.textContent.trim() || '';
-            _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesLabel, btn.dataset.materia, btn.dataset.curso);
+            const yaSubidas = _pcSubidas.has(btn.dataset.pcId);
+            _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesNum || '', btn.dataset.materia, btn.dataset.curso, yaSubidas);
         });
     });
+
+    // Verificar estado de notas en batch (sin bloquear la UI)
+    if (mesNum) { _marcarNotasCargadas(mesNum, _pcSubidas); }
+}
+
+async function _marcarNotasCargadas(mes, pcSubidasSet) {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    try {
+        const res = await fetch(
+            `/api/academics/profesor/notas-estado-mes/?mes=${mes}`,
+            { headers: { 'Authorization': `Bearer ${token}` } },
+        );
+        if (!res.ok) return;
+        const { pc_ids_con_notas } = await res.json();
+        if (!pc_ids_con_notas || !pc_ids_con_notas.length) return;
+
+        pc_ids_con_notas.forEach(id => pcSubidasSet.add(String(id)));
+
+        pc_ids_con_notas.forEach(pcId => {
+            const btn = document.querySelector(`.notas-clase-card__btn[data-pc-id="${pcId}"]`);
+            if (!btn) return;
+            const card = btn.closest('.notas-clase-card');
+            if (!card) return;
+            // Añadir banda de color al card
+            card.classList.add('notas-clase-card--subido');
+            // Añadir badge si aún no existe
+            if (!card.querySelector('.notas-subido-badge')) {
+                const badge = document.createElement('span');
+                badge.className = 'notas-subido-badge';
+                badge.textContent = '✓ Notas cargadas';
+                card.querySelector('.notas-clase-card__top').appendChild(badge);
+            }
+        });
+    } catch { /* silencioso — no afectar la UI si falla */ }
 }
 
 // ── Folder tabs de meses (Marzo–Diciembre, meses futuros bloqueados) ─
@@ -438,13 +479,14 @@ function _initNotasFolderTabs() {
 }
 
 
-function _irASubirNotas(pcId, label, mes = '', materia = '', curso = '') {
+function _irASubirNotas(pcId, label, mes = '', materia = '', curso = '', yaSubidas = false) {
     const q = new URLSearchParams({
-        pc_id:   pcId,
-        label:   label,
-        mes:     mes,
-        materia: materia,
-        curso:   curso,
+        pc_id:      pcId,
+        label:      label,
+        mes:        mes,
+        materia:    materia,
+        curso:      curso,
+        ya_subidas: yaSubidas ? '1' : '0',
     });
     window.location.href = `/profesor/calificaciones/?${q.toString()}`;
 }

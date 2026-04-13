@@ -115,15 +115,6 @@
                     </svg>
                     Volver a Calificaciones
                 </button>
-                <button class="cc-back-btn cc-back-btn--preview" id="btnPreviewDashboard" type="button"
-                        style="margin-left:auto;" onclick="_previewDashboard()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    Vista previa dashboard
-                </button>
             </div>
 
             <!-- Título -->
@@ -149,8 +140,14 @@
                 </div>
             </div>
 
+            <!-- ── Estado de carga inicial ───────────────────────── -->
+            <div class="cc-init-loader" id="ccInitLoader">
+                <div class="cc-init-loader__spinner"></div>
+                <p class="cc-init-loader__label">Verificando estado del período...</p>
+            </div>
+
             <!-- ── Tarjeta principal ──────────────────────────────── -->
-            <div class="cc-card" id="ccCard">
+            <div class="cc-card" id="ccCard" style="display:none;">
 
                 <!-- Vista upload (estado inicial) -->
                 <div class="cc-upload-view" id="ccUploadView">
@@ -225,59 +222,9 @@
 
                 </div><!-- /cc-upload-view -->
 
-                <!-- Vista resultado (aparece tras validar) -->
-                <div class="cc-result-view" id="ccResultView">
-
-                    <div class="cc-result-topbar">
-                        <div class="cc-result-topbar-left">
-                            <button class="btn-change-file" id="btnCambiarArchivo">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="15 18 9 12 15 6"/>
-                                </svg>
-                                Cambiar archivo
-                            </button>
-                            <span id="ccResultFilename" style="font-size:.8rem;color:var(--text-muted);"></span>
-                        </div>
-                        <span id="ccStatusBadge"></span>
-                    </div>
-
-                    <div class="cc-result-body">
-
-                        <div class="cc-meta-col">
-                            <div>
-                                <p class="cc-meta-section-title">Resumen del archivo</p>
-                                <div id="ccMetaRows" style="display:flex;flex-direction:column;gap:12px;"></div>
-                            </div>
-                            <div id="ccTrimRow" style="display:none;">
-                                <p class="cc-meta-section-title">Trimestres</p>
-                                <div class="cc-trim-row" id="ccTrimChips"></div>
-                            </div>
-                        </div>
-
-                        <div class="cc-preview-col">
-                            <div class="cc-preview-header">
-                                <h3 class="cc-preview-title">Vista Previa</h3>
-                                <span id="ccPreviewBadge" style="font-size:.74rem;color:var(--text-muted);"></span>
-                            </div>
-
-                            <div class="cc-preview-empty" id="ccPreviewEmpty" style="display:none;">
-                                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                </svg>
-                                <p>Sin datos para mostrar</p>
-                            </div>
-
-                            <div id="ccErrorPanel" style="display:none;padding:0;"></div>
-                            <div id="ccNotasPanel" style="display:none;"></div>
-                        </div>
-
-                    </div>
-                </div><!-- /cc-result-view -->
-
             </div><!-- /cc-card -->
+
+        <div id="ccDashboard" style="display:none;"></div>
 
         </div><!-- /cc-body -->
 
@@ -374,6 +321,69 @@
         });
     </script>
 
-    <script src="{% static 'js/carga_calificaciones.js' %}?v=5"></script>
+    <script src="{% static 'js/carga_calificaciones.js' %}"></script>
+
+    <!-- ── Dialog de confirmación de subida ──────────────────────────── -->
+    <dialog id="dlgConfirmarSubida">
+
+        <!-- Panel 1: Confirmación -->
+        <div class="dlg-panel" id="dlgPanelConfirm">
+            <div class="dlg-confirm__inner">
+                <div class="dlg-confirm__icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h3 class="dlg-confirm__title">¿Confirmar subida de notas?</h3>
+                <p class="dlg-confirm__body">
+                    Una vez subidas, las notas <strong>no podrán modificarse</strong> desde aquí
+                    y serán visibles para los padres de familia en la aplicación.
+                </p>
+                <p class="dlg-confirm__body dlg-confirm__body--sub">
+                    Asegúrate de que la información sea correcta antes de continuar.
+                </p>
+                <div class="dlg-confirm__actions">
+                    <button class="dlg-confirm__btn dlg-confirm__btn--cancel" id="dlgBtnCancelar" type="button">
+                        Cancelar
+                    </button>
+                    <button class="dlg-confirm__btn dlg-confirm__btn--confirm" id="dlgBtnConfirmar" type="button">
+                        Sí, subir notas
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Cargando -->
+        <div class="dlg-panel dlg-panel--hidden" id="dlgPanelLoading">
+            <div class="dlg-confirm__inner">
+                <div class="dlg-spinner"></div>
+                <h3 class="dlg-confirm__title">Subiendo notas...</h3>
+                <p class="dlg-confirm__body dlg-confirm__body--sub">Por favor espera, no cierres esta ventana.</p>
+            </div>
+        </div>
+
+        <!-- Panel 3: Éxito -->
+        <div class="dlg-panel dlg-panel--hidden" id="dlgPanelDone">
+            <div class="dlg-confirm__inner">
+                <div class="dlg-confirm__icon dlg-confirm__icon--success">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <h3 class="dlg-confirm__title">¡Notas subidas!</h3>
+                <p class="dlg-confirm__body dlg-confirm__body--sub" id="dlgDoneDetalle"></p>
+                <div class="dlg-confirm__actions">
+                    <button class="dlg-confirm__btn dlg-confirm__btn--confirm" id="dlgBtnCerrar" type="button">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </dialog>
 </body>
 </html>

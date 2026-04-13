@@ -176,20 +176,21 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
 
                 if prev is None:
                     operaciones.append(InsertOne({
-                        'estudiante_id':   n['nro'],
-                        'materia_id':      materia_id,
-                        'curso_id':        curso_id,
-                        'profesor_id':     profesor_id,
-                        'gestion':         gestion,
-                        'trimestre':       trimestre,
-                        'mes':             mes,
-                        'dimension':       dimension,
-                        'columna_idx':     col_idx,
-                        'titulo':          titulo,
-                        'fecha_actividad': fecha_activ,
-                        'nota':            n['nota'],
-                        'nota_maxima':     nota_max,
-                        'fecha_carga':     ahora,
+                        'estudiante_id':      n['nro'],
+                        'nombre_estudiante':  n.get('nombre', ''),
+                        'materia_id':         materia_id,
+                        'curso_id':           curso_id,
+                        'profesor_id':        profesor_id,
+                        'gestion':            gestion,
+                        'trimestre':          trimestre,
+                        'mes':                mes,
+                        'dimension':          dimension,
+                        'columna_idx':        col_idx,
+                        'titulo':             titulo,
+                        'fecha_actividad':    fecha_activ,
+                        'nota':               n['nota'],
+                        'nota_maxima':        nota_max,
+                        'fecha_carga':        ahora,
                     }))
                     insertados += 1
 
@@ -198,6 +199,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
                         {'estudiante_id': n['nro'], 'materia_id': materia_id,
                          'trimestre': trimestre, 'dimension': dimension, 'columna_idx': col_idx},
                         {'$set': {
+                            'nombre_estudiante':   n.get('nombre', ''),
                             'titulo':              titulo,
                             'fecha_actividad':     fecha_activ,
                             'nota':                n['nota'],
@@ -387,31 +389,152 @@ def obtener_detalle_notas_tutor(estudiante_id, materia_id):
     Returns:
         { trimestre: [ { titulo, fecha_actividad, nota, nota_maxima, dimension } ] }
         dict vacío si no hay notas.
+
+    Raises:
+        Exception si falla la conexión a MongoDB (el caller debe manejarla).
+    """
+    col  = _get_db()['detalle_notas']
+    docs = list(col.find(
+        {
+            'estudiante_id': estudiante_id,
+            'materia_id':    materia_id,
+            'dimension':     {'$in': ['saber', 'hacer']},
+        },
+        {'_id': 0, 'trimestre': 1, 'dimension': 1, 'titulo': 1,
+         'fecha_actividad': 1, 'nota': 1, 'nota_maxima': 1},
+    ).sort([('trimestre', 1), ('dimension', 1), ('columna_idx', 1)]))
+
+    agrupado = {}
+    for doc in docs:
+        t = doc['trimestre']
+        agrupado.setdefault(t, []).append({
+            'dimension':       doc['dimension'],
+            'titulo':          doc.get('titulo'),
+            'fecha_actividad': doc['fecha_actividad'].isoformat() if doc.get('fecha_actividad') else None,
+            'nota':            doc['nota'],
+            'nota_maxima':     doc['nota_maxima'],
+        })
+
+    return agrupado
+
+
+def pc_ids_con_notas_mes(asignaciones, profesor_id, mes, gestion):
+    """
+    Dado una lista de dicts {id, materia_id, curso_id}, retorna el set de
+    pc_ids que ya tienen notas en Mongo para ese profesor/mes/gestión.
+    Hace una sola query de agregación.
+    """
+    if not asignaciones:
+        return set()
+    try:
+        col = _get_db()['detalle_notas']
+        pipeline = [
+            {'$match': {
+                'profesor_id': profesor_id,
+                'mes':         mes,
+                'gestion':     gestion,
+                '$or': [
+                    {'materia_id': a['materia_id'], 'curso_id': a['curso_id']}
+                    for a in asignaciones
+                ],
+            }},
+            {'$group': {'_id': {'materia_id': '$materia_id', 'curso_id': '$curso_id'}}},
+        ]
+        pares = {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}
+        return {a['id'] for a in asignaciones if (a['materia_id'], a['curso_id']) in pares}
+    except Exception:
+        return set()
+
+
+def hay_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
+    """
+    True si ya existen notas guardadas para ese mes/materia/curso/profesor.
+    Usado para bloquear re-subidas y detectar modo lectura.
     """
     try:
-        col  = _get_db()['detalle_notas']
-        docs = list(col.find(
-            {
-                'estudiante_id': estudiante_id,
-                'materia_id':    materia_id,
-                'dimension':     {'$in': ['saber', 'hacer']},
-            },
-            {'_id': 0, 'trimestre': 1, 'dimension': 1, 'titulo': 1,
-             'fecha_actividad': 1, 'nota': 1, 'nota_maxima': 1},
-        ).sort([('trimestre', 1), ('dimension', 1), ('columna_idx', 1)]))
+        col = _get_db()['detalle_notas']
+        return col.count_documents({
+            'materia_id':  materia_id,
+            'curso_id':    curso_id,
+            'profesor_id': profesor_id,
+            'mes':         mes,
+            'gestion':     gestion,
+        }, limit=1) > 0
+    except Exception:
+        return False
 
-        agrupado = {}
+
+def obtener_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
+    """
+    Retorna las notas del mes en formato headers_actividades compatible con el
+    validador y con _renderSuccessDashboard del frontend.
+
+    Cuando un documento no tiene 'nombre_estudiante' (notas subidas antes de
+    que se añadiera el campo), hace fallback a SQL: obtiene los estudiantes del
+    curso ordenados alfabéticamente (orden estándar de las planillas bolivianas)
+    y mapea posición 1,2,3… → nombre completo.
+    """
+    _TRIM_INV = {1: '1TRIM', 2: '2TRIM', 3: '3TRIM'}
+    try:
+        col  = _get_db()['detalle_notas']
+        docs = list(col.find({
+            'materia_id':  materia_id,
+            'curso_id':    curso_id,
+            'profesor_id': profesor_id,
+            'mes':         mes,
+            'gestion':     gestion,
+        }, {'_id': 0}).sort([
+            ('trimestre', 1), ('dimension', 1), ('columna_idx', 1), ('estudiante_id', 1),
+        ]))
+
+        if not docs:
+            return {}
+
+        # Fallback a SQL cuando algún doc no tiene nombre guardado
+        nro_a_nombre = {}
+        if any(not doc.get('nombre_estudiante') for doc in docs):
+            from backend.apps.students.models import Estudiante
+            for i, est in enumerate(
+                Estudiante.objects
+                .filter(curso_id=curso_id)
+                .order_by('apellido_paterno', 'apellido_materno', 'nombre')
+                .values('apellido_paterno', 'apellido_materno', 'nombre'),
+                start=1,
+            ):
+                partes = [est['apellido_paterno'], est['apellido_materno'], est['nombre']]
+                nro_a_nombre[i] = ' '.join(p for p in partes if p)
+
+        # Agrupar: trim_key → dimension → col_idx → actividad_dict
+        buckets = {}
         for doc in docs:
-            t = doc['trimestre']
-            agrupado.setdefault(t, []).append({
-                'dimension':       doc['dimension'],
-                'titulo':          doc.get('titulo'),
-                'fecha_actividad': doc['fecha_actividad'].isoformat() if doc.get('fecha_actividad') else None,
-                'nota':            doc['nota'],
-                'nota_maxima':     doc['nota_maxima'],
+            trim_key = _TRIM_INV.get(doc['trimestre'], '1TRIM')
+            dim      = doc['dimension']
+            col_idx  = doc['columna_idx']
+            nro      = doc['estudiante_id']
+            nombre   = doc.get('nombre_estudiante') or nro_a_nombre.get(nro, f'Estudiante {nro}')
+
+            buckets.setdefault(trim_key, {}).setdefault(dim, {})
+            if col_idx not in buckets[trim_key][dim]:
+                buckets[trim_key][dim][col_idx] = {
+                    'col':         col_idx,
+                    'titulo':      doc['titulo'],
+                    'nota_maxima': doc['nota_maxima'],
+                    'notas':       [],
+                }
+            buckets[trim_key][dim][col_idx]['notas'].append({
+                'nro':    nro,
+                'nombre': nombre,
+                'nota':   doc['nota'],
             })
 
-        return agrupado
+        # Convertir col_idx dict a lista ordenada
+        result = {}
+        for trim_key, dims in buckets.items():
+            result[trim_key] = {
+                dim: sorted(col_data.values(), key=lambda x: x['col'])
+                for dim, col_data in dims.items()
+            }
+        return result
 
     except Exception:
         return {}

@@ -125,6 +125,30 @@
         .cc-meta-item svg { opacity: .8; color: #76a9ff; flex-shrink: 0; }
         .cc-meta-item strong { color: #fff; font-weight: 700; }
 
+        /* ── Loader inicial (verificando estado) ─────────────────── */
+        .cc-init-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 80px 24px;
+        }
+        .cc-init-loader__spinner {
+            width: 52px;
+            height: 52px;
+            border: 4px solid rgba(255,255,255,.08);
+            border-top-color: var(--accent, #2563eb);
+            border-radius: 50%;
+            animation: cc-init-spin .75s linear infinite;
+        }
+        @keyframes cc-init-spin { to { transform: rotate(360deg); } }
+        .cc-init-loader__label {
+            font-size: .88rem;
+            color: var(--text-muted, #64748b);
+            margin: 0;
+        }
+
         /* ── Tarjeta principal ───────────────────────────────────── */
         .cc-card {
             background: linear-gradient(135deg, rgba(19,31,53,.98), rgba(25,38,65,.94));
@@ -585,9 +609,36 @@
             background: rgba(15,23,42,.28);
         }
 
-        .cc-success-table-wrap {
-            overflow: auto;
+        /* ── Head (sincronizado via scrollLeft, sticky CSS actúa dentro) */
+        .cc-success-table-head-wrap {
+            overflow: hidden;
         }
+
+        /* ── Ghost scrollbar entre header y body ─────────────────── */
+        .cc-success-ghost-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(99,130,190,.35) transparent;
+        }
+        .cc-success-ghost-scroll::-webkit-scrollbar { height: 5px; }
+        .cc-success-ghost-scroll::-webkit-scrollbar-track { background: transparent; }
+        .cc-success-ghost-scroll::-webkit-scrollbar-thumb {
+            background: rgba(99,130,190,.35);
+            border-radius: 99px;
+        }
+        .cc-success-ghost-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(99,130,190,.6);
+        }
+
+        /* ── Body (scroll horizontal + vertical fijo) ───────────── */
+        .cc-success-table-body-wrap {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 420px;
+            scrollbar-width: none;
+        }
+        .cc-success-table-body-wrap::-webkit-scrollbar { display: none; }
 
         .cc-success-table {
             width: 100%;
@@ -621,6 +672,11 @@
 
         .cc-success-table tbody tr:hover td {
             background: rgba(255,255,255,.02);
+        }
+        .cc-success-table tbody tr:hover .cc-success-table__nro,
+        .cc-success-table tbody tr:hover .cc-success-table__name,
+        .cc-success-table tbody tr:hover .cc-success-table__avg {
+            background: #12192a;
         }
 
         .cc-success-table__group {
@@ -670,17 +726,26 @@
         }
 
         .cc-success-table__nro {
+            position: sticky;
+            left: 0;
+            z-index: 1;
             width: 54px;
             text-align: center;
             color: #7ea0d9;
             font-variant-numeric: tabular-nums;
+            background: #0d1726;
         }
 
         .cc-success-table__name {
+            position: sticky;
+            left: 54px;
+            z-index: 1;
             min-width: 240px;
             color: #eff6ff;
             font-weight: 700;
             line-height: 1.45;
+            background: #0d1726;
+            box-shadow: 6px 0 14px -4px rgba(0,0,0,.55);
         }
 
         .cc-success-table__score {
@@ -694,12 +759,24 @@
         }
 
         .cc-success-table__avg {
+            position: sticky;
+            right: 0;
+            z-index: 1;
             text-align: center;
             font-weight: 800;
             font-variant-numeric: tabular-nums;
             color: #fff;
-            background: rgba(255,255,255,.03);
+            background: #0d1726;
             white-space: nowrap;
+            box-shadow: -6px 0 14px -4px rgba(0,0,0,.55);
+        }
+
+        .cc-success-table-head-wrap thead .cc-success-table__nro,
+        .cc-success-table-head-wrap thead .cc-success-table__name,
+        .cc-success-table-head-wrap thead .cc-success-table__avg {
+            top: 0;
+            z-index: 3;
+            background: #0f1829;
         }
 
         .cc-success-footer {
@@ -969,6 +1046,12 @@
             line-height: 1.15;
         }
 
+        /* ── Backgrounds de headers (head-wrap nunca scrollea verticalmente) */
+        .cc-success-table-head-wrap thead .cc-success-table__head         { background: #151e2d; }
+        .cc-success-table-head-wrap thead .cc-success-table__group--saber { background: #152746; }
+        .cc-success-table-head-wrap thead .cc-success-table__group--hacer { background: #2a2724; }
+        .cc-success-table-head-wrap thead .cc-success-table__group--ser   { background: #1e2838; }
+
         /* ── Responsive ──────────────────────────────────────────── */
         @media (max-width: 700px) {
             .cc-body { padding: 24px 16px 0; }
@@ -987,4 +1070,133 @@
             .cc-success-footer { padding: 12px 14px; }
             .cc-validation-dialog { padding: 20px 18px 18px; border-radius: 18px; }
             .cc-inline-observation__card { padding: 16px 16px 14px; border-radius: 16px; }
+            .cc-success-table__nro,
+            .cc-success-table__name {
+                position: static;
+                background: transparent;
+                box-shadow: none;
+            }
+            .cc-success-table__avg {
+                position: static;
+                background: rgba(255,255,255,.03);
+                box-shadow: none;
+            }
         }
+
+/* ── Dialog de confirmación de subida ───────────────────────────────── */
+#dlgConfirmarSubida {
+    padding: 0;
+    border: none;
+    border-radius: 20px;
+    background: #111827;
+    box-shadow: 0 24px 64px rgba(0,0,0,.7);
+    max-width: 420px;
+    width: calc(100% - 40px);
+    color: #e2e8f0;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+}
+#dlgConfirmarSubida::backdrop {
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(3px);
+}
+.dlg-confirm__inner {
+    padding: 36px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+}
+.dlg-confirm__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(251,191,36,.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fbbf24;
+    margin-bottom: 4px;
+}
+.dlg-confirm__title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+.dlg-confirm__body {
+    margin: 0;
+    font-size: .88rem;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+.dlg-confirm__body strong { color: #f87171; }
+.dlg-confirm__body--sub  { font-size: .8rem; color: #64748b; }
+.dlg-confirm__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    width: 100%;
+}
+.dlg-confirm__btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    border-radius: 10px;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+}
+.dlg-confirm__btn:active { transform: scale(.97); }
+.dlg-confirm__btn--cancel {
+    background: rgba(255,255,255,.06);
+    color: #94a3b8;
+}
+.dlg-confirm__btn--cancel:hover { background: rgba(255,255,255,.1); }
+.dlg-confirm__btn--confirm {
+    background: #2563eb;
+    color: #fff;
+}
+.dlg-confirm__btn--confirm:hover { opacity: .88; }
+
+/* Badge modo lectura */
+.cc-readonly-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 10px;
+    background: rgba(34,197,94,.1);
+    border: 1px solid rgba(34,197,94,.25);
+    color: #22c55e;
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+/* Paneles del dialog */
+.dlg-panel--hidden { display: none; }
+
+/* Ícono variante éxito */
+.dlg-confirm__icon--success {
+    background: rgba(34,197,94,.12);
+    color: #22c55e;
+}
+
+/* Spinner circular */
+.dlg-spinner {
+    width: 56px;
+    height: 56px;
+    border: 4px solid rgba(255,255,255,.08);
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: dlg-spin .75s linear infinite;
+    margin-bottom: 4px;
+}
+@keyframes dlg-spin {
+    to { transform: rotate(360deg); }
+}

@@ -14,9 +14,12 @@ from ..models import ProfesorCurso
 from ..services.planilla_validator import validar_estructura, validar_pertenencia, extraer_notas, validar_estudiantes
 from ..services.planilla_validator_2026 import (
     es_formato_2026, validar_estructura_2026, validar_pertenencia_2026,
-    validar_completitud_notas,
+    validar_formato_headers, validar_completitud_notas,
 )
-from ..services.notas_mongo_service import guardar_notas, obtener_notas, calcular_notas_mensuales
+from ..services.notas_mongo_service import (
+    guardar_notas, obtener_notas, calcular_notas_mensuales,
+    hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
+)
 
 _DRAFT_TTL  = 1800          # 30 minutos
 _DRAFT_PREFIX = 'planilla_draft_'
@@ -109,10 +112,19 @@ class ValidarPlanillaView(APIView):
             'curso_verificado':  curso_nombre,
         }
 
-        # ── Nivel 6: completitud de notas (solo formato 2026) ─────────
+        # ── Nivel 6: formato de encabezados de actividades ───────────
         if es_2026:
             headers_por_trim = estructura['metadatos'].get('headers_actividades', {})
-            nombres_activos  = [
+            val_fmt = validar_formato_headers(headers_por_trim)
+            if not val_fmt['es_valido']:
+                return Response(
+                    {'es_valido': False, 'errores_estudiantes': val_fmt['errores']},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # ── Nivel 7: completitud de notas (solo formato 2026) ─────────
+        if es_2026:
+            nombres_activos = [
                 e['nombre'] for e in val_est['lista_estudiantes'] if e.get('activo') is True
             ]
             val_notas = validar_completitud_notas(headers_por_trim, nombres_activos)
@@ -125,11 +137,19 @@ class ValidarPlanillaView(APIView):
         # ── Planilla válida: guardar borrador en cache y devolver preview ─
         if es_2026:
             headers_por_trim = estructura['metadatos'].get('headers_actividades', {})
+            try:
+                mes_num = int(request.data.get('mes', 0))
+                if not 1 <= mes_num <= 12:
+                    mes_num = 0
+            except (ValueError, TypeError):
+                mes_num = 0
+
             token = str(uuid.uuid4())
             cache.set(_DRAFT_PREFIX + token, {
                 'profesor_curso_id': profesor_curso.id,
                 'headers_por_trim':  headers_por_trim,
                 'gestion':           timezone.now().year,
+                'mes':               mes_num,
             }, timeout=_DRAFT_TTL)
 
             return Response({
@@ -188,6 +208,19 @@ class ConfirmarPlanillaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Verificar que no se hayan subido notas de ese mes previamente
+        mes     = draft.get('mes', 0)
+        gestion = draft.get('gestion', timezone.now().year)
+        if mes and hay_notas_mes(
+            profesor_curso.materia.id, profesor_curso.curso.id,
+            profesor_curso.profesor.id, mes, gestion,
+        ):
+            cache.delete(_DRAFT_PREFIX + token)
+            return Response(
+                {'errores': 'Las notas de este mes ya fueron subidas y no pueden modificarse desde aquí.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         resultado = {
             'insertados': 0, 'actualizados': 0,
             'sin_cambios': 0, 'errores': 0,
@@ -234,3 +267,68 @@ class NotasMongoView(APIView):
 
         actividades = obtener_notas(pc.materia.id, pc.curso.id, trimestre)
         return Response({'trimestre': trimestre, 'actividades': actividades})
+
+
+class EstadoNotasView(APIView):
+    """
+    GET /api/academics/profesor/estado-notas/?pc_id=X&mes=Y
+
+    Verifica si ya existen notas subidas para esa asignación y mes.
+    Si ya hay notas, devuelve headers_por_trim en el mismo formato que
+    headers_actividades del validador, listo para renderizar en modo lectura.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        try:
+            pc_id = int(request.query_params.get('pc_id', 0))
+            mes   = int(request.query_params.get('mes', 0))
+        except (ValueError, TypeError):
+            return Response({'ya_subidas': False})
+
+        if not pc_id or not 1 <= mes <= 12:
+            return Response({'ya_subidas': False})
+
+        try:
+            pc = ProfesorCurso.objects.select_related('profesor', 'materia', 'curso').get(
+                pk=pc_id, profesor=request.user
+            )
+        except ProfesorCurso.DoesNotExist:
+            return Response({'ya_subidas': False})
+
+        gestion = timezone.now().year
+
+        if not hay_notas_mes(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion):
+            return Response({'ya_subidas': False})
+
+        headers_por_trim = obtener_notas_mes(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion)
+        return Response({'ya_subidas': True, 'headers_por_trim': headers_por_trim})
+
+
+class NotasEstadoMesView(APIView):
+    """
+    GET /api/academics/profesor/notas-estado-mes/?mes=X
+
+    Devuelve qué pc_ids del profesor ya tienen notas para ese mes.
+    Una sola query a Mongo para todas las asignaciones.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        try:
+            mes = int(request.query_params.get('mes', 0))
+        except (ValueError, TypeError):
+            return Response({'pc_ids_con_notas': []})
+
+        if not 1 <= mes <= 12:
+            return Response({'pc_ids_con_notas': []})
+
+        gestion      = timezone.now().year
+        asignaciones = list(
+            ProfesorCurso.objects
+            .filter(profesor=request.user)
+            .values('id', 'materia_id', 'curso_id')
+        )
+
+        ids_con_notas = pc_ids_con_notas_mes(asignaciones, request.user.id, mes, gestion)
+        return Response({'pc_ids_con_notas': list(ids_con_notas)})
