@@ -582,5 +582,49 @@ def promedios_saber_hacer_por_materia(estudiante_id, materia_ids, trimestre=None
 
         return resultado
 
+
+def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
+    """
+    Devuelve la fecha de carga más reciente en detalle_notas por materia.
+
+    Args:
+        estudiante_id: int
+        materia_ids:   lista de ints
+        trimestre:     int (1, 2 o 3) opcional — si se pasa, filtra ese trimestre.
+
+    Returns:
+        dict { materia_id: str ISO8601 | None }
+        None si la materia no tiene ningún registro.
+    """
+    if not materia_ids:
+        return {}
+
+    try:
+        col = _get_db()['detalle_notas']
+        filtro = {
+            'estudiante_id': estudiante_id,
+            'materia_id':    {'$in': list(materia_ids)},
+        }
+        if trimestre is not None:
+            filtro['trimestre'] = trimestre
+
+        pipeline = [
+            {'$match': filtro},
+            {'$group': {
+                '_id':         '$materia_id',
+                'ultima_carga': {'$max': '$fecha_carga'},
+            }},
+        ]
+
+        resultado = {mid: None for mid in materia_ids}
+        for doc in col.aggregate(pipeline):
+            fecha = doc['ultima_carga']
+            resultado[doc['_id']] = fecha.isoformat() if fecha else None
+
+        return resultado
+
+    except Exception:
+        return {mid: None for mid in materia_ids}
+
     except Exception:
         return {mid: None for mid in materia_ids}

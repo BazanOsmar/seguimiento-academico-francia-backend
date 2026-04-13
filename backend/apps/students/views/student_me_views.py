@@ -9,6 +9,7 @@ from backend.apps.academics.models import ProfesorCurso
 from backend.apps.academics.services.notas_mongo_service import (
     promedios_saber_hacer_por_materia,
     obtener_detalle_notas_tutor,
+    ultima_carga_por_materia,
 )
 
 
@@ -81,18 +82,20 @@ class MateriasEstudianteTutorView(APIView):
             .order_by("materia__nombre")
         )
 
-        materia_ids = [a.materia.id for a in asignaciones]
-        promedios   = promedios_saber_hacer_por_materia(estudiante.id, materia_ids, trimestre=trimestre)
+        materia_ids   = [a.materia.id for a in asignaciones]
+        promedios     = promedios_saber_hacer_por_materia(estudiante.id, materia_ids, trimestre=trimestre)
+        ultimas_cargas = ultima_carga_por_materia(estudiante.id, materia_ids, trimestre=trimestre)
 
         data = [
             {
-                "materia_id":      a.materia.id,
-                "materia_nombre":  a.materia.nombre,
-                "profesor_nombre": (
+                "materia_id":        a.materia.id,
+                "materia_nombre":    a.materia.nombre,
+                "profesor_nombre":   (
                     f"{a.profesor.first_name} {a.profesor.last_name}".strip()
                     or a.profesor.username
                 ),
-                "promedio": promedios.get(a.materia.id),
+                "promedio":          promedios.get(a.materia.id),
+                "ultima_actualizacion": ultimas_cargas.get(a.materia.id),
             }
             for a in asignaciones
         ]
