@@ -7,3 +7,4 @@ from .plan_views import (
 )
 from .planilla_views import ValidarPlanillaView, ConfirmarPlanillaView, NotasMongoView, EstadoNotasView, NotasEstadoMesView
 from .comparador_views import ComparadorNombresView
+from .director_notas_views import DirectorResumenNotasMesView, DirectorNotasMesDetalleView

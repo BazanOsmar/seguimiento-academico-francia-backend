@@ -1,0 +1,168 @@
+.acad-subnav {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin: 0 0 18px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+        rgba(15, 23, 42, 0.68);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.18);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.acad-subnav::-webkit-scrollbar {
+    display: none;
+}
+
+.acad-pivot {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 54px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.52);
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition:
+        transform 0.16s ease,
+        color 0.16s ease,
+        border-color 0.16s ease,
+        background 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.acad-pivot svg {
+    width: 18px;
+    height: 18px;
+    padding: 7px;
+    box-sizing: content-box;
+    border-radius: 14px;
+    background: rgba(30, 41, 59, 0.9);
+    color: rgba(191, 219, 254, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    opacity: 1;
+    transition:
+        transform 0.16s ease,
+        background 0.16s ease,
+        color 0.16s ease,
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.acad-pivot:hover {
+    color: var(--text-primary);
+    background: rgba(30, 41, 59, 0.92);
+    border-color: rgba(96, 165, 250, 0.18);
+    transform: translateY(-1px);
+}
+
+.acad-pivot:hover svg {
+    transform: scale(1.04);
+    background: rgba(37, 99, 235, 0.18);
+    border-color: rgba(96, 165, 250, 0.24);
+    color: #dbeafe;
+}
+
+.acad-pivot.active {
+    color: #eff6ff;
+    border-color: rgba(96, 165, 250, 0.26);
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.28), rgba(59, 130, 246, 0.12)),
+        rgba(15, 23, 42, 0.92);
+    box-shadow:
+        0 16px 28px rgba(37, 99, 235, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.acad-pivot.active svg {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.34), rgba(96, 165, 250, 0.16));
+    color: #ffffff;
+    border-color: rgba(96, 165, 250, 0.32);
+    box-shadow:
+        0 10px 18px rgba(37, 99, 235, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.acad-pivot:focus-visible {
+    outline: none;
+    border-color: rgba(125, 211, 252, 0.55);
+    box-shadow:
+        0 0 0 3px rgba(56, 189, 248, 0.18),
+        0 16px 28px rgba(37, 99, 235, 0.12);
+}
+
+.acad-subnav-sep {
+    width: 1px;
+    align-self: stretch;
+    margin: 6px 2px;
+    background: linear-gradient(180deg, transparent, rgba(148, 163, 184, 0.26), transparent);
+}
+
+.acad-subnav-actions {
+    margin-left: auto;
+    padding-right: 2px;
+}
+
+@media (min-width: 901px) {
+    .acad-subnav {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+}
+
+@media (max-width: 900px) {
+    .acad-subnav {
+        padding: 8px;
+        border-radius: 20px;
+    }
+
+    .acad-pivot {
+        min-height: 50px;
+        padding: 0 15px;
+        border-radius: 16px;
+    }
+
+    .acad-pivot svg {
+        width: 16px;
+        height: 16px;
+        padding: 6px;
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 640px) {
+    .acad-subnav {
+        gap: 8px;
+        margin-bottom: 14px;
+        padding: 7px;
+        border-radius: 18px;
+    }
+
+    .acad-pivot {
+        min-height: 46px;
+        padding: 0 13px;
+        gap: 8px;
+        font-size: 0.79rem;
+    }
+
+}

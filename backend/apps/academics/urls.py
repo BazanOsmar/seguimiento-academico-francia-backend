@@ -10,6 +10,7 @@ from .views import (
     ValidarPlanillaView, ConfirmarPlanillaView,
     NotasMongoView, EstadoNotasView, NotasEstadoMesView,
     ComparadorNombresView,
+    DirectorResumenNotasMesView, DirectorNotasMesDetalleView,
 )
 
 urlpatterns = [
@@ -32,4 +33,6 @@ urlpatterns = [
     path("director/planes/",                  DirectorPlanesView.as_view(),         name="director-planes"),
     path("director/planes/exportar/",         DirectorPlanesExportarView.as_view(), name="director-planes-exportar"),
     path("director/comparar-nombres/",        ComparadorNombresView.as_view(),      name="director-comparar-nombres"),
+    path("director/resumen-notas-mes/",       DirectorResumenNotasMesView.as_view(), name="director-resumen-notas-mes"),
+    path("director/notas-mes-detalle/",       DirectorNotasMesDetalleView.as_view(), name="director-notas-mes-detalle"),
 ]

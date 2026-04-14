@@ -1,0 +1,236 @@
+#vistaMaterias {
+    padding-top: 6px;
+}
+
+#vistaMaterias .mat-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+#vistaMaterias .mat-overview-card,
+#vistaMaterias .mat-workspace {
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+        rgba(15, 23, 42, 0.64);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 24px;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.18);
+}
+
+#vistaMaterias .mat-overview-card {
+    padding: 22px;
+}
+
+#vistaMaterias .mat-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--accent-text);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#vistaMaterias .mat-overview-note {
+    margin: 14px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+#vistaMaterias .mat-workspace {
+    padding: 18px;
+}
+
+#vistaMaterias .mat-workspace-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+#vistaMaterias .mat-workspace-title {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+#vistaMaterias .mat-workspace-subtitle {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+#vistaMaterias .mat-table-card {
+    border-radius: 22px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+        rgba(15, 23, 42, 0.5);
+    overflow: hidden;
+}
+
+#vistaMaterias .mat-list-wrap {
+    padding: 14px;
+}
+
+#vistaMaterias .mat-list-head {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 0 8px 12px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#vistaMaterias .mat-list-head span:last-child {
+    text-align: right;
+}
+
+#vistaMaterias .mat-list-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#vistaMaterias .mat-item-card {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+        rgba(15, 23, 42, 0.58);
+    transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+#vistaMaterias .mat-item-card:hover {
+    border-color: rgba(96, 165, 250, 0.22);
+    background: rgba(30, 41, 59, 0.88);
+    box-shadow: 0 16px 32px rgba(2, 6, 23, 0.16);
+    transform: translateY(-1px);
+}
+
+#vistaMaterias .mat-item-index {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.12);
+    color: #bfdbfe;
+    font-size: 0.92rem;
+    font-weight: 800;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+#vistaMaterias .mat-item-main {
+    min-width: 0;
+}
+
+#vistaMaterias .mat-item-label {
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#vistaMaterias .mat-item-name {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+#vistaMaterias .mat-item-name .chip {
+    max-width: 100%;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#vistaMaterias .mat-item-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+#vistaMaterias .mat-btn-del {
+    white-space: nowrap;
+}
+
+#vistaMaterias #spinnerMaterias,
+#vistaMaterias #emptyMaterias {
+    min-height: 220px;
+}
+
+@media (max-width: 780px) {
+    #vistaMaterias .mat-overview-card,
+    #vistaMaterias .mat-workspace,
+    #vistaMaterias .mat-table-card,
+    #vistaMaterias .mat-item-card {
+        border-radius: 20px;
+    }
+
+    #vistaMaterias .mat-workspace {
+        padding: 16px;
+    }
+
+    #vistaMaterias .mat-list-head {
+        display: none;
+    }
+
+    #vistaMaterias .mat-item-card {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    #vistaMaterias .mat-item-index {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    #vistaMaterias .mat-item-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    #vistaMaterias .mat-list-wrap {
+        padding: 12px;
+    }
+
+    #vistaMaterias .mat-item-card {
+        padding: 12px;
+    }
+
+    #vistaMaterias .mat-item-name .chip {
+        width: 100%;
+    }
+
+    #vistaMaterias .mat-btn-del {
+        width: 100%;
+        justify-content: center;
+    }
+}

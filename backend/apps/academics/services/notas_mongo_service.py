@@ -631,3 +631,24 @@ def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
 
     except Exception:
         return {mid: None for mid in materia_ids}
+
+
+def cursos_con_notas_mes(mes, gestion):
+    """
+    Retorna el set de (profesor_id, curso_id) que tienen al menos un documento
+    de notas en detalle_notas para el mes/gestión indicados.
+    Usado por el Director para saber qué profesores ya cargaron notas ese mes.
+    Devuelve set vacío si hay error de conexión.
+    """
+    try:
+        col = _get_db()['detalle_notas']
+        pipeline = [
+            {'$match': {'mes': mes, 'gestion': gestion}},
+            {'$group': {'_id': {'profesor_id': '$profesor_id', 'curso_id': '$curso_id'}}},
+        ]
+        return {
+            (r['_id']['profesor_id'], r['_id']['curso_id'])
+            for r in col.aggregate(pipeline)
+        }
+    except Exception:
+        return set()

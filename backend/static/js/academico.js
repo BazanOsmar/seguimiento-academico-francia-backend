@@ -148,6 +148,10 @@ async function _activarPivot(pivot) {
             document.getElementById('vistaPlanes').classList.add('active');
             await _cargarPlanes();
             break;
+        case 'notas':
+            document.getElementById('vistaNotas').classList.add('active');
+            _pnActivar();
+            break;
     }
 }
 
@@ -706,23 +710,23 @@ async function _cargarVistaCursos() {
         const badgeTxt  = isActive ? 'SELECCIONADO' : (nMaterias ? 'DISPONIBLE' : 'SIN MATERIAS');
         const valCls    = nMaterias === 0 ? ' vc-card-stat-val--warn' : '';
         return `
-            <div class="vc-course-card${isActive ? ' active' : ''}" data-curso-id="${c.id}">
-                <div class="vc-card-head">
-                    <div class="vc-card-name">${_escapeHtml(nombre)}</div>
+            <article class="vc-course-card${isActive ? ' active' : ''}" data-curso-id="${c.id}" data-has-materias="${nMaterias ? '1' : '0'}">
+                <div class="vc-card-top">
+                    <span class="vc-card-kicker">Curso</span>
                     <span class="vc-card-badge ${badgeCls}">${badgeTxt}</span>
                 </div>
-                <div class="vc-card-divider"></div>
+                <div class="vc-card-name">${_escapeHtml(nombre)}</div>
                 <div class="vc-card-stats">
-                    <div class="vc-card-stat-row">
+                    <div class="vc-card-stat-box">
                         <span class="vc-card-stat-label">Estudiantes</span>
                         <span class="vc-card-stat-val">${c.estudiantes_count ?? '—'}</span>
                     </div>
-                    <div class="vc-card-stat-row">
+                    <div class="vc-card-stat-box">
                         <span class="vc-card-stat-label">Materias</span>
                         <span class="vc-card-stat-val${valCls}">${nMaterias}</span>
                     </div>
                 </div>
-            </div>`;
+            </article>`;
     }).join('');
 
     grid.innerHTML = `<div class="vc-courses-grid">${cards}</div>`;
@@ -730,9 +734,7 @@ async function _cargarVistaCursos() {
     grid.querySelectorAll('.vc-course-card').forEach(card => {
         card.addEventListener('click', () => {
             grid.querySelectorAll('.vc-course-card').forEach(c => {
-                c.classList.remove('active');
-                c.querySelector('.vc-card-badge').className = 'vc-card-badge vc-card-badge--ok';
-                c.querySelector('.vc-card-badge').textContent = 'DISPONIBLE';
+                _vcRestaurarBadgeCard(c);
             });
             card.classList.add('active');
             card.querySelector('.vc-card-badge').className = 'vc-card-badge vc-card-badge--sel';
@@ -775,7 +777,7 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
                         <div class="vc-materia-name">${_escapeHtml(a.materia_nombre)}</div>
                         <div class="vc-materia-prof">Prof. ${_escapeHtml(a.profesor_nombre)}</div>
                     </div>
-                    <button class="btn-del" style="flex-shrink:0;"
+                    <button class="btn-del vc-materia-remove"
                         data-asig-id="${a.id}"
                         data-profesor="${_escapeHtml(a.profesor_nombre)}"
                         data-curso="${nombre}"
@@ -784,7 +786,7 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
                     </button>
                 </div>`;
         }).join('')
-        : `<div class="empty-state" style="padding:32px 16px;">
+        : `<div class="empty-state vc-detail-empty">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
                 Sin materias asignadas
             </div>`;
@@ -808,7 +810,10 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
                 <span class="vc-detail-tag vc-detail-tag--year">${asigs.length} materia${asigs.length !== 1 ? 's' : ''}</span>
             </div>
         </div>
-        <div class="vc-detail-body">${materiasHtml}</div>
+        <div class="vc-detail-body">
+            <div class="vc-detail-section-title">Materias asignadas</div>
+            ${materiasHtml}
+        </div>
         <div class="vc-detail-footer">
             <button class="vc-btn-planilla" id="vcBtnPlanilla">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -842,14 +847,21 @@ function _cerrarVcDetail() {
     document.getElementById('vcSplit').classList.remove('has-panel');
     document.getElementById('vcDetail').innerHTML = '';
     document.querySelectorAll('.vc-course-card').forEach(c => {
-        c.classList.remove('active');
-        const badge = c.querySelector('.vc-card-badge');
-        if (badge) {
-            badge.className = 'vc-card-badge vc-card-badge--ok';
-            badge.textContent = 'DISPONIBLE';
-        }
+        _vcRestaurarBadgeCard(c);
     });
     _vcPanelCursoId = null;
+}
+
+function _vcRestaurarBadgeCard(card) {
+    if (!card) return;
+    card.classList.remove('active');
+
+    const badge = card.querySelector('.vc-card-badge');
+    if (!badge) return;
+
+    const hasMaterias = card.dataset.hasMaterias === '1';
+    badge.className = `vc-card-badge ${hasMaterias ? 'vc-card-badge--ok' : 'vc-card-badge--warn'}`;
+    badge.textContent = hasMaterias ? 'DISPONIBLE' : 'SIN MATERIAS';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -874,21 +886,22 @@ async function cargarMaterias() {
         return;
     }
 
-    tbody.innerHTML = '';
-    data.forEach((m, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="num-cell">${i + 1}</td>
-            <td class="name-cell">
-                <span class="chip chip--blue">${_escapeHtml(m.nombre)}</span>
-            </td>
-            <td style="text-align:right;padding-right:18px;">
-                <button class="btn-del" data-id="${m.id}" data-nombre="${_escapeHtml(m.nombre)}">
+    tbody.innerHTML = data.map((m, i) => `
+        <article class="mat-item-card">
+            <div class="mat-item-index">${i + 1}</div>
+            <div class="mat-item-main">
+                <div class="mat-item-label">Materia</div>
+                <div class="mat-item-name">
+                    <span class="chip chip--blue">${_escapeHtml(m.nombre)}</span>
+                </div>
+            </div>
+            <div class="mat-item-actions">
+                <button class="btn-del mat-btn-del" data-id="${m.id}" data-nombre="${_escapeHtml(m.nombre)}">
                     ${_TRASH_ICON} Eliminar
                 </button>
-            </td>`;
-        tbody.appendChild(tr);
-    });
+            </div>
+        </article>
+    `).join('');
 
     tbody.querySelectorAll('.btn-del').forEach(btn => {
         btn.addEventListener('click', () => eliminarMateria(btn.dataset.id, btn.dataset.nombre));
@@ -1476,3 +1489,280 @@ delConfirmar.addEventListener('click', async () => {
     showToast(toastMsg, 'success');
     await onSuccess();
 });
+
+
+// ════════════════════════════════════════════════════════════════
+// VISTA NOTAS POR PROFESOR
+// ════════════════════════════════════════════════════════════════
+
+const _MESES_NOMBRE = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+let _pnDatos      = [];   // datos de la última carga
+let _pnMes        = new Date().getMonth() + 1;
+let _pnFiltro     = 'todos';
+let _pnIniciado   = false;
+
+// ── Inicialización (lazy: solo la primera vez que se activa el pivot) ──
+function _pnActivar() {
+    if (!_pnIniciado) {
+        _pnIniciado = true;
+        _pnInicializar();
+    }
+}
+
+function _pnInicializar() {
+    // Pastillas de filtro — solo esconden/muestran, sin re-fetch
+    document.querySelectorAll('.pn-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _pnFiltro = btn.dataset.filter;
+            document.querySelectorAll('.pn-pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _pnAplicarFiltro();
+        });
+    });
+
+    // Modal picker
+    document.getElementById('pnPickerCancel').addEventListener('click', _pnCerrarPicker);
+    document.getElementById('pnPickerOverlay').addEventListener('click', e => {
+        if (e.target === document.getElementById('pnPickerOverlay')) _pnCerrarPicker();
+    });
+
+    _pnActualizarBadge();
+    _pnCargar();
+}
+
+function _pnActualizarBadge() {
+    document.getElementById('pnMesBadgeText').textContent = _MESES_NOMBRE[_pnMes] || '–';
+}
+
+// ── Carga de datos ────────────────────────────────────────────────
+async function _pnCargar() {
+    _pnActualizarBadge();
+    const grid = document.getElementById('pnGrid');
+    grid.innerHTML = '<div class="spinner-inline"></div>';
+
+    const { ok, data } = await fetchAPI(`/api/academics/director/resumen-notas-mes/?mes=${_pnMes}`);
+    if (!ok) {
+        grid.innerHTML = `<div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Error al cargar los datos.
+        </div>`;
+        return;
+    }
+
+    _pnDatos = data.profesores || [];
+    _pnActualizarContadores();
+    _pnRenderGrid();
+}
+
+// ── Contadores de tabs ────────────────────────────────────────────
+function _pnActualizarContadores() {
+    const completados = _pnDatos.filter(p => p.total_cursos > 0 && p.cursos_con_notas === p.total_cursos).length;
+    const faltantes   = _pnDatos.filter(p => p.cursos_con_notas < p.total_cursos).length;
+    document.getElementById('pnCountTodos').textContent        = _pnDatos.length;
+    document.getElementById('pnCountCompletados').textContent  = completados;
+    document.getElementById('pnCountFaltantes').textContent    = faltantes;
+
+    const summaryTodos = document.getElementById('pnSummaryTodos');
+    const summaryCompletados = document.getElementById('pnSummaryCompletados');
+    const summaryFaltantes = document.getElementById('pnSummaryFaltantes');
+    const summaryCaption = document.getElementById('pnSummaryCaption');
+
+    if (summaryTodos) summaryTodos.textContent = _pnDatos.length;
+    if (summaryCompletados) summaryCompletados.textContent = completados;
+    if (summaryFaltantes) summaryFaltantes.textContent = faltantes;
+    if (summaryCaption) {
+        if (!_pnDatos.length) {
+            summaryCaption.textContent = 'No hay profesores registrados para mostrar en este mes.';
+        } else if (faltantes === 0) {
+            summaryCaption.textContent = `Todos los profesores cerraron su carga de notas en ${_MESES_NOMBRE[_pnMes]}.`;
+        } else {
+            summaryCaption.textContent = `${faltantes} profesor${faltantes !== 1 ? 'es' : ''} requieren seguimiento en ${_MESES_NOMBRE[_pnMes]}.`;
+        }
+    }
+}
+
+// ── Render completo del grid (una sola vez tras la carga) ─────────
+function _pnRenderGrid() {
+    const grid = document.getElementById('pnGrid');
+
+    if (!_pnDatos.length) {
+        grid.innerHTML = `<div class="empty-state pn-grid-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            No hay profesores registrados.
+        </div>`;
+        return;
+    }
+
+    // Render TODOS los cards con data-estado para el filtro por CSS
+    grid.innerHTML = _pnDatos.map((p, i) => _pnHtmlCard(p, i)).join('') +
+        `<div class="empty-state pn-empty-filtered">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span id="pnEmptyFilteredMsg">Sin resultados para este filtro.</span>
+        </div>`;
+
+    // Attach chip handlers
+    grid.querySelectorAll('.pn-chip--ok').forEach(chip => {
+        const profIdx  = parseInt(chip.dataset.profIdx,  10);
+        const cursoIdx = parseInt(chip.dataset.cursoIdx, 10);
+        chip.addEventListener('click', () => _pnChipClick(profIdx, cursoIdx));
+    });
+
+    // Aplicar filtro inicial (Todos por defecto)
+    _pnAplicarFiltro();
+}
+
+// ── Filtro por CSS — sin re-fetch, sin re-render ──────────────────
+function _pnAplicarFiltro() {
+    const cards  = document.querySelectorAll('.pn-card[data-estado]');
+    let   visible = 0;
+
+    cards.forEach(card => {
+        const estado = card.dataset.estado;
+        let mostrar = true;
+        if (_pnFiltro === 'completados') mostrar = estado === 'completo';
+        if (_pnFiltro === 'faltantes')   mostrar = estado === 'faltante';
+        card.style.display = mostrar ? '' : 'none';
+        if (mostrar) visible++;
+    });
+
+    // Mensaje vacío si ninguna tarjeta visible
+    const emptyEl  = document.querySelector('.pn-empty-filtered');
+    const msgEl    = document.getElementById('pnEmptyFilteredMsg');
+    if (emptyEl) {
+        emptyEl.style.display = visible === 0 ? '' : 'none';
+        if (msgEl && visible === 0) {
+            const msgs = {
+                completados: `Ningún profesor completó todas sus notas en ${_MESES_NOMBRE[_pnMes]}.`,
+                faltantes:   `Todos los profesores ya subieron sus notas en ${_MESES_NOMBRE[_pnMes]}.`,
+            };
+            msgEl.textContent = msgs[_pnFiltro] || 'Sin resultados.';
+        }
+    }
+}
+
+// ── HTML de una tarjeta de profesor ──────────────────────────────
+function _pnHtmlCard(p, profIdx) {
+    const estaCompleto = p.total_cursos > 0 && p.cursos_con_notas === p.total_cursos;
+    const cursosPendientes = Math.max((p.total_cursos || 0) - (p.cursos_con_notas || 0), 0);
+    const chips = p.cursos.map((c, cursoIdx) => {
+        if (c.tiene_notas) {
+            return `<button
+                class="pn-chip pn-chip--ok"
+                data-prof-idx="${profIdx}"
+                data-curso-idx="${cursoIdx}"
+                title="Ver notas de ${_escapeHtml(c.curso_nombre)}">
+                ${_escapeHtml(c.curso_nombre)}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </button>`;
+        }
+        return `<span class="pn-chip pn-chip--pending" title="Sin notas para ${_escapeHtml(c.curso_nombre)}">
+            ${_escapeHtml(c.curso_nombre)}
+        </span>`;
+    }).join('');
+
+    const estadoAttr = estaCompleto ? 'completo' : 'faltante';
+    const statusText = estaCompleto ? 'Completo' : 'Pendiente';
+    const statusCls = estaCompleto ? 'pn-status--ok' : 'pn-status--warn';
+
+    return `<article class="pn-card${estaCompleto ? ' pn-card--ok' : ''}" data-estado="${estadoAttr}">
+        <div class="pn-card-accent"></div>
+        <div class="pn-card-top">
+            <div class="pn-card-head">
+                <div class="pn-avatar-shell">
+                    <div class="pn-avatar${estaCompleto ? ' pn-avatar--ok' : ''}">${_escapeHtml(p.iniciales)}</div>
+                </div>
+                <div class="pn-card-meta">
+                    <div class="pn-card-name">${_escapeHtml(p.nombre)}</div>
+                    <div class="pn-card-username">@${_escapeHtml(p.username)}</div>
+                </div>
+            </div>
+            <span class="pn-status ${statusCls}">${statusText}</span>
+        </div>
+        <div class="pn-card-body">
+            <div class="pn-card-metrics">
+                <div class="pn-mini-stat">
+                    <span class="pn-mini-stat-label">Cursos</span>
+                    <strong class="pn-mini-stat-value">${p.total_cursos}</strong>
+                </div>
+                <div class="pn-mini-stat">
+                    <span class="pn-mini-stat-label">Con notas</span>
+                    <strong class="pn-mini-stat-value">${p.cursos_con_notas}</strong>
+                </div>
+                <div class="pn-mini-stat">
+                    <span class="pn-mini-stat-label">Pendientes</span>
+                    <strong class="pn-mini-stat-value">${cursosPendientes}</strong>
+                </div>
+            </div>
+            ${p.cursos.length ? `<div class="pn-chips-label">Cursos asignados</div>
+            <div class="pn-chips">${chips}</div>` : `<div class="pn-no-courses">Sin asignaciones en este periodo.</div>`}
+        </div>
+    </article>`;
+}
+
+// ── Clic en chip verde ────────────────────────────────────────────
+function _pnChipClick(profIdx, cursoIdx) {
+    // Buscar el profesor en _pnDatos (puede estar filtrado, buscar por posición en original)
+    const prof  = _pnDatos[profIdx];
+    if (!prof) return;
+    const curso = prof.cursos[cursoIdx];
+    if (!curso || !curso.tiene_notas) return;
+
+    const pcIds = curso.pc_ids_con_notas;
+    if (!pcIds || !pcIds.length) return;
+
+    if (pcIds.length === 1) {
+        // Navegar directamente
+        _pnNavegar(pcIds[0].pc_id, prof.nombre, curso.curso_nombre, pcIds[0].materia);
+    } else {
+        // Mostrar picker de materias
+        _pnAbrirPicker(pcIds, prof.nombre, curso.curso_nombre);
+    }
+}
+
+function _pnNavegar(pcId, profesor, curso, materia) {
+    window.location.href = `/director/notas-curso/?pc_id=${pcId}&mes=${_pnMes}`;
+}
+
+// ── Modal picker de materia ───────────────────────────────────────
+function _pnAbrirPicker(pcIds, profNombre, cursoNombre) {
+    document.getElementById('pnPickerSub').textContent =
+        `${cursoNombre} — ${profNombre} tiene varias materias con notas para ${_MESES_NOMBRE[_pnMes]}.`;
+
+    const list = document.getElementById('pnPickerList');
+    list.innerHTML = pcIds.map(pc => `
+        <div class="pn-picker-item" data-pc-id="${pc.pc_id}" data-materia="${_escapeHtml(pc.materia)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            ${_escapeHtml(pc.materia)}
+        </div>
+    `).join('');
+
+    list.querySelectorAll('.pn-picker-item').forEach(item => {
+        item.addEventListener('click', () => {
+            _pnCerrarPicker();
+            _pnNavegar(parseInt(item.dataset.pcId, 10));
+        });
+    });
+
+    document.getElementById('pnPickerOverlay').classList.add('visible');
+}
+
+function _pnCerrarPicker() {
+    document.getElementById('pnPickerOverlay').classList.remove('visible');
+}

@@ -477,3 +477,7 @@ def director_comparar_nombres_view(request):
 def profesor_carga_calificaciones_view(request):
     return render(request, 'profesor/carga_calificaciones.html')
 
+
+def director_notas_curso_mes_view(request):
+    return render(request, 'director/notas_curso_mes.html')
+

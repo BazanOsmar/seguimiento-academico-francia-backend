@@ -27,4 +27,5 @@ urlpatterns = [
     path('profesor/plan/',           views.profesor_plan_view,                     name='profesor-plan'),
     path('profesor/cuenta/',         views.profesor_cuenta_view,                   name='profesor-cuenta'),
     path('profesor/calificaciones/', views.profesor_carga_calificaciones_view,     name='profesor-carga-calificaciones'),
+    path('director/notas-curso/',    views.director_notas_curso_mes_view,          name='director-notas-curso'),
 ]

@@ -1110,7 +1110,225 @@
         .btn-confirm:disabled { opacity: .5; cursor: not-allowed; }
         .btn-confirm-spinner { display: none; }
         .btn-confirm-spinner::after { content: ''; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: block; }
+
+        /* ══════════════════════════════════════════════════════
+           VISTA NOTAS POR PROFESOR
+           ══════════════════════════════════════════════════════ */
+
+        /* ── Badge de mes activo ────────────────────────────────── */
+        .pn-mes-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            border-radius: 50px;
+            font-size: 0.72rem; font-weight: 700;
+            letter-spacing: .04em;
+        }
+        .pn-mes-badge svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+        /* ── Pastillas de filtro ────────────────────────────────── */
+        .pn-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .pn-pill {
+            padding: 6px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 50px;
+            font-size: 0.76rem; font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 7px;
+            transition: background .13s, color .13s, border-color .13s;
+        }
+        .pn-pill:hover {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+        .pn-pill.active {
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            border-color: rgba(59,130,246,.35);
+        }
+        .pn-pill-count {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px;
+            padding: 0 5px;
+            border-radius: 50px;
+            font-size: 0.65rem; font-weight: 800;
+            background: var(--bg-input);
+            color: var(--text-muted);
+            line-height: 1;
+        }
+        .pn-pill.active .pn-pill-count {
+            background: rgba(59,130,246,.25);
+            color: var(--accent-text);
+        }
+
+        /* ── Grid de tarjetas ───────────────────────────────────── */
+        .pn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+            gap: 14px;
+        }
+        @media (max-width: 640px) {
+            .pn-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── Tarjeta de profesor ────────────────────────────────── */
+        .pn-card {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 18px 16px 16px;
+            display: flex; flex-direction: column; gap: 14px;
+            transition: border-color .15s, box-shadow .15s;
+            position: relative; overflow: hidden;
+        }
+        .pn-card:hover {
+            border-color: var(--border);
+            box-shadow: 0 4px 16px rgba(0,0,0,.15);
+        }
+        .pn-card--ok {
+            border-color: rgba(34,197,94,.35);
+            background: linear-gradient(135deg, rgba(34,197,94,.04) 0%, transparent 100%);
+        }
+        .pn-card--ok::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+        }
+
+        /* ── Header de la tarjeta ───────────────────────────────── */
+        .pn-card-head {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .pn-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.82rem; font-weight: 800;
+            flex-shrink: 0;
+            letter-spacing: .03em;
+        }
+        .pn-avatar--ok {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+        }
+        .pn-card-name {
+            font-size: 0.88rem; font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+        .pn-card-username {
+            font-size: 0.68rem; color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Label de cursos ────────────────────────────────────── */
+        .pn-chips-label {
+            font-size: 0.62rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .06em;
+            color: var(--text-muted);
+            margin-bottom: -8px;
+        }
+
+        /* ── Chips de cursos ────────────────────────────────────── */
+        .pn-chips {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .pn-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.73rem; font-weight: 700;
+            letter-spacing: .01em;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .pn-chip--pending {
+            background: var(--bg-input);
+            color: var(--text-muted);
+            border-color: var(--border-subtle);
+            cursor: default;
+        }
+        .pn-chip--ok {
+            background: rgba(34,197,94,.14);
+            color: #4ade80;
+            border-color: rgba(34,197,94,.25);
+            cursor: pointer;
+            transition: background .13s, border-color .13s, box-shadow .13s;
+        }
+        .pn-chip--ok:hover {
+            background: rgba(34,197,94,.25);
+            border-color: rgba(34,197,94,.5);
+            box-shadow: 0 2px 8px rgba(34,197,94,.2);
+        }
+        .pn-chip svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+        /* ── Pie de tarjeta ─────────────────────────────────────── */
+        .pn-footer {
+            padding-top: 10px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 8px;
+        }
+        .pn-footer-text {
+            font-size: 0.7rem; color: var(--text-muted); font-weight: 500;
+        }
+        .pn-footer-text--ok   { color: #4ade80; font-weight: 600; }
+        .pn-footer-text--warn { color: #fbbf24; font-weight: 600; }
+
+        /* ── Modal selector de materia ──────────────────────────── */
+        .pn-picker-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.55); z-index: 500;
+            align-items: center; justify-content: center;
+        }
+        .pn-picker-overlay.visible { display: flex; }
+        .pn-picker-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            width: 100%; max-width: 360px; margin: 16px;
+            overflow: hidden;
+        }
+        .pn-picker-head {
+            padding: 16px 18px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .pn-picker-title { font-size: 0.92rem; font-weight: 700; color: var(--text-primary); }
+        .pn-picker-sub   { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+        .pn-picker-list  { padding: 8px 0; }
+        .pn-picker-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 18px;
+            cursor: pointer;
+            transition: background .12s;
+            font-size: 0.84rem; font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .pn-picker-item:last-child { border-bottom: none; }
+        .pn-picker-item:hover { background: var(--accent-dim); color: var(--accent-text); }
+        .pn-picker-item svg { width: 16px; height: 16px; color: var(--accent-text); flex-shrink: 0; }
+        .pn-picker-footer {
+            padding: 12px 18px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex; justify-content: flex-end;
+        }
     </style>
+    <link rel="stylesheet" href="{% static 'css/director_academico_notas.css' %}">
+    <link rel="stylesheet" href="{% static 'css/director_academico_nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/director_academico_cursos.css' %}">
+    <link rel="stylesheet" href="{% static 'css/director_academico_materias.css' %}">
 </head>
 <body>
 
@@ -1245,6 +1463,16 @@
                     </svg>
                     Materias
                 </button>
+                <button class="acad-pivot" data-pivot="notas">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <line x1="10" y1="9" x2="8" y2="9"/>
+                    </svg>
+                    Notas
+                </button>
             </nav>
                 <!-- ── Contenido principal ───────────────────────── -->
                 <div class="acad-panel-right">
@@ -1295,45 +1523,75 @@
 
                     <!-- Vista: Por Curso -->
                     <div class="acad-vista" id="vistaCursos">
-                        <div class="mat-header">
-                            <h2 class="mat-header__title">Vista por Curso</h2>
-                            <p class="mat-header__sub">Consulta qué materias y profesores están asignados a cada curso.</p>
-                        </div>
-                        <div class="vc-split" id="vcSplit">
-                            <div id="cursosGrid">
-                                <div class="spinner-inline"></div>
-                            </div>
-                            <aside class="vc-detail" id="vcDetail"></aside>
+                        <div class="vc-shell">
+                            <section class="vc-overview-card">
+                                <div class="mat-header vc-header">
+                                    <div class="mat-header__copy">
+                                        <span class="vc-kicker">Mapa académico</span>
+                                        <h2 class="mat-header__title">Vista por Curso</h2>
+                                        <p class="mat-header__sub">Consulta qué materias y profesores están asignados a cada curso y abre el detalle para gestionar su carga académica.</p>
+                                    </div>
+                                </div>
+                                <p class="vc-overview-note">Selecciona un curso para abrir su panel lateral. Desde ahí podrás revisar las materias asignadas y usar la planilla del curso.</p>
+                            </section>
+
+                            <section class="vc-workspace">
+                                <div class="vc-workspace-head">
+                                    <div>
+                                        <h3 class="vc-workspace-title">Cursos registrados</h3>
+                                        <p class="vc-workspace-subtitle">Explora la distribución académica actual por curso.</p>
+                                    </div>
+                                </div>
+                                <div class="vc-split" id="vcSplit">
+                                    <div id="cursosGrid">
+                                        <div class="spinner-inline"></div>
+                                    </div>
+                                    <aside class="vc-detail" id="vcDetail"></aside>
+                                </div>
+                            </section>
                         </div>
                     </div>
 
                     <!-- Vista: Materias -->
                     <div class="acad-vista" id="vistaMaterias">
-                        <div class="mat-header">
-                            <h2 class="mat-header__title">Gestión de Materias</h2>
-                            <p class="mat-header__sub">Consulta y administra el listado académico de la institución.</p>
-                        </div>
-                        <div class="mat-table-card">
-                            <div id="spinnerMaterias" class="spinner-inline" style="display:none;"></div>
-                            <div id="emptyMaterias" class="empty-state" style="display:none;">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                                </svg>
-                                Sin materias registradas
-                            </div>
-                            <div id="wrapMaterias" style="display:none;">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th style="width:40px;">#</th>
-                                            <th>Nombre de Materia</th>
-                                            <th style="text-align:right;">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbodyMaterias"></tbody>
-                                </table>
-                            </div>
+                        <div class="mat-shell">
+                            <section class="mat-overview-card">
+                                <div class="mat-header mat-header--materias">
+                                    <div class="mat-header__copy">
+                                        <span class="mat-kicker">Catálogo académico</span>
+                                        <h2 class="mat-header__title">Gestión de Materias</h2>
+                                        <p class="mat-header__sub">Consulta y administra el listado académico de la institución con una vista más clara en escritorio y móvil.</p>
+                                    </div>
+                                </div>
+                                <p class="mat-overview-note">Cada materia se muestra como un elemento independiente para facilitar lectura, revisión y eliminación sin depender de una tabla rígida.</p>
+                            </section>
+
+                            <section class="mat-workspace">
+                                <div class="mat-workspace-head">
+                                    <div>
+                                        <h3 class="mat-workspace-title">Materias registradas</h3>
+                                        <p class="mat-workspace-subtitle">Revisa el catálogo actual y elimina las materias que ya no deban estar disponibles.</p>
+                                    </div>
+                                </div>
+                                <div class="mat-table-card">
+                                    <div id="spinnerMaterias" class="spinner-inline" style="display:none;"></div>
+                                    <div id="emptyMaterias" class="empty-state" style="display:none;">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                                        </svg>
+                                        Sin materias registradas
+                                    </div>
+                                    <div id="wrapMaterias" class="mat-list-wrap" style="display:none;">
+                                        <div class="mat-list-head" aria-hidden="true">
+                                            <span>#</span>
+                                            <span>Materia</span>
+                                            <span>Acciones</span>
+                                        </div>
+                                        <div id="tbodyMaterias" class="mat-list-grid"></div>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </div>
 
@@ -1372,9 +1630,132 @@
                         </div>
                     </div>
 
+                    <!-- Vista: Notas por Profesor -->
+                    <div class="acad-vista" id="vistaNotas">
+                        <div class="pn-notes-shell">
+                            <section class="pn-overview-card">
+                                <div class="mat-header mat-header--actions pn-header">
+                                    <div class="mat-header__copy">
+                                        <span class="pn-kicker">Seguimiento docente</span>
+                                        <h2 class="mat-header__title">Notas por Profesor</h2>
+                                        <p class="mat-header__sub">Control mensual de carga de calificaciones. Haz clic en un curso verde para ver el detalle de notas.</p>
+                                    </div>
+                                    <div class="acad-actions-row">
+                                        <span class="pn-mes-badge" id="pnMesBadge">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                                <line x1="8"  y1="2" x2="8"  y2="6"/>
+                                                <line x1="3"  y1="10" x2="21" y2="10"/>
+                                            </svg>
+                                            <span id="pnMesBadgeText">–</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="pn-summary-grid">
+                                    <article class="pn-summary-card pn-summary-card--all">
+                                        <div class="pn-summary-card-inner">
+                                            <div class="pn-summary-copy">
+                                                <span class="pn-summary-label">Profesores</span>
+                                                <strong class="pn-summary-value" id="pnSummaryTodos">0</strong>
+                                                <span class="pn-summary-note">Total en seguimiento</span>
+                                            </div>
+                                            <span class="pn-summary-icon pn-summary-icon--all" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="9" cy="7" r="4"></circle>
+                                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </article>
+                                    <article class="pn-summary-card pn-summary-card--ok">
+                                        <div class="pn-summary-card-inner">
+                                            <div class="pn-summary-copy">
+                                                <span class="pn-summary-label">Completados</span>
+                                                <strong class="pn-summary-value" id="pnSummaryCompletados">0</strong>
+                                                <span class="pn-summary-note">Carga de notas completa</span>
+                                            </div>
+                                            <span class="pn-summary-icon pn-summary-icon--ok" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M20 6 9 17l-5-5"></path>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </article>
+                                    <article class="pn-summary-card pn-summary-card--warn">
+                                        <div class="pn-summary-card-inner">
+                                            <div class="pn-summary-copy">
+                                                <span class="pn-summary-label">Faltantes</span>
+                                                <strong class="pn-summary-value" id="pnSummaryFaltantes">0</strong>
+                                                <span class="pn-summary-note">Aun requieren seguimiento</span>
+                                            </div>
+                                            <span class="pn-summary-icon pn-summary-icon--warn" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M12 9v4"></path>
+                                                    <path d="M12 17h.01"></path>
+                                                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </article>
+                                </div>
+                                <p class="pn-summary-caption" id="pnSummaryCaption">Visualiza el estado general de carga de notas del mes actual.</p>
+                            </section>
+
+                            <section class="pn-toolbar-card">
+                                <div class="pn-toolbar-copy">
+                                    <span class="pn-toolbar-label">Filtros</span>
+                                    <p class="pn-toolbar-text">Usa estas vistas para revisar el avance y detectar rápidamente a quienes aún no cerraron su carga.</p>
+                                </div>
+                                <div class="pn-pills">
+                                    <button class="pn-pill active" data-filter="todos">
+                                        Todos
+                                        <span class="pn-pill-count" id="pnCountTodos">0</span>
+                                    </button>
+                                    <button class="pn-pill" data-filter="completados">
+                                        Completados
+                                        <span class="pn-pill-count" id="pnCountCompletados">0</span>
+                                    </button>
+                                    <button class="pn-pill" data-filter="faltantes">
+                                        Faltantes
+                                        <span class="pn-pill-count" id="pnCountFaltantes">0</span>
+                                    </button>
+                                </div>
+                            </section>
+
+                            <div class="pn-grid-wrap">
+                                <div class="pn-grid-head">
+                                    <div>
+                                        <h3 class="pn-grid-title">Estado de carga por docente</h3>
+                                        <p class="pn-grid-subtitle">Cada tarjeta resume el avance mensual por profesor y los cursos que ya tienen notas disponibles.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Grid de tarjetas -->
+                                <div id="pnGrid" class="pn-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div><!-- /acad-panel-right -->
         </div><!-- /content-wrap -->
     </main>
+
+    <!-- ── Modal: Selector de materia ──────────────────────────────── -->
+    <div class="pn-picker-overlay" id="pnPickerOverlay">
+        <div class="pn-picker-box">
+            <div class="pn-picker-head">
+                <div class="pn-picker-title">Selecciona una materia</div>
+                <div class="pn-picker-sub" id="pnPickerSub">Este curso tiene varias materias con notas subidas.</div>
+            </div>
+            <div class="pn-picker-list" id="pnPickerList"></div>
+            <div class="pn-picker-footer">
+                <button class="btn-ghost" id="pnPickerCancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ── Modal: Nueva Asignación ──────────────────────────────── -->
     <div class="modal-overlay" id="modalNuevaAsig">
