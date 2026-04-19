@@ -70,8 +70,17 @@ class CitacionCreateView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        # El emisor es el usuario autenticado, no viene del payload
-        citacion = serializer.save(emisor=request.user)
+        # Si es Profesor, auto-poblar la materia que da en ese curso
+        materia = None
+        if tipo == "Profesor":
+            asignacion = ProfesorCurso.objects.filter(
+                profesor=request.user,
+                curso=serializer.validated_data['estudiante'].curso,
+            ).select_related('materia').first()
+            if asignacion:
+                materia = asignacion.materia
+
+        citacion = serializer.save(emisor=request.user, materia=materia)
 
         from backend.apps.auditoria.services import registrar
         nombre_emisor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username

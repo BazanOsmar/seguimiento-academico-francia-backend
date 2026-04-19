@@ -12,15 +12,22 @@ class ComunicadoSerializer(serializers.ModelSerializer):
     alcance_display = serializers.CharField(source='get_alcance_display', read_only=True)
     curso_nombre = serializers.SerializerMethodField()
 
+    materia_nombre = serializers.SerializerMethodField()
+
+    def get_materia_nombre(self, obj):
+        return obj.materia.nombre if obj.materia_id else None
+
     class Meta:
         model = Comunicado
         fields = [
             'id',
             'titulo',
             'contenido',
+            'estado',
             'emisor_id',
             'emisor_nombre',
             'emisor_tipo',
+            'materia_nombre',
             'fecha_envio',
             'fecha_expiracion',
             'alcance',

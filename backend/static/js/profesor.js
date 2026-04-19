@@ -1028,7 +1028,12 @@ function _actualizarNotificaciones(mes) {
 
 
 function _escapeHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(str)
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
+        .replace(/'/g,  '&#039;');
 }
 
 // ── Cargar citaciones ─────────────────────────────────────────────

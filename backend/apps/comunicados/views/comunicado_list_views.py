@@ -25,7 +25,7 @@ class ComunicadoListView(APIView):
         if tipo == 'Tutor':
             comunicados = self._comunicados_para_tutor(request.user)
         else:
-            comunicados = Comunicado.objects.select_related('emisor', 'curso').all()
+            comunicados = Comunicado.objects.select_related('emisor', 'curso', 'materia').all()
 
         context = {}
         if tipo == 'Tutor':
@@ -49,7 +49,7 @@ class ComunicadoListView(APIView):
         if not estudiantes.exists():
             return Comunicado.objects.filter(
                 alcance=Comunicado.ALCANCE_TODOS
-            ).select_related('emisor', 'curso')
+            ).exclude(estado=Comunicado.ESTADO_ANULADO).select_related('emisor', 'curso', 'materia')
 
         cursos = [e.curso for e in estudiantes]
         grados = list({e.curso.grado for e in estudiantes})
@@ -59,4 +59,4 @@ class ComunicadoListView(APIView):
             Q(alcance=Comunicado.ALCANCE_CURSO,      curso__in=cursos) |
             Q(alcance=Comunicado.ALCANCE_GRADO,      grado__in=grados) |
             Q(alcance=Comunicado.ALCANCE_MIS_CURSOS, emisor__profesorcurso__curso__in=cursos)
-        ).distinct().select_related('emisor', 'curso')
+        ).exclude(estado=Comunicado.ESTADO_ANULADO).distinct().select_related('emisor', 'curso', 'materia')

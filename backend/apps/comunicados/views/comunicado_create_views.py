@@ -35,7 +35,19 @@ class ComunicadoCreateView(APIView):
 
         cursos_grupo = serializer.validated_data.pop('cursos_grupo_objs', [])
         serializer.validated_data.pop('cursos_grupo_ids', None)
-        comunicado = serializer.save(emisor=request.user)
+
+        # Auto-poblar materia si el emisor es Profesor y el alcance es CURSO
+        materia = None
+        if tipo == 'Profesor' and alcance == Comunicado.ALCANCE_CURSO:
+            from backend.apps.academics.models import ProfesorCurso
+            curso = serializer.validated_data.get('curso')
+            asignacion = ProfesorCurso.objects.filter(
+                profesor=request.user, curso=curso
+            ).select_related('materia').first()
+            if asignacion:
+                materia = asignacion.materia
+
+        comunicado = serializer.save(emisor=request.user, materia=materia)
         if cursos_grupo:
             comunicado.cursos_grupo.set(cursos_grupo)
 

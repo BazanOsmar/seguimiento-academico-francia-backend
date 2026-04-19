@@ -16,6 +16,8 @@ let _confirmandoEnCurso = false;
 let _lastResultado = null;
 let _soloLectura = false;
 let _mesLabel = '';
+let _diferencias = null;   // { sin_cambios, nuevas, modificadas, nuevas_columnas }
+let _modoAnterior = false; // toggle: false = Excel actual, true = datos anteriores
 
 // ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -161,7 +163,8 @@ function _initButtons() {
     dlgCancelar.addEventListener('click', () => dlg.close());
     dlgCerrar.addEventListener('click', () => {
         dlg.close();
-        window.location.reload();
+        const mesParam = _mes ? `?mes=${_mes}` : '';
+        window.location.href = `/profesor/notas/${mesParam}`;
     });
 
     // Bloquear cierre con backdrop durante la carga
@@ -395,12 +398,20 @@ async function _validarPlanilla() {
 // ── Mostrar resultado ─────────────────────────────────────────────
 function _mostrarResultado(r) {
     _lastResultado = r;
+    _diferencias   = r.diferencias || null;
+    _modoAnterior  = false;
     _hideInlineObservation();
     document.getElementById('ccCard').style.display = 'none';
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = _renderSuccessDashboard(r) || _renderSuccessDashboard(_buildMockResultado());
     dashboard.style.display = '';
     _initTableScrollSync();
+
+    // Scroll suave hasta el dashboard (o hasta el cuadro de cambios si existe)
+    requestAnimationFrame(() => {
+        const target = dashboard.querySelector('[data-scroll-anchor]') || dashboard;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 }
 
 // ── Render helpers ────────────────────────────────────────────────
@@ -642,6 +653,14 @@ function _initTableScrollSync() {
     });
 }
 
+function _toggleModoAnterior() {
+    _modoAnterior = !_modoAnterior;
+    const dashboard = document.getElementById('ccDashboard');
+    if (!dashboard) return;
+    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, _soloLectura);
+    _initTableScrollSync();
+}
+
 function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const meta = r.metadatos || {};
     const headersByTrim = meta.headers_actividades || {};
@@ -655,6 +674,30 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     if (!trimKey || !headersByTrim[trimKey]) return '';
 
     const trimData = headersByTrim[trimKey];
+
+    // ── Diff helpers (solo cuando viene de una validación, no en modo lectura) ──
+    const _trimNum = {'1TRIM': 1, '2TRIM': 2, '3TRIM': 3}[trimKey] || 1;
+    const _modForTrim    = (!soloLectura && _diferencias?.modificadas    || []).filter(m => m.trimestre === _trimNum);
+    const _nuevasForTrim = (!soloLectura && _diferencias?.nuevas_columnas || []).filter(c => c.trimestre === _trimNum);
+
+    // modMap: "nro_cellKey" → entrada de modificadas
+    const _modMap = new Map();
+    _modForTrim.forEach(m => {
+        const dimCols = trimData[m.dimension] || [];
+        const pos = dimCols.findIndex(c => c.titulo === m.titulo);
+        if (pos >= 0) _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
+    });
+
+    // nuevasSet: cellKeys de columnas que no existían en Mongo
+    const _nuevasSet = new Set();
+    _nuevasForTrim.forEach(c => {
+        const dimCols = trimData[c.dimension] || [];
+        const pos = dimCols.findIndex(col => col.col === c.col_idx);
+        if (pos >= 0) _nuevasSet.add(`${c.dimension}-${pos}`);
+    });
+
+    const _hayModificadas = _modForTrim.length > 0;
+
     const dimensionDefs = [
         { key: 'saber', label: 'HACER',  css: 'saber', short: 'Hacer' },
         { key: 'hacer', label: 'SABER',  css: 'hacer', short: 'Saber' },
@@ -735,7 +778,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         <col style="width:54px">
         <col style="width:260px">
         ${dimensions.map(dim => dim.columns.map(() => '<col style="width:48px">').join('')).join('')}
-        <col style="width:80px">
+        <col>
     </colgroup>`;
     const trimLabels = {
         '1TRIM': '1er Trimestre',
@@ -772,7 +815,34 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
 
     const tableRows = rowSummaries.map(row => {
         const scoreCells = dimensions.map(dim => dim.columns.map(col => {
-            const value = row.values[col.__cellKey];
+            const cellKey  = col.__cellKey;
+            const value    = row.values[cellKey];
+            const modEntry = _modMap.get(`${row.nro}_${cellKey}`);
+            const esNueva  = _nuevasSet.has(cellKey);
+
+            if (_modoAnterior) {
+                // Vista "datos anteriores"
+                if (modEntry) {
+                    // Celda corregida: muestra valor anterior en naranja
+                    return `<td class="cc-success-table__score" style="background:rgba(245,158,11,.13);color:#b45309;font-weight:700;">${_fmt1(modEntry.nota_anterior)}</td>`;
+                }
+                if (esNueva) {
+                    // Columna nueva: no existía en Mongo
+                    return `<td class="cc-success-table__score" style="color:var(--text-muted);font-style:italic;letter-spacing:.02em;">—</td>`;
+                }
+                // Sin cambios: mismo valor, atenuado
+                return Number.isFinite(value)
+                    ? `<td class="cc-success-table__score" style="color:var(--text-muted);">${_fmt1(value)}</td>`
+                    : `<td class="cc-success-table__score is-empty">-</td>`;
+            }
+
+            // Vista "Excel actual" (default)
+            if (modEntry) {
+                // Celda corregida: resaltada en azul/accent
+                return Number.isFinite(value)
+                    ? `<td class="cc-success-table__score" style="background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;">${_fmt1(value)}</td>`
+                    : `<td class="cc-success-table__score is-empty">-</td>`;
+            }
             return Number.isFinite(value)
                 ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
                 : `<td class="cc-success-table__score is-empty">-</td>`;
@@ -799,16 +869,20 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         ? `<span style="font-size:2rem;font-weight:800;letter-spacing:-.02em;">Calificaciones - ${_esc(_mesLabel)}</span>`
         : `Registro de Notas - ${_esc(_materia)} - ${_esc(_curso)}`;
 
-    const headActions = soloLectura
-        ? `<div class="cc-success-actions">
+    // Barra de acciones: ancho completo, botones a la izquierda, tabs a la derecha
+    const actionBarHtml = soloLectura
+        ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
                <span class="cc-readonly-badge">
                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                        <polyline points="20 6 9 17 4 12"/>
                    </svg>
                    Notas subidas
                </span>
+               <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+                   ${trimTabsHtml}
+               </div>
            </div>`
-        : `<div class="cc-success-actions">
+        : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
                <button class="cc-success-tool" type="button" onclick="_resetUpload()">
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                        <polyline points="15 18 9 12 15 6"></polyline>
@@ -821,13 +895,17 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                    </svg>
                    Confirmar y subir notas
                </button>
+               <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+                   ${trimTabsHtml}
+               </div>
            </div>`;
 
     return `
-        <div class="cc-success-report">
+        <div class="cc-success-report" data-scroll-anchor>
             <div class="cc-success-head">
                 <div>
                     <h2 class="cc-success-title">${headTitle}</h2>
+                    ${soloLectura ? `
                     <p class="cc-success-sub">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -835,22 +913,55 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        ${soloLectura
-                            ? `<span style="font-size:1.05rem;">${_esc(_curso)} · ${_esc(_materia)}</span>`
-                            : _esc(`${trimLabel} ${gestion}`)
-                        }
-                    </p>
+                        <span style="font-size:1.05rem;">${_esc(_curso)} · ${_esc(_materia)}</span>
+                    </p>` : ''}
                 </div>
-                ${headActions}
             </div>
 
-            <div style="display:flex;gap:8px;padding:0 20px 14px;">
-                ${trimTabsHtml}
-            </div>
+            ${actionBarHtml}
+
+            ${_hayModificadas ? `
+            <div data-scroll-anchor style="margin:0 20px 18px;padding:14px 18px;border-radius:10px;
+                        background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.35);
+                        display:flex;align-items:flex-start;gap:14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2"
+                     stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <div style="flex:1;min-width:0;">
+                    <p style="margin:0 0 4px;font-weight:700;color:#fbbf24;font-size:.92rem;">
+                        ${_modForTrim.length} nota${_modForTrim.length !== 1 ? 's' : ''} modificada${_modForTrim.length !== 1 ? 's' : ''} respecto a la carga anterior
+                    </p>
+                    <p style="margin:0 0 10px;font-size:.8rem;color:#fde68a;">
+                        Las celdas resaltadas en
+                        <span style="color:var(--accent);font-weight:600;">azul</span>
+                        son las notas corregidas. Revisa los cambios antes de confirmar.
+                    </p>
+                    <button
+                        onclick="_toggleModoAnterior()"
+                        style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;
+                               border:1px solid ${_modoAnterior ? 'rgba(251,191,36,.5)' : 'rgba(251,191,36,.3)'};
+                               background:${_modoAnterior ? 'rgba(251,191,36,.15)' : 'rgba(251,191,36,.08)'};
+                               color:#fbbf24;
+                               font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+                            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                        </svg>
+                        ${_modoAnterior ? 'Ver Excel actual' : 'Ver datos anteriores'}
+                    </button>
+                    ${_modoAnterior ? `<span style="display:inline-block;margin-left:10px;font-size:.76rem;color:#fde68a;">
+                        Valores en <strong style="color:#fcd34d;">naranja</strong> = lo que había antes · <em>—</em> = nota nueva
+                    </span>` : ''}
+                </div>
+            </div>` : ''}
 
             <div class="cc-success-table-shell">
                 <div class="cc-success-table-head-wrap">
-                    <table class="cc-success-table" style="table-layout:fixed;width:${tableWidth}px;">
+                    <table class="cc-success-table" style="table-layout:fixed;width:100%;min-width:${tableWidth}px;">
                         ${colgroup}
                         <thead>
                             <tr>
@@ -867,7 +978,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                     <div style="width:${tableWidth}px;height:1px;pointer-events:none;"></div>
                 </div>
                 <div class="cc-success-table-body-wrap">
-                    <table class="cc-success-table" style="table-layout:fixed;width:${tableWidth}px;">
+                    <table class="cc-success-table" style="table-layout:fixed;width:100%;min-width:${tableWidth}px;">
                         ${colgroup}
                         <tbody>${tableRows}</tbody>
                     </table>
@@ -878,15 +989,6 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                 </div>
             </div>
 
-            <div class="cc-success-metrics">
-                ${_buildSuccessSummary({
-                    totalStudents: rows.length,
-                    overallAverage,
-                    riskCount,
-                    coverage,
-                    coverageLabel,
-                })}
-            </div>
         </div>
     `;
 }

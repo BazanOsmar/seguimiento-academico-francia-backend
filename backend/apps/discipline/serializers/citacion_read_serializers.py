@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from ..models import Citacion
-from backend.apps.academics.models import ProfesorCurso
 
 
 class CitacionBaseSerializer(serializers.ModelSerializer):
@@ -37,21 +36,9 @@ class CitacionListSerializer(CitacionBaseSerializer):
         return None
 
     def get_materia_nombre(self, obj):
-        """Solo para profesores: deriva la materia vía ProfesorCurso."""
-        if not obj.emisor.tipo_usuario or obj.emisor.tipo_usuario.nombre != 'Profesor':
-            return None
-        curso_id = obj.estudiante.curso_id
-        # Usa el prefetch cacheado por la vista (sin queries extra)
-        profcursos = getattr(obj.emisor, '_profcursos', None)
-        if profcursos is None:
-            # Fallback: query directa si se llama sin el prefetch
-            profcursos = list(
-                ProfesorCurso.objects
-                .filter(profesor=obj.emisor)
-                .select_related('materia')
-            )
-        nombres = [pc.materia.nombre for pc in profcursos if pc.curso_id == curso_id]
-        return ', '.join(nombres) if nombres else None
+        if obj.materia_id:
+            return obj.materia.nombre
+        return None
 
     class Meta:
         model = Citacion

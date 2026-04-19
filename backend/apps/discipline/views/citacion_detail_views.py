@@ -128,6 +128,56 @@ class CitacionDetailView(APIView):
         )
 
 
+class CitacionAnularView(APIView):
+    """
+    PATCH api/discipline/citaciones/<id>/anular/
+
+    Marca la citación como ANULADA.
+    - Director y Regente pueden anular cualquier citación.
+    - Profesor solo puede anular citaciones que él mismo emitió.
+    No se puede anular una citación ya resuelta (ASISTIO, ATRASO) ni ya anulada.
+    """
+
+    permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
+
+    def patch(self, request, citacion_id):
+        try:
+            citacion = Citacion.objects.select_related(
+                "estudiante", "emisor", "emisor__tipo_usuario"
+            ).get(id=citacion_id)
+        except Citacion.DoesNotExist:
+            return Response({"errores": "Citación no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+        if tipo == "Profesor" and citacion.emisor != request.user:
+            return Response(
+                {"errores": "Solo puedes anular citaciones que tú mismo emitiste."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if citacion.asistencia in ("ASISTIO", "ATRASO"):
+            return Response(
+                {"errores": "No se puede anular una citación que ya fue atendida."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if citacion.asistencia == "ANULADA":
+            return Response(
+                {"errores": "Esta citación ya fue anulada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        citacion.asistencia = "ANULADA"
+        citacion.actualizado_por = request.user
+        citacion.save(update_fields=["asistencia", "actualizado_por"])
+
+        from backend.apps.auditoria.services import registrar
+        nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        nombre_est = f"{citacion.estudiante.apellido_paterno} {citacion.estudiante.nombre}".strip()
+        registrar(request.user, 'ANULAR_CITACION', f"{nombre} anuló la citación #{citacion.id} de {nombre_est}", request)
+
+        return Response({"id": citacion.id, "asistencia": "ANULADA"}, status=status.HTTP_200_OK)
+
+
 class CitacionVistoView(APIView):
     """
     POST api/discipline/citaciones/<id>/visto/

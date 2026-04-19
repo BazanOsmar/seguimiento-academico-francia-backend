@@ -18,8 +18,23 @@ class Comunicado(models.Model):
         ('GRUPO',      'Grupo de cursos'),
     ]
 
+    ESTADO_ACTIVO  = 'ACTIVO'
+    ESTADO_ANULADO = 'ANULADO'
+    ESTADOS = [
+        ('ACTIVO',   'Activo'),
+        ('ANULADO',  'Anulado'),
+    ]
+
     titulo = models.CharField(max_length=150)
     contenido = models.TextField()
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='ACTIVO')
+    materia = models.ForeignKey(
+        'academics.Materia',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='comunicados',
+    )
     emisor = models.ForeignKey(
         User,
         on_delete=models.PROTECT,

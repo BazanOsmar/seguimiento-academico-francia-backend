@@ -19,6 +19,7 @@ from ..services.planilla_validator_2026 import (
 from ..services.notas_mongo_service import (
     guardar_notas, obtener_notas, calcular_notas_mensuales,
     hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
+    comparar_notas_con_mongo,
 )
 
 _DRAFT_TTL  = 1800          # 30 minutos
@@ -144,17 +145,21 @@ class ValidarPlanillaView(APIView):
             except (ValueError, TypeError):
                 mes_num = 0
 
+            gestion = timezone.now().year
+            diferencias = comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=gestion)
+
             token = str(uuid.uuid4())
             cache.set(_DRAFT_PREFIX + token, {
                 'profesor_curso_id': profesor_curso.id,
                 'headers_por_trim':  headers_por_trim,
-                'gestion':           timezone.now().year,
+                'gestion':           gestion,
                 'mes':               mes_num,
             }, timeout=_DRAFT_TTL)
 
             return Response({
                 'es_valido':    True,
                 'draft_token':  token,
+                'diferencias':  diferencias,
                 'advertencias': advertencias,
                 'metadatos':    estructura['metadatos'],
                 'estudiantes':  estudiantes_resp,

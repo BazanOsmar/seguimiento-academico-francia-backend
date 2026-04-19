@@ -11,6 +11,7 @@ class Citacion(models.Model):
         ('ASISTIO',    'Asistió'),
         ('NO_ASISTIO', 'No asistió'),
         ('ATRASO',     'Atraso'),
+        ('ANULADA',    'Anulada'),
     )
 
     ESTADOS_ENVIO = (
@@ -64,6 +65,14 @@ class Citacion(models.Model):
         choices=ESTADOS_ASISTENCIA,
         default='PENDIENTE',
         db_index=True
+    )
+
+    materia = models.ForeignKey(
+        'academics.Materia',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='citaciones',
     )
 
     actualizado_por = models.ForeignKey(

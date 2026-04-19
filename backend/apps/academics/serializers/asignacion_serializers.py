@@ -38,7 +38,8 @@ class ProfesorAsignacionSerializer(serializers.ModelSerializer):
         fields = ('id', 'materia_id', 'materia_nombre', 'curso_id', 'curso_nombre', 'planes')
 
     def get_curso_nombre(self, obj):
-        return f'{obj.curso.grado} "{obj.curso.paralelo}"'
+        paralelo = obj.curso.paralelo.strip()
+        return f'{obj.curso.grado} {paralelo}' if paralelo else obj.curso.grado
 
     def get_planes(self, obj):
         semanas = self.context.get('semanas_por_asignacion', {}).get(obj.id, [])

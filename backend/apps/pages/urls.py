@@ -28,4 +28,5 @@ urlpatterns = [
     path('profesor/cuenta/',         views.profesor_cuenta_view,                   name='profesor-cuenta'),
     path('profesor/calificaciones/', views.profesor_carga_calificaciones_view,     name='profesor-carga-calificaciones'),
     path('director/notas-curso/',    views.director_notas_curso_mes_view,          name='director-notas-curso'),
+    path('privacidad/',              views.privacidad_view,                        name='privacidad'),
 ]

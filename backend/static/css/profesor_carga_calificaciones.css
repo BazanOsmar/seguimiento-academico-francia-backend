@@ -636,14 +636,25 @@
             overflow-x: auto;
             overflow-y: auto;
             max-height: 420px;
-            scrollbar-width: none;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(99,130,190,.35) transparent;
         }
-        .cc-success-table-body-wrap::-webkit-scrollbar { display: none; }
+        .cc-success-table-body-wrap::-webkit-scrollbar {
+            width: 5px;
+            height: 0;          /* scroll horizontal oculto — lo maneja el ghost */
+        }
+        .cc-success-table-body-wrap::-webkit-scrollbar-track { background: transparent; }
+        .cc-success-table-body-wrap::-webkit-scrollbar-thumb {
+            background: rgba(99,130,190,.35);
+            border-radius: 99px;
+        }
+        .cc-success-table-body-wrap::-webkit-scrollbar-thumb:hover {
+            background: rgba(99,130,190,.6);
+        }
 
         .cc-success-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 980px;
             font-size: .82rem;
         }
 

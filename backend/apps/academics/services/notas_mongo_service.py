@@ -94,6 +94,18 @@ def ensure_indexes():
             ('mes',       ASCENDING),
         ], name='consulta_curso_mes')
 
+        # historial_notas
+        db['historial_notas'].create_index([
+            ('materia_id', ASCENDING),
+            ('curso_id',   ASCENDING),
+            ('trimestre',  ASCENDING),
+        ], name='consulta_historial_curso')
+
+        db['historial_notas'].create_index([
+            ('estudiante_id', ASCENDING),
+            ('materia_id',    ASCENDING),
+        ], name='consulta_historial_estudiante')
+
         _indexes_ensured = True
     except Exception:
         pass
@@ -160,6 +172,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
 
     # ── 2. Construir operaciones comparando en memoria ────────────────────────
     operaciones    = []
+    historial_ops  = []
     insertados     = actualizados = sin_cambios = 0
 
     for dimension, columnas in headers_actividades.items():
@@ -210,6 +223,30 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
                     ))
                     actualizados += 1
 
+                    # Registrar qué cambió para el historial
+                    nota_cambio   = prev['nota'] != n['nota']
+                    titulo_cambio = prev.get('titulo') != titulo
+                    tipo          = '+'.join(filter(None, [
+                        'nota'   if nota_cambio   else None,
+                        'titulo' if titulo_cambio else None,
+                    ]))
+                    historial_ops.append(InsertOne({
+                        'estudiante_id':   n['nro'],
+                        'materia_id':      materia_id,
+                        'curso_id':        curso_id,
+                        'profesor_id':     profesor_id,
+                        'gestion':         gestion,
+                        'trimestre':       trimestre,
+                        'dimension':       dimension,
+                        'columna_idx':     col_idx,
+                        'nota_anterior':   prev['nota'],
+                        'nota_nueva':      n['nota'],
+                        'titulo_anterior': prev.get('titulo') if titulo_cambio else None,
+                        'titulo_nuevo':    titulo              if titulo_cambio else None,
+                        'tipo_cambio':     tipo,
+                        'fecha_cambio':    ahora,
+                    }))
+
                 else:
                     sin_cambios += 1
 
@@ -222,8 +259,116 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
             errores = len(operaciones)
             insertados = actualizados = 0
 
+    # Historial solo si el bulk principal no falló en su totalidad
+    if historial_ops and errores == 0:
+        try:
+            db['historial_notas'].bulk_write(historial_ops, ordered=False)
+        except Exception:
+            pass  # El historial no bloquea el guardado principal
+
     return {'insertados': insertados, 'actualizados': actualizados,
             'sin_cambios': sin_cambios, 'errores': errores}
+
+
+_TRIM_MAP = {'1TRIM': 1, '2TRIM': 2, '3TRIM': 3}
+
+
+def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
+    """
+    Compara las notas del Excel (headers_por_trim) contra las guardadas en
+    detalle_notas, trimestre por trimestre.
+
+    Devuelve un resumen listo para incluir en la respuesta de ValidarPlanillaView,
+    para que el profesor sepa qué va a cambiar antes de confirmar.
+
+    Returns:
+        {
+            'sin_cambios': int,
+            'nuevas':      int,
+            'modificadas': [
+                {
+                    'estudiante_id': int,
+                    'nombre':        str,
+                    'trimestre':     int,
+                    'dimension':     str,
+                    'titulo':        str,
+                    'nota_anterior': float,
+                    'nota_nueva':    float,
+                    'titulo_cambiado': bool,
+                }
+            ],
+        }
+    Devuelve vacío (sin_cambios=0, nuevas=0, modificadas=[]) si hay error de conexión.
+    """
+    try:
+        col        = _get_db()['detalle_notas']
+        materia_id = profesor_curso.materia.id
+        curso_id   = profesor_curso.curso.id
+
+        sin_cambios     = 0
+        nuevas          = 0
+        modificadas     = []
+        nuevas_columnas = []
+
+        for hoja, dims in headers_por_trim.items():
+            trimestre = _TRIM_MAP.get(hoja, 1)
+
+            # Un find por trimestre, igual que en guardar_notas
+            existentes = {}
+            for doc in col.find(
+                {'materia_id': materia_id, 'curso_id': curso_id, 'trimestre': trimestre},
+                {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1,
+                 'nota': 1, 'titulo': 1, 'nombre_estudiante': 1},
+            ):
+                clave = (doc['estudiante_id'], doc['dimension'], doc['columna_idx'])
+                existentes[clave] = doc
+
+            for dimension, columnas in dims.items():
+                for col_data in columnas:
+                    col_idx = col_data['col']
+                    titulo  = col_data['titulo']
+                    notas   = col_data.get('notas', [])
+
+                    # Columna nueva si ningún estudiante tiene entrada previa en Mongo
+                    if notas and not any(
+                        existentes.get((n['nro'], dimension, col_idx)) is not None
+                        for n in notas
+                    ):
+                        nuevas_columnas.append({
+                            'trimestre': trimestre,
+                            'dimension': dimension,
+                            'col_idx':   col_idx,
+                        })
+
+                    for n in notas:
+                        clave = (n['nro'], dimension, col_idx)
+                        prev  = existentes.get(clave)
+
+                        if prev is None:
+                            nuevas += 1
+                        elif prev['nota'] != n['nota'] or prev.get('titulo') != titulo:
+                            modificadas.append({
+                                'estudiante_id':   n['nro'],
+                                'nombre':          n.get('nombre') or prev.get('nombre_estudiante', ''),
+                                'trimestre':       trimestre,
+                                'dimension':       dimension,
+                                'titulo':          titulo,
+                                'nota_anterior':   prev['nota'],
+                                'nota_nueva':      n['nota'],
+                                'titulo_cambiado': prev.get('titulo') != titulo,
+                            })
+                        else:
+                            sin_cambios += 1
+
+        return {
+            'sin_cambios':     sin_cambios,
+            'nuevas':          nuevas,
+            'modificadas':     modificadas,
+            'nuevas_columnas': nuevas_columnas,
+        }
+
+    except Exception:
+        return {'sin_cambios': 0, 'nuevas': 0, 'modificadas': [], 'nuevas_columnas': []}
 
 
 def asignaciones_con_notas(pares, mes=None):

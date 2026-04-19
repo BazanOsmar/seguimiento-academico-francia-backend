@@ -481,3 +481,7 @@ def profesor_carga_calificaciones_view(request):
 def director_notas_curso_mes_view(request):
     return render(request, 'director/notas_curso_mes.html')
 
+
+def privacidad_view(request):
+    return render(request, 'privacidad.html')
+
