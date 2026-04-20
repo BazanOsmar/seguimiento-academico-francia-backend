@@ -12,9 +12,9 @@ class ComunicadoListView(APIView):
     GET /api/comunicados/
 
     Director → ve todos los comunicados.
-    Tutor    → ve solo los comunicados que le corresponden según alcance
-               (TODOS, o CURSO/GRADO que coincide con su estudiante).
-               Incluye si ya los leyó y cuándo.
+    Profesor → ve solo los comunicados que él emitió.
+    Tutor    → ve solo los comunicados que le corresponden según alcance.
+    Regente  → no ve ninguno (no puede emitir comunicados).
     """
 
     permission_classes = [IsAuthenticated]
@@ -24,8 +24,12 @@ class ComunicadoListView(APIView):
 
         if tipo == 'Tutor':
             comunicados = self._comunicados_para_tutor(request.user)
-        else:
+        elif tipo == 'Director':
             comunicados = Comunicado.objects.select_related('emisor', 'curso', 'materia').all()
+        elif tipo == 'Profesor':
+            comunicados = Comunicado.objects.filter(emisor=request.user).select_related('emisor', 'curso', 'materia')
+        else:
+            comunicados = Comunicado.objects.none()
 
         context = {}
         if tipo == 'Tutor':
