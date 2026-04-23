@@ -19,31 +19,34 @@ class EstudianteBusquedaView(APIView):
     permission_classes = (IsAuthenticated, IsRegente)
 
     def get(self, request):
-        q = request.query_params.get('q', '').strip()
-        if not q:
+        q        = request.query_params.get('q', '').strip()
+        curso_id = request.query_params.get('curso_id', '').strip()
+
+        # Requiere al menos un criterio
+        if not q and not curso_id.isdigit():
             return Response([])
 
-        # Dividir por espacios para que "Juan Perez" encuentre nombre="Juan" + apellido="Perez"
-        terminos = q.split()
-        filtro = Q()
-        for t in terminos:
-            filtro &= (
-                Q(nombre__icontains=t) |
-                Q(apellido_paterno__icontains=t) |
-                Q(apellido_materno__icontains=t)
-            )
+        qs = Estudiante.objects.select_related('curso').filter(activo=True)
 
-        qs = (
-            Estudiante.objects
-            .select_related('curso')
-            .filter(activo=True)
-            .filter(filtro)
-        )
+        if q:
+            terminos = q.split()
+            filtro = Q()
+            for t in terminos:
+                filtro &= (
+                    Q(nombre__icontains=t) |
+                    Q(apellido_paterno__icontains=t) |
+                    Q(apellido_materno__icontains=t)
+                )
+            qs = qs.filter(filtro)
 
-        curso_id = request.query_params.get('curso_id', '').strip()
         if curso_id.isdigit():
             qs = qs.filter(curso_id=int(curso_id))
 
-        qs = qs.order_by('apellido_paterno', 'apellido_materno', 'nombre')[:10]
+        qs = qs.order_by('apellido_paterno', 'apellido_materno', 'nombre')
+
+        # Solo limitar resultados cuando hay texto; al filtrar por curso se muestran todos
+        if q:
+            qs = qs[:30]
+
         serializer = EstudianteBusquedaSerializer(qs, many=True)
         return Response(serializer.data)

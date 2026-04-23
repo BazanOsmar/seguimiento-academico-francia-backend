@@ -20,6 +20,7 @@ const ASISTENCIA_LABELS = {
     NO_ASISTIO:  'No asistió',
     ATRASO:      'Atraso',
     VENCIDA:     'Vencida',
+    ANULADA:     'Anulada',
 };
 
 const ASISTENCIA_BADGES = {
@@ -28,6 +29,7 @@ const ASISTENCIA_BADGES = {
     NO_ASISTIO: 'badge--error',
     ATRASO:     'badge--warning',
     VENCIDA:    'badge--neutral',
+    ANULADA:    'badge--neutral',
 };
 
 // ── Estado local ──────────────────────────────────────────────────
@@ -39,11 +41,11 @@ let _todosComunicados = [];
 let _citMesObj        = null;   // { year, month } — se inicializa en _initCitaciones
 let _comMesObj        = null;
 let _citFiltroEstado  = 'PENDIENTE';
-let _citFiltroEmisor  = '';
-let _comFiltroEmisor  = '';
 let _citPage          = 0;
 const _CIT_PER_PAGE   = 8;
 let _marcarCitId      = null;
+let _anularCitId      = null;
+let _anularComId      = null;
 
 // ── Inicialización ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -204,25 +206,6 @@ function _initCitaciones() {
         _citFiltroEstado = card.dataset.filter;
         _citPage = 0;
         _aplicarFiltroCit();
-    });
-
-    // ── Chips de rol ──
-    document.getElementById('rolChipsProf').addEventListener('click', (e) => {
-        const chip = e.target.closest('.rol-chip');
-        if (!chip) return;
-        document.querySelectorAll('#rolChipsProf .rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
-        chip.classList.add('rol-chip--active');
-        _citFiltroEmisor = chip.dataset.emisor;
-        _citPage = 0;
-        _aplicarFiltroCit();
-    });
-    document.getElementById('rolChipsComProf').addEventListener('click', (e) => {
-        const chip = e.target.closest('.rol-chip');
-        if (!chip) return;
-        document.querySelectorAll('#rolChipsComProf .rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
-        chip.classList.add('rol-chip--active');
-        _comFiltroEmisor = chip.dataset.emisor;
-        _aplicarFiltroCom();
     });
 
     // ── Búsqueda con debounce ──
@@ -1069,17 +1052,12 @@ function _aplicarFiltroCit() {
     // 2. Actualizar stats con datos del mes (antes de filtrar por estado)
     _actualizarStatsCit(porMes);
 
-    // 3. Filtrar por estado
+    // 3. Filtrar por estado (las ANULADAS siempre se muestran, greyed out)
     let filtradas = _citFiltroEstado
-        ? porMes.filter(c => c.asistencia === _citFiltroEstado)
+        ? porMes.filter(c => c.asistencia === _citFiltroEstado || c.asistencia === 'ANULADA')
         : porMes;
 
-    // 4. Filtrar por emisor (irrelevante para el profesor, pero consistente con UI)
-    if (_citFiltroEmisor) {
-        filtradas = filtradas.filter(c => c.emisor_tipo === _citFiltroEmisor);
-    }
-
-    // 5. Filtrar por búsqueda
+    // 4. Filtrar por búsqueda
     if (q) {
         filtradas = filtradas.filter(c =>
             (c.estudiante_nombre || '').toLowerCase().includes(q) ||
@@ -1127,7 +1105,11 @@ function _renderCitCards(filtradas) {
         NO_ASISTIO: 'cit-badge-status--no_asistio',
         ATRASO:     'cit-badge-status--atraso',
         VENCIDA:    'cit-badge-status--vencida',
+        ANULADA:    'cit-badge-status--anulada',
     };
+
+    const currentUser  = JSON.parse(localStorage.getItem('user') || 'null');
+    const esProfesor   = currentUser?.tipo_usuario === 'Profesor';
 
     grid.innerHTML = slice.map(c => {
         const asist    = c.asistencia || 'PENDIENTE';
@@ -1143,7 +1125,7 @@ function _renderCitCards(filtradas) {
                         <span class="cit-row__curso">${_escapeHtml(c.curso || '—')}</span>
                         <span class="citacion-card__motivo">${_escapeHtml(MOTIVOS[c.motivo] || c.motivo)}</span>
                     </div>
-                    ${c.materia_nombre ? `<div class="cit-emisor">
+                    ${c.materia_nombre && !esProfesor ? `<div class="cit-emisor">
                         <span class="cit-emisor__materia">${_escapeHtml(c.materia_nombre)}</span>
                     </div>` : ''}
                 </div>
@@ -1197,9 +1179,10 @@ async function cargarComunicados() {
 }
 
 function _aplicarFiltroCom() {
-    const q     = (document.getElementById('searchInputProf')?.value || '').toLowerCase().trim();
-    const list  = document.getElementById('comCardsList');
-    const empty = document.getElementById('comEmpty');
+    const q           = (document.getElementById('searchInputProf')?.value || '').toLowerCase().trim();
+    const list        = document.getElementById('comCardsList');
+    const empty       = document.getElementById('comEmpty');
+    const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
     if (!list) return;
 
     let filtrados = _todosComunicados.filter(c => {
@@ -1207,10 +1190,6 @@ function _aplicarFiltroCom() {
         const d = new Date(c.fecha_envio);
         return d.getFullYear() === _comMesObj.year && d.getMonth() === _comMesObj.month;
     });
-
-    if (_comFiltroEmisor) {
-        filtrados = filtrados.filter(c => c.emisor_tipo === _comFiltroEmisor);
-    }
 
     if (q) {
         filtrados = filtrados.filter(c =>
@@ -1225,39 +1204,46 @@ function _aplicarFiltroCom() {
         return;
     }
     if (empty) empty.style.display = 'none';
-    list.innerHTML = filtrados.map(_renderComCard).join('');
+    list.innerHTML = filtrados.map(c => _renderComCard(c, currentUser)).join('');
+
+    list.querySelectorAll('.com-card[data-com-id]').forEach(card => {
+        card.addEventListener('click', () => {
+            const id  = parseInt(card.dataset.comId);
+            const com = _todosComunicados.find(c => c.id === id);
+            if (com) _abrirModalDetalleCom(com, currentUser);
+        });
+    });
 }
 
-function _renderComCard(c) {
+function _renderComCard(c, currentUser) {
     const fecha = c.fecha_envio
         ? new Date(c.fecha_envio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
         : '—';
+    const anulado      = c.estado === 'ANULADO';
+    const esDirector   = currentUser?.tipo_usuario === 'Director';
     const alcanceClass = c.alcance === 'TODOS' ? 'com-chip--destino' : 'com-chip--alcance';
-    const autor = `
-        <div class="com-card__bottom">
-            <div class="com-card__autor">
-                <span class="com-card__autor-icon">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </span>
-                <span class="com-card__autor-nombre">${_escapeHtml(c.emisor_nombre || '—')} · ${_escapeHtml(c.emisor_tipo || '')}</span>
-            </div>
-        </div>`;
+
     return `
-    <article class="com-card">
+    <article class="com-card${anulado ? ' com-card--anulado' : ''}" style="cursor:pointer;" data-com-id="${c.id}">
         <div class="com-card__head">
             <div class="com-card__meta">
                 <div class="com-card__chips">
                     <span class="com-chip ${alcanceClass}">${_escapeHtml(c.alcance_display || c.alcance)}</span>
-                    ${c.curso_nombre ? `<span class="com-chip com-chip--alcance">${_escapeHtml(c.curso_nombre)}</span>` : ''}
+                    ${anulado ? `<span class="com-chip com-chip--anulado">Anulado</span>` : ''}
                 </div>
                 <span class="com-card__fecha">${fecha}</span>
             </div>
             <h3 class="com-card__titulo">${_escapeHtml(c.titulo)}</h3>
         </div>
-        <div class="com-card__body">
-            <p class="com-card__contenido">${_escapeHtml((c.contenido || '').substring(0, 200))}${(c.contenido || '').length > 200 ? '…' : ''}</p>
-        </div>
-        ${autor}
+        ${esDirector && c.emisor_nombre ? `
+        <div class="com-card__bottom">
+            <div class="com-card__autor">
+                <span class="com-card__autor-icon">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <span class="com-card__autor-nombre">${_escapeHtml(c.emisor_nombre)} · ${_escapeHtml(c.emisor_tipo || '')}</span>
+            </div>
+        </div>` : ''}
     </article>`;
 }
 
@@ -1274,6 +1260,203 @@ function _initDetalleCitModals() {
     document.getElementById('modalMarcarCitProf').addEventListener('click', e => {
         if (e.target === e.currentTarget) _cerrarModalMarcarCit();
     });
+
+    // Anular citación
+    document.getElementById('btnCancelarAnularCit')?.addEventListener('click', _cerrarModalAnularCit);
+    document.getElementById('btnConfirmarAnularCit')?.addEventListener('click', _confirmarAnularCit);
+    document.getElementById('modalAnularCitProf')?.addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalAnularCit();
+    });
+
+    // Anular comunicado
+    document.getElementById('btnCancelarAnularCom')?.addEventListener('click', _cerrarModalAnularCom);
+    document.getElementById('btnConfirmarAnularCom')?.addEventListener('click', _confirmarAnularCom);
+    document.getElementById('modalAnularComProf')?.addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalAnularCom();
+    });
+
+    // Detalle comunicado
+    document.getElementById('btnCerrarDetalleComProf')?.addEventListener('click', _cerrarModalDetalleCom);
+    document.getElementById('btnCerrarDetalleComBtn')?.addEventListener('click', _cerrarModalDetalleCom);
+    document.getElementById('modalDetalleComProf')?.addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalDetalleCom();
+    });
+    document.getElementById('btnAnularComDesdeDetalle')?.addEventListener('click', () => {
+        if (!_detalleComData) return;
+        _cerrarModalDetalleCom();
+        _abrirModalAnularCom(_detalleComData.id, _detalleComData.titulo);
+    });
+    document.getElementById('btnVerDestinatariosComProf')?.addEventListener('click', _toggleDestinatariosComProf);
+    document.getElementById('btnCerrarDestinatariosComProf')?.addEventListener('click', _colapsarDestinatariosComProf);
+    document.getElementById('comDestBuscar')?.addEventListener('input', _filtrarDestinatariosComProf);
+}
+
+// ── Modal: Detalle comunicado ─────────────────────────────────────
+let _detalleComData = null;
+
+const _ALCANCE_DESC = {
+    TODOS:     'Todos los padres registrados',
+    GRADO:     'Padres del grado',
+    CURSO:     'Padres del curso',
+    MIS_CURSOS:'Padres de mis cursos asignados',
+    GRUPO:     'Grupo de cursos seleccionados',
+};
+
+function _abrirModalDetalleCom(c, currentUser) {
+    _detalleComData = c;
+    const modal = document.getElementById('modalDetalleComProf');
+    if (!modal) return;
+
+    const anulado     = c.estado === 'ANULADO';
+    const esDirector  = currentUser?.tipo_usuario === 'Director';
+    const puedeAnular = !anulado && currentUser && currentUser.id === c.emisor_id;
+    const fecha = c.fecha_envio
+        ? new Date(c.fecha_envio).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '—';
+
+    let alcanceTexto = _ALCANCE_DESC[c.alcance] || c.alcance_display || c.alcance;
+    if (c.alcance === 'CURSO' && c.curso_nombre) alcanceTexto = `Padres del curso ${c.curso_nombre}`;
+    if (c.alcance === 'GRADO' && c.grado)        alcanceTexto = `Padres del grado ${c.grado}`;
+
+    document.getElementById('detalleComTitulo').textContent    = c.titulo || '—';
+    document.getElementById('detalleComContenido').textContent = c.contenido || '—';
+    document.getElementById('detalleComAlcance').textContent   = alcanceTexto;
+    document.getElementById('detalleComFecha').textContent     = fecha;
+
+    const emisorWrap = document.getElementById('detalleComEmisorWrap');
+    if (emisorWrap) {
+        emisorWrap.style.display = esDirector && c.emisor_nombre ? '' : 'none';
+        const emisorEl = document.getElementById('detalleComEmisor');
+        if (emisorEl) emisorEl.textContent = `${c.emisor_nombre || '—'} (${c.emisor_tipo || '—'})`;
+    }
+
+    const badgeEl = document.getElementById('detalleComBadge');
+    if (badgeEl) {
+        badgeEl.innerHTML = anulado
+            ? `<span class="estado-badge estado-badge--anulada">Anulado</span>`
+            : `<span class="estado-badge" style="background:rgba(34,197,94,.15);color:#22c55e;">Activo</span>`;
+    }
+
+    const btnAnular = document.getElementById('btnAnularComDesdeDetalle');
+    if (btnAnular) btnAnular.style.display = puedeAnular ? '' : 'none';
+
+    // Colapsar panel derecho al abrir
+    _colapsarDestinatariosComProf();
+
+    modal.classList.add('visible');
+}
+
+function _cerrarModalDetalleCom() {
+    _colapsarDestinatariosComProf();
+    document.getElementById('modalDetalleComProf')?.classList.remove('visible');
+    _detalleComData = null;
+}
+
+// ── Panel derecho: destinatarios del comunicado ───────────────────
+let _destinatariosCache = null;
+
+function _colapsarDestinatariosComProf() {
+    document.getElementById('modalComWrap')?.classList.remove('modal-com-wrap--expanded');
+    _destinatariosCache = null;
+}
+
+async function _toggleDestinatariosComProf() {
+    const wrap = document.getElementById('modalComWrap');
+    if (!wrap) return;
+    if (wrap.classList.contains('modal-com-wrap--expanded')) {
+        _colapsarDestinatariosComProf();
+        return;
+    }
+    wrap.classList.add('modal-com-wrap--expanded');
+    if (_detalleComData) await _cargarDestinatariosComProf(_detalleComData.id);
+}
+
+async function _cargarDestinatariosComProf(comId) {
+    const listEl    = document.getElementById('comDestList');
+    const subEl     = document.getElementById('comDestSubtitulo');
+    const footerEl  = document.getElementById('comDestFooter');
+    const buscarEl  = document.getElementById('comDestBuscar');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>';
+    if (buscarEl) buscarEl.value = '';
+
+    const { ok, data } = await fetchAPI(`/api/comunicados/${comId}/cobertura/`);
+    if (!ok) {
+        listEl.innerHTML = `<p style="padding:12px;font-size:.83rem;color:var(--danger);">${data?.errores || 'Error al cargar.'}</p>`;
+        return;
+    }
+
+    _destinatariosCache = data.tutores || [];
+    if (subEl) subEl.textContent = `${data.total} padre${data.total !== 1 ? 's' : ''} destinatarios`;
+    if (footerEl) footerEl.textContent = `Con notificación: ${data.con_fcm} | Sin notificación: ${data.sin_fcm}`;
+
+    _renderDestinatariosComProf(_destinatariosCache);
+}
+
+function _renderDestinatariosComProf(tutores) {
+    const listEl = document.getElementById('comDestList');
+    if (!listEl) return;
+    if (!tutores.length) {
+        listEl.innerHTML = '<p class="cobertura-empty">Sin destinatarios.</p>';
+        return;
+    }
+
+    const grupos = {};
+    tutores.forEach(t => {
+        const hijos = t.estudiantes || [];
+        const cursosDelPadre = hijos.length ? [...new Set(hijos.map(e => e.curso))] : ['Sin curso'];
+        cursosDelPadre.forEach(curso => {
+            if (!grupos[curso]) grupos[curso] = [];
+            if (!grupos[curso].find(x => x.id === t.id)) grupos[curso].push(t);
+        });
+    });
+
+    listEl.innerHTML = Object.keys(grupos).sort().map(curso => {
+        const items    = grupos[curso];
+        const conFcm   = items.filter(t => t.tiene_fcm).length;
+        const total    = items.length;
+        const badgeCls = conFcm === 0 ? 'none' : conFcm < total ? 'warn' : 'ok';
+
+        const itemsHtml = items.map(t => {
+            const hijosHtml = (t.estudiantes || [])
+                .filter(e => e.curso === curso || curso === 'Sin curso')
+                .map(e => `<span class="cobertura-item__hijo">${_escapeHtml(e.nombre)} <span class="cobertura-item__curso">${_escapeHtml(e.curso)}</span></span>`)
+                .join('');
+            return `<div class="cobertura-item">
+                <span class="cobertura-item__dot cobertura-item__dot--${t.tiene_fcm ? 'si' : 'no'}"></span>
+                <span class="cobertura-item__info">
+                    <span class="cobertura-item__nombre">${_escapeHtml(t.nombre)}</span>
+                    ${hijosHtml ? `<span class="cobertura-item__hijos">${hijosHtml}</span>` : ''}
+                </span>
+                <span class="cobertura-item__badge cobertura-item__badge--${t.tiene_fcm ? 'si' : 'no'}">${t.tiene_fcm ? 'Activo' : 'Sin app'}</span>
+            </div>`;
+        }).join('');
+
+        return `<div class="cobertura-grupo cobertura-grupo--collapsed">
+            <div class="cobertura-grupo__header">
+                <svg class="cobertura-grupo__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                <span class="cobertura-grupo__nombre">${_escapeHtml(curso)}</span>
+                <span class="cobertura-grupo__badge cobertura-grupo__badge--${badgeCls}">${conFcm}/${total} activos</span>
+            </div>
+            <div class="cobertura-grupo__items">${itemsHtml}</div>
+        </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.cobertura-grupo__header').forEach(hdr => {
+        hdr.addEventListener('click', () => hdr.closest('.cobertura-grupo').classList.toggle('cobertura-grupo--collapsed'));
+    });
+}
+
+function _filtrarDestinatariosComProf() {
+    if (!_destinatariosCache) return;
+    const q = (document.getElementById('comDestBuscar')?.value || '').toLowerCase().trim();
+    if (!q) { _renderDestinatariosComProf(_destinatariosCache); return; }
+    const filtrados = _destinatariosCache.filter(t =>
+        t.nombre.toLowerCase().includes(q) ||
+        (t.estudiantes || []).some(e => e.nombre.toLowerCase().includes(q))
+    );
+    _renderDestinatariosComProf(filtrados);
 }
 
 async function _abrirModalDetalleCit(id) {
@@ -1297,13 +1480,13 @@ async function _abrirModalDetalleCit(id) {
     // Rellenar contenido
     const asist     = data.asistencia || 'PENDIENTE';
     const heroEl    = document.getElementById('detalleCitHero');
-    const HERO_CLS  = { PENDIENTE: 'modal-det__hero--PENDIENTE', ASISTIO: 'modal-det__hero--ASISTIO', NO_ASISTIO: 'modal-det__hero--NO_ASISTIO', ATRASO: 'modal-det__hero--ATRASO' };
+    const HERO_CLS  = { PENDIENTE: 'modal-det__hero--PENDIENTE', ASISTIO: 'modal-det__hero--ASISTIO', NO_ASISTIO: 'modal-det__hero--NO_ASISTIO', ATRASO: 'modal-det__hero--ATRASO', ANULADA: 'modal-det__hero--ANULADA' };
     heroEl.className = `modal-det__hero ${HERO_CLS[asist] || ''}`;
 
     document.getElementById('detalleCitNombre').textContent = data.estudiante_nombre || '—';
     document.getElementById('detalleCitCurso').textContent  = data.curso || '—';
 
-    const BADGE_CLS = { PENDIENTE: 'estado-badge--pendiente', ASISTIO: 'estado-badge--asistio', NO_ASISTIO: 'estado-badge--no_asistio', ATRASO: 'estado-badge--atraso' };
+    const BADGE_CLS = { PENDIENTE: 'estado-badge--pendiente', ASISTIO: 'estado-badge--asistio', NO_ASISTIO: 'estado-badge--no_asistio', ATRASO: 'estado-badge--atraso', ANULADA: 'estado-badge--anulada' };
     document.getElementById('detalleCitBadge').innerHTML =
         `<span class="estado-badge ${BADGE_CLS[asist] || ''}">${_escapeHtml(ASISTENCIA_LABELS[asist] || asist)}</span>`;
 
@@ -1325,15 +1508,27 @@ async function _abrirModalDetalleCit(id) {
         descWrap.style.display = 'none';
     }
 
-    // Botón marcar asistencia: solo si el usuario actual es el emisor y no está marcada
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
-    const puedeMarcar = currentUser && data.emisor_id === currentUser.id && !['ASISTIO', 'ATRASO'].includes(asist);
+
+    // Botón marcar asistencia: solo si el usuario actual es el emisor y no está resuelta/anulada
+    const puedeMarcar = currentUser && data.emisor_id === currentUser.id && !['ASISTIO', 'ATRASO', 'ANULADA'].includes(asist);
     const btnMarcar   = document.getElementById('btnIrAMarcarCit');
     btnMarcar.style.display = puedeMarcar ? '' : 'none';
     if (puedeMarcar) {
         btnMarcar.onclick = () => {
             _cerrarModalDetalleCit();
             _abrirModalMarcarCit(data.id, data.estudiante_nombre);
+        };
+    }
+
+    // Botón anular: solo si no está resuelta ni anulada, y el usuario es el emisor
+    const puedeAnular = currentUser && data.emisor_id === currentUser.id && !['ASISTIO', 'ATRASO', 'ANULADA'].includes(asist);
+    const btnAnular   = document.getElementById('btnAnularCit');
+    btnAnular.style.display = puedeAnular ? '' : 'none';
+    if (puedeAnular) {
+        btnAnular.onclick = () => {
+            _cerrarModalDetalleCit();
+            _abrirModalAnularCit(data.id, data.estudiante_nombre);
         };
     }
 
@@ -1382,6 +1577,84 @@ async function _confirmarMarcarCit() {
     cargarCitaciones();  // Refrescar lista
 }
 
+// ── Anular citación ───────────────────────────────────────────────
+function _abrirModalAnularCit(id, nombre) {
+    _anularCitId = id;
+    document.getElementById('anularCitNombre').textContent  = nombre || '—';
+    document.getElementById('anularCitError').style.display = 'none';
+    document.getElementById('modalAnularCitProf').classList.add('visible');
+}
+
+function _cerrarModalAnularCit() {
+    document.getElementById('modalAnularCitProf').classList.remove('visible');
+    _anularCitId = null;
+}
+
+async function _confirmarAnularCit() {
+    if (!_anularCitId) return;
+    const btn = document.getElementById('btnConfirmarAnularCit');
+    const err = document.getElementById('anularCitError');
+
+    const btnHtml = btn.innerHTML;
+    btn.disabled    = true;
+    btn.textContent = 'Anulando…';
+    err.style.display = 'none';
+
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_anularCitId}/anular/`, { method: 'PATCH' });
+
+    btn.disabled  = false;
+    btn.innerHTML = btnHtml;
+
+    if (!ok) {
+        err.textContent   = data?.errores || 'Error al anular la citación.';
+        err.style.display = '';
+        return;
+    }
+
+    _cerrarModalAnularCit();
+    showAppToast('success', 'Citación anulada', 'La citación fue anulada correctamente.');
+    cargarCitaciones();
+}
+
+// ── Anular comunicado ─────────────────────────────────────────────
+function _abrirModalAnularCom(id, titulo) {
+    _anularComId = id;
+    document.getElementById('anularComTitulo').textContent  = titulo || '—';
+    document.getElementById('anularComError').style.display = 'none';
+    document.getElementById('modalAnularComProf').classList.add('visible');
+}
+
+function _cerrarModalAnularCom() {
+    document.getElementById('modalAnularComProf').classList.remove('visible');
+    _anularComId = null;
+}
+
+async function _confirmarAnularCom() {
+    if (!_anularComId) return;
+    const btn = document.getElementById('btnConfirmarAnularCom');
+    const err = document.getElementById('anularComError');
+
+    const btnHtml = btn.innerHTML;
+    btn.disabled    = true;
+    btn.textContent = 'Anulando…';
+    err.style.display = 'none';
+
+    const { ok, data } = await fetchAPI(`/api/comunicados/${_anularComId}/anular/`, { method: 'PATCH' });
+
+    btn.disabled  = false;
+    btn.innerHTML = btnHtml;
+
+    if (!ok) {
+        err.textContent   = data?.errores || 'Error al anular el comunicado.';
+        err.style.display = '';
+        return;
+    }
+
+    _cerrarModalAnularCom();
+    showAppToast('success', 'Comunicado anulado', 'El comunicado fue anulado correctamente.');
+    cargarComunicados();
+}
+
 // ── Selector de cursos en grupo (pills) ──────────────────────────
 let _grupoSeleccionados = [];  // [{ id, label }]
 
@@ -1415,8 +1688,159 @@ function _renderGrupoPills() {
             const id = parseInt(btn.closest('.curso-pill').dataset.id);
             _grupoSeleccionados = _grupoSeleccionados.filter(c => c.id !== id);
             _renderGrupoPills();
+            _actualizarCoberturaFCMProf();
         });
     });
+
+    _actualizarCoberturaFCMProf();
+}
+
+// ── Cobertura FCM — Profesor ─────────────────────────────────────
+let _coberturaTimerProf = null;
+let _coberturaCacheProf = null;
+
+async function _actualizarCoberturaFCMProf() {
+    const wrap  = document.getElementById('fcmCoberturaWrapProf');
+    const texto = document.getElementById('fcmCoberturaTextoProf');
+    const btn   = document.getElementById('fcmCoberturaBtnProf');
+    if (!wrap || !texto || !btn) return;
+
+    const alcance = document.getElementById('comProfAlcance')?.value;
+    const cursoId = document.getElementById('comProfCurso')?.value;
+
+    if (alcance === 'CURSO' && !cursoId) { wrap.style.display = 'none'; return; }
+    if (alcance === 'GRUPO' && _grupoSeleccionados.length === 0) { wrap.style.display = 'none'; return; }
+
+    clearTimeout(_coberturaTimerProf);
+    _coberturaTimerProf = setTimeout(async () => {
+        wrap.style.display = '';
+        texto.textContent  = 'Calculando…';
+        btn.className      = 'fcm-cobertura-pill';
+
+        const params = new URLSearchParams({ alcance });
+        if (alcance === 'CURSO') params.set('curso_id', cursoId);
+        if (alcance === 'GRUPO') params.set('curso_ids', _grupoSeleccionados.map(c => c.id).join(','));
+
+        const { ok, data } = await fetchAPI(`/api/notifications/cobertura-comunicado/?${params}`);
+        if (!ok) { wrap.style.display = 'none'; return; }
+
+        _coberturaCacheProf = { data, alcance };
+
+        const { total, con_fcm } = data;
+        if (total === 0) {
+            texto.textContent = 'Sin padres registrados en este alcance';
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--none';
+        } else if (con_fcm === 0) {
+            texto.textContent = `Ningún padre recibirá la notificación (0 de ${total})`;
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--none';
+        } else if (con_fcm < total) {
+            texto.textContent = `${con_fcm} de ${total} padres recibirán la notificación — ver detalle`;
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--warn';
+        } else {
+            texto.textContent = `Los ${total} padres recibirán la notificación — ver detalle`;
+            btn.className     = 'fcm-cobertura-pill fcm-cobertura-pill--ok';
+        }
+    }, 250);
+}
+
+function _renderPanelCoberturaProf(query) {
+    const list = document.getElementById('panelCoberturaListProf');
+    if (!list || !_coberturaCacheProf) return;
+
+    const { tutores } = _coberturaCacheProf.data;
+    const q = (query || '').toLowerCase().trim();
+
+    const filtrados = q
+        ? tutores.filter(t =>
+            t.nombre.toLowerCase().includes(q) ||
+            (t.estudiantes || []).some(e =>
+                e.nombre.toLowerCase().includes(q) || e.curso.toLowerCase().includes(q)
+            )
+          )
+        : tutores;
+
+    if (!filtrados.length) {
+        list.innerHTML = `<p class="cobertura-empty">Sin resultados para "${_escapeHtml(q)}".</p>`;
+        return;
+    }
+
+    const grupos = {};
+    filtrados.forEach(t => {
+        const hijos = t.estudiantes || [];
+        const cursosDelPadre = hijos.length
+            ? [...new Set(hijos.map(e => e.curso))]
+            : ['Sin curso'];
+        cursosDelPadre.forEach(curso => {
+            if (!grupos[curso]) grupos[curso] = [];
+            if (!grupos[curso].find(x => x.id === t.id)) grupos[curso].push(t);
+        });
+    });
+
+    list.innerHTML = Object.keys(grupos).sort().map(curso => {
+        const items    = grupos[curso];
+        const conFcm   = items.filter(t => t.tiene_fcm).length;
+        const total    = items.length;
+        const badgeCls = conFcm === 0 ? 'none' : conFcm < total ? 'warn' : 'ok';
+
+        const itemsHtml = items.map(t => {
+            const hijosHtml = (t.estudiantes || [])
+                .filter(e => e.curso === curso || curso === 'Sin curso')
+                .map(e => `<span class="cobertura-item__hijo">${_escapeHtml(e.nombre)} <span class="cobertura-item__curso">${_escapeHtml(e.curso)}</span></span>`)
+                .join('');
+            return `
+            <div class="cobertura-item">
+                <span class="cobertura-item__dot cobertura-item__dot--${t.tiene_fcm ? 'si' : 'no'}"></span>
+                <span class="cobertura-item__info">
+                    <span class="cobertura-item__nombre">${_escapeHtml(t.nombre)}</span>
+                    ${hijosHtml ? `<span class="cobertura-item__hijos">${hijosHtml}</span>` : ''}
+                </span>
+                <span class="cobertura-item__badge cobertura-item__badge--${t.tiene_fcm ? 'si' : 'no'}">
+                    ${t.tiene_fcm ? 'Activo' : 'Sin app'}
+                </span>
+            </div>`;
+        }).join('');
+
+        return `
+        <div class="cobertura-grupo cobertura-grupo--collapsed">
+            <div class="cobertura-grupo__header">
+                <svg class="cobertura-grupo__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                <span class="cobertura-grupo__nombre">${_escapeHtml(curso)}</span>
+                <span class="cobertura-grupo__badge cobertura-grupo__badge--${badgeCls}">${conFcm}/${total} activos</span>
+            </div>
+            <div class="cobertura-grupo__items">${itemsHtml}</div>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.cobertura-grupo__header').forEach(hdr => {
+        hdr.addEventListener('click', () => hdr.closest('.cobertura-grupo').classList.toggle('cobertura-grupo--collapsed'));
+    });
+}
+
+function _abrirPanelCoberturaProf() {
+    if (!_coberturaCacheProf) return;
+    const panel    = document.getElementById('panelCoberturaProf');
+    const backdrop = document.getElementById('backdropCoberturaProf');
+    const subtitle = document.getElementById('panelCoberturaSubtitleProf');
+    const footer   = document.getElementById('panelCoberturaFooterProf');
+    const buscar   = document.getElementById('coberturaBuscarProf');
+    if (!panel) return;
+
+    const { data, alcance } = _coberturaCacheProf;
+    const labels = { MIS_CURSOS: 'Mis cursos', CURSO: 'Curso seleccionado', GRUPO: 'Grupo de cursos' };
+    subtitle.textContent = labels[alcance] || alcance;
+    footer.textContent   = `${data.con_fcm} con notificación activa · ${data.sin_fcm} sin app · ${data.total} en total`;
+
+    if (buscar) buscar.value = '';
+    _renderPanelCoberturaProf('');
+
+    panel.style.display    = 'flex';
+    backdrop.style.display = 'block';
+    if (buscar) buscar.focus();
+}
+
+function _cerrarPanelCoberturaProf() {
+    document.getElementById('panelCoberturaProf').style.display    = 'none';
+    document.getElementById('backdropCoberturaProf').style.display = 'none';
 }
 
 // ── Modal: Nuevo Comunicado (Profesor) ───────────────────────────
@@ -1427,7 +1851,10 @@ function _initComunicadoForm() {
     document.getElementById('comProfAlcance').addEventListener('change', function () {
         document.getElementById('comProfCursoWrap').style.display = this.value === 'CURSO' ? '' : 'none';
         document.getElementById('comProfGrupoWrap').style.display = this.value === 'GRUPO' ? '' : 'none';
+        _actualizarCoberturaFCMProf();
     });
+
+    document.getElementById('comProfCurso').addEventListener('change', _actualizarCoberturaFCMProf);
 
     document.getElementById('comProfGrupoSelect').addEventListener('change', function () {
         if (!this.value) return;
@@ -1437,6 +1864,11 @@ function _initComunicadoForm() {
         _renderGrupoPills();
         this.value = '';
     });
+
+    document.getElementById('fcmCoberturaBtnProf').addEventListener('click', _abrirPanelCoberturaProf);
+    document.getElementById('btnCerrarPanelCoberturaProf').addEventListener('click', _cerrarPanelCoberturaProf);
+    document.getElementById('backdropCoberturaProf').addEventListener('click', _cerrarPanelCoberturaProf);
+    document.getElementById('coberturaBuscarProf').addEventListener('input', e => _renderPanelCoberturaProf(e.target.value));
 
     document.getElementById('btnCerrarModalComProf').addEventListener('click', _cerrarModalNuevoComunicadoProf);
     document.getElementById('btnCancelarComProf').addEventListener('click', _cerrarModalNuevoComunicadoProf);
@@ -1458,12 +1890,16 @@ function _abrirModalNuevoComunicadoProf() {
         sel.appendChild(opt);
     });
     _grupoSeleccionados = [];
+    _coberturaCacheProf = null;
     _renderGrupoPills();
     document.getElementById('formComunicadoProf').reset();
-    document.getElementById('comProfCursoWrap').style.display = 'none';
-    document.getElementById('comProfGrupoWrap').style.display = 'none';
-    document.getElementById('comProfError').style.display     = 'none';
+    document.getElementById('comProfCursoWrap').style.display    = 'none';
+    document.getElementById('comProfGrupoWrap').style.display    = 'none';
+    document.getElementById('comProfError').style.display        = 'none';
+    document.getElementById('fcmCoberturaWrapProf').style.display = 'none';
     document.getElementById('modalNuevoComunicadoProf').classList.add('visible');
+    // Alcance por defecto es MIS_CURSOS → disparar cobertura inmediatamente
+    _actualizarCoberturaFCMProf();
 }
 
 function _cerrarModalNuevoComunicadoProf() {

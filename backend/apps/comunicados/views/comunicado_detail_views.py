@@ -1,3 +1,4 @@
+from django.db.models import Exists, OuterRef
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -69,3 +70,86 @@ class ComunicadoAnularView(APIView):
         registrar(request.user, 'ANULAR_COMUNICADO', f"{nombre} anuló el comunicado '{comunicado.titulo}'", request)
 
         return Response({'id': comunicado.id, 'estado': 'ANULADO'}, status=status.HTTP_200_OK)
+
+
+class ComunicadoCoberturaView(APIView):
+    """
+    GET /api/comunicados/<pk>/cobertura/
+
+    Devuelve la lista de tutores destinatarios del comunicado (padres que lo recibieron).
+    Solo el emisor o el Director pueden consultarlo.
+    """
+
+    permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
+
+    def get(self, request, pk):
+        try:
+            comunicado = Comunicado.objects.prefetch_related('cursos_grupo').select_related(
+                'emisor', 'emisor__tipo_usuario', 'curso'
+            ).get(pk=pk)
+        except Comunicado.DoesNotExist:
+            return Response({'errores': 'Comunicado no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+        if tipo == 'Profesor' and comunicado.emisor != request.user:
+            return Response({'errores': 'No tienes permiso.'}, status=status.HTTP_403_FORBIDDEN)
+
+        from backend.apps.students.models import Estudiante
+        from backend.apps.notifications.models import FCMDevice
+        from backend.apps.academics.models import ProfesorCurso
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        qs = Estudiante.objects.filter(activo=True, tutor__isnull=False)
+
+        if comunicado.alcance == Comunicado.ALCANCE_GRADO:
+            qs = qs.filter(curso__grado=comunicado.grado)
+        elif comunicado.alcance == Comunicado.ALCANCE_CURSO:
+            qs = qs.filter(curso=comunicado.curso)
+        elif comunicado.alcance == Comunicado.ALCANCE_MIS_CURSOS:
+            cursos_ids = ProfesorCurso.objects.filter(
+                profesor=comunicado.emisor
+            ).values_list('curso_id', flat=True).distinct()
+            qs = qs.filter(curso_id__in=cursos_ids)
+        elif comunicado.alcance == Comunicado.ALCANCE_GRUPO:
+            curso_ids = comunicado.cursos_grupo.values_list('id', flat=True)
+            qs = qs.filter(curso_id__in=curso_ids)
+        # ALCANCE_TODOS: sin filtro adicional
+
+        tutor_ids = qs.values_list('tutor_id', flat=True).distinct()
+        tutores = list(
+            User.objects.filter(id__in=tutor_ids)
+            .annotate(tiene_fcm=Exists(FCMDevice.objects.filter(user=OuterRef('pk'))))
+            .values('id', 'first_name', 'last_name', 'username', 'tiene_fcm')
+        )
+
+        estudiantes_qs = qs.values(
+            'tutor_id', 'apellido_paterno', 'apellido_materno', 'nombre',
+            'curso__grado', 'curso__paralelo',
+        )
+        estudiantes_por_tutor = {}
+        for e in estudiantes_qs:
+            tid = e['tutor_id']
+            apellidos = f"{e['apellido_paterno']} {e['apellido_materno']}".strip()
+            nombre_est = f"{apellidos}, {e['nombre']}".strip(', ')
+            curso_label = f"{e['curso__grado']} {e['curso__paralelo']}".strip()
+            estudiantes_por_tutor.setdefault(tid, []).append({'nombre': nombre_est, 'curso': curso_label})
+
+        lista = [
+            {
+                'id':          t['id'],
+                'nombre':      f"{t['first_name']} {t['last_name']}".strip() or t['username'],
+                'tiene_fcm':   t['tiene_fcm'],
+                'estudiantes': estudiantes_por_tutor.get(t['id'], []),
+            }
+            for t in tutores
+        ]
+        lista.sort(key=lambda x: x['nombre'])
+        con_fcm = sum(1 for t in lista if t['tiene_fcm'])
+
+        return Response({
+            'total':   len(lista),
+            'con_fcm': con_fcm,
+            'sin_fcm': len(lista) - con_fcm,
+            'tutores': lista,
+        })

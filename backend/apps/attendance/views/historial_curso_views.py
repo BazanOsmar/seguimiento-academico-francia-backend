@@ -37,6 +37,7 @@ class HistorialCursoView(APIView):
                 faltas=Count("asistencias", filter=Q(asistencias__estado="FALTA")),
                 atrasos=Count("asistencias", filter=Q(asistencias__estado="ATRASO")),
                 licencias=Count("asistencias", filter=Q(asistencias__estado="LICENCIA")),
+                sin_uniforme=Count("asistencias", filter=Q(asistencias__uniforme=False)),
             )
             .order_by("-fecha")
         )
@@ -50,6 +51,7 @@ class HistorialCursoView(APIView):
                 "faltas": s.faltas,
                 "atrasos": s.atrasos,
                 "licencias": s.licencias,
+                "sin_uniforme": s.sin_uniforme,
             }
             for s in sesiones
         ]

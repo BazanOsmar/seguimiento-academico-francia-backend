@@ -11,6 +11,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
+  mongo-produccion:
+    image: mongo:7.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    volumes:
+      - mongo_produccion_data:/data/db
+    restart: always
+
   web:
     build: .
     env_file: .env
@@ -18,6 +28,7 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.config.settings.production
     depends_on:
       - db
+      - mongo-produccion
     volumes:
       - staticfiles_prod:/app/backend/staticfiles
       - mediafiles_prod:/app/media
@@ -39,5 +50,6 @@ services:
 
 volumes:
   postgres_data:
+  mongo_produccion_data:
   staticfiles_prod:
   mediafiles_prod:

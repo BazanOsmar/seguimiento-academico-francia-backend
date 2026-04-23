@@ -12,6 +12,7 @@ class EstudianteAsistenciaReadSerializer(serializers.Serializer):
     nombre_completo = serializers.SerializerMethodField()
     estado = serializers.CharField()
     hora = serializers.TimeField()
+    uniforme = serializers.BooleanField()
     asistencias_recientes = serializers.SerializerMethodField()
 
     def get_nombre_completo(self, obj):
@@ -105,7 +106,7 @@ class HistorialEstudianteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Asistencia
-        fields = ('fecha', 'dia_semana', 'hora', 'estado', 'registrado_por')
+        fields = ('fecha', 'dia_semana', 'hora', 'estado', 'uniforme', 'registrado_por')
 
     def get_dia_semana(self, obj):
         return _DIAS_ES[obj.sesion.fecha.weekday()]

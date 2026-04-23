@@ -89,16 +89,18 @@ class CoberturaComunicadoView(APIView):
     según el alcance del comunicado a enviar.
 
     Params:
-        alcance  = TODOS | GRADO | CURSO | MIS_CURSOS
-        grado    = nombre del grado  (requerido si alcance=GRADO)
-        curso_id = id del curso      (requerido si alcance=CURSO)
+        alcance   = TODOS | GRADO | CURSO | MIS_CURSOS | GRUPO
+        grado     = nombre del grado       (requerido si alcance=GRADO)
+        curso_id  = id del curso           (requerido si alcance=CURSO)
+        curso_ids = ids separados por coma (requerido si alcance=GRUPO)
     """
     permission_classes = (IsDirectorOrProfesor,)
 
     def get(self, request):
-        alcance  = request.query_params.get('alcance', 'TODOS')
-        grado    = request.query_params.get('grado', '').strip()
-        curso_id = request.query_params.get('curso_id', '').strip()
+        alcance   = request.query_params.get('alcance', 'TODOS')
+        grado     = request.query_params.get('grado', '').strip()
+        curso_id  = request.query_params.get('curso_id', '').strip()
+        curso_ids = request.query_params.get('curso_ids', '').strip()
 
         qs = Estudiante.objects.filter(activo=True, tutor__isnull=False)
 
@@ -128,6 +130,25 @@ class CoberturaComunicadoView(APIView):
                 profesor=request.user
             ).values_list('curso_id', flat=True).distinct()
             qs = qs.filter(curso_id__in=cursos_ids)
+        elif alcance == 'GRUPO':
+            if not curso_ids:
+                return Response(
+                    {'errores': 'Se requiere el parámetro curso_ids.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                ids = [int(x) for x in curso_ids.split(',') if x.strip()]
+            except ValueError:
+                return Response(
+                    {'errores': 'curso_ids inválido.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not ids:
+                return Response(
+                    {'errores': 'Se requiere al menos un curso.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            qs = qs.filter(curso_id__in=ids)
 
         tutor_ids = qs.values_list('tutor_id', flat=True).distinct()
 

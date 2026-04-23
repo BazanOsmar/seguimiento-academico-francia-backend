@@ -70,6 +70,14 @@ class CitacionCreateView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+        # Rechazar si el estudiante no tiene tutor registrado
+        estudiante = serializer.validated_data['estudiante']
+        if not estudiante.tutor_id:
+            return Response(
+                {"errores": "El estudiante no tiene tutor registrado. No se puede crear la citación."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Si es Profesor, auto-poblar la materia que da en ese curso
         materia = None
         if tipo == "Profesor":

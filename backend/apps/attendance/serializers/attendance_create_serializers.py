@@ -26,6 +26,8 @@ class AsistenciaItemSerializer(serializers.Serializer):
         }
     )
 
+    uniforme = serializers.BooleanField(default=True, required=False)
+
 
 class AsistenciaCreateSerializer(serializers.Serializer):
     """

@@ -133,7 +133,8 @@ class RegistrarAsistenciaCursoView(APIView):
                     sesion=sesion,
                     estudiante_id=item["estudiante_id"],
                     estado=item["estado"],
-                    hora=item["hora"]
+                    hora=item["hora"],
+                    uniforme=item.get("uniforme", True),
                 )
             )
 

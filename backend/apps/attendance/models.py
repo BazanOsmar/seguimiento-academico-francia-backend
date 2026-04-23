@@ -73,6 +73,8 @@ class Asistencia(models.Model):
 
     hora = models.TimeField()
 
+    uniforme = models.BooleanField(default=True)
+
     class Meta:
         unique_together = ('sesion', 'estudiante')
         verbose_name = 'Asistencia'
