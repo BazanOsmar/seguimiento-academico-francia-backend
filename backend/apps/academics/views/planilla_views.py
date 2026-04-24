@@ -376,7 +376,8 @@ class NotasEstudianteProfesorView(APIView):
         except ProfesorCurso.DoesNotExist:
             return Response({'errores': 'Asignación no válida.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        agrupado   = obtener_detalle_notas_tutor(estudiante_id, pc.materia.id)
+        agrupado   = obtener_detalle_notas_tutor(estudiante_id, pc.materia.id,
+                                                dimensiones=['saber', 'hacer', 'ser'])
         trimestres = {str(t): notas for t, notas in agrupado.items()}
 
         return Response({

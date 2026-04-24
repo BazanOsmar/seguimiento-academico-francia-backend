@@ -1,6 +1,8 @@
 import os
 
+from django.conf import settings
 from django.contrib.auth.models import update_last_login
+from django.core.mail import send_mail
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -460,3 +462,31 @@ class VincularEstudianteView(APIView):
                 'curso':            str(estudiante.curso),
             },
         }, status=status.HTTP_200_OK)
+
+
+class SugerenciasView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        mensaje = request.data.get('mensaje', '').strip()
+        if not mensaje:
+            return Response({'errores': 'El mensaje no puede estar vacío.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(mensaje) > 1000:
+            return Response({'errores': 'El mensaje no puede superar los 1000 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user  = request.user
+        nombre = f"{user.first_name} {user.last_name}".strip() or user.username
+        rol    = user.tipo_usuario.nombre if user.tipo_usuario else 'Desconocido'
+
+        try:
+            send_mail(
+                subject      = f'[Sugerencia] {nombre} — {rol}',
+                message      = f'De: {nombre} (@{user.username})\nRol: {rol}\n\n{mensaje}',
+                from_email   = settings.EMAIL_HOST_USER,
+                recipient_list = [settings.EMAIL_DESTINATARIO],
+                fail_silently = False,
+            )
+        except Exception:
+            return Response({'errores': 'No se pudo enviar el correo. Intenta más tarde.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

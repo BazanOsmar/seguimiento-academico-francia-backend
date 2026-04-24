@@ -526,10 +526,12 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     return {'procesados': procesados}
 
 
-def obtener_detalle_notas_tutor(estudiante_id, materia_id):
+def obtener_detalle_notas_tutor(estudiante_id, materia_id, dimensiones=None):
     """
-    Devuelve las notas de SABER y HACER de un estudiante en una materia,
-    agrupadas por trimestre. Usado por el tutor en la app móvil.
+    Devuelve las notas de un estudiante en una materia, agrupadas por trimestre.
+
+    dimensiones: lista de dimensiones a incluir. Por defecto ['saber', 'hacer']
+                 (el tutor no puede ver 'ser'). El profesor pasa las tres.
 
     Returns:
         { trimestre: [ { titulo, fecha_actividad, nota, nota_maxima, dimension } ] }
@@ -538,12 +540,15 @@ def obtener_detalle_notas_tutor(estudiante_id, materia_id):
     Raises:
         Exception si falla la conexión a MongoDB (el caller debe manejarla).
     """
+    if dimensiones is None:
+        dimensiones = ['saber', 'hacer']
+
     col  = _get_db()['detalle_notas']
     docs = list(col.find(
         {
             'estudiante_id': estudiante_id,
             'materia_id':    materia_id,
-            'dimension':     {'$in': ['saber', 'hacer']},
+            'dimension':     {'$in': dimensiones},
         },
         {'_id': 0, 'trimestre': 1, 'dimension': 1, 'titulo': 1,
          'fecha_actividad': 1, 'nota': 1, 'nota_maxima': 1},

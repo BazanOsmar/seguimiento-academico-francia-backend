@@ -192,8 +192,16 @@ async function fetchAPI(url, options = {}) {
             return { ok: false, status: res.status, data };
         }
 
+        // ── Otros errores HTTP no manejados (405, 409, 422, etc.) ─
+        if (res.status >= 400) {
+            const msg = data?.errores || data?.detail
+                || 'No se pudo completar la acción. Por favor intenta nuevamente.';
+            _apiToast(msg, 'warning');
+            return { ok: false, status: res.status, data };
+        }
+
         // ── Respuesta exitosa ─────────────────────────────────
-        return { ok: true, status: res.status, data };
+        return { ok: res.ok, status: res.status, data };
 
     } catch (_err) {
         _apiToast('No se pudo conectar con el servidor. Verifica tu conexión a internet.', 'error');

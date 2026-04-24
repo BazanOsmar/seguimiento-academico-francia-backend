@@ -27,6 +27,8 @@ try:
     os.environ.setdefault('DEV_BYPASS_PASS',      _s.DEV_BYPASS_PASS)
     os.environ.setdefault('DEV_BYPASS_DIRECTOR',  _s.DEV_BYPASS_DIRECTOR)
     os.environ.setdefault('DEV_BYPASS_REGENTE',   _s.DEV_BYPASS_REGENTE)
+    os.environ.setdefault('EMAIL_HOST_USER',      getattr(_s, 'EMAIL_HOST_USER', ''))
+    os.environ.setdefault('EMAIL_HOST_PASSWORD',  getattr(_s, 'EMAIL_HOST_PASSWORD', ''))
 except ImportError:
     pass  # En CI/staging las variables llegan por entorno real
 
