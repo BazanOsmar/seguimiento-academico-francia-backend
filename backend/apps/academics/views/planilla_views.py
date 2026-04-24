@@ -19,7 +19,7 @@ from ..services.planilla_validator_2026 import (
 from ..services.notas_mongo_service import (
     guardar_notas, obtener_notas, calcular_notas_mensuales,
     hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
-    comparar_notas_con_mongo,
+    comparar_notas_con_mongo, obtener_detalle_notas_tutor,
 )
 
 _DRAFT_TTL  = 1800          # 30 minutos
@@ -337,3 +337,50 @@ class NotasEstadoMesView(APIView):
 
         ids_con_notas = pc_ids_con_notas_mes(asignaciones, request.user.id, mes, gestion)
         return Response({'pc_ids_con_notas': list(ids_con_notas)})
+
+
+class NotasEstudianteProfesorView(APIView):
+    """
+    GET /api/academics/profesor/notas/estudiante/?pc_id=X&estudiante_id=Y
+
+    Devuelve las notas de un estudiante específico en la materia del ProfesorCurso,
+    agrupadas por trimestre. Solo el profesor dueño de la asignación puede acceder.
+
+    Respuesta (mismo formato que el endpoint tutor):
+    {
+        "estudiante_id": 15,
+        "materia_id": 3,
+        "trimestres": {
+            "1": [{ "dimension", "titulo", "fecha_actividad", "nota", "nota_maxima" }],
+            "2": [...],
+            "3": [...]
+        }
+    }
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        try:
+            pc_id         = int(request.query_params.get('pc_id', 0))
+            estudiante_id = int(request.query_params.get('estudiante_id', 0))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not pc_id or not estudiante_id:
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pc = ProfesorCurso.objects.select_related('materia', 'curso').get(
+                pk=pc_id, profesor=request.user
+            )
+        except ProfesorCurso.DoesNotExist:
+            return Response({'errores': 'Asignación no válida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        agrupado   = obtener_detalle_notas_tutor(estudiante_id, pc.materia.id)
+        trimestres = {str(t): notas for t, notas in agrupado.items()}
+
+        return Response({
+            'estudiante_id': estudiante_id,
+            'materia_id':    pc.materia.id,
+            'trimestres':    trimestres,
+        })
