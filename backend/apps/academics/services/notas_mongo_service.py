@@ -589,15 +589,16 @@ def obtener_promedios_grupo(materia_id: int, estudiante_ids: list) -> dict:
         {'_id': 0, 'estudiante_id': 1, 'trimestre': 1, 'dimension': 1, 'nota': 1},
     )
 
-    # eid → trimestre → dimension → suma de notas
+    # eid → trimestre → dimension → {'suma': float, 'cantidad': int}
     agrupado: dict = {}
     for doc in docs:
         eid  = doc['estudiante_id']
         t    = doc['trimestre']
         dim  = doc['dimension'].lower()
         nota = float(doc.get('nota') or 0)
-        agrupado.setdefault(eid, {}).setdefault(t, {}).setdefault(dim, 0.0)
-        agrupado[eid][t][dim] += nota
+        agrupado.setdefault(eid, {}).setdefault(t, {}).setdefault(dim, {'suma': 0.0, 'cantidad': 0})
+        agrupado[eid][t][dim]['suma']     += nota
+        agrupado[eid][t][dim]['cantidad'] += 1
 
     result = {}
     for eid, trims in agrupado.items():
@@ -607,8 +608,10 @@ def obtener_promedios_grupo(materia_id: int, estudiante_ids: list) -> dict:
         nota_sobre  = 0
         for dim, max_dim in _MAX_DIM.items():
             if dim in dims:
-                nota_total += dims[dim]
-                nota_sobre += max_dim
+                data         = dims[dim]
+                promedio_dim = data['suma'] / data['cantidad'] if data['cantidad'] > 0 else 0.0
+                nota_total  += promedio_dim
+                nota_sobre  += max_dim
         result[eid] = {
             'nota_total': round(nota_total, 1),
             'nota_sobre': nota_sobre,
