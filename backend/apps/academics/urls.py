@@ -11,7 +11,7 @@ from .views import (
     NotasMongoView, EstadoNotasView, NotasEstadoMesView,
     ComparadorNombresView,
     DirectorResumenNotasMesView, DirectorNotasMesDetalleView,
-    NotasEstudianteProfesorView,
+    NotasEstudianteProfesorView, ResumenGrupoProfesorView,
 )
 
 urlpatterns = [
@@ -23,6 +23,7 @@ urlpatterns = [
     path("profesor/confirmar-planilla/",      ConfirmarPlanillaView.as_view(),        name="profesor-confirmar-planilla"),
     path("profesor/notas/",                   NotasMongoView.as_view(),              name="profesor-notas"),
     path("profesor/notas/estudiante/",        NotasEstudianteProfesorView.as_view(), name="profesor-notas-estudiante"),
+    path("profesor/notas/resumen-grupo/",     ResumenGrupoProfesorView.as_view(),    name="profesor-notas-resumen-grupo"),
     path("profesor/estado-notas/",            EstadoNotasView.as_view(),             name="profesor-estado-notas"),
     path("profesor/notas-estado-mes/",        NotasEstadoMesView.as_view(),          name="profesor-notas-estado-mes"),
     path("profesor/planes/",                  ProfesorPlanListCreateView.as_view(), name="profesor-planes"),

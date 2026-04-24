@@ -563,6 +563,61 @@ def obtener_detalle_notas_tutor(estudiante_id, materia_id):
     return agrupado
 
 
+def obtener_promedios_grupo(materia_id: int, estudiante_ids: list) -> dict:
+    """
+    Calcula el promedio del trimestre más reciente con datos para cada estudiante,
+    usando una sola consulta a MongoDB.
+
+    Escala de dimensiones: SABER=45 | HACER=40 | SER=10
+
+    Returns:
+        { estudiante_id: {'nota_total': float, 'nota_sobre': int, 'trimestre': int} }
+        Estudiantes sin datos no aparecen en el resultado.
+    """
+    if not estudiante_ids:
+        return {}
+
+    _MAX_DIM = {'saber': 45, 'hacer': 40, 'ser': 10}
+
+    col  = _get_db()['detalle_notas']
+    docs = col.find(
+        {
+            'materia_id':    materia_id,
+            'estudiante_id': {'$in': estudiante_ids},
+            'dimension':     {'$in': list(_MAX_DIM.keys())},
+        },
+        {'_id': 0, 'estudiante_id': 1, 'trimestre': 1, 'dimension': 1, 'nota': 1},
+    )
+
+    # eid → trimestre → dimension → suma de notas
+    agrupado: dict = {}
+    for doc in docs:
+        eid  = doc['estudiante_id']
+        t    = doc['trimestre']
+        dim  = doc['dimension'].lower()
+        nota = float(doc.get('nota') or 0)
+        agrupado.setdefault(eid, {}).setdefault(t, {}).setdefault(dim, 0.0)
+        agrupado[eid][t][dim] += nota
+
+    result = {}
+    for eid, trims in agrupado.items():
+        ultimo_trim = max(trims.keys())
+        dims        = trims[ultimo_trim]
+        nota_total  = 0.0
+        nota_sobre  = 0
+        for dim, max_dim in _MAX_DIM.items():
+            if dim in dims:
+                nota_total += dims[dim]
+                nota_sobre += max_dim
+        result[eid] = {
+            'nota_total': round(nota_total, 1),
+            'nota_sobre': nota_sobre,
+            'trimestre':  ultimo_trim,
+        }
+
+    return result
+
+
 def pc_ids_con_notas_mes(asignaciones, profesor_id, mes, gestion):
     """
     Dado una lista de dicts {id, materia_id, curso_id}, retorna el set de

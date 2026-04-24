@@ -19,7 +19,7 @@ from ..services.planilla_validator_2026 import (
 from ..services.notas_mongo_service import (
     guardar_notas, obtener_notas, calcular_notas_mensuales,
     hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
-    comparar_notas_con_mongo, obtener_detalle_notas_tutor,
+    comparar_notas_con_mongo, obtener_detalle_notas_tutor, obtener_promedios_grupo,
 )
 
 _DRAFT_TTL  = 1800          # 30 minutos
@@ -384,3 +384,59 @@ class NotasEstudianteProfesorView(APIView):
             'materia_id':    pc.materia.id,
             'trimestres':    trimestres,
         })
+
+
+class ResumenGrupoProfesorView(APIView):
+    """
+    GET /api/academics/profesor/notas/resumen-grupo/?pc_id=X
+
+    Devuelve la lista de estudiantes del curso con su nota acumulada
+    del trimestre más reciente con datos (calculado desde MongoDB).
+
+    Nota máxima dinámica: SABER(45) + HACER(40) + SER(10) según dimensiones presentes.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        try:
+            pc_id = int(request.query_params.get('pc_id', 0))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetro inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not pc_id:
+            return Response({'errores': 'Parámetro inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pc = ProfesorCurso.objects.select_related('materia', 'curso').get(
+                pk=pc_id, profesor=request.user
+            )
+        except ProfesorCurso.DoesNotExist:
+            return Response({'errores': 'Asignación no válida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.db.models import Exists, OuterRef
+        from backend.apps.students.models import Estudiante
+        from backend.apps.notifications.models import FCMDevice
+
+        estudiantes = list(
+            Estudiante.objects.filter(curso=pc.curso, activo=True)
+            .annotate(tutor_tiene_fcm=Exists(FCMDevice.objects.filter(user_id=OuterRef('tutor_id'))))
+            .order_by('apellido_paterno', 'apellido_materno', 'nombre')
+        )
+
+        promedios = obtener_promedios_grupo(pc.materia.id, [e.id for e in estudiantes])
+
+        data = []
+        for e in estudiantes:
+            prom = promedios.get(e.id, {})
+            data.append({
+                'id':              e.id,
+                'nombre':          e.nombre,
+                'apellidos':       f"{e.apellido_paterno} {e.apellido_materno}".strip(),
+                'tiene_tutor':     e.tutor_id is not None,
+                'tutor_tiene_fcm': getattr(e, 'tutor_tiene_fcm', False),
+                'nota_total':      prom.get('nota_total'),
+                'nota_sobre':      prom.get('nota_sobre'),
+                'trimestre':       prom.get('trimestre'),
+            })
+
+        return Response(data)
