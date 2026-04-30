@@ -51,17 +51,19 @@ class EstudianteTutorPerfilSerializer(serializers.ModelSerializer):
 
 class EstudianteDirectorSerializer(serializers.ModelSerializer):
     """Lectura: tabla de estudiantes del panel director."""
-    nombre_completo = serializers.SerializerMethodField()
-    curso_nombre    = serializers.SerializerMethodField()
-    tutor_nombre    = serializers.SerializerMethodField()
-    tutor_username  = serializers.SerializerMethodField()
+    nombre_completo    = serializers.SerializerMethodField()
+    curso_nombre       = serializers.SerializerMethodField()
+    tutor_nombre       = serializers.SerializerMethodField()
+    tutor_username     = serializers.SerializerMethodField()
+    tutor_ultimo_acceso = serializers.SerializerMethodField()
 
     class Meta:
         model  = Estudiante
         fields = (
             "id", "nombre_completo", "nombre",
             "apellido_paterno", "apellido_materno", "identificador",
-            "curso_nombre", "tutor_nombre", "tutor_username", "activo",
+            "curso_nombre", "tutor_nombre", "tutor_username",
+            "tutor_ultimo_acceso", "activo",
         )
 
     def get_nombre_completo(self, obj):
@@ -79,3 +81,9 @@ class EstudianteDirectorSerializer(serializers.ModelSerializer):
 
     def get_tutor_username(self, obj):
         return obj.tutor.username if obj.tutor else None
+
+    def get_tutor_ultimo_acceso(self, obj):
+        if obj.tutor is None:
+            return None
+        ll = obj.tutor.last_login
+        return ll.isoformat() if ll else None
