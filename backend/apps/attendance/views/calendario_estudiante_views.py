@@ -17,6 +17,8 @@ _MESES_ES = {
     9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
 }
 
+_ESTADOS_APLICA_UNIFORME = {'PRESENTE', 'ATRASO'}
+
 
 class CalendarioEstudianteView(APIView):
     """
@@ -61,17 +63,25 @@ class CalendarioEstudianteView(APIView):
                 sesion__fecha__range=(fecha_inicio, fecha_fin),
             )
             .select_related('sesion')
-            .values('sesion__fecha', 'estado')
+            .values('sesion__fecha', 'estado', 'uniforme')
         )
 
-        # Un registro por día (unique_together lo garantiza en el modelo)
-        dia_map = {str(a['sesion__fecha']): a['estado'] for a in asistencias}
+        dia_map = {
+            str(a['sesion__fecha']): {
+                'estado': a['estado'],
+                'sin_uniforme': (
+                    not a['uniforme']
+                    and a['estado'] in _ESTADOS_APLICA_UNIFORME
+                ),
+            }
+            for a in asistencias
+        }
 
         return Response({
             'mes': f'{year}-{month:02d}',
             'mes_nombre': f'{_MESES_ES.get(month, "")} {year}',
             'asistencias': [
-                {'fecha': f, 'estado': e}
-                for f, e in dia_map.items()
+                {'fecha': f, 'estado': v['estado'], 'sin_uniforme': v['sin_uniforme']}
+                for f, v in dia_map.items()
             ],
         })
