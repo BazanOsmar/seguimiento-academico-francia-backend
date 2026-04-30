@@ -134,7 +134,7 @@ class RegistrarAsistenciaCursoView(APIView):
                     estudiante_id=item["estudiante_id"],
                     estado=item["estado"],
                     hora=item["hora"],
-                    uniforme=item.get("uniforme", True),
+                    uniforme=item.get("uniforme", True) if item["estado"] not in ("FALTA", "LICENCIA") else True,
                 )
             )
 

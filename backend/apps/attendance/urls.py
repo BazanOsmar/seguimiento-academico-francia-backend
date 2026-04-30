@@ -8,6 +8,7 @@ from backend.apps.attendance.views.calendario_mensual_views import CalendarioMen
 from backend.apps.attendance.views.calendario_estudiante_views import CalendarioEstudianteView
 from .views import EstadoAsistenciaDiariaView, RegistrosRecientesView, HistorialEstudianteView, HistorialCursoView
 from backend.apps.attendance.views.historial_tutor_views import HistorialTutorView
+from backend.apps.attendance.views.sin_uniforme_views import SinUniformeView
 
 urlpatterns = [
     path(
@@ -69,5 +70,10 @@ urlpatterns = [
         "cursos/<int:curso_id>/historial/",
         HistorialCursoView.as_view(),
         name="historial-curso",
+    ),
+    path(
+        "sin-uniforme/",
+        SinUniformeView.as_view(),
+        name="sin-uniforme",
     ),
 ]
