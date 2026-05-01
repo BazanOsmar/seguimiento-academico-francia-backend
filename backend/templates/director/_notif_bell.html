@@ -1,0 +1,180 @@
+<!-- ── Campana de notificaciones ───────────────────────────────── -->
+<button class="btn-icon notif-bell" id="btnNotifBell" aria-label="Notificaciones" style="position:relative;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span class="notif-badge" id="notifBadge" style="display:none;"></span>
+</button>
+
+<!-- ── Modal notificaciones ──────────────────────────────────────── -->
+<div class="notif-backdrop" id="notifBackdrop" style="display:none;"></div>
+<div class="notif-panel" id="notifPanel" style="display:none;">
+    <div class="notif-panel__head">
+        <span class="notif-panel__title">Notificaciones</span>
+        <button class="btn-icon" id="btnCerrarNotif" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="notif-panel__filters">
+        <div class="notif-tabs" id="notifTabs">
+            <button class="notif-tab notif-tab--active" data-filtro="todas">Todas</button>
+            <button class="notif-tab" data-filtro="no_leidas">No leídas</button>
+            <button class="notif-tab" data-filtro="leidas">Leídas</button>
+        </div>
+        <input type="date" id="notifFechaFiltro" class="notif-date-input" title="Filtrar por fecha">
+    </div>
+
+    <div class="notif-panel__list" id="notifList">
+        <div class="notif-loading">Cargando…</div>
+    </div>
+</div>
+
+<style>
+.notif-badge {
+    position: absolute;
+    top: 2px; right: 2px;
+    min-width: 16px; height: 16px;
+    background: var(--error, #ef4444);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    pointer-events: none;
+    line-height: 1;
+}
+.notif-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.35);
+    z-index: 1100;
+}
+.notif-panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: min(400px, 100vw);
+    height: 100dvh;
+    background: var(--bg-card, #1e1e2e);
+    border-left: 1px solid var(--border, rgba(255,255,255,.08));
+    z-index: 1101;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 24px rgba(0,0,0,.4);
+}
+.notif-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.08));
+    flex-shrink: 0;
+}
+.notif-panel__title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text-primary, #e2e8f0);
+}
+.notif-panel__filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.08));
+    flex-shrink: 0;
+}
+.notif-tabs {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+.notif-tab {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    transition: all .15s;
+}
+.notif-tab--active {
+    background: var(--accent-dim, rgba(59,130,246,.15));
+    border-color: var(--accent, #3b82f6);
+    color: var(--accent, #3b82f6);
+}
+.notif-date-input {
+    background: var(--bg-app, #13131f);
+    border: 1px solid var(--border, rgba(255,255,255,.08));
+    border-radius: 6px;
+    color: var(--text-primary, #e2e8f0);
+    font-size: .75rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 130px;
+}
+.notif-date-input::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
+.notif-panel__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+.notif-loading, .notif-empty {
+    text-align: center;
+    color: var(--text-muted, #94a3b8);
+    font-size: .83rem;
+    padding: 40px 16px;
+}
+.notif-group__label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted, #94a3b8);
+    padding: 10px 16px 4px;
+}
+.notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background .12s;
+    border-left: 3px solid transparent;
+}
+.notif-item:hover { background: rgba(255,255,255,.04); }
+.notif-item--no-leida {
+    border-left-color: var(--accent, #3b82f6);
+    background: rgba(59,130,246,.05);
+}
+.notif-item__dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent, #3b82f6);
+    flex-shrink: 0;
+    margin-top: 5px;
+}
+.notif-item__dot--leida { background: transparent; }
+.notif-item__body { flex: 1; min-width: 0; }
+.notif-item__desc {
+    font-size: .8rem;
+    color: var(--text-primary, #e2e8f0);
+    line-height: 1.45;
+}
+.notif-item--leida .notif-item__desc { color: var(--text-muted, #94a3b8); }
+.notif-item__hora {
+    font-size: .68rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 3px;
+}
+</style>

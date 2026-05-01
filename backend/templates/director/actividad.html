@@ -194,6 +194,7 @@
             </button>
             <h1 class="page-title">Actividad del sistema</h1>
         </div>
+        <div class="topbar-actions">{% include 'director/_notif_bell.html' %}</div>
     </header>
 
     <!-- ── Contenido ─────────────────────────────────────────────── -->
@@ -300,6 +301,7 @@
         window.location.replace('/login/');
     });
 </script>
+<script src="{% static 'js/notif_bell.js' %}"></script>
 
 </body>
 </html>

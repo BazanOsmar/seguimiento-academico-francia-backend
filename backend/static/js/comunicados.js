@@ -238,7 +238,7 @@ async function cargarCitaciones() {
 }
 
 function _fechaMes(c) {
-    const f = c.fecha_envio || c.fecha_limite_asistencia;
+    const f = c.fecha_creacion || c.fecha_envio || c.fecha_limite_asistencia;
     return f ? f.slice(0, 7) : '';
 }
 
@@ -1047,7 +1047,7 @@ btnEnviarCom.addEventListener('click', async () => {
 
     const alcance   = getAlcance();
     const titulo    = document.getElementById('comTitulo').value.trim();
-    const contenido = document.getElementById('comContenido').value.trim();
+    const descripcion = document.getElementById('comContenido').value.trim();
     const fechaExp  = document.getElementById('comFechaExpiracion').value || null;
     const grado     = document.getElementById('comGrado').value;
     const cursoId   = document.getElementById('comCurso').value;
@@ -1055,12 +1055,12 @@ btnEnviarCom.addEventListener('click', async () => {
     if (alcance === 'GRADO' && !grado)   return mostrarErrorCom('Selecciona el grado.');
     if (alcance === 'CURSO' && !cursoId) return mostrarErrorCom('Selecciona el curso.');
     if (!titulo)                         return mostrarErrorCom('Escribe un título.');
-    if (!contenido)                      return mostrarErrorCom('Escribe el contenido.');
+    if (!descripcion)                    return mostrarErrorCom('Escribe el contenido.');
 
     btnEnviarCom.disabled    = true;
     btnEnviarComText.textContent = 'Enviando...';
 
-    const body = { titulo, contenido, alcance };
+    const body = { titulo, descripcion, alcance };
     if (fechaExp)            body.fecha_expiracion = fechaExp;
     if (alcance === 'GRADO') body.grado = grado;
     if (alcance === 'CURSO') body.curso = parseInt(cursoId);
@@ -1331,12 +1331,6 @@ document.getElementById('secTitleCit').addEventListener('click', () => _cambiarS
 document.getElementById('secTitleCom').addEventListener('click', () => _cambiarSeccion('comunicados'));
 
 // ── Comunicados: carga y render ────────────────────────────────────
-const ALCANCE_LABELS = {
-    TODOS:      'Todo el colegio',
-    GRADO:      'Un grado',
-    CURSO:      'Un curso',
-    MIS_CURSOS: 'Mis cursos',
-};
 
 async function cargarComunicados() {
     const list = document.getElementById('comunicadosList');
@@ -1454,10 +1448,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function _renderComunicadoCard(c) {
-    const fecha    = c.fecha_envio ? new Date(c.fecha_envio).toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-    const expira   = c.fecha_expiracion ? new Date(c.fecha_expiracion).toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-    const alcance  = c.alcance_display || ALCANCE_LABELS[c.alcance] || c.alcance;
-    const destino  = c.curso_nombre ? c.curso_nombre : (c.grado ? `Grado ${c.grado}` : alcance);
+    const fecha   = c.fecha_creacion ? new Date(c.fecha_creacion).toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    const expira  = c.fecha_expiracion ? new Date(c.fecha_expiracion + 'T12:00:00').toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    const cursos  = Array.isArray(c.cursos) && c.cursos.length ? c.cursos.join(' · ') : 'Todo el colegio';
+    const vistoBadge = c.visto
+        ? `<span class="com-chip com-chip--leido">Leído</span>`
+        : '';
 
     return `
         <article class="com-card">
@@ -1467,14 +1463,14 @@ function _renderComunicadoCard(c) {
                     ${fecha}
                 </span>
                 <div class="com-card__chips">
-                    <span class="com-chip com-chip--destino">${destino}</span>
-                    <span class="com-chip com-chip--alcance">${alcance}</span>
+                    <span class="com-chip com-chip--destino">${_escapeHtml(cursos)}</span>
+                    ${vistoBadge}
                 </div>
             </div>
 
             <div class="com-card__body">
-                <h3 class="com-card__titulo">${c.titulo}</h3>
-                <p class="com-card__contenido">${c.contenido}</p>
+                <h3 class="com-card__titulo">${_escapeHtml(c.titulo)}</h3>
+                <p class="com-card__contenido">${_escapeHtml(c.descripcion)}</p>
             </div>
 
             <div class="com-card__bottom">
@@ -1482,7 +1478,7 @@ function _renderComunicadoCard(c) {
                     <span class="com-card__autor-icon">
                         <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </span>
-                    <span class="com-card__autor-nombre">${c.emisor_nombre}</span>
+                    <span class="com-card__autor-nombre">${_escapeHtml(c.emisor_nombre)}</span>
                 </div>
                 ${expira ? `<span class="com-card__expira">
                     <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

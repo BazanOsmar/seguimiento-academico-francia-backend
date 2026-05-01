@@ -1,80 +1,59 @@
 from django.conf import settings
 from django.db import models
 
+from backend.apps.students.models import Estudiante
+
 User = settings.AUTH_USER_MODEL
 
 
 class Comunicado(models.Model):
-    ALCANCE_TODOS      = 'TODOS'
-    ALCANCE_GRADO      = 'GRADO'
-    ALCANCE_CURSO      = 'CURSO'
-    ALCANCE_MIS_CURSOS = 'MIS_CURSOS'
-    ALCANCE_GRUPO      = 'GRUPO'
-    ALCANCES = [
-        ('TODOS',      'Todos los tutores'),
-        ('GRADO',      'Un grado completo'),
-        ('CURSO',      'Un curso específico'),
-        ('MIS_CURSOS', 'Todos mis cursos asignados'),
-        ('GRUPO',      'Grupo de cursos'),
-    ]
-
     ESTADO_ACTIVO  = 'ACTIVO'
     ESTADO_ANULADO = 'ANULADO'
     ESTADOS = [
-        ('ACTIVO',   'Activo'),
-        ('ANULADO',  'Anulado'),
+        ('ACTIVO',  'Activo'),
+        ('ANULADO', 'Anulado'),
     ]
 
-    titulo = models.CharField(max_length=150)
-    contenido = models.TextField()
-    estado = models.CharField(max_length=10, choices=ESTADOS, default='ACTIVO')
-    materia = models.ForeignKey(
-        'academics.Materia',
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='comunicados',
-    )
-    emisor = models.ForeignKey(
+    titulo           = models.CharField(max_length=150)
+    descripcion      = models.TextField()
+    estado           = models.CharField(max_length=10, choices=ESTADOS, default='ACTIVO')
+    emisor           = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
         related_name='comunicados_emitidos',
     )
-    fecha_envio = models.DateTimeField(auto_now_add=True)
+    fecha_creacion   = models.DateTimeField(auto_now_add=True)
     fecha_expiracion = models.DateField(null=True, blank=True)
-    alcance = models.CharField(max_length=10, choices=ALCANCES, default='TODOS')
-    cursos_grupo = models.ManyToManyField(
-        'academics.Curso',
-        blank=True,
-        related_name='comunicados_grupo',
-    )
-    curso = models.ForeignKey(
-        'academics.Curso',
-        on_delete=models.PROTECT,
-        null=True, blank=True,
-        related_name='comunicados',
-    )
-    grado = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
-        ordering = ['-fecha_envio']
+        ordering = ['-fecha_creacion']
 
     def __str__(self):
         return self.titulo
 
 
-class ComunicadoVisto(models.Model):
-    comunicado = models.ForeignKey(
+class ComunicadoEstudiante(models.Model):
+    ESTADO_ENVIADO = 'ENVIADO'
+    ESTADO_LEIDO   = 'LEIDO'
+    ESTADOS = [
+        ('ENVIADO', 'Enviado'),
+        ('LEIDO',   'Leído'),
+    ]
+
+    comunicado  = models.ForeignKey(
         Comunicado,
         on_delete=models.CASCADE,
-        related_name='vistos',
+        related_name='entregas',
     )
-    tutor = models.ForeignKey(
-        User,
+    estudiante  = models.ForeignKey(
+        Estudiante,
         on_delete=models.CASCADE,
-        related_name='comunicados_vistos',
+        related_name='comunicados',
     )
-    visto_en = models.DateTimeField(auto_now_add=True)
+    estado      = models.CharField(max_length=10, choices=ESTADOS, default='ENVIADO')
 
     class Meta:
-        unique_together = ('comunicado', 'tutor')
+        unique_together = ('comunicado', 'estudiante')
+        indexes = [
+            models.Index(fields=['comunicado', 'estado']),
+        ]

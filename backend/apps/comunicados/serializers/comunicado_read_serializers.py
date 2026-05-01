@@ -5,55 +5,37 @@ from ..models import Comunicado
 
 class ComunicadoSerializer(serializers.ModelSerializer):
     emisor_nombre = serializers.SerializerMethodField()
-    emisor_tipo = serializers.SerializerMethodField()
-    visto = serializers.SerializerMethodField()
-    visto_en = serializers.SerializerMethodField()
-
-    alcance_display = serializers.CharField(source='get_alcance_display', read_only=True)
-    curso_nombre = serializers.SerializerMethodField()
-
-    materia_nombre = serializers.SerializerMethodField()
-
-    def get_materia_nombre(self, obj):
-        return obj.materia.nombre if obj.materia_id else None
+    emisor_tipo   = serializers.SerializerMethodField()
+    visto         = serializers.SerializerMethodField()
+    cursos        = serializers.SerializerMethodField()
 
     class Meta:
-        model = Comunicado
+        model  = Comunicado
         fields = [
             'id',
             'titulo',
-            'contenido',
+            'descripcion',
             'estado',
             'emisor_id',
             'emisor_nombre',
             'emisor_tipo',
-            'materia_nombre',
-            'fecha_envio',
+            'fecha_creacion',
             'fecha_expiracion',
-            'alcance',
-            'alcance_display',
-            'curso_nombre',
-            'grado',
             'visto',
-            'visto_en',
+            'cursos',
         ]
-
-    def get_curso_nombre(self, obj):
-        return str(obj.curso) if obj.curso else None
 
     def get_emisor_nombre(self, obj):
         e = obj.emisor
         return f"{e.first_name} {e.last_name}".strip() or e.username
 
     def get_emisor_tipo(self, obj):
-        e = obj.emisor
-        return e.tipo_usuario.nombre if e and e.tipo_usuario else None
+        return obj.emisor.tipo_usuario.nombre if obj.emisor.tipo_usuario else None
 
     def get_visto(self, obj):
-        visto_set = self.context.get('visto_set', set())
-        return obj.id in visto_set
+        # El contexto provee el set de ids de comunicados leídos por el tutor actual
+        return obj.id in self.context.get('leidos_set', set())
 
-    def get_visto_en(self, obj):
-        visto_map = self.context.get('visto_map', {})
-        dt = visto_map.get(obj.id)
-        return dt.isoformat() if dt else None
+    def get_cursos(self, obj):
+        # Derivado de la pivote vía context (pre-calculado en la vista para evitar N+1)
+        return self.context.get('cursos_map', {}).get(obj.id, [])

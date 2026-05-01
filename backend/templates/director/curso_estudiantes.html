@@ -599,6 +599,7 @@
                 <span class="topbar-bc__current" id="pageTitle">Cargando…</span>
             </nav>
         </div>
+        <div class="topbar-actions">{% include 'director/_notif_bell.html' %}</div>
     </header>
 
     <!-- ── Contenido ─────────────────────────────────────────────── -->
@@ -832,6 +833,7 @@
         window.location.replace('/login/');
     });
 </script>
+<script src="{% static 'js/notif_bell.js' %}"></script>
 
 </body>
 </html>

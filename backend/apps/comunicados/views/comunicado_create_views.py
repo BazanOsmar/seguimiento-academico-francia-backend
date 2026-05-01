@@ -3,9 +3,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
-from ..models import Comunicado
 from ..serializers.comunicado_write_serializers import ComunicadoCreateSerializer
 from ..serializers.comunicado_read_serializers import ComunicadoSerializer
+from ..services import crear_comunicado, notificar_tutores
 from backend.core.permissions import IsDirectorOrProfesor
 
 
@@ -13,10 +13,9 @@ class ComunicadoCreateView(APIView):
     """
     POST /api/comunicados/crear/
 
-    Director → puede usar alcance TODOS, GRADO o CURSO (cualquier curso).
-    Profesor → puede usar alcance MIS_CURSOS o CURSO (solo sus cursos asignados).
+    Director → TODOS, GRADO, CURSO (cualquier curso), GRUPO.
+    Profesor → CURSO (solo sus cursos), MIS_CURSOS, GRUPO (solo sus cursos).
     """
-
     permission_classes = [IsAuthenticated, IsDirectorOrProfesor]
 
     def post(self, request):
@@ -24,32 +23,29 @@ class ComunicadoCreateView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        tipo = request.user.tipo_usuario.nombre
-        alcance = serializer.validated_data.get('alcance', Comunicado.ALCANCE_TODOS)
+        data    = serializer.validated_data
+        alcance = data['alcance']
+        tipo    = request.user.tipo_usuario.nombre
 
-        # Validaciones específicas por rol
         if tipo == 'Profesor':
-            error = self._validar_profesor(request.user, alcance, serializer.validated_data)
+            error = self._validar_profesor(request.user, alcance, data)
             if error:
                 return Response({'errores': error}, status=status.HTTP_400_BAD_REQUEST)
 
-        cursos_grupo = serializer.validated_data.pop('cursos_grupo_objs', [])
-        serializer.validated_data.pop('cursos_grupo_ids', None)
+        datos_alcance = {
+            'grado':           data.get('grado', ''),
+            'curso_id':        data.get('curso'),
+            'cursos_grupo_ids': data.get('cursos_grupo_ids', []),
+        }
 
-        # Auto-poblar materia si el emisor es Profesor y el alcance es CURSO
-        materia = None
-        if tipo == 'Profesor' and alcance == Comunicado.ALCANCE_CURSO:
-            from backend.apps.academics.models import ProfesorCurso
-            curso = serializer.validated_data.get('curso')
-            asignacion = ProfesorCurso.objects.filter(
-                profesor=request.user, curso=curso
-            ).select_related('materia').first()
-            if asignacion:
-                materia = asignacion.materia
-
-        comunicado = serializer.save(emisor=request.user, materia=materia)
-        if cursos_grupo:
-            comunicado.cursos_grupo.set(cursos_grupo)
+        comunicado = crear_comunicado(
+            titulo=data['titulo'],
+            descripcion=data['descripcion'],
+            fecha_expiracion=data.get('fecha_expiracion'),
+            emisor=request.user,
+            alcance=alcance,
+            datos_alcance=datos_alcance,
+        )
 
         from backend.apps.auditoria.services import registrar
         nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
@@ -60,93 +56,31 @@ class ComunicadoCreateView(APIView):
             request,
         )
 
-        self._notificar_tutores(comunicado)
+        notificar_tutores(comunicado)
 
         return Response(
-            ComunicadoSerializer(comunicado).data,
+            ComunicadoSerializer(comunicado, context={'leidos_set': set(), 'cursos_map': {}}).data,
             status=status.HTTP_201_CREATED,
         )
 
     def _validar_profesor(self, profesor, alcance, data):
-        """Valida que el profesor solo use alcances permitidos y sus propios cursos."""
         from backend.apps.academics.models import ProfesorCurso
 
-        if alcance not in (Comunicado.ALCANCE_CURSO, Comunicado.ALCANCE_MIS_CURSOS, Comunicado.ALCANCE_GRUPO):
+        if alcance not in ('CURSO', 'MIS_CURSOS', 'GRUPO'):
             return "Los profesores solo pueden enviar comunicados a sus cursos asignados."
 
-        if alcance == Comunicado.ALCANCE_CURSO:
-            curso = data.get('curso')
-            if not curso:
-                return "Debes seleccionar un curso."
-            if not ProfesorCurso.objects.filter(profesor=profesor, curso=curso).exists():
+        sus_cursos = set(
+            ProfesorCurso.objects.filter(profesor=profesor)
+            .values_list('curso_id', flat=True).distinct()
+        )
+
+        if alcance == 'CURSO':
+            if data.get('curso') not in sus_cursos:
                 return "Solo puedes enviar comunicados a cursos que tienes asignados."
 
-        if alcance == Comunicado.ALCANCE_GRUPO:
-            cursos = data.get('cursos_grupo_objs', [])
-            sus_cursos = set(
-                ProfesorCurso.objects.filter(profesor=profesor)
-                .values_list('curso_id', flat=True).distinct()
-            )
-            no_asignados = [c for c in cursos if c.id not in sus_cursos]
-            if no_asignados:
+        if alcance == 'GRUPO':
+            ids = set(data.get('cursos_grupo_ids', []))
+            if not ids.issubset(sus_cursos):
                 return "Solo puedes enviar comunicados a cursos que tienes asignados."
 
         return None
-
-    def _notificar_tutores(self, comunicado):
-        from django.conf import settings as django_settings
-        from django.db.models import Q
-        from backend.apps.users.models import User
-        from backend.apps.students.models import Estudiante
-        from backend.apps.notifications.services import enviar_notificacion
-        from backend.apps.academics.models import ProfesorCurso
-        from ..models import Comunicado as Com
-
-        if comunicado.alcance == Com.ALCANCE_CURSO:
-            ids = Estudiante.objects.filter(
-                curso=comunicado.curso, activo=True
-            ).exclude(tutor=None).values_list('tutor_id', flat=True)
-            tutores = User.objects.filter(pk__in=ids, is_active=True)
-
-        elif comunicado.alcance == Com.ALCANCE_GRADO:
-            from backend.apps.academics.models import Curso
-            cursos = Curso.objects.filter(grado=comunicado.grado)
-            ids = Estudiante.objects.filter(
-                curso__in=cursos, activo=True
-            ).exclude(tutor=None).values_list('tutor_id', flat=True)
-            tutores = User.objects.filter(pk__in=ids, is_active=True)
-
-        elif comunicado.alcance == Com.ALCANCE_MIS_CURSOS:
-            cursos_ids = ProfesorCurso.objects.filter(
-                profesor=comunicado.emisor
-            ).values_list('curso_id', flat=True).distinct()
-            ids = Estudiante.objects.filter(
-                curso_id__in=cursos_ids, activo=True
-            ).exclude(tutor=None).values_list('tutor_id', flat=True)
-            tutores = User.objects.filter(pk__in=ids, is_active=True)
-
-        elif comunicado.alcance == Com.ALCANCE_GRUPO:
-            cursos_ids = comunicado.cursos_grupo.values_list('id', flat=True)
-            ids = Estudiante.objects.filter(
-                curso_id__in=cursos_ids, activo=True
-            ).exclude(tutor=None).values_list('tutor_id', flat=True)
-            tutores = User.objects.filter(pk__in=ids, is_active=True)
-
-        else:  # TODOS
-            tutores = User.objects.filter(tipo_usuario__nombre='Tutor', is_active=True)
-
-        import threading
-
-        imagen_url = getattr(django_settings, 'FCM_NOTIFICATION_IMAGE', None)
-        for tutor in tutores:
-            threading.Thread(
-                target=enviar_notificacion,
-                args=(tutor,),
-                kwargs={
-                    'titulo': comunicado.titulo,
-                    'cuerpo': comunicado.contenido[:200],
-                    'datos':  {'rol': 'padre', 'comunicado_id': str(comunicado.id)},
-                    'imagen': imagen_url,
-                },
-                daemon=True,
-            ).start()

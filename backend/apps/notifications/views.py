@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from backend.apps.students.models import Estudiante
 from backend.core.permissions import IsDirector, IsDirectorOrProfesor
 
-from .models import FCMDevice
+from .models import FCMDevice, Notificacion
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +195,63 @@ class CoberturaComunicadoView(APIView):
             'sin_fcm': len(lista) - con_fcm,
             'tutores': lista,
         })
+
+
+class NotificacionListView(APIView):
+    """
+    GET /api/notifications/mis-notificaciones/
+
+    Devuelve todas las notificaciones del usuario autenticado.
+    Opcional: ?no_leidas=true para filtrar solo las no leídas.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = (
+            Notificacion.objects
+            .filter(receptor=request.user)
+            .select_related('emisor', 'emisor__tipo_usuario')
+        )
+
+        if request.query_params.get('no_leidas') == 'true':
+            qs = qs.filter(leida=False)
+
+        data = [
+            {
+                'id':             n.id,
+                'descripcion':    n.descripcion,
+                'leida':          n.leida,
+                'fecha_creacion': n.fecha_creacion,
+                'emisor_nombre':  (
+                    f"{n.emisor.first_name} {n.emisor.last_name}".strip() or n.emisor.username
+                    if n.emisor else 'Sistema'
+                ),
+            }
+            for n in qs
+        ]
+        return Response(data)
+
+
+class NotificacionMarcarLeidaView(APIView):
+    """
+    PATCH /api/notifications/<pk>/leer/
+        Marca una notificación específica como leída.
+
+    PATCH /api/notifications/leer-todas/
+        Marca todas las notificaciones del usuario como leídas.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            notificacion = Notificacion.objects.get(pk=pk, receptor=request.user)
+        except Notificacion.DoesNotExist:
+            return Response({'errores': 'Notificación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        notificacion.leida = True
+        notificacion.save(update_fields=['leida'])
+        return Response({'ok': True, 'id': notificacion.id})
+
 
 
 class RegistrarTokenView(APIView):

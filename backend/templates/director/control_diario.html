@@ -218,6 +218,7 @@
             <button class="btn-menu" id="btnMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
             <h1 class="page-title">Control Diario</h1>
         </div>
+        <div class="topbar-actions">{% include 'director/_notif_bell.html' %}</div>
     </header>
 
     <main class="main-content">
@@ -496,5 +497,6 @@
             cargarTodo();
         });
     </script>
+<script src="{% static 'js/notif_bell.js' %}"></script>
 </body>
 </html>
