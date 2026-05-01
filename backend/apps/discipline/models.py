@@ -30,10 +30,14 @@ class Citacion(models.Model):
     )
 
     MOTIVOS = [
-        ('FALTAS',             'Faltas'),
-        ('COMPORTAMIENTO',     'Comportamiento'),
-        ('BAJO_RENDIMIENTO',   'Bajo rendimiento'),
-        ('OTRO',               'Otro'),
+        ('FALTAS',           'Faltas'),
+        ('CONDUCTA',         'Conducta'),
+        ('RENDIMIENTO',      'Rendimiento'),
+        ('DOCUMENTOS',       'Documentos'),
+        ('REUNION',          'Reunión'),
+        ('COMPORTAMIENTO',   'Comportamiento'),
+        ('BAJO_RENDIMIENTO', 'Bajo rendimiento'),
+        ('OTRO',             'Otro'),
     ]
 
     motivo = models.CharField(

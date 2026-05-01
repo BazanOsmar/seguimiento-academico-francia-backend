@@ -972,7 +972,8 @@
             border-bottom: 1px solid var(--border-subtle);
             margin-bottom: 0;
         }
-        .cit-section__body { padding: 20px; }
+        .cit-section__body { padding: 20px; display: flex; flex-direction: column; }
+        #panelCitaciones, #panelComunicados { flex: 1; display: flex; flex-direction: column; }
 
         /* ── Tag emisor en tarjeta (Profesor / Regente) ──────────── */
         .cit-emisor {
@@ -1308,6 +1309,8 @@
         .cit-section__body {
             min-height: 332px;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         .empty-cards {
@@ -1469,7 +1472,8 @@
         }
 
         .grid-footer {
-            margin-top: 18px;
+            margin-top: auto;
+            padding-top: 18px;
             color: #8fa6ca;
             font-weight: 700;
         }

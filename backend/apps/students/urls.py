@@ -2,7 +2,6 @@ from django.urls import path
 from backend.apps.students.views.student_list_views import EstudiantesPorCursoView
 from backend.apps.students.views.student_director_views import (
     EstudianteDirectorListView,
-    EstudianteCreateView,
     EstudianteSoloCreateView,
     EstudianteDetailView,
 )
@@ -44,11 +43,6 @@ urlpatterns = [
         "",
         EstudianteDirectorListView.as_view(),
         name="estudiantes-director-list",
-    ),
-    path(
-        "crear/",
-        EstudianteCreateView.as_view(),
-        name="estudiantes-crear",
     ),
     path(
         "crear-solo/",

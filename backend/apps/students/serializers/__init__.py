@@ -4,4 +4,4 @@ from .read_serializers import (
     EstudianteTutorPerfilSerializer,
     EstudianteDirectorSerializer,
 )
-from .write_serializers import EstudianteSoloCreateSerializer, EstudianteCreateSerializer
+from .write_serializers import EstudianteSoloCreateSerializer

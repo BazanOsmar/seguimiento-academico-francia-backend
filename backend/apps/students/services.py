@@ -3,8 +3,6 @@ import re
 import openpyxl
 from django.db import transaction
 
-from backend.apps.users.models import TipoUsuario, User
-from backend.core.utils import generar_password, generar_username
 from .models import Estudiante
 
 _PATRON_HOJA       = re.compile(r'^\S+\s+[A-Za-z]$')
@@ -38,37 +36,6 @@ def crear_estudiante_solo(datos):
         activo=True,
     )
 
-
-@transaction.atomic
-def crear_estudiante_con_tutor(datos):
-    """
-    Crea el tutor (User) y el Estudiante en una transacción atómica.
-    Retorna (estudiante, credenciales_tutor).
-    """
-    tipo_tutor, _ = TipoUsuario.objects.get_or_create(nombre='Tutor')
-
-    username = datos.get('tutor_username') or generar_username(datos['tutor_nombre'], datos['tutor_apellidos'])
-    password = generar_password(datos['tutor_nombre'], datos['tutor_apellidos'])
-
-    tutor = User.objects.create_user(
-        username=username,
-        password=password,
-        first_name=datos['tutor_nombre'],
-        last_name=datos['tutor_apellidos'],
-        tipo_usuario=tipo_tutor,
-        primer_ingreso=True,
-    )
-
-    estudiante = Estudiante.objects.create(
-        nombre=datos['nombre'],
-        apellido_paterno=datos.get('apellido_paterno', ''),
-        apellido_materno=datos.get('apellido_materno', ''),
-        identificador=datos.get('identificador') or None,
-        curso=datos['curso'],
-        tutor=tutor,
-    )
-
-    return estudiante, {'username': username, 'password': password}
 
 
 # ── Importación desde Excel ───────────────────────────────────────
