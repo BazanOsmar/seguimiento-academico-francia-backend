@@ -329,6 +329,20 @@
             font-size: 0.88rem; font-weight: 500;
             padding: 36px 16px;
         }
+        .cit-paginacion {
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; padding: 12px 16px;
+            border-top: 1px solid var(--border);
+        }
+        .cit-pag-btn {
+            background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-secondary); border-radius: var(--radius-sm);
+            padding: 4px 12px; font-size: 0.82rem; cursor: pointer;
+            transition: background .15s;
+        }
+        .cit-pag-btn:hover:not(:disabled) { background: var(--bg-card); color: var(--text-primary); }
+        .cit-pag-btn:disabled { opacity: .4; cursor: default; }
+        .cit-pag-info { font-size: 0.8rem; color: var(--text-muted); }
 
         /* ── Calendario de asistencia ── */
         .perfil-cal-card {
@@ -1028,6 +1042,8 @@ function fmtFecha(str) {
 let _todasCitaciones = [];
 let _filtroActivo    = 'todos';
 let _citMes          = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+let _citPage         = 1;
+const _CIT_PER_PAGE  = 10;
 
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -1047,13 +1063,12 @@ const FILTROS = {
     asistencia: c => ['ASISTIO', 'ATRASO', 'NO_ASISTIO', 'VISTO'].includes(c.asistencia),
 };
 const FILTRO_EMPTY = {
-    todos:      'Sin citaciones registradas.',
+    todos:      'Sin citaciones este mes.',
     pendiente:  'Sin citaciones pendientes este mes.',
     vencidas:   'Sin citaciones vencidas este mes.',
     asistencia: 'Sin citaciones con asistencia registrada este mes.',
 };
 
-// Color/icon por estado del tab
 const CIT_TAB_CLASS = { todos: 'asistencia', pendiente: 'pendiente', vencidas: 'vencida', asistencia: 'asistencia' };
 
 function _citItemClass(asistencia) {
@@ -1071,8 +1086,8 @@ function renderCitaciones(lista) {
 
 function _actualizarContadores() {
     const delMes = _citacionesDelMes();
-    document.getElementById('citTotalBadge').textContent   = `${delMes.length} TOTAL`;
-    document.getElementById('countTodos').textContent      = _todasCitaciones.length;
+    document.getElementById('citTotalBadge').textContent   = `${_todasCitaciones.length} TOTAL`;
+    document.getElementById('countTodos').textContent      = delMes.length;
     document.getElementById('countPendiente').textContent  = delMes.filter(FILTROS.pendiente).length;
     document.getElementById('countVencidas').textContent   = delMes.filter(FILTROS.vencidas).length;
     document.getElementById('countAsistencia').textContent = delMes.filter(FILTROS.asistencia).length;
@@ -1080,20 +1095,29 @@ function _actualizarContadores() {
 
 function renderFiltro(filtro) {
     _filtroActivo = filtro;
-    const cont  = document.getElementById('citacionesContainer');
-    const base  = filtro === 'todos' ? _todasCitaciones : _citacionesDelMes();
-    const lista = base.filter(FILTROS[filtro]);
+    _citPage = 1;
+    _renderPaginaCit();
+}
 
-    if (!lista.length) {
-        cont.innerHTML = `<p class="cit-empty">${FILTRO_EMPTY[filtro]}</p>`;
+function _renderPaginaCit() {
+    const cont  = document.getElementById('citacionesContainer');
+    const lista = _citacionesDelMes().filter(FILTROS[_filtroActivo]);
+    const total = lista.length;
+
+    if (!total) {
+        cont.innerHTML = `<p class="cit-empty">${FILTRO_EMPTY[_filtroActivo]}</p>`;
         return;
     }
 
+    const paginas = Math.ceil(total / _CIT_PER_PAGE);
+    const desde   = (_citPage - 1) * _CIT_PER_PAGE;
+    const pagina  = lista.slice(desde, desde + _CIT_PER_PAGE);
+
     const chevron = `<svg class="cit-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
 
-    cont.innerHTML = lista.map(c => {
-        const cls   = _citItemClass(c.asistencia);
-        const fecha = new Date(c.fecha_envio).toLocaleDateString('es-BO', { day:'2-digit', month:'short', year:'numeric' });
+    cont.innerHTML = pagina.map(c => {
+        const cls        = _citItemClass(c.asistencia);
+        const fecha      = new Date(c.fecha_envio).toLocaleDateString('es-BO', { day:'2-digit', month:'short', year:'numeric' });
         const badgeClass = ASISTENCIA_CLASS[c.asistencia] || 'badge--default';
         const label      = ASISTENCIA_LABEL[c.asistencia] || c.asistencia;
         return `
@@ -1123,6 +1147,18 @@ function renderFiltro(filtro) {
             </div>
         </div>`;
     }).join('');
+
+    if (paginas > 1) {
+        const pag = document.createElement('div');
+        pag.className = 'cit-paginacion';
+        pag.innerHTML = `
+            <button class="cit-pag-btn" id="citPagPrev" ${_citPage === 1 ? 'disabled' : ''}>‹ Anterior</button>
+            <span class="cit-pag-info">${_citPage} / ${paginas}</span>
+            <button class="cit-pag-btn" id="citPagNext" ${_citPage === paginas ? 'disabled' : ''}>Siguiente ›</button>`;
+        pag.querySelector('#citPagPrev').addEventListener('click', () => { _citPage--; _renderPaginaCit(); });
+        pag.querySelector('#citPagNext').addEventListener('click', () => { _citPage++; _renderPaginaCit(); });
+        cont.appendChild(pag);
+    }
 
     cont.querySelectorAll('.cit-item').forEach(item => {
         item.addEventListener('click', () => toggleCitacion(item));
