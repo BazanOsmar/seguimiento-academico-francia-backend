@@ -28,11 +28,41 @@
             <button class="notif-tab" data-filtro="no_leidas">No leídas</button>
             <button class="notif-tab" data-filtro="leidas">Leídas</button>
         </div>
-        <input type="date" id="notifFechaFiltro" class="notif-date-input" title="Filtrar por fecha">
+        <div class="notif-fecha-wrap">
+            <button class="notif-cal-btn" id="notifFechaBtn" title="Filtrar por fecha">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span class="notif-fecha-label" id="notifFechaLabel"></span>
+            </button>
+            <button class="notif-fecha-clear" id="notifFechaClear" title="Quitar filtro" style="display:none;">×</button>
+            <!-- input oculto que flatpickr controla -->
+            <input type="text" id="notifFechaFiltroInput" class="notif-fp-input" readonly>
+        </div>
     </div>
 
     <div class="notif-panel__list" id="notifList">
         <div class="notif-loading">Cargando…</div>
+    </div>
+
+    <div class="notif-panel__footer" id="notifFooter" style="display:none;">
+        <button class="notif-page-btn" id="notifPrev" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <span class="notif-page-info" id="notifPageInfo"></span>
+        <button class="notif-page-btn" id="notifNext">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        </button>
     </div>
 </div>
 
@@ -86,7 +116,7 @@
 .notif-panel__filters {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--border, rgba(255,255,255,.08));
     flex-shrink: 0;
@@ -112,18 +142,62 @@
     border-color: var(--accent, #3b82f6);
     color: var(--accent, #3b82f6);
 }
-.notif-date-input {
+/* Fecha / flatpickr */
+.notif-fecha-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+.notif-cal-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     background: var(--bg-app, #13131f);
     border: 1px solid var(--border, rgba(255,255,255,.08));
     border-radius: 6px;
-    color: var(--text-primary, #e2e8f0);
-    font-size: .75rem;
+    color: var(--text-muted, #94a3b8);
     padding: 4px 8px;
     cursor: pointer;
-    flex-shrink: 0;
-    width: 130px;
+    transition: border-color .15s, color .15s;
+    white-space: nowrap;
 }
-.notif-date-input::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
+.notif-cal-btn:hover,
+.notif-cal-btn.notif-cal-btn--active {
+    border-color: var(--accent, #3b82f6);
+    color: var(--accent, #3b82f6);
+}
+.notif-fecha-label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--accent, #3b82f6);
+}
+.notif-fecha-clear {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    font-size: .95rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .12s;
+}
+.notif-fecha-clear:hover { color: var(--error, #ef4444); }
+.notif-fp-input {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 1px; height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    border: none;
+    padding: 0;
+}
+/* Lista */
 .notif-panel__list {
     flex: 1;
     overflow-y: auto;
@@ -166,15 +240,58 @@
 }
 .notif-item__dot--leida { background: transparent; }
 .notif-item__body { flex: 1; min-width: 0; }
+/* Clamp a 3 líneas; expandible al hacer clic */
 .notif-item__desc {
     font-size: .8rem;
     color: var(--text-primary, #e2e8f0);
     line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 .notif-item--leida .notif-item__desc { color: var(--text-muted, #94a3b8); }
+.notif-item--expanded .notif-item__desc {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+}
 .notif-item__hora {
     font-size: .68rem;
     color: var(--text-muted, #94a3b8);
     margin-top: 3px;
+    display: block;
+}
+/* Paginación */
+.notif-panel__footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 9px 14px;
+    border-top: 1px solid var(--border, rgba(255,255,255,.08));
+    flex-shrink: 0;
+}
+.notif-page-btn {
+    background: none;
+    border: 1px solid var(--border, rgba(255,255,255,.08));
+    border-radius: 6px;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    transition: border-color .15s, color .15s;
+}
+.notif-page-btn:hover:not(:disabled) {
+    border-color: var(--accent, #3b82f6);
+    color: var(--accent, #3b82f6);
+}
+.notif-page-btn:disabled { opacity: .3; cursor: not-allowed; }
+.notif-page-info {
+    font-size: .75rem;
+    color: var(--text-muted, #94a3b8);
+    min-width: 44px;
+    text-align: center;
 }
 </style>
