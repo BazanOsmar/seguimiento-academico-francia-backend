@@ -40,9 +40,12 @@ let _todasCitaciones  = [];
 let _todosComunicados = [];
 let _citMesObj        = null;   // { year, month } — se inicializa en _initCitaciones
 let _comMesObj        = null;
-let _citFiltroEstado  = 'PENDIENTE';
+let _citFiltroAnulado = 'ACTIVO';
+let _comFiltroAnulado = 'ACTIVO';
 let _citPage          = 0;
-const _CIT_PER_PAGE   = 8;
+const _CIT_PER_PAGE   = 10;
+let _comPage          = 0;
+const _COM_PER_PAGE   = 10;
 let _marcarCitId      = null;
 let _anularCitId      = null;
 let _anularComId      = null;
@@ -197,15 +200,26 @@ function _initCitaciones() {
     });
     _paintComMes();
 
-    // ── Stats card click → filtrar por estado ──
-    stats.addEventListener('click', (e) => {
-        const card = e.target.closest('.cit-stat-card');
-        if (!card) return;
-        stats.querySelectorAll('.cit-stat-card').forEach(c => c.classList.remove('cit-stat-card--active'));
-        card.classList.add('cit-stat-card--active');
-        _citFiltroEstado = card.dataset.filter;
+    // ── Chips ACTIVO/ANULADA — citaciones ──
+    document.getElementById('estadoChipsCitProf')?.addEventListener('click', e => {
+        const chip = e.target.closest('.rol-chip');
+        if (!chip) return;
+        document.getElementById('estadoChipsCitProf').querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+        chip.classList.add('rol-chip--active');
+        _citFiltroAnulado = chip.dataset.estado;
         _citPage = 0;
         _aplicarFiltroCit();
+    });
+
+    // ── Chips ACTIVO/ANULADO — comunicados ──
+    document.getElementById('estadoChipsComProf')?.addEventListener('click', e => {
+        const chip = e.target.closest('.rol-chip');
+        if (!chip) return;
+        document.getElementById('estadoChipsComProf').querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+        chip.classList.add('rol-chip--active');
+        _comFiltroAnulado = chip.dataset.estado;
+        _comPage = 0;
+        _aplicarFiltroCom();
     });
 
     // ── Búsqueda con debounce ──
@@ -1021,13 +1035,11 @@ function _escapeHtml(str) {
 
 // ── Cargar citaciones ─────────────────────────────────────────────
 async function cargarCitaciones() {
-    const spinner = document.getElementById('citSpinner');
-    const grid    = document.getElementById('citCardsGrid');
-    const empty   = document.getElementById('citEmpty');
+    const spinner    = document.getElementById('citSpinner');
+    const container  = document.getElementById('citTablaWrap');
 
-    if (spinner) spinner.style.display = 'flex';
-    if (grid)    grid.innerHTML = '';
-    if (empty)   empty.style.display = 'none';
+    if (spinner)   spinner.style.display = 'flex';
+    if (container) container.innerHTML = '';
 
     const { ok, data } = await fetchAPI('/api/discipline/citaciones/');
 
@@ -1049,13 +1061,13 @@ function _aplicarFiltroCit() {
         return d.getFullYear() === _citMesObj.year && d.getMonth() === _citMesObj.month;
     });
 
-    // 2. Actualizar stats con datos del mes (antes de filtrar por estado)
-    _actualizarStatsCit(porMes);
+    // 2. Actualizar stats con las activas (no anuladas) del mes
+    _actualizarStatsCit(porMes.filter(c => c.asistencia !== 'ANULADA'));
 
-    // 3. Filtrar por estado (las ANULADAS siempre se muestran, greyed out)
-    let filtradas = _citFiltroEstado
-        ? porMes.filter(c => c.asistencia === _citFiltroEstado || c.asistencia === 'ANULADA')
-        : porMes;
+    // 3. Filtrar por ACTIVO/ANULADA
+    let filtradas = _citFiltroAnulado === 'ANULADA'
+        ? porMes.filter(c => c.asistencia === 'ANULADA')
+        : porMes.filter(c => c.asistencia !== 'ANULADA');
 
     // 4. Filtrar por búsqueda
     if (q) {
@@ -1065,7 +1077,14 @@ function _aplicarFiltroCit() {
         );
     }
 
-    _renderCitCards(filtradas);
+    // 5. Ordenar por fecha límite ascendente
+    filtradas.sort((a, b) => {
+        const da = a.fecha_limite_asistencia ? new Date(a.fecha_limite_asistencia + 'T00:00:00') : new Date('9999-01-01');
+        const db = b.fecha_limite_asistencia ? new Date(b.fecha_limite_asistencia + 'T00:00:00') : new Date('9999-01-01');
+        return da - db;
+    });
+
+    _renderCitTable(filtradas);
 }
 
 function _actualizarStatsCit(citaciones) {
@@ -1081,92 +1100,88 @@ function _actualizarStatsCit(citaciones) {
     });
 }
 
-function _renderCitCards(filtradas) {
-    const grid    = document.getElementById('citCardsGrid');
-    const empty   = document.getElementById('citEmpty');
-    const pagin   = document.getElementById('citPagination');
+function _renderCitTable(filtradas) {
+    const container = document.getElementById('citTablaWrap');
+    const footer    = document.getElementById('citGridFooter');
+    if (!container) return;
 
     if (!filtradas.length) {
-        grid.innerHTML = '';
-        if (empty)  empty.style.display = '';
-        if (pagin)  pagin.innerHTML = '';
+        container.innerHTML = `<div class="empty-cards">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <p>No hay citaciones registradas en este período.</p>
+        </div>`;
+        if (footer) footer.innerHTML = '';
         return;
     }
-    if (empty) empty.style.display = 'none';
 
     const total = filtradas.length;
     const pages = Math.ceil(total / _CIT_PER_PAGE);
     if (_citPage >= pages) _citPage = pages - 1;
     const slice = filtradas.slice(_citPage * _CIT_PER_PAGE, (_citPage + 1) * _CIT_PER_PAGE);
 
-    const BADGE_CLASS = {
-        PENDIENTE:  'cit-badge-status--pendiente',
-        ASISTIO:    'cit-badge-status--asistio',
-        NO_ASISTIO: 'cit-badge-status--no_asistio',
-        ATRASO:     'cit-badge-status--atraso',
-        VENCIDA:    'cit-badge-status--vencida',
-        ANULADA:    'cit-badge-status--anulada',
+    const STATUS_CFG = {
+        PENDIENTE:  { cls: 'pendiente',  txt: 'Pendiente'  },
+        ASISTIO:    { cls: 'asistio',    txt: 'Asistió'    },
+        NO_ASISTIO: { cls: 'no_asistio', txt: 'No asistió' },
+        ATRASO:     { cls: 'atraso',     txt: 'Atraso'     },
+        ANULADA:    { cls: 'anulada',    txt: 'Anulada'    },
     };
 
-    const currentUser  = JSON.parse(localStorage.getItem('user') || 'null');
-    const esProfesor   = currentUser?.tipo_usuario === 'Profesor';
+    const fmtFecha = s => s
+        ? new Date(s + 'T00:00:00').toLocaleDateString('es-BO', { day: '2-digit', month: 'short' })
+        : '—';
 
-    grid.innerHTML = slice.map(c => {
-        const asist    = c.asistencia || 'PENDIENTE';
-        const fechaLim = c.fecha_limite_asistencia
-            ? new Date(c.fecha_limite_asistencia + 'T00:00:00').toLocaleDateString('es-BO')
-            : '—';
-        return `
-        <article class="citacion-card" data-status="${asist}" data-id="${c.id}" style="cursor:pointer;">
-            <div class="citacion-card__header">
-                <div style="flex:1;min-width:0;">
-                    <div class="citacion-card__nombre">${_escapeHtml(c.estudiante_nombre)}</div>
-                    <div class="citacion-card__meta">
-                        <span class="cit-row__curso">${_escapeHtml(c.curso || '—')}</span>
-                        <span class="citacion-card__motivo">${_escapeHtml(MOTIVOS[c.motivo] || c.motivo)}</span>
-                    </div>
-                    ${c.materia_nombre && !esProfesor ? `<div class="cit-emisor">
-                        <span class="cit-emisor__materia">${_escapeHtml(c.materia_nombre)}</span>
-                    </div>` : ''}
-                </div>
-                <span class="cit-badge-status ${BADGE_CLASS[asist] || ''}">
-                    <span class="cit-status-dot"></span>${_escapeHtml(ASISTENCIA_LABELS[asist] || asist)}
-                </span>
-            </div>
-            <div class="citacion-card__foot">
-                <span class="citacion-card__foot-label">Fecha límite</span>
-                <span class="citacion-card__foot-val">${fechaLim}</span>
-            </div>
-        </article>`;
-    }).join('');
+    container.innerHTML = `
+        <div class="cit-table-wrap">
+            <table class="cit-table">
+                <thead><tr>
+                    <th>Estudiante</th>
+                    <th>Curso</th>
+                    <th>Motivo</th>
+                    <th>Fecha límite</th>
+                    <th>Estado</th>
+                </tr></thead>
+                <tbody>
+                ${slice.map(c => {
+                    const asist = c.asistencia || 'PENDIENTE';
+                    const st    = STATUS_CFG[asist] || { cls: '', txt: asist };
+                    return `<tr data-id="${c.id}" style="${asist === 'ANULADA' ? 'opacity:.42;' : ''}">
+                        <td><div class="cit-table__main">${_escapeHtml(c.estudiante_nombre)}</div></td>
+                        <td>${_escapeHtml(c.curso || '—')}</td>
+                        <td>${_escapeHtml(MOTIVOS[c.motivo] || c.motivo || '—')}</td>
+                        <td>${fmtFecha(c.fecha_limite_asistencia)}</td>
+                        <td><span class="cit-badge-status cit-badge-status--${st.cls}">
+                            <span class="cit-status-dot"></span>${_escapeHtml(st.txt)}
+                        </span></td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table>
+        </div>`;
 
-    grid.querySelectorAll('.citacion-card').forEach(card => {
-        card.addEventListener('click', () => _abrirModalDetalleCit(parseInt(card.dataset.id)));
+    container.querySelectorAll('tbody tr[data-id]').forEach(row => {
+        row.addEventListener('click', () => _abrirModalDetalleCit(parseInt(row.dataset.id)));
     });
 
-    // Paginación
-    if (pagin) {
-        if (pages <= 1) {
-            pagin.innerHTML = '';
-        } else {
-            const btnStyle = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-size:.85rem;padding:6px 14px;transition:background .15s,color .15s;';
-            pagin.innerHTML = `
+    if (footer) {
+        const btnStyle = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-size:.85rem;padding:6px 14px;transition:background .15s,color .15s;';
+        const paginHtml = pages > 1 ? `
+            <div style="display:flex;align-items:center;gap:8px;">
                 <button style="${btnStyle}" onclick="_citPage=Math.max(0,_citPage-1);_aplicarFiltroCit();" ${_citPage===0?'disabled':''}>&#8249;</button>
-                <span style="font-size:.82rem;color:var(--text-muted);min-width:70px;text-align:center;">${_citPage+1} / ${pages}</span>
-                <button style="${btnStyle}" onclick="_citPage=Math.min(${pages-1},_citPage+1);_aplicarFiltroCit();" ${_citPage>=pages-1?'disabled':''}>&#8250;</button>`;
-        }
+                <span style="font-size:.82rem;color:var(--text-muted);min-width:60px;text-align:center;">${_citPage+1} / ${pages}</span>
+                <button style="${btnStyle}" onclick="_citPage=Math.min(${pages-1},_citPage+1);_aplicarFiltroCit();" ${_citPage>=pages-1?'disabled':''}>&#8250;</button>
+            </div>` : '';
+        footer.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem;">${total} citacion${total !== 1 ? 'es' : ''}</span>${paginHtml}`;
     }
 }
 
 // ── Cargar comunicados ────────────────────────────────────────────
 async function cargarComunicados() {
-    const spinner = document.getElementById('comSpinner');
-    const list    = document.getElementById('comCardsList');
-    const empty   = document.getElementById('comEmpty');
+    const spinner   = document.getElementById('comSpinner');
+    const container = document.getElementById('comTablaWrap');
 
-    if (spinner) spinner.style.display = 'flex';
-    if (list)    list.innerHTML = '';
-    if (empty)   empty.style.display = 'none';
+    if (spinner)   spinner.style.display = 'flex';
+    if (container) container.innerHTML = '';
 
     const { ok, data } = await fetchAPI('/api/comunicados/');
 
@@ -1180,72 +1195,93 @@ async function cargarComunicados() {
 
 function _aplicarFiltroCom() {
     const q           = (document.getElementById('searchInputProf')?.value || '').toLowerCase().trim();
-    const list        = document.getElementById('comCardsList');
-    const empty       = document.getElementById('comEmpty');
+    const container   = document.getElementById('comTablaWrap');
+    const footer      = document.getElementById('comGridFooter');
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
-    if (!list) return;
+    if (!container) return;
 
     let filtrados = _todosComunicados.filter(c => {
-        if (!c.fecha_envio) return false;
-        const d = new Date(c.fecha_envio);
-        return d.getFullYear() === _comMesObj.year && d.getMonth() === _comMesObj.month;
+        if (!c.fecha_creacion) return false;
+        const d = new Date(c.fecha_creacion);
+        if (d.getFullYear() !== _comMesObj.year || d.getMonth() !== _comMesObj.month) return false;
+        const esAnulado = c.estado === 'ANULADO';
+        if (_comFiltroAnulado === 'ANULADO' && !esAnulado) return false;
+        if (_comFiltroAnulado === 'ACTIVO'  &&  esAnulado) return false;
+        return true;
     });
 
     if (q) {
         filtrados = filtrados.filter(c =>
-            (c.titulo || '').toLowerCase().includes(q) ||
-            (c.emisor_nombre || '').toLowerCase().includes(q)
+            (c.titulo || '').toLowerCase().includes(q)
         );
     }
 
     if (!filtrados.length) {
-        list.innerHTML = '';
-        if (empty) empty.style.display = '';
+        container.innerHTML = `<div class="empty-cards">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <p>No hay comunicados en este período.</p>
+        </div>`;
+        if (footer) footer.innerHTML = '';
         return;
     }
-    if (empty) empty.style.display = 'none';
-    list.innerHTML = filtrados.map(c => _renderComCard(c, currentUser)).join('');
 
-    list.querySelectorAll('.com-card[data-com-id]').forEach(card => {
-        card.addEventListener('click', () => {
-            const id  = parseInt(card.dataset.comId);
+    const total = filtrados.length;
+    const pages = Math.ceil(total / _COM_PER_PAGE);
+    if (_comPage >= pages) _comPage = pages - 1;
+    const slice = filtrados.slice(_comPage * _COM_PER_PAGE, (_comPage + 1) * _COM_PER_PAGE);
+
+    container.innerHTML = `
+        <div class="cit-table-wrap">
+            <table class="cit-table">
+                <thead><tr>
+                    <th>Título</th>
+                    <th>Alcance</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                </tr></thead>
+                <tbody>
+                ${slice.map(c => {
+                    const anulado  = c.estado === 'ANULADO';
+                    const fechaStr = c.fecha_creacion
+                        ? new Date(c.fecha_creacion).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : '—';
+                    return `<tr data-id="${c.id}" style="${anulado ? 'opacity:.42;' : ''}">
+                        <td>
+                            <div class="cit-table__main">${_escapeHtml(c.titulo)}</div>
+                            <div class="cit-table__muted">${_escapeHtml((c.descripcion || '').slice(0, 80))}${(c.descripcion || '').length > 80 ? '...' : ''}</div>
+                        </td>
+                        <td>${_escapeHtml(c.alcance_display || c.alcance || '—')}</td>
+                        <td>${_escapeHtml(fechaStr)}</td>
+                        <td>${anulado
+                            ? '<span style="display:inline-block;font-size:.67rem;font-weight:700;padding:1px 7px;border-radius:99px;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);">Anulado</span>'
+                            : '<span style="display:inline-block;font-size:.67rem;font-weight:700;padding:1px 7px;border-radius:99px;background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);">Activo</span>'
+                        }</td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+
+    container.querySelectorAll('tbody tr[data-id]').forEach(row => {
+        row.addEventListener('click', () => {
+            const id  = parseInt(row.dataset.id);
             const com = _todosComunicados.find(c => c.id === id);
             if (com) _abrirModalDetalleCom(com, currentUser);
         });
     });
+
+    if (footer) {
+        const btnStyle = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-size:.85rem;padding:6px 14px;transition:background .15s,color .15s;';
+        const paginHtml = pages > 1 ? `
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button style="${btnStyle}" onclick="_comPage=Math.max(0,_comPage-1);_aplicarFiltroCom();" ${_comPage===0?'disabled':''}>&#8249;</button>
+                <span style="font-size:.82rem;color:var(--text-muted);min-width:60px;text-align:center;">${_comPage+1} / ${pages}</span>
+                <button style="${btnStyle}" onclick="_comPage=Math.min(${pages-1},_comPage+1);_aplicarFiltroCom();" ${_comPage>=pages-1?'disabled':''}>&#8250;</button>
+            </div>` : '';
+        footer.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem;">${total} comunicado${total !== 1 ? 's' : ''}</span>${paginHtml}`;
+    }
 }
 
-function _renderComCard(c, currentUser) {
-    const fecha = c.fecha_envio
-        ? new Date(c.fecha_envio).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '—';
-    const anulado      = c.estado === 'ANULADO';
-    const esDirector   = currentUser?.tipo_usuario === 'Director';
-    const alcanceClass = c.alcance === 'TODOS' ? 'com-chip--destino' : 'com-chip--alcance';
-
-    return `
-    <article class="com-card${anulado ? ' com-card--anulado' : ''}" style="cursor:pointer;" data-com-id="${c.id}">
-        <div class="com-card__head">
-            <div class="com-card__meta">
-                <div class="com-card__chips">
-                    <span class="com-chip ${alcanceClass}">${_escapeHtml(c.alcance_display || c.alcance)}</span>
-                    ${anulado ? `<span class="com-chip com-chip--anulado">Anulado</span>` : ''}
-                </div>
-                <span class="com-card__fecha">${fecha}</span>
-            </div>
-            <h3 class="com-card__titulo">${_escapeHtml(c.titulo)}</h3>
-        </div>
-        ${esDirector && c.emisor_nombre ? `
-        <div class="com-card__bottom">
-            <div class="com-card__autor">
-                <span class="com-card__autor-icon">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </span>
-                <span class="com-card__autor-nombre">${_escapeHtml(c.emisor_nombre)} · ${_escapeHtml(c.emisor_tipo || '')}</span>
-            </div>
-        </div>` : ''}
-    </article>`;
-}
 
 // ── Modal: Detalle citación ───────────────────────────────────────
 function _initDetalleCitModals() {

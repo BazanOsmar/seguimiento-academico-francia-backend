@@ -12,6 +12,8 @@ let filtroEmisor    = '';           // '' = todos los roles
 let filtroSearchCit = '';
 let filtroSearchCom = '';
 let filtroEmisorCom = '';
+let filtroEstadoCit = 'ACTIVO';
+let filtroEstadoCom = 'ACTIVO';
 
 // ── Estado mes ────────────────────────────────────────────────────
 const _hoy        = new Date();
@@ -22,7 +24,7 @@ let   _comMes     = _mesActual;
 
 // ── Paginación ────────────────────────────────────────────────────
 let _citPage = 1;
-const _citPerPage = 8;
+const _citPerPage = 15;
 let _citFiltradasData = [];
 
 let _comPage = 1;
@@ -77,6 +79,40 @@ function _formatFechaCorta(iso) {
     return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function _parseFechaLocal(iso) {
+    if (!iso) return null;
+    const raw = String(iso).slice(0, 10);
+    const parts = raw.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function _inicioHoy() {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function _claseLimiteAsistencia(c) {
+    const limite = _parseFechaLocal(c.fecha_limite_asistencia);
+    if (!limite) return 'neutral';
+
+    const hoy = _inicioHoy();
+    if (limite <= hoy) return 'danger';
+
+    const creada = _parseFechaLocal(c.fecha_creacion || c.fecha_envio) || hoy;
+    const total = limite - creada;
+    if (total <= 0) return 'danger';
+
+    const transcurrido = hoy - creada;
+    if (transcurrido <= 0) return 'ok';
+    return (transcurrido / total) >= 0.5 ? 'warn' : 'ok';
+}
+
+function _limiteAsistenciaHTML(c) {
+    const cls = _claseLimiteAsistencia(c);
+    return `<span class="cit-limit cit-limit--${cls}">${_escapeHtml(_formatFechaCorta(c.fecha_limite_asistencia))}</span>`;
+}
+
 function estadoBadgeHTML(asistencia) {
     const map = {
         PENDIENTE:  { cls: 'estado-badge--pendiente',  txt: 'Pendiente' },
@@ -94,11 +130,12 @@ const _STATUS_CFG = {
     ASISTIO:    { cls: 'asistio',    txt: 'Asistió'    },
     NO_ASISTIO: { cls: 'no_asistio', txt: 'No asistió' },
     ATRASO:     { cls: 'atraso',     txt: 'Atraso'     },
+    ANULADA:    { cls: 'anulada',    txt: 'Anulada'    },
 };
 
 function renderCards(citaciones) {
     if (citaciones) _citFiltradasData = citaciones;
-    const grid   = document.getElementById('citacionesGrid');
+    const grid = document.getElementById('citacionesGrid');
     const footer = document.getElementById('gridFooter');
 
     if (!_citFiltradasData.length) {
@@ -122,58 +159,52 @@ function renderCards(citaciones) {
     const from = (_citPage - 1) * _citPerPage;
     const paginadas = _citFiltradasData.slice(from, from + _citPerPage);
 
-    grid.innerHTML = paginadas.map(c => {
-        const st = _STATUS_CFG[c.asistencia] || { cls: '', txt: c.asistencia };
-
-        let emisorTag = '';
-        if (c.emisor_tipo === 'Profesor') {
-            const materia = c.materia_nombre
-                ? `<span class="cit-emisor__materia">${c.materia_nombre}</span>`
-                : '';
-            emisorTag = `
-                <div class="cit-emisor">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.6">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    ${materia}${materia ? '<span class="cit-emisor__sep">·</span>' : ''}
-                    <span class="cit-emisor__nombre">${c.emisor_nombre}</span>
-                </div>`;
-        } else if (c.emisor_tipo === 'Regente') {
-            emisorTag = `
-                <div class="cit-emisor">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.6">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    <span class="cit-emisor__nombre">${c.emisor_nombre}</span>
-                </div>`;
-        }
-
-        return `
-        <div class="citacion-card" data-status="${c.asistencia}" data-id="${c.id}">
-            <div class="citacion-card__header">
-                <div style="flex:1;min-width:0;">
-                    <div class="citacion-card__nombre">${c.estudiante_nombre}</div>
-                    <div class="citacion-card__meta">
-                        <span class="cit-row__curso">${c.curso}</span>
-                        <span class="citacion-card__motivo citacion-card__motivo--${c.motivo}">${MOTIVO_LABELS[c.motivo] || c.motivo}</span>
-                    </div>
-                    ${emisorTag}
-                </div>
-                <span class="cit-badge-status cit-badge-status--${st.cls}" style="flex-shrink:0;align-self:flex-start;">
-                    <span class="cit-status-dot"></span>${st.txt}
-                </span>
-            </div>
-            <div class="citacion-card__foot">
-                <span class="citacion-card__foot-label">Fecha límite</span>
-                <span class="citacion-card__foot-val">${_formatFechaCorta(c.fecha_limite_asistencia)}</span>
-            </div>
+    grid.innerHTML = `
+        <div class="cit-table-wrap">
+            <table class="cit-table">
+                <thead>
+                    <tr>
+                        <th>Tipo usuario</th>
+                        <th>Nombre emisor</th>
+                        <th>Estudiante</th>
+                        <th>Curso</th>
+                        <th>Límite asistencia</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${paginadas.map(c => {
+                        const st       = _STATUS_CFG[c.asistencia] || { cls: '', txt: c.asistencia || 'Sin estado' };
+                        const anulada  = c.asistencia === 'ANULADA';
+                        const rowStyle = anulada ? 'opacity:.42;' : '';
+                        return `
+                            <tr data-id="${_escapeHtml(c.id)}" style="${rowStyle}">
+                                <td><span class="cit-table__type">${_escapeHtml(c.emisor_tipo || 'Sin tipo')}</span></td>
+                                <td>
+                                    <div class="cit-table__main">${_escapeHtml(c.emisor_nombre || 'Sin emisor')}</div>
+                                    ${c.materia_nombre ? `<div class="cit-table__muted">${_escapeHtml(c.materia_nombre)}</div>` : ''}
+                                </td>
+                                <td>
+                                    <div class="cit-table__main">${_escapeHtml(c.estudiante_nombre)}</div>
+                                    <div class="cit-table__muted">${_escapeHtml(MOTIVO_LABELS[c.motivo] || c.motivo || 'Sin motivo')}</div>
+                                </td>
+                                <td>${_escapeHtml(c.curso)}</td>
+                                <td>${_limiteAsistenciaHTML(c)}</td>
+                                <td>
+                                    <span class="cit-badge-status cit-badge-status--${st.cls}">
+                                        <span class="cit-status-dot"></span>${_escapeHtml(st.txt)}
+                                    </span>
+                                </td>
+                            </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
         </div>`;
-    }).join('');
 
-    const footerInfo = `${total} citación${total !== 1 ? 'es' : ''}`;
+    const footerInfo = `${total} citacion${total !== 1 ? 'es' : ''}`;
     const pgHTML = renderPaginationHTML(total, _citPerPage, _citPage);
-    footer.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; width:100%; gap:8px;"><span style="color:var(--text-muted); font-size:0.8rem;">${footerInfo}</span>${pgHTML}</div>`;
-    footer.querySelectorAll('.-page-btn').forEach(b => {
+    if (footer) footer.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; width:100%; gap:8px;"><span style="color:var(--text-muted); font-size:0.8rem;">${footerInfo}</span>${pgHTML}</div>`;
+    footer?.querySelectorAll('.-page-btn').forEach(b => {
          b.addEventListener('click', (e) => {
              _citPage = parseInt(e.target.dataset.p);
              grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -181,25 +212,14 @@ function renderCards(citaciones) {
          });
     });
 
-    grid.querySelectorAll('.citacion-card').forEach(card => {
-        card.addEventListener('click', () => abrirModalDetalle(card.dataset.id));
+    grid.querySelectorAll('tbody tr[data-id]').forEach(row => {
+        row.addEventListener('click', () => abrirModalDetalle(row.dataset.id));
     });
 }
 
 function mostrarSkeletonCards() {
     const grid = document.getElementById('citacionesGrid');
-    grid.innerHTML = Array(5).fill(0).map(() => `
-        <div class="cit-row cit-row--skeleton">
-            <div><div class="skel-cell" style="width:36px;height:11px;"></div></div>
-            <div>
-                <div class="skel-cell" style="width:65%;height:13px;"></div>
-                <div class="skel-cell" style="width:40%;height:10px;margin-top:5px;"></div>
-            </div>
-            <div style="text-align:center;"><div class="skel-cell" style="width:70px;height:20px;border-radius:4px;margin:0 auto;"></div></div>
-            <div style="text-align:center;"><div class="skel-cell" style="width:60%;height:11px;margin:0 auto;"></div></div>
-            <div style="display:flex;justify-content:flex-end;"><div class="skel-cell" style="width:80px;height:20px;border-radius:50px;"></div></div>
-        </div>
-    `).join('');
+    grid.innerHTML = '<div class="empty-cards"><p>Cargando citaciones...</p></div>';
 }
 
 // ── Stats de citaciones ───────────────────────────────────────────
@@ -243,28 +263,32 @@ function _fechaMes(c) {
 }
 
 function aplicarFiltro() {
-    // Filtro por mes
     let filtradas = todasCitaciones.filter(c => _fechaMes(c) === _citMes);
 
-    // Actualizar contador del mes-nav
     const countEl = document.getElementById('citMesCount');
     if (countEl) {
         const total = filtradas.length;
         countEl.textContent = total
-            ? `${total} citación${total !== 1 ? 'es' : ''}`
+            ? `${total} citacion${total !== 1 ? 'es' : ''}`
             : 'Sin citaciones';
     }
 
-    if (filtroActivo === 'VENCIDA') {
+    filtradas = filtradas.filter(c => {
+        const anulada = c.asistencia === 'ANULADA';
+        return filtroEstadoCit === 'ANULADA' ? anulada : !anulada;
+    });
+
+    if (filtroEstadoCit !== 'ANULADA' && filtroActivo === 'VENCIDA') {
         const hoyFiltro = new Date(); hoyFiltro.setHours(0, 0, 0, 0);
         filtradas = filtradas.filter(c => {
             if (c.asistencia !== 'PENDIENTE') return false;
             const lim = new Date((c.fecha_limite_asistencia || '') + 'T00:00:00');
             return lim < hoyFiltro;
         });
-    } else if (filtroActivo) {
+    } else if (filtroEstadoCit !== 'ANULADA' && filtroActivo) {
         filtradas = filtradas.filter(c => c.asistencia === filtroActivo);
     }
+
     if (filtroEmisor) filtradas = filtradas.filter(c => c.emisor_tipo === filtroEmisor);
     if (filtroSearchCit) {
         const q = filtroSearchCit.toLowerCase();
@@ -272,11 +296,11 @@ function aplicarFiltro() {
             (c.estudiante_nombre || '').toLowerCase().includes(q)
         );
     }
-    if (filtroActivo === 'PENDIENTE') {
-        filtradas = [...filtradas].sort((a, b) =>
-            new Date(a.fecha_limite_asistencia) - new Date(b.fecha_limite_asistencia)
-        );
-    }
+
+    filtradas = [...filtradas].sort((a, b) =>
+        new Date(a.fecha_limite_asistencia) - new Date(b.fecha_limite_asistencia)
+    );
+
     _citPage = 1;
     renderCards(filtradas);
 }
@@ -286,15 +310,17 @@ function _actualizarNavMes() {
     const [y, m] = _citMes.split('-').map(Number);
     const fecha = new Date(y, m - 1, 1);
     const label = fecha.toLocaleDateString('es-BO', { month: 'long', year: 'numeric' });
-    document.getElementById('citMesLabel').textContent = label;
+    const labelEl = document.getElementById('citMesLabel');
+    if (labelEl) labelEl.textContent = label;
 
     const btnPrev = document.getElementById('btnMesPrev');
     const btnNext = document.getElementById('btnMesNext');
+    if (!btnPrev || !btnNext) return;
     btnPrev.disabled = (y === _anioActual && m === 1);
     btnNext.disabled = (_citMes >= _mesActual);
 }
 
-document.getElementById('btnMesPrev').addEventListener('click', () => {
+document.getElementById('btnMesPrev')?.addEventListener('click', () => {
     const [y, m] = _citMes.split('-').map(Number);
     if (y === _anioActual && m === 1) return;
     const d = new Date(y, m - 2, 1);
@@ -303,7 +329,7 @@ document.getElementById('btnMesPrev').addEventListener('click', () => {
     aplicarFiltro();
 });
 
-document.getElementById('btnMesNext').addEventListener('click', () => {
+document.getElementById('btnMesNext')?.addEventListener('click', () => {
     if (_citMes >= _mesActual) return;
     const [y, m] = _citMes.split('-').map(Number);
     const d = new Date(y, m, 1);
@@ -337,12 +363,21 @@ document.getElementById('statsRow').addEventListener('click', e => {
 });
 
 // ── Chips de rol ──────────────────────────────────────────────────
-document.getElementById('rolChips').addEventListener('click', e => {
+document.getElementById('rolChips')?.addEventListener('click', e => {
     const chip = e.target.closest('.rol-chip');
     if (!chip) return;
-    document.getElementById('rolChips').querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+    document.getElementById('rolChips')?.querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
     chip.classList.add('rol-chip--active');
     filtroEmisor = chip.dataset.emisor;
+    aplicarFiltro();
+});
+
+document.getElementById('estadoChipsCit')?.addEventListener('click', e => {
+    const chip = e.target.closest('.rol-chip');
+    if (!chip) return;
+    document.getElementById('estadoChipsCit')?.querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+    chip.classList.add('rol-chip--active');
+    filtroEstadoCit = chip.dataset.estado || 'ACTIVO';
     aplicarFiltro();
 });
 
@@ -354,6 +389,18 @@ if (rolChipsCom) {
         rolChipsCom.querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
         chip.classList.add('rol-chip--active');
         filtroEmisorCom = chip.dataset.emisor;
+        aplicarFiltroComunicados(true);
+    });
+}
+
+const estadoChipsCom = document.getElementById('estadoChipsCom');
+if (estadoChipsCom) {
+    estadoChipsCom.addEventListener('click', e => {
+        const chip = e.target.closest('.rol-chip');
+        if (!chip) return;
+        estadoChipsCom.querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
+        chip.classList.add('rol-chip--active');
+        filtroEstadoCom = chip.dataset.estado || 'ACTIVO';
         aplicarFiltroComunicados(true);
     });
 }
@@ -1077,6 +1124,7 @@ btnEnviarCom.addEventListener('click', async () => {
         resetFormCom();
         cargarCursosForm();
         colapsarForm();
+        cargarComunicados();
     } else {
         const msg = data?.errores || data?.titulo?.[0] || data?.contenido?.[0] || data?.curso?.[0] || 'Error al enviar.';
         mostrarErrorCom(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -1135,70 +1183,202 @@ async function abrirModalDetalle(id) {
     }
 
     const nombreEsc = data.estudiante_nombre.replace(/'/g, "\\'");
-    
-    // Solo mostramos el botón si la citación está PENDIENTE y el usuario actual es el emisor original
-    const actUser = JSON.parse(localStorage.getItem('user') || 'null');
-    const esEmisor = (actUser && actUser.id === data.emisor_id);
+
+    const actUser   = JSON.parse(localStorage.getItem('user') || 'null');
+    const tipoUser  = actUser?.tipo_usuario || '';
+    const esEmisor  = (actUser && actUser.id === data.emisor_id);
+    const yaResuelta = ['ASISTIO', 'ATRASO', 'ANULADA'].includes(data.asistencia);
+
+    // Botón "Marcar asistencia": solo si PENDIENTE y es el emisor
     const btnMarcar = (data.asistencia === 'PENDIENTE' && esEmisor) ? `
-        <div class="modal-det__footer">
             <button class="btn-marcar-asistencia"
-                    style="width:100%;height:40px;border-radius:var(--radius-sm);font-size:.82rem;"
+                    style="flex:1;height:40px;border-radius:var(--radius-sm);font-size:.82rem;"
                     onclick="cerrarModalDetalle();abrirModalMarcar('${data.id}','${nombreEsc}')">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                Marcar asistencia del tutor
-            </button>
+                Marcar asistencia
+            </button>` : '';
+
+    // Botón "Anular": visible según rol
+    const puedeAnular = !yaResuelta && (
+        tipoUser === 'Director' ||
+        (tipoUser === 'Regente'  && data.emitido_por_cargo === 'Regente') ||
+        (tipoUser === 'Profesor' && esEmisor)
+    );
+    const btnAnular = puedeAnular ? `
+            <button onclick="cerrarModalDetalle();abrirModalAnular('${data.id}','${nombreEsc}')"
+                    style="flex:1;height:40px;border-radius:var(--radius-sm);font-size:.82rem;
+                           background:rgba(239,68,68,.1);color:#ef4444;
+                           border:1px solid rgba(239,68,68,.25);cursor:pointer;font-weight:600;
+                           display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                Anular
+            </button>` : '';
+
+    const footerHTML = (btnMarcar || btnAnular) ? `
+        <div class="modal-det__footer" style="display:flex;gap:8px;">
+            ${btnMarcar}${btnAnular}
         </div>` : '';
 
     const estadoEnvioBadge = data.estado === 'VISTO'
         ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(34,197,94,.13);color:#22c55e;">&#10003; Visto</span>`
         : `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(148,163,184,.12);color:var(--text-muted);">Enviada</span>`;
 
+    const esAnulada = data.asistencia === 'ANULADA';
+    const bannerAnulada = esAnulada ? `
+        <div style="display:flex;align-items:center;gap:7px;
+                    padding:7px 14px;margin-bottom:2px;
+                    background:rgba(239,68,68,.08);border-bottom:1px solid rgba(239,68,68,.18);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="#ef4444" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span style="font-size:.73rem;font-weight:600;letter-spacing:.04em;color:#ef4444;">
+                Esta citación fue anulada
+            </span>
+        </div>` : '';
+
+    const contentFilter = esAnulada ? 'style="filter:grayscale(.6) opacity(.75);"' : '';
+
     modalDetalleConten.innerHTML = `
-        <div class="modal-det__hero modal-det__hero--${data.asistencia}">
-            <p class="modal-det__nombre">${data.estudiante_nombre}</p>
-            <div class="modal-det__sub">
-                <span class="badge-curso">${data.curso}</span>
-                <span class="citacion-card__motivo citacion-card__motivo--${data.motivo}">${MOTIVO_LABELS[data.motivo] || data.motivo}</span>
-                ${estadoBadgeHTML(data.asistencia)}
-                ${estadoEnvioBadge}
+        ${bannerAnulada}
+        <div ${contentFilter}>
+            <div class="modal-det__hero modal-det__hero--${data.asistencia}">
+                <p class="modal-det__nombre">${data.estudiante_nombre}</p>
+                <div class="modal-det__sub">
+                    <span class="badge-curso">${data.curso}</span>
+                    <span class="citacion-card__motivo citacion-card__motivo--${data.motivo}">${MOTIVO_LABELS[data.motivo] || data.motivo}</span>
+                    ${estadoBadgeHTML(data.asistencia)}
+                    ${estadoEnvioBadge}
+                </div>
             </div>
+
+            <div class="modal-det__body">
+                <div class="modal-det__info-grid">
+                    <div class="modal-det__info-item">
+                        <p class="modal-det__info-label">Emitido por</p>
+                        <p class="modal-det__info-val">${data.emitido_por_nombre || '—'}</p>
+                        ${data.emitido_por_cargo ? `<p style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">${data.emitido_por_cargo}</p>` : ''}
+                    </div>
+                    <div class="modal-det__info-item">
+                        <p class="modal-det__info-label">Tutor registrado</p>
+                        <p class="modal-det__info-val">${data.tutor_nombre || '<em style="color:var(--text-muted);font-weight:400;">Sin tutor</em>'}</p>
+                    </div>
+                </div>
+
+                <div class="modal-det__desc">
+                    <p class="modal-det__desc-label">Descripción</p>
+                    <p class="modal-det__desc-text">${data.motivo_descripcion || '—'}</p>
+                </div>
+
+                <div class="modal-det__dates">
+                    <div class="modal-det__date-item">
+                        <span class="modal-det__date-label">Fecha de envío</span>
+                        <span class="modal-det__date-val">${formatFecha(data.fecha_envio)}</span>
+                    </div>
+                    <div class="modal-det__date-item">
+                        <span class="modal-det__date-label">Fecha límite</span>
+                        <span class="modal-det__date-val">${formatFecha(data.fecha_limite_asistencia)}</span>
+                    </div>
+                </div>
+            </div>
+
+            ${footerHTML}
         </div>
-
-        <div class="modal-det__body">
-            <div class="modal-det__info-grid">
-                <div class="modal-det__info-item">
-                    <p class="modal-det__info-label">Emitido por</p>
-                    <p class="modal-det__info-val">${data.emitido_por_nombre || '—'}</p>
-                    ${data.emitido_por_cargo ? `<p style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">${data.emitido_por_cargo}</p>` : ''}
-                </div>
-                <div class="modal-det__info-item">
-                    <p class="modal-det__info-label">Tutor registrado</p>
-                    <p class="modal-det__info-val">${data.tutor_nombre || '<em style="color:var(--text-muted);font-weight:400;">Sin tutor</em>'}</p>
-                </div>
-            </div>
-
-            <div class="modal-det__desc">
-                <p class="modal-det__desc-label">Descripción</p>
-                <p class="modal-det__desc-text">${data.motivo_descripcion || '—'}</p>
-            </div>
-
-            <div class="modal-det__dates">
-                <div class="modal-det__date-item">
-                    <span class="modal-det__date-label">Fecha de envío</span>
-                    <span class="modal-det__date-val">${formatFecha(data.fecha_envio)}</span>
-                </div>
-                <div class="modal-det__date-item">
-                    <span class="modal-det__date-label">Fecha límite</span>
-                    <span class="modal-det__date-val">${formatFecha(data.fecha_limite_asistencia)}</span>
-                </div>
-            </div>
-        </div>
-
-        ${btnMarcar}
     `;
 }
+
+// ── Modal "Anular citación" ───────────────────────────────────────
+const modalAnular       = document.getElementById('modalAnularCitacion');
+const btnCancelarAnular = document.getElementById('btnCancelarAnular');
+const btnConfirmarAnul  = document.getElementById('btnConfirmarAnular');
+const anularNombre      = document.getElementById('anularNombreEstudiante');
+const anularPassInput   = document.getElementById('anularPasswordInput');
+const anularPassError   = document.getElementById('anularPasswordError');
+let _anularCitId        = null;
+
+function abrirModalAnular(id, nombre) {
+    _anularCitId                 = id;
+    anularNombre.textContent     = nombre;
+    anularPassInput.value        = '';
+    anularPassError.style.display = 'none';
+    btnConfirmarAnul.disabled    = false;
+    btnConfirmarAnul.textContent = 'Anular citación';
+    modalAnular.classList.add('visible');
+    setTimeout(() => anularPassInput.focus(), 100);
+}
+
+function cerrarModalAnular() {
+    modalAnular.classList.remove('visible');
+    _anularCitId = null;
+    anularPassInput.value         = '';
+    anularPassError.style.display = 'none';
+}
+
+btnCancelarAnular.addEventListener('click', cerrarModalAnular);
+modalAnular.addEventListener('click', e => { if (e.target === modalAnular) cerrarModalAnular(); });
+
+// Permitir confirmar con Enter desde el campo contraseña
+anularPassInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') btnConfirmarAnul.click();
+});
+
+btnConfirmarAnul.addEventListener('click', async () => {
+    if (!_anularCitId) return;
+
+    const password = anularPassInput.value;
+    if (!password) {
+        anularPassError.textContent   = 'Ingresa tu contraseña.';
+        anularPassError.style.display = 'block';
+        anularPassInput.focus();
+        return;
+    }
+
+    btnConfirmarAnul.disabled    = true;
+    btnConfirmarAnul.textContent = 'Verificando...';
+    anularPassError.style.display = 'none';
+
+    // Paso 1: verificar contraseña
+    const { ok: passOk, data: passData } = await fetchAPI('/api/auth/verificar-contrasena/', {
+        method: 'POST',
+        body:   JSON.stringify({ password }),
+    });
+
+    if (!passOk) {
+        anularPassError.textContent   = passData?.errores || 'Contraseña incorrecta.';
+        anularPassError.style.display = 'block';
+        anularPassInput.value         = '';
+        anularPassInput.focus();
+        btnConfirmarAnul.disabled    = false;
+        btnConfirmarAnul.textContent = 'Anular citación';
+        return;
+    }
+
+    // Paso 2: anular la citación
+    btnConfirmarAnul.textContent = 'Anulando...';
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_anularCitId}/anular/`, {
+        method: 'PATCH',
+        body:   JSON.stringify({}),
+    });
+
+    if (ok) {
+        cerrarModalAnular();
+        showAppToast('success', 'Citación anulada', 'La citación fue anulada correctamente.');
+        await cargarCitaciones();
+    } else {
+        const msg = data?.errores || 'Error al anular la citación.';
+        anularPassError.textContent   = msg;
+        anularPassError.style.display = 'block';
+        btnConfirmarAnul.disabled    = false;
+        btnConfirmarAnul.textContent = 'Anular citación';
+    }
+});
 
 // ── Modal "Marcar asistencia" ─────────────────────────────────────
 const modalMarcar     = document.getElementById('modalMarcarAsistencia');
@@ -1361,9 +1541,10 @@ function aplicarFiltroComunicados(resetPage = false) {
     
     try {
         _comFiltradasData = todasComunicados.filter(c => {
-            const d = c.fecha_envio ? c.fecha_envio.slice(0, 7) : '';
+            const d = c.fecha_creacion ? c.fecha_creacion.slice(0, 7) : '';
             if (d !== _comMes) return false;
             if (filtroEmisorCom && c.emisor_tipo !== filtroEmisorCom) return false;
+            if ((c.estado || 'ACTIVO') !== filtroEstadoCom) return false;
             if (filtroSearchCom) {
                 const q = filtroSearchCom.toLowerCase();
                 const titulo = (c.titulo || '').toLowerCase();
@@ -1376,7 +1557,9 @@ function aplicarFiltroComunicados(resetPage = false) {
             list.innerHTML = `
                 <div class="empty-cards">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.64 12 19.79 19.79 0 0 1 1.58 3.38 2 2 0 0 1 3.56 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.34 6.34l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+                        <path d="M8 9h8"/>
+                        <path d="M8 13h5"/>
                     </svg>
                     <span>No hay comunicados para este mes</span>
                 </div>`;
@@ -1389,7 +1572,10 @@ function aplicarFiltroComunicados(resetPage = false) {
         const from = (_comPage - 1) * _comPerPage;
         const paginadas = _comFiltradasData.slice(from, from + _comPerPage);
         
-        list.innerHTML = paginadas.map(c => _renderComunicadoCard(c)).join('');
+        list.innerHTML = _renderComunicadosTable(paginadas);
+        list.querySelectorAll('tbody tr[data-id]').forEach(row => {
+            row.addEventListener('click', () => abrirModalDetalleComunicado(row.dataset.id));
+        });
         
         const footer = document.getElementById('comFooter');
         if (footer) {
@@ -1444,49 +1630,230 @@ document.getElementById('btnComMesNext')?.addEventListener('click', () => {
 
 // Inicializar nav mes al cargar
 document.addEventListener('DOMContentLoaded', () => {
+    _actualizarNavMes();
     _actualizarNavMesCom();
 });
 
-function _renderComunicadoCard(c) {
-    const fecha   = c.fecha_creacion ? new Date(c.fecha_creacion).toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-    const expira  = c.fecha_expiracion ? new Date(c.fecha_expiracion + 'T12:00:00').toLocaleDateString('es-BO', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-    const cursos  = Array.isArray(c.cursos) && c.cursos.length ? c.cursos.join(' · ') : 'Todo el colegio';
-    const vistoBadge = c.visto
-        ? `<span class="com-chip com-chip--leido">Leído</span>`
-        : '';
-
+function _renderComunicadosTable(comunicados) {
     return `
-        <article class="com-card">
-            <div class="com-card__head">
-                <span class="com-card__fecha">
-                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    ${fecha}
-                </span>
-                <div class="com-card__chips">
-                    <span class="com-chip com-chip--destino">${_escapeHtml(cursos)}</span>
+        <div class="cit-table-wrap">
+            <table class="cit-table com-table">
+                <thead>
+                    <tr>
+                        <th>Tipo usuario</th>
+                        <th>Nombre usuario</th>
+                        <th>Titulo</th>
+                        <th>Fecha expiracion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${comunicados.map(c => {
+                        const anulado   = c.estado === 'ANULADO';
+                        const rowStyle  = anulado ? 'opacity:.42;' : '';
+                        const badgeExtra = anulado
+                            ? `<span style="display:inline-block;font-size:.67rem;font-weight:700;padding:1px 7px;
+                                border-radius:99px;background:rgba(239,68,68,.12);color:#ef4444;
+                                border:1px solid rgba(239,68,68,.25);margin-left:6px;">Anulado</span>`
+                            : '';
+                        return `
+                        <tr data-id="${_escapeHtml(c.id)}" style="${rowStyle}">
+                            <td><span class="cit-table__type">${_escapeHtml(c.emisor_tipo || 'Sin tipo')}</span></td>
+                            <td><div class="cit-table__main">${_escapeHtml(c.emisor_nombre || 'Sin usuario')}</div></td>
+                            <td>
+                                <div class="cit-table__main">${_escapeHtml(c.titulo || 'Sin titulo')}${badgeExtra}</div>
+                                <div class="cit-table__muted">${_escapeHtml((c.descripcion || '').slice(0, 96))}${(c.descripcion || '').length > 96 ? '...' : ''}</div>
+                            </td>
+                            <td>${_escapeHtml(c.fecha_expiracion ? formatFecha(c.fecha_expiracion) : 'Sin expiración')}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function _comunicadoCursosHTML(c) {
+    const cursos = Array.isArray(c.cursos) && c.cursos.length ? c.cursos : ['Todo el colegio'];
+    return cursos.map(curso => `<span class="modal-det__course-chip">${_escapeHtml(curso)}</span>`).join('');
+}
+
+function abrirModalDetalleComunicado(id) {
+    const data = todasComunicados.find(c => String(c.id) === String(id));
+    if (!data) return;
+
+    const alcance    = data.alcance || (Array.isArray(data.cursos) && data.cursos.length ? 'CURSO' : 'TODOS');
+    const esAnulado  = data.estado === 'ANULADO';
+    const actUser    = JSON.parse(localStorage.getItem('user') || 'null');
+    const tipoUser   = actUser?.tipo_usuario || '';
+    const esEmisor   = actUser && actUser.id === data.emisor_id;
+
+    const vistoBadge = data.visto
+        ? '<span class="estado-badge estado-badge--asistio">Leído</span>'
+        : '<span class="estado-badge estado-badge--pendiente">Enviado</span>';
+
+    // Botón anular: visible según rol (igual que citaciones)
+    const puedeAnular = !esAnulado && (
+        tipoUser === 'Director' ||
+        (tipoUser === 'Regente'  && data.emisor_tipo === 'Regente') ||
+        (tipoUser === 'Profesor' && esEmisor)
+    );
+    const tituloEsc = (data.titulo || '').replace(/'/g, "\\'");
+    const btnAnularCom = puedeAnular ? `
+        <div class="modal-det__footer">
+            <button onclick="cerrarModalDetalle();abrirModalAnularComunicado('${data.id}','${tituloEsc}')"
+                    style="width:100%;height:40px;border-radius:var(--radius-sm);font-size:.82rem;
+                           background:rgba(239,68,68,.1);color:#ef4444;
+                           border:1px solid rgba(239,68,68,.25);cursor:pointer;font-weight:600;
+                           display:flex;align-items:center;justify-content:center;gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                Anular comunicado
+            </button>
+        </div>` : '';
+
+    // Banner + filtro visual cuando está anulado
+    const bannerAnulado = esAnulado ? `
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 14px;margin-bottom:2px;
+                    background:rgba(239,68,68,.08);border-bottom:1px solid rgba(239,68,68,.18);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span style="font-size:.73rem;font-weight:600;letter-spacing:.04em;color:#ef4444;">
+                Este comunicado fue anulado
+            </span>
+        </div>` : '';
+    const contentFilter = esAnulado ? 'style="filter:grayscale(.6) opacity(.75);"' : '';
+
+    modalDetalleConten.innerHTML = `
+        ${bannerAnulado}
+        <div ${contentFilter}>
+            <div class="modal-det__hero modal-det__hero--COMUNICADO">
+                <p class="modal-det__nombre">${_escapeHtml(data.titulo || 'Comunicado')}</p>
+                <div class="modal-det__sub">
+                    <span class="citacion-card__motivo citacion-card__motivo--REUNION">${_escapeHtml(alcance)}</span>
                     ${vistoBadge}
                 </div>
             </div>
 
-            <div class="com-card__body">
-                <h3 class="com-card__titulo">${_escapeHtml(c.titulo)}</h3>
-                <p class="com-card__contenido">${_escapeHtml(c.descripcion)}</p>
+            <div class="modal-det__body">
+                <div class="modal-det__info-grid">
+                    <div class="modal-det__info-item">
+                        <p class="modal-det__info-label">Tipo usuario</p>
+                        <p class="modal-det__info-val">${_escapeHtml(data.emisor_tipo || 'Sin tipo')}</p>
+                    </div>
+                    <div class="modal-det__info-item">
+                        <p class="modal-det__info-label">Nombre usuario</p>
+                        <p class="modal-det__info-val">${_escapeHtml(data.emisor_nombre || 'Sin usuario')}</p>
+                    </div>
+                </div>
+
+                <div class="modal-det__desc">
+                    <p class="modal-det__desc-label">Contenido</p>
+                    <p class="modal-det__desc-text">${_escapeHtml(data.descripcion || 'Sin contenido')}</p>
+                </div>
+
+                <div class="modal-det__dates">
+                    <div class="modal-det__date-item">
+                        <span class="modal-det__date-label">Fecha de creación</span>
+                        <span class="modal-det__date-val">${formatFecha(data.fecha_creacion)}</span>
+                    </div>
+                    <div class="modal-det__date-item">
+                        <span class="modal-det__date-label">Fecha expiración</span>
+                        <span class="modal-det__date-val">${data.fecha_expiracion ? formatFecha(data.fecha_expiracion) : '—'}</span>
+                    </div>
+                </div>
+
+                <div class="modal-det__courses">
+                    <p class="modal-det__desc-label">Cursos enviados</p>
+                    <div class="modal-det__course-list">${_comunicadoCursosHTML(data)}</div>
+                </div>
             </div>
 
-            <div class="com-card__bottom">
-                <div class="com-card__autor">
-                    <span class="com-card__autor-icon">
-                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </span>
-                    <span class="com-card__autor-nombre">${_escapeHtml(c.emisor_nombre)}</span>
-                </div>
-                ${expira ? `<span class="com-card__expira">
-                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Expira: ${expira}
-                </span>` : ''}
-            </div>
-        </article>`;
+            ${btnAnularCom}
+        </div>`;
+
+    modalDetalle.classList.add('visible');
 }
+
+// ── Modal "Anular comunicado" ─────────────────────────────────────
+const modalAnularCom      = document.getElementById('modalAnularComunicado');
+const btnCancelarAnulCom  = document.getElementById('btnCancelarAnularCom');
+const btnConfirmarAnulCom = document.getElementById('btnConfirmarAnularCom');
+const anularComNombre     = document.getElementById('anularComNombre');
+const anularComPassInput  = document.getElementById('anularComPassInput');
+const anularComPassError  = document.getElementById('anularComPassError');
+let _anularComId          = null;
+
+function abrirModalAnularComunicado(id, titulo) {
+    _anularComId                      = id;
+    anularComNombre.textContent       = `"${titulo}"`;
+    anularComPassInput.value          = '';
+    anularComPassError.style.display  = 'none';
+    btnConfirmarAnulCom.disabled      = false;
+    btnConfirmarAnulCom.textContent   = 'Anular comunicado';
+    modalAnularCom.classList.add('visible');
+    setTimeout(() => anularComPassInput.focus(), 100);
+}
+
+function cerrarModalAnularComunicado() {
+    modalAnularCom.classList.remove('visible');
+    _anularComId                     = null;
+    anularComPassInput.value         = '';
+    anularComPassError.style.display = 'none';
+}
+
+btnCancelarAnulCom.addEventListener('click', cerrarModalAnularComunicado);
+modalAnularCom.addEventListener('click', e => { if (e.target === modalAnularCom) cerrarModalAnularComunicado(); });
+anularComPassInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnConfirmarAnulCom.click(); });
+
+btnConfirmarAnulCom.addEventListener('click', async () => {
+    if (!_anularComId) return;
+
+    const password = anularComPassInput.value;
+    if (!password) {
+        anularComPassError.textContent   = 'Ingresa tu contraseña.';
+        anularComPassError.style.display = 'block';
+        anularComPassInput.focus();
+        return;
+    }
+
+    btnConfirmarAnulCom.disabled    = true;
+    btnConfirmarAnulCom.textContent = 'Verificando...';
+    anularComPassError.style.display = 'none';
+
+    const { ok: passOk, data: passData } = await fetchAPI('/api/auth/verificar-contrasena/', {
+        method: 'POST',
+        body:   JSON.stringify({ password }),
+    });
+
+    if (!passOk) {
+        anularComPassError.textContent   = passData?.errores || 'Contraseña incorrecta.';
+        anularComPassError.style.display = 'block';
+        anularComPassInput.value         = '';
+        anularComPassInput.focus();
+        btnConfirmarAnulCom.disabled    = false;
+        btnConfirmarAnulCom.textContent = 'Anular comunicado';
+        return;
+    }
+
+    btnConfirmarAnulCom.textContent = 'Anulando...';
+    const { ok, data } = await fetchAPI(`/api/comunicados/${_anularComId}/anular/`, {
+        method: 'PATCH',
+        body:   JSON.stringify({}),
+    });
+
+    if (ok) {
+        cerrarModalAnularComunicado();
+        showAppToast('success', 'Comunicado anulado', 'El comunicado fue anulado correctamente.');
+        await cargarComunicados();
+    } else {
+        const msg = data?.errores || 'Error al anular el comunicado.';
+        anularComPassError.textContent   = msg;
+        anularComPassError.style.display = 'block';
+        btnConfirmarAnulCom.disabled    = false;
+        btnConfirmarAnulCom.textContent = 'Anular comunicado';
+    }
+});
 
 // ── Cobertura FCM (cuántos padres recibirán notificación) ─────────
 let _coberturaTimer = null;

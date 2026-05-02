@@ -20,25 +20,36 @@
     const btnPrev  = document.getElementById('notifPrev');
     const btnNext  = document.getElementById('notifNext');
     const pageInfo = document.getElementById('notifPageInfo');
+    const panelMeta = document.getElementById('notifPanelMeta');
 
     if (!panel) return;
+
+    document.querySelectorAll('.notif-tab').forEach(tab => {
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', tab.classList.contains('notif-tab--active') ? 'true' : 'false');
+    });
 
     // ── Abrir / cerrar ────────────────────────────────────────────
     function abrir() {
         panel.style.display    = 'flex';
         backdrop.style.display = 'block';
+        document.body.classList.add('notif-open');
         _initFlatpickr();
         _cargar();
     }
     function cerrar() {
         panel.style.display    = 'none';
         backdrop.style.display = 'none';
+        document.body.classList.remove('notif-open');
         if (_fpInstance) _fpInstance.close();
     }
 
     btnAbrir.addEventListener('click', abrir);
     btnCerrar.addEventListener('click', cerrar);
     backdrop.addEventListener('click', cerrar);
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && panel.style.display !== 'none') cerrar();
+    });
 
     // ── Flatpickr ─────────────────────────────────────────────────
     function _initFlatpickr() {
@@ -137,6 +148,7 @@
         const { ok, data } = await fetchAPI('/api/notifications/mis-notificaciones/');
         if (!ok) {
             list.innerHTML = '<div class="notif-empty">Error al cargar notificaciones.</div>';
+            if (panelMeta) panelMeta.textContent = 'No se pudo actualizar el estado';
             return;
         }
         _todas = data;
@@ -147,6 +159,7 @@
     // ── Badge ─────────────────────────────────────────────────────
     function _actualizarBadge() {
         const noLeidas = _todas.filter(n => !n.leida).length;
+        _actualizarMeta(_todas.length, noLeidas);
         if (noLeidas > 0) {
             badge.textContent   = noLeidas > 99 ? '99+' : noLeidas;
             badge.style.display = 'flex';
@@ -159,8 +172,12 @@
     document.getElementById('notifTabs').addEventListener('click', e => {
         const tab = e.target.closest('.notif-tab');
         if (!tab) return;
-        document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('notif-tab--active'));
+        document.querySelectorAll('.notif-tab').forEach(t => {
+            t.classList.remove('notif-tab--active');
+            t.setAttribute('aria-selected', 'false');
+        });
         tab.classList.add('notif-tab--active');
+        tab.setAttribute('aria-selected', 'true');
         _filtro = tab.dataset.filtro;
         _pagina = 0;
         _render();
@@ -197,7 +214,7 @@
         }
 
         if (!items.length) {
-            list.innerHTML = '<div class="notif-empty">Sin notificaciones.</div>';
+            list.innerHTML = `<div class="notif-empty">${_emptyMessage()}</div>`;
             return;
         }
 
@@ -227,12 +244,18 @@
 
         // Listeners: expandir + marcar leída
         list.querySelectorAll('.notif-item[data-id]').forEach(el => {
-            el.addEventListener('click', () => {
+            const activar = () => {
                 const id = parseInt(el.dataset.id);
                 if (_expanded.has(id)) _expanded.delete(id);
                 else                   _expanded.add(id);
                 el.classList.toggle('notif-item--expanded', _expanded.has(id));
                 _marcarLeida(id);
+            };
+            el.addEventListener('click', activar);
+            el.addEventListener('keydown', e => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                activar();
             });
         });
     }
@@ -245,7 +268,7 @@
         const emisor   = n.emisor_nombre && n.emisor_nombre !== 'Sistema'
             ? ' · ' + _esc(n.emisor_nombre) : '';
         return `
-        <div class="notif-item${n.leida ? ' notif-item--leida' : ' notif-item--no-leida'}${expanded ? ' notif-item--expanded' : ''}" data-id="${n.id}">
+        <div class="notif-item${n.leida ? ' notif-item--leida' : ' notif-item--no-leida'}${expanded ? ' notif-item--expanded' : ''}" data-id="${n.id}" role="button" tabindex="0">
             <span class="notif-item__dot${n.leida ? ' notif-item__dot--leida' : ''}"></span>
             <div class="notif-item__body">
                 <p class="notif-item__desc">${_esc(n.descripcion)}</p>
@@ -275,6 +298,24 @@
 
     function _esc(str) {
         return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function _actualizarMeta(total, noLeidas) {
+        if (!panelMeta) return;
+        if (!total) {
+            panelMeta.textContent = 'No tienes avisos por revisar';
+        } else if (noLeidas) {
+            panelMeta.textContent = `${noLeidas} sin leer de ${total} ${total === 1 ? 'aviso' : 'avisos'}`;
+        } else {
+            panelMeta.textContent = `${total} ${total === 1 ? 'aviso' : 'avisos'} al día`;
+        }
+    }
+
+    function _emptyMessage() {
+        if (_fecha) return 'No hay notificaciones para la fecha seleccionada.';
+        if (_filtro === 'no_leidas') return 'No tienes notificaciones sin leer.';
+        if (_filtro === 'leidas') return 'No tienes notificaciones leídas.';
+        return 'Sin notificaciones.';
     }
 
     _cargarBadge();

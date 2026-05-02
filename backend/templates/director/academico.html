@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,7 +18,7 @@
     </script>
 
     <style>
-        /* ── Subnav — tab bar ───────────────────────────────────── */
+        /* -- Subnav — tab bar ------------------------------------- */
         .acad-subnav {
             display: flex;
             align-items: stretch;
@@ -135,11 +135,11 @@
             filter: brightness(1.08);
         }
 
-        /* ── Vistas ──────────────────────────────────────────────── */
+        /* -- Vistas ------------------------------------------------ */
         .acad-vista { display: none; }
         .acad-vista.active { display: block; }
 
-        /* ── Vista Por Profesor ──────────────────────────────────── */
+        /* -- Vista Por Profesor ------------------------------------ */
         .vp-layout {
             display: grid;
             grid-template-columns: 240px 1fr;
@@ -221,7 +221,7 @@
         .vp-prof-item:hover .vp-prof-chevron,
         .vp-prof-item.active .vp-prof-chevron { opacity: 1; color: var(--accent-text); }
 
-        /* ── Indicador de planes ─────────────────────────── */
+        /* -- Indicador de planes --------------------------- */
         .vp-avatar-wrap { position: relative; flex-shrink: 0; }
         .vp-plan-dot {
             position: absolute;
@@ -236,9 +236,9 @@
         .vp-plan-dot--orange { background: #eab308; box-shadow: 0 0 0 2px rgba(234,179,8,.25); }
         .vp-plan-dot--red    { background: #ef4444; }
 
-        /* ══════════════════════════════════════════════════════
+        /* ------------------------------------------------------
            DETALLE DE PROFESOR
-           ══════════════════════════════════════════════════════ */
+           ------------------------------------------------------ */
         .vp-header-card-full {
             grid-column: 1 / -1;
             background: var(--bg-card);
@@ -252,7 +252,7 @@
             box-shadow: 0 8px 22px rgba(0,0,0,.2);
         }
 
-        /* ── Cabecera ────────────────────────────────────────── */
+        /* -- Cabecera ------------------------------------------ */
         .vp-prof-header-card {
             background: linear-gradient(135deg,
                 rgba(59,130,246,.13) 0%,
@@ -315,7 +315,7 @@
             letter-spacing: .05em;
         }
 
-        /* ── Lista agrupada por materia ──────────────────────── */
+        /* -- Lista agrupada por materia ------------------------ */
         .vp-mat-section {
             flex: 1; min-height: 0;
             display: flex; flex-direction: column;
@@ -352,7 +352,7 @@
             letter-spacing: .02em; text-transform: none;
         }
 
-        /* ── Header planes con controles ──────────────────────── */
+        /* -- Header planes con controles ------------------------ */
         .vp-planes-head { gap: 10px; }
         .vp-planes-controls {
             display: flex; align-items: center; gap: 7px;
@@ -406,7 +406,7 @@
         .vp-mat-rows::-webkit-scrollbar { width: 3px; }
         .vp-mat-rows::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-        /* ── Planes de trabajo ───────────────────────────────── */
+        /* -- Planes de trabajo --------------------------------- */
         .vp-planes-rows { overflow-y: auto; flex: 1; min-height: 0; }
         .vp-planes-rows::-webkit-scrollbar { width: 3px; }
         .vp-planes-rows::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
@@ -462,7 +462,7 @@
         .vp-plan-empty span { font-size: 0.8rem; font-weight: 600; }
         .vp-plan-empty small { font-size: 0.7rem; opacity: .6; }
 
-        /* ── Grupo por materia ───────────────────────────────── */
+        /* -- Grupo por materia --------------------------------- */
         .vp-mat-group { border-bottom: 1px solid var(--border-subtle); }
         .vp-mat-group:last-child { border-bottom: none; }
         .vp-mat-group-head {
@@ -492,7 +492,7 @@
             letter-spacing: .03em;
         }
 
-        /* ── Grid de cursos ──────────────────────────────────── */
+        /* -- Grid de cursos ------------------------------------ */
         .vp-curso-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -514,7 +514,7 @@
         }
         .vp-curso-row.active .vp-curso-nombre { color: var(--accent-text); }
 
-        /* ── Dot indicador de plan ───────────────────────────── */
+        /* -- Dot indicador de plan ----------------------------- */
         .vp-pc-dot {
             width: 7px; height: 7px; border-radius: 50%;
             flex-shrink: 0;
@@ -561,7 +561,7 @@
         .vp-mat-add-row svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 
-        /* ── Responsive ──────────────────────────────────────── */
+        /* -- Responsive ---------------------------------------- */
         @media (max-width: 860px) {
             .vp-cards-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
         }
@@ -584,9 +584,9 @@
         .asig-edit-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
         .asig-edit-select { width: 100%; padding: 7px 10px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; margin-bottom: 8px; }
 
-        /* ══════════════════════════════════════════════════════
+        /* ------------------------------------------------------
            VISTA POR CURSO
-           ══════════════════════════════════════════════════════ */
+           ------------------------------------------------------ */
 
         /* Layout split: grid | panel */
         .vc-split {
@@ -775,7 +775,7 @@
             .vc-courses-grid { grid-template-columns: 1fr 1fr; }
         }
 
-        /* ── Vista Materias ──────────────────────────────────────── */
+        /* -- Vista Materias ---------------------------------------- */
         .mat-header { margin-bottom: 14px; }
         .mat-header--actions {
             display: flex;
@@ -865,7 +865,7 @@
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); font-size: 0.875rem; gap: 8px; }
         .empty-state svg { opacity: .35; margin-bottom: 6px; }
 
-        /* ── Vista Planes de Trabajo ─────────────────────────────── */
+        /* -- Vista Planes de Trabajo ------------------------------- */
         .planes-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
         .planes-header h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0; flex: 1; }
         .planes-mes-sel { padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; cursor: pointer; outline: none; }
@@ -884,7 +884,7 @@
         .btn-exportar-excel:disabled { opacity: .5; cursor: not-allowed; }
         .btn-exportar-excel svg { flex-shrink: 0; }
 
-        /* ── Vista Planes — tarjetas por profesor ─────────────────── */
+        /* -- Vista Planes — tarjetas por profesor ------------------- */
         .prof-planes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
         .prof-planes-card {
             background: var(--bg-card);
@@ -918,7 +918,7 @@
         .prof-planes-dot--partial { background: #f59e0b; }
         .prof-planes-dot--empty   { background: var(--border); }
 
-        /* ── Modal Nueva Asignación ──────────────────────────────── */
+        /* -- Modal Nueva Asignación -------------------------------- */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 300; align-items: center; justify-content: center; }
         .modal-overlay.visible { display: flex; }
         .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 24px; width: 100%; max-width: 400px; margin: 16px; }
@@ -931,7 +931,7 @@
         .modal-actions-row .btn-ghost { flex: 1; }
         .modal-actions-row .btn-primary { flex: 1; }
 
-        /* ── Modal Ver Planes de un Profesor (solo lectura) ─────── */
+        /* -- Modal Ver Planes de un Profesor (solo lectura) ------- */
         .dir-plan-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 450; align-items: center; justify-content: center; }
         .dir-plan-overlay.visible { display: flex; }
         .dir-plan-box {
@@ -968,8 +968,8 @@
         .dir-plan-text--empty { flex: 1; font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
         .dir-plan-footer { padding: 12px 22px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; display: flex; justify-content: flex-end; }
 
-        /* ── Modal Advertencia Exportar ─────────────────────────── */
-        /* ── Modal exportar mes global ──────────────────────── */
+        /* -- Modal Advertencia Exportar --------------------------- */
+        /* -- Modal exportar mes global ------------------------ */
         .export-mes-box {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
@@ -1071,7 +1071,7 @@
         .export-warn-actions { display: flex; gap: 10px; width: 100%; }
         .export-warn-actions button { flex: 1; justify-content: center; }
 
-        /* ── Modal Plan Detalle ──────────────────────────────────── */
+        /* -- Modal Plan Detalle ------------------------------------ */
         .plan-detail-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 24px; width: 100%; max-width: 440px; margin: 16px; }
         .plan-detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
         .plan-detail-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
@@ -1081,7 +1081,7 @@
         .plan-detail-body { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; font-size: 0.875rem; color: var(--text-primary); line-height: 1.55; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
         .plan-detail-dates { font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; }
 
-        /* ── Modal Confirmación/Eliminar ─────────────────────────── */
+        /* -- Modal Confirmación/Eliminar --------------------------- */
         .del-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 400; align-items: center; justify-content: center; }
         .del-backdrop.visible { display: flex; }
         .del-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px 24px; width: 100%; max-width: 400px; margin: 16px; }
@@ -1111,11 +1111,11 @@
         .btn-confirm-spinner { display: none; }
         .btn-confirm-spinner::after { content: ''; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: block; }
 
-        /* ══════════════════════════════════════════════════════
+        /* ------------------------------------------------------
            VISTA NOTAS POR PROFESOR
-           ══════════════════════════════════════════════════════ */
+           ------------------------------------------------------ */
 
-        /* ── Badge de mes activo ────────────────────────────────── */
+        /* -- Badge de mes activo ---------------------------------- */
         .pn-mes-badge {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 5px 12px;
@@ -1127,7 +1127,7 @@
         }
         .pn-mes-badge svg { width: 12px; height: 12px; flex-shrink: 0; }
 
-        /* ── Pastillas de filtro ────────────────────────────────── */
+        /* -- Pastillas de filtro ---------------------------------- */
         .pn-pills {
             display: flex;
             gap: 8px;
@@ -1170,7 +1170,7 @@
             color: var(--accent-text);
         }
 
-        /* ── Grid de tarjetas ───────────────────────────────────── */
+        /* -- Grid de tarjetas ------------------------------------- */
         .pn-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -1180,7 +1180,7 @@
             .pn-grid { grid-template-columns: 1fr; }
         }
 
-        /* ── Tarjeta de profesor ────────────────────────────────── */
+        /* -- Tarjeta de profesor ---------------------------------- */
         .pn-card {
             background: var(--bg-card);
             border: 1.5px solid var(--border-subtle);
@@ -1204,7 +1204,7 @@
             background: linear-gradient(90deg, #22c55e, #4ade80);
         }
 
-        /* ── Header de la tarjeta ───────────────────────────────── */
+        /* -- Header de la tarjeta --------------------------------- */
         .pn-card-head {
             display: flex; align-items: center; gap: 12px;
         }
@@ -1232,7 +1232,7 @@
             margin-top: 2px;
         }
 
-        /* ── Label de cursos ────────────────────────────────────── */
+        /* -- Label de cursos -------------------------------------- */
         .pn-chips-label {
             font-size: 0.62rem; font-weight: 700;
             text-transform: uppercase; letter-spacing: .06em;
@@ -1240,7 +1240,7 @@
             margin-bottom: -8px;
         }
 
-        /* ── Chips de cursos ────────────────────────────────────── */
+        /* -- Chips de cursos -------------------------------------- */
         .pn-chips {
             display: flex; flex-wrap: wrap; gap: 6px;
         }
@@ -1273,7 +1273,7 @@
         }
         .pn-chip svg { width: 11px; height: 11px; flex-shrink: 0; }
 
-        /* ── Pie de tarjeta ─────────────────────────────────────── */
+        /* -- Pie de tarjeta --------------------------------------- */
         .pn-footer {
             padding-top: 10px;
             border-top: 1px solid var(--border-subtle);
@@ -1286,7 +1286,7 @@
         .pn-footer-text--ok   { color: #4ade80; font-weight: 600; }
         .pn-footer-text--warn { color: #fbbf24; font-weight: 600; }
 
-        /* ── Modal selector de materia ──────────────────────────── */
+        /* -- Modal selector de materia ---------------------------- */
         .pn-picker-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,.55); z-index: 500;
@@ -1332,7 +1332,7 @@
 </head>
 <body>
 
-    <!-- ── Sidebar ──────────────────────────────────────────────── -->
+    <!-- -- Sidebar ------------------------------------------------ -->
     <aside class="sidebar">
         <div class="sidebar-profile">
             <div class="sidebar-avatar">
@@ -1379,12 +1379,12 @@
                 </svg>
                 <span class="nav-label">Control Diario</span>
             </a>
-            <a href="/director/comunicados/" class="nav-item" aria-label="Comunicados">
+            <a href="/director/comunicados/" class="nav-item" aria-label="Avisos">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 11l19-9v18L3 13v-2z"/>
                     <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                 </svg>
-                <span class="nav-label">Comunicados</span>
+                <span class="nav-label">Avisos</span>
             </a>
             <a href="/director/academico/" class="nav-item active" aria-label="Académico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1420,7 +1420,7 @@
 
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-    <!-- ── Top bar ────────────────────────────────────────────────── -->
+    <!-- -- Top bar -------------------------------------------------- -->
     <header class="topbar">
         <div style="display:flex;align-items:center;gap:12px;">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
@@ -1435,11 +1435,11 @@
         <div class="topbar-actions">{% include 'director/_notif_bell.html' %}</div>
     </header>
 
-    <!-- ── Contenido ─────────────────────────────────────────────── -->
+    <!-- -- Contenido ----------------------------------------------- -->
     <main class="main-content">
         <div class="content-wrap">
 
-            <!-- ── Subnav secciones ──────────────────────────────── -->
+            <!-- -- Subnav secciones -------------------------------- -->
             <nav class="acad-subnav" aria-label="Secciones académicas">
                 <button class="acad-pivot active" data-pivot="profesores">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1475,7 +1475,7 @@
                     Notas
                 </button>
             </nav>
-                <!-- ── Contenido principal ───────────────────────── -->
+                <!-- -- Contenido principal ------------------------- -->
                 <div class="acad-panel-right">
 
                     <!-- Vista: Por Profesor (DEFAULT) -->
@@ -1744,7 +1744,7 @@
         </div><!-- /content-wrap -->
     </main>
 
-    <!-- ── Modal: Selector de materia ──────────────────────────────── -->
+    <!-- -- Modal: Selector de materia -------------------------------- -->
     <div class="pn-picker-overlay" id="pnPickerOverlay">
         <div class="pn-picker-box">
             <div class="pn-picker-head">
@@ -1758,7 +1758,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Nueva Asignación ──────────────────────────────── -->
+    <!-- -- Modal: Nueva Asignación -------------------------------- -->
     <div class="modal-overlay" id="modalNuevaAsig">
         <div class="modal-box">
             <h3 class="modal-title">Nueva Asignación</h3>
@@ -1790,7 +1790,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Confirmación/Eliminar ─────────────────────────── -->
+    <!-- -- Modal: Confirmación/Eliminar --------------------------- -->
     <div class="del-backdrop" id="delBackdrop">
         <div class="del-box">
             <!-- Paso 1 -->
@@ -1840,7 +1840,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Detalle de Plan ─────────────────────────────────── -->
+    <!-- -- Modal: Detalle de Plan ----------------------------------- -->
     <div class="modal-overlay" id="modalPlanDetalle">
         <div class="plan-detail-box">
             <div class="plan-detail-header">
@@ -1860,7 +1860,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Ver planes de un profesor (solo lectura) ─────── -->
+    <!-- -- Modal: Ver planes de un profesor (solo lectura) ------- -->
     <div class="dir-plan-overlay" id="dirPlanOverlay">
         <div class="dir-plan-box">
             <div class="dir-plan-head">
@@ -1881,7 +1881,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Advertencia al exportar planes ────────────────── -->
+    <!-- -- Modal: Advertencia al exportar planes ------------------ -->
     <div class="export-warn-overlay" id="exportWarnOverlay">
         <div class="export-warn-box">
             <div class="export-warn-strip"></div>
@@ -1903,7 +1903,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Exportar planes globales ──────────────────────── -->
+    <!-- -- Modal: Exportar planes globales ------------------------ -->
     <div class="modal-overlay" id="modalExportarPlanes">
         <div class="export-mes-box">
             <div class="export-mes-header">

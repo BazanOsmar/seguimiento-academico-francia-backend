@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,26 +23,6 @@
         /* ── Layout ──────────────────────────────────────────────── */
         .page-inner { max-width: 1100px; margin: 0 auto; }
 
-        /* ── Formulario colapsable ── */
-        .form-card-wrapper {
-            display: grid;
-            grid-template-rows: 0fr;
-            transition: grid-template-rows .35s cubic-bezier(.4, 0, .2, 1),
-                        opacity .25s ease;
-            opacity: 0;
-            pointer-events: none;
-            margin-bottom: 0;
-        }
-        .form-card-wrapper.expanded {
-            grid-template-rows: 1fr;
-            opacity: 1;
-            pointer-events: auto;
-            margin-bottom: 28px;
-        }
-        .form-card-wrapper > .form-card {
-            overflow: hidden;
-            margin-bottom: 0;
-        }
         .btn-nueva-accion {
             display: inline-flex; align-items: center; gap: 9px;
             padding: 11px 24px;
@@ -139,39 +119,6 @@
             margin-top: 14px;
         }
 
-        /* ── Sección citaciones ───────────────────────────────────── */
-        .section-header {
-            display: flex; align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-        .section-title {
-            font-size: 1rem; font-weight: 700; color: var(--text-primary);
-            display: flex; align-items: center; gap: 8px;
-        }
-        .action-row {
-            display: flex; align-items: center;
-            gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
-        }
-        .chips-group { display: flex; gap: 7px; flex-wrap: wrap; }
-
-        /* ── Chips ───────────────────────────────────────────────── */
-        .chip-filtro {
-            display: inline-flex; align-items: center;
-            height: 32px; padding: 0 14px;
-            border-radius: 50px; font-size: 0.8rem; font-weight: 600;
-            cursor: pointer;
-            border: 1px solid var(--border);
-            background: var(--bg-card); color: var(--text-secondary);
-            transition: background .17s, color .17s, border-color .17s;
-            white-space: nowrap;
-        }
-        .chip-filtro:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-        .chip-filtro--active { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .chip-filtro--active:hover { background: var(--accent-hover); }
-
-        /* ── Dos botones de acción (solo se usan dentro del header) ── */
-        .nueva-accion-row { display:none; }
         .btn-nueva-com {
             display: inline-flex; align-items: center; gap: 9px;
             padding: 11px 22px;
@@ -187,70 +134,7 @@
         .btn-nueva-com:hover { border-color: var(--border); color: var(--text-primary); background: var(--bg-card-hover); }
         .btn-nueva-com.is-open { border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim); }
 
-        /* ── Lista tabla de citaciones ───────────────────────────── */
-        .citaciones-grid { display: flex; flex-direction: column; gap: 7px; }
-
-        .cit-table-hdr {
-            display: grid;
-            grid-template-columns: 56px 1fr 150px 110px 150px;
-            padding: 0 20px 8px;
-            font-size: .63rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .09em;
-            color: var(--text-muted);
-        }
-        .cit-table-hdr > :nth-child(3),
-        .cit-table-hdr > :nth-child(4) { text-align: center; }
-        .cit-table-hdr > :last-child    { text-align: right; }
-
-        .cit-row {
-            display: grid;
-            grid-template-columns: 56px 1fr 150px 110px 150px;
-            align-items: center;
-            padding: 13px 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            cursor: pointer;
-            transition: border-color .15s, background .15s;
-        }
-        .cit-row:hover {
-            border-color: rgba(59,130,246,.28);
-            background: rgba(59,130,246,.03);
-        }
-        .cit-row:hover .cit-row__nombre { color: var(--accent-text); }
-
-        .cit-row__nombre {
-            font-size: .88rem; font-weight: 600;
-            color: var(--text-primary); line-height: 1.3;
-            transition: color .15s;
-        }
-        .cit-row__curso {
-            font-size: .68rem; color: var(--text-muted);
-            margin-top: 2px; text-transform: uppercase; letter-spacing: .04em;
-        }
-
-        /* Badge motivo */
-        .cit-badge-motivo {
-            display: inline-block;
-            font-size: .62rem; font-weight: 700;
-            padding: 3px 9px; border-radius: 4px;
-            text-transform: uppercase; letter-spacing: .05em;
-            border: 1px solid transparent;
-        }
-        .cit-badge-motivo--FALTAS      { background: rgba(239,68,68,.12);  color: #f87171; border-color: rgba(239,68,68,.2); }
-        .cit-badge-motivo--ATRASOS     { background: rgba(245,158,11,.12); color: #fbbf24; border-color: rgba(245,158,11,.2); }
-        .cit-badge-motivo--CONDUCTA    { background: rgba(168,85,247,.12); color: #c084fc; border-color: rgba(168,85,247,.2); }
-        .cit-badge-motivo--RENDIMIENTO { background: rgba(59,130,246,.12); color: #60a5fa; border-color: rgba(59,130,246,.2); }
-        .cit-badge-motivo--REUNION     { background: rgba(20,184,166,.12); color: #2dd4bf; border-color: rgba(20,184,166,.2); }
-        .cit-badge-motivo--DOCUMENTOS  { background: rgba(251,146,60,.12); color: #fb923c; border-color: rgba(251,146,60,.2); }
-        .cit-badge-motivo--OTRO        { background: rgba(148,163,184,.12); color: #94a3b8; border-color: rgba(148,163,184,.2); }
-
-        /* Fecha */
-        .cit-row__fecha {
-            font-size: .75rem; color: var(--text-muted);
-            font-variant-numeric: tabular-nums;
-        }
-
+        /* Tabla de citaciones */
         /* Badge estado (pill con dot) */
         .cit-badge-status {
             display: inline-flex; align-items: center; gap: 5px;
@@ -267,46 +151,154 @@
         .cit-badge-status--no_asistio { background: rgba(239,68,68,.12);  color: #ef4444; }
         .cit-badge-status--atraso     { background: rgba(220,38,38,.12);  color: #dc2626; }
 
+        .cit-table-wrap {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            overflow-x: auto;
+            background: rgba(15,23,42,.18);
+            width: 100%;
+        }
+        .cit-table-grid {
+            display: block;
+            width: 100%;
+        }
+        .cit-table-section {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .cit-table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+        .cit-table-toolbar__left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .cit-table-filter-divider {
+            width: 1px;
+            height: 26px;
+            background: rgba(148,163,184,.18);
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
+        .cit-table-toolbar__label {
+            color: var(--text-muted);
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        #panelCitaciones {
+            width: 100%;
+        }
+        @media (max-width: 780px) {
+            .cit-table-toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .cit-table-toolbar__left {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .cit-table-filter-divider {
+                width: 100%;
+                height: 1px;
+                margin: 2px 0;
+            }
+            .cit-table-toolbar .rol-chips {
+                width: 100%;
+                overflow-x: auto;
+                padding-bottom: 2px;
+            }
+            .cit-table-toolbar .cit-mes-nav {
+                justify-content: space-between;
+                width: 100%;
+            }
+        }
+        .cit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .82rem;
+        }
+        .cit-table thead {
+            background: linear-gradient(180deg, rgba(30,41,59,.98), rgba(15,23,42,.98));
+            box-shadow: inset 0 -1px 0 rgba(96,165,250,.16);
+        }
+        .cit-table th {
+            color: var(--text-muted);
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            padding: 13px 14px;
+            text-align: left;
+            text-transform: uppercase;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(96,165,250,.2);
+        }
+        .cit-table th:not(:last-child) { border-right: 1px solid rgba(148,163,184,.08); }
+        .cit-table td {
+            color: var(--text-secondary);
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            vertical-align: middle;
+        }
+        .cit-table tr:last-child td { border-bottom: none; }
+        .cit-table tbody tr { cursor: pointer; transition: background .15s; }
+        .cit-table tbody tr:hover td { background: var(--bg-card-hover); }
+        .cit-table__main { color: var(--text-primary); font-weight: 750; }
+        .cit-table__muted { color: var(--text-muted); font-size: .76rem; margin-top: 2px; }
+        .cit-table__type {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 3px 9px;
+            background: rgba(59,130,246,.12);
+            color: var(--accent-text);
+            font-size: .72rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .cit-limit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 92px;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: .72rem;
+            font-weight: 800;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        .cit-limit--ok {
+            color: #22c55e;
+            background: rgba(34,197,94,.12);
+            border-color: rgba(34,197,94,.22);
+        }
+        .cit-limit--warn {
+            color: #f59e0b;
+            background: rgba(245,158,11,.13);
+            border-color: rgba(245,158,11,.24);
+        }
+        .cit-limit--danger {
+            color: #ef4444;
+            background: rgba(239,68,68,.13);
+            border-color: rgba(239,68,68,.24);
+        }
+        .cit-limit--neutral {
+            color: var(--text-muted);
+            background: rgba(148,163,184,.1);
+            border-color: rgba(148,163,184,.16);
+        }
+
         /* Skeleton */
-        .cit-row--skeleton { pointer-events: none; min-height: 56px; }
-
-        /* Compat: .citacion-card se usa en modal de detalle */
-        .citacion-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);            overflow: hidden;
-            display: flex; flex-direction: column;
-            cursor: pointer;
-            transition: box-shadow .18s, transform .18s, border-color .18s;
-        }
-        .citacion-card:hover {
-            box-shadow: 0 8px 28px rgba(0,0,0,.32);
-            transform: translateY(-2px);
-            border-color: var(--border);
-        }
-
-        /* Header con borde izquierdo de color por estado */
-        .citacion-card__header {
-            display: flex; align-items: flex-start;
-            justify-content: space-between; gap: 10px;
-            padding: 14px 16px;
-            border-left: 4px solid var(--border);
-        }
-        .citacion-card[data-status="PENDIENTE"]  .citacion-card__header { border-left-color: #f59e0b; background: rgba(245,158,11,.07); }
-        .citacion-card[data-status="ASISTIO"]    .citacion-card__header { border-left-color: #22c55e; background: rgba(34,197,94,.07); }
-        .citacion-card[data-status="NO_ASISTIO"] .citacion-card__header { border-left-color: #ef4444; background: rgba(239,68,68,.07); }
-        .citacion-card[data-status="ATRASO"]     .citacion-card__header { border-left-color: #dc2626; background: rgba(220,38,38,.07); }
-
-        .citacion-card__nombre {
-            font-size: .92rem; font-weight: 700;
-            color: var(--text-primary); line-height: 1.3;
-        }
-        .citacion-card__meta {
-            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-            margin-top: 6px;
-        }
-
-        /* Motivo como badge coloreado según tipo */
+/* Motivo como badge coloreado según tipo */
         .citacion-card__motivo {
             display: inline-block;
             font-size: .68rem; font-weight: 700;
@@ -323,36 +315,8 @@
         .citacion-card__motivo--REUNION     { background: rgba(20,184,166,.13); color: #2dd4bf; }
 
         /* Cuerpo — descripción */
-        .citacion-card__body {
-            padding: 12px 16px 14px;
-            flex: 1;
-            background: rgba(0,0,0,.06);
-            border-top: 1px solid var(--border-subtle);
-        }
-        .citacion-card__desc {
-            font-size: .81rem; color: var(--text-secondary);
-            line-height: 1.6;
-            display: -webkit-box; -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical; overflow: hidden;
-            margin: 0;
-        }
-
-        /* Pie — fecha límite */
-        .citacion-card__foot {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 16px;
-            border-top: 1px solid var(--border-subtle);
-            background: var(--bg-app);
-        }
-        .citacion-card__foot-label {
-            font-size: .65rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .06em;
-        }
-        .citacion-card__foot-val {
-            font-size: .78rem; font-weight: 600; color: var(--text-secondary);
-        }
-
-        .btn-marcar-asistencia {
+/* Pie — fecha límite */
+.btn-marcar-asistencia {
             display: flex; align-items: center; justify-content: center; gap: 7px;
             background: transparent;
             border: 1px solid var(--border);
@@ -393,6 +357,7 @@
         .modal-det__hero--ASISTIO    { border-left-color:#22c55e; background:linear-gradient(135deg,rgba(34,197,94,.14) 0%,rgba(34,197,94,.04) 100%); }
         .modal-det__hero--NO_ASISTIO { border-left-color:#ef4444; background:linear-gradient(135deg,rgba(239,68,68,.14) 0%,rgba(239,68,68,.04) 100%); }
         .modal-det__hero--ATRASO     { border-left-color:#dc2626; background:linear-gradient(135deg,rgba(220,38,38,.14) 0%,rgba(220,38,38,.04) 100%); }
+        .modal-det__hero--COMUNICADO { border-left-color:#60a5fa; background:linear-gradient(135deg,rgba(59,130,246,.16) 0%,rgba(59,130,246,.05) 100%); }
 
         .modal-det__nombre {
             font-size: 1.05rem; font-weight: 800;
@@ -423,8 +388,6 @@
             font-size: .84rem; font-weight: 600; color: var(--text-secondary);
             line-height: 1.3;
         }
-        .modal-det__info-item--full { grid-column: 1 / -1; }
-
         .modal-det__desc {
             background: var(--bg-app);
             border: 1px solid var(--border-subtle);
@@ -457,6 +420,29 @@
         .modal-det__footer {
             padding: 0 20px 18px;
         }
+        .modal-det__courses {
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+        }
+        .modal-det__course-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 9px;
+        }
+        .modal-det__course-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 4px 10px;
+            background: rgba(59,130,246,.12);
+            border: 1px solid rgba(59,130,246,.22);
+            color: var(--accent-text);
+            font-size: .72rem;
+            font-weight: 800;
+        }
 
         /* ── Badges estado ───────────────────────────────────────── */
         .estado-badge {
@@ -469,25 +455,7 @@
         .estado-badge--asistio     { background: rgba(34,197,94,.15);   color: #22c55e; }
         .estado-badge--no_asistio  { background: rgba(239,68,68,.15);   color: #ef4444; }
         .estado-badge--atraso      { background: rgba(220,38,38,.15);   color: #dc2626; }
-        .estado-badge--informativo { background: rgba(6,182,212,.15);   color: #06b6d4; }
-
-        /* ── Skeleton ────────────────────────────────────────────── */
-        .skel-cell {
-            border-radius: 4px;
-            background: linear-gradient(90deg,
-                var(--bg-card-hover) 25%,
-                var(--bg-surface)    50%,
-                var(--bg-card-hover) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s ease infinite;
-        }
-        @keyframes shimmer {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        .citacion-card--skeleton { pointer-events: none; }
-
-        /* ── Empty state ─────────────────────────────────────────── */
+/* ── Empty state ─────────────────────────────────────────── */
         .empty-cards {
             grid-column: 1 / -1;
             display: flex; flex-direction: column;
@@ -500,74 +468,6 @@
         .grid-footer {
             text-align: right; font-size: .78rem;
             color: var(--text-muted); margin-top: 10px;
-        }
-
-        /* ── Sección de lista ────────────────────────────────────── */
-        .list-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            box-shadow: var(--shadow-card);
-            overflow: hidden;
-        }
-
-        /* Header: título + botones de acción */
-        .list-section__hdr {
-            display: flex; align-items: center;
-            justify-content: space-between; gap: 12px;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-        .list-section__title {
-            font-size: .95rem; font-weight: 700;
-            color: var(--text-primary);
-        }
-        .list-section__actions { display: flex; gap: 8px; }
-
-        /* Fila de tabs + navegador de mes en la misma línea */
-        .list-section__tabs-row {
-            display: flex; align-items: stretch;
-            border-bottom: 1px solid var(--border-subtle);
-            background: transparent;
-            padding: 0 20px;
-        }
-
-        /* Tab switcher — estilo underline */
-        .tab-switcher {
-            display: flex; flex: 0 0 auto;
-            background: transparent;
-            padding: 0; gap: 28px; margin-bottom: 0;
-            border-bottom: none;
-        }
-        .tab-switcher__btn {
-            display: flex; align-items: center; gap: 7px;
-            padding: 14px 2px;
-            flex: 0 0 auto;
-            border: none; border-bottom: 2px solid transparent;
-            cursor: pointer;
-            font-size: .85rem; font-weight: 600;
-            color: var(--text-muted);
-            background: transparent;
-            transition: color .18s, border-color .18s;
-            white-space: nowrap;
-        }
-        .tab-switcher__btn:not(.tab-switcher__btn--active):hover {
-            color: var(--text-primary);
-        }
-        .tab-switcher__btn--active {
-            color: var(--accent-text);
-            border-bottom-color: var(--accent);
-            background: transparent;
-        }
-        .tab-switcher__badge {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 18px; height: 17px; padding: 0 5px;
-            border-radius: 50px; font-size: .65rem; font-weight: 700;
-            background: var(--bg-card); color: var(--text-muted);
-            transition: background .2s, color .2s;
-        }
-        .tab-switcher__btn--active .tab-switcher__badge {
-            background: var(--accent-dim); color: var(--accent-text);
         }
 
         /* Navegador de mes inline (en la fila de tabs) */
@@ -596,150 +496,9 @@
             min-width: 110px; text-align: center;
             text-transform: capitalize;
         }
-        .cit-mes-nav__count {
-            font-size: .7rem; color: var(--text-muted);
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            padding: 1px 8px; border-radius: 50px;
-            margin-left: 4px;
-        }
-
-        /* Cuerpo de la sección */
-        .list-section__body { padding: 18px 20px 28px; }
-
-        /* ── Comunicados list ────────────────────────────────────── */
-        .comunicados-list {
-            display: flex; flex-direction: column; gap: 12px;
-        }
-        .com-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            display: flex; flex-direction: column;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .com-card:hover {
-            border-color: rgba(255,255,255,.14);
-            box-shadow: 0 4px 18px rgba(0,0,0,.2);
-        }
-        /* Cabecera: fecha + alcance */
-        .com-card__head {
-            display: flex; align-items: center;
-            justify-content: space-between; gap: 12px;
-            padding: 11px 16px 10px;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-        .com-card__fecha {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: .72rem; color: var(--text-muted);
-            font-variant-numeric: tabular-nums;
-            text-transform: uppercase; letter-spacing: .04em;
-        }
-        .com-card__chips {
-            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-        }
-        .com-chip {
-            font-size: .66rem; font-weight: 700;
-            padding: 2px 8px; border-radius: 4px;
-            border: 1px solid var(--border);
-            white-space: nowrap; letter-spacing: .03em;
-            text-transform: uppercase;
-        }
-        .com-chip--destino { color: var(--text-secondary); background: transparent; }
-        .com-chip--alcance { color: var(--text-muted);    background: transparent; }
-        /* Cuerpo: título + contenido */
-        .com-card__body {
-            padding: 12px 16px;
-            display: flex; flex-direction: column; gap: 6px;
-            flex: 1;
-        }
-        .com-card__titulo {
-            font-size: .95rem; font-weight: 700;
-            color: var(--text-primary); line-height: 1.35;
-            margin: 0;
-        }
-        .com-card__contenido {
-            font-size: .81rem; color: var(--text-muted);
-            line-height: 1.55;
-            display: -webkit-box; -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical; overflow: hidden;
-            margin: 0;
-        }
-        /* Pie: autor + expiración */
-        .com-card__bottom {
-            display: flex; align-items: center;
-            justify-content: space-between; gap: 10px;
-            padding: 8px 16px;
-            border-top: 1px solid var(--border-subtle);
-        }
-        .com-card__autor {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-size: .72rem; color: var(--text-muted); min-width: 0;
-        }
-        .com-card__autor-nombre {
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            max-width: 280px;
-        }
-        .com-card__expira {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: .68rem; font-weight: 600;
-            color: #f59e0b;
-            white-space: nowrap;
-        }
-        @media (max-width: 620px) {
-            .com-card__autor-nombre { max-width: 180px; }
-        }
-
-        /* ── Page header (fuera de la card) ─────────────────────── */
-        .page-hdr {
-            display: flex; align-items: flex-start;
-            justify-content: space-between; gap: 16px;
-            margin-bottom: 20px;
-        }
-        .page-hdr__title {
-            font-size: 1.55rem; font-weight: 800;
-            color: var(--text-primary); line-height: 1.2;
-            letter-spacing: -.02em;
-        }
-        .page-hdr__sub {
-            font-size: .78rem; color: var(--text-muted); margin-top: 4px;
-        }
-        .page-hdr__actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-
-        /* ── Barra de búsqueda ────────────────────────────────── */
-        .list-section__search {
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-        .search-input-wrap {
-            position: relative; max-width: 540px; margin: 0 auto;
-        }
-        .search-input-wrap svg {
-            position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
-            color: var(--text-muted); pointer-events: none;
-        }
-        .search-input {
-            width: 100%; box-sizing: border-box;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-size: .85rem;
-            padding: 9px 12px 9px 36px;
-            transition: border-color .15s;
-        }
-        .search-input:focus { border-color: var(--accent); outline: none; }
-        .search-input::placeholder { color: var(--text-muted); font-size: .82rem; }
 
         /* ── ID de citación ───────────────────────────────────── */
-        .cit-row__id {
-            font-size: .72rem; font-weight: 600;
-            color: var(--text-muted);
-            font-family: 'Courier New', monospace;
-        }
-
-
-        /* ── Encabezado grande con selector de sección ───────────── */
+/* ── Encabezado grande con selector de sección ───────────── */
         .sec-hdr { margin-bottom: 24px; }
         .sec-hdr__title-row {
             display: flex; align-items: baseline; gap: 18px;
@@ -790,7 +549,7 @@
         /* ── Stats row ────────────────────────────────────────────── */
         .cit-stats-row {
             display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 14px; margin-bottom: 18px;
+            gap: 14px; margin-bottom: 16px;
         }
         @media (max-width: 720px) { .cit-stats-row { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 440px) { .cit-stats-row { grid-template-columns: 1fr; } }
@@ -798,11 +557,12 @@
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-card);
-            padding: 16px 18px;
-            display: flex; align-items: center; gap: 14px;
+            padding: 10px 16px;
+            min-height: 64px;
+            display: flex; align-items: center; gap: 12px;
         }
         .cit-stat-card__icon {
-            width: 44px; height: 44px; border-radius: 10px;
+            width: 38px; height: 38px; border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
@@ -812,10 +572,10 @@
         .cit-stat-card__icon--green  { background: rgba(34,197,94,.15);  color: #22c55e; }
         .cit-stat-card__label {
             font-size: .62rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px;
+            text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px;
         }
         .cit-stat-card__value {
-            font-size: 1.6rem; font-weight: 800;
+            font-size: 1.42rem; font-weight: 800;
             color: var(--text-primary); line-height: 1;
         }
 
@@ -972,37 +732,11 @@
             border-bottom: 1px solid var(--border-subtle);
             margin-bottom: 0;
         }
-        .cit-section__body { padding: 20px; display: flex; flex-direction: column; }
         #panelCitaciones, #panelComunicados { flex: 1; display: flex; flex-direction: column; }
 
         /* ── Tag emisor en tarjeta (Profesor / Regente) ──────────── */
-        .cit-emisor {
-            display: flex; align-items: center; gap: 5px;
-            margin-top: 6px; flex-wrap: wrap;
-        }
-        .cit-emisor__materia {
-            font-size: .68rem; font-weight: 700;
-            color: var(--accent-text);
-            background: var(--accent-dim);
-            border: 1px solid rgba(59,130,246,.2);
-            padding: 1px 7px; border-radius: 4px;
-            white-space: nowrap;
-        }
-        .cit-emisor__sep { font-size: .65rem; color: var(--text-muted); }
-        .cit-emisor__nombre {
-            font-size: .72rem; color: var(--text-muted);
-            font-style: italic; white-space: nowrap;
-        }
-
-        /* ── Grid 2 columnas de cards ─────────────────────────────── */
-        .cit-cards-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-        }
-        @media (max-width: 760px) { .cit-cards-grid { grid-template-columns: 1fr; } }
-
-        /* ── Scrollbars personalizados ────────────────────────────── */
+/* ── Grid 2 columnas de cards ─────────────────────────────── */
+/* ── Scrollbars personalizados ────────────────────────────── */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb {
@@ -1174,12 +908,13 @@
         .cit-stats-row {
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .cit-stat-card {
             position: relative;
-            padding: 18px;
+            padding: 10px 16px;
+            min-height: 64px;
             border-radius: 22px;
             border: 1px solid rgba(148,163,184,.12);
             background:
@@ -1203,19 +938,19 @@
         }
 
         .cit-stat-card__icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
         }
 
         .cit-stat-card__label {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             color: #7e95b9;
         }
 
         .cit-stat-card__value {
-            font-size: 1.95rem;
+            font-size: 1.55rem;
             letter-spacing: -.05em;
             color: #fff;
         }
@@ -1224,15 +959,6 @@
         .cit-stat-card[data-filter="PENDIENTE"].cit-stat-card--active::before { background: #f59e0b; }
         .cit-stat-card[data-filter="VENCIDA"].cit-stat-card--active::before { background: #f87171; }
         .cit-stat-card[data-filter="ASISTIO"].cit-stat-card--active::before { background: #22c55e; }
-
-        .list-section {
-            border-radius: 24px;
-            border: 1px solid rgba(148,163,184,.12);
-            background:
-                radial-gradient(circle at top right, rgba(255,255,255,.035), transparent 30%),
-                linear-gradient(180deg, rgba(33,52,82,.98), rgba(27,44,72,.98));
-            box-shadow: 0 24px 52px rgba(2,6,23,.14);
-        }
 
         .cit-filter-row {
             padding: 15px 18px;
@@ -1305,14 +1031,6 @@
             text-align: center;
         }
 
-        .list-section__body,
-        .cit-section__body {
-            min-height: 332px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
         .empty-cards {
             min-height: 260px;
             border-radius: 20px;
@@ -1332,145 +1050,19 @@
             font-size: .94rem;
             color: #7f96bb;
         }
-
-        .cit-cards-grid,
-        .comunicados-list {
-            gap: 16px;
-        }
-
-        .citacion-card {
-            border: 1px solid rgba(148,163,184,.12);
-            border-radius: 22px;
-            background:
-                radial-gradient(circle at top right, rgba(255,255,255,.03), transparent 35%),
-                linear-gradient(180deg, rgba(20,31,51,.98), rgba(16,27,46,.98));
-            box-shadow: 0 16px 34px rgba(2,6,23,.12);
-            overflow: hidden;
-        }
-
-        .citacion-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(96,165,250,.22);
-            box-shadow: 0 20px 40px rgba(2,6,23,.16);
-        }
-
-        .citacion-card__header {
-            position: relative;
-            padding: 18px 18px 16px;
-            border-left: none;
-        }
-
-        .citacion-card__header::before {
-            content: '';
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 3px;
-            background: rgba(148,163,184,.18);
-        }
-
-        .citacion-card[data-status="PENDIENTE"] .citacion-card__header::before { background: #f59e0b; }
-        .citacion-card[data-status="ASISTIO"] .citacion-card__header::before { background: #22c55e; }
-        .citacion-card[data-status="NO_ASISTIO"] .citacion-card__header::before { background: #f87171; }
-        .citacion-card[data-status="ATRASO"] .citacion-card__header::before { background: #ef4444; }
-        .citacion-card[data-status="VENCIDA"] .citacion-card__header::before { background: #94a3b8; }
-
-        .citacion-card__nombre {
-            font-size: 1.04rem;
-            font-weight: 800;
-            letter-spacing: -.02em;
-            color: #fff;
-        }
-
-        .citacion-card__meta {
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .cit-row__curso,
-        .citacion-card__motivo {
+.citacion-card__motivo {
             border-radius: 999px;
             padding: 4px 10px;
             font-size: .72rem;
             font-weight: 700;
         }
-
-        .cit-row__curso {
-            border: 1px solid rgba(148,163,184,.14);
-            background: rgba(255,255,255,.04);
-            color: #cfe0fb;
-        }
-
-        .cit-emisor__materia {
-            border-radius: 999px;
-            padding: 3px 10px;
-        }
-
-        .cit-badge-status {
+.cit-badge-status {
             border: 1px solid rgba(148,163,184,.14);
             border-radius: 999px;
             padding: 5px 10px;
             font-size: .72rem;
             font-weight: 800;
         }
-
-        .citacion-card__foot {
-            padding: 14px 18px 16px;
-            border-top: 1px solid rgba(148,163,184,.08);
-            background: rgba(255,255,255,.02);
-        }
-
-        .citacion-card__foot-label {
-            color: #7e95b9;
-        }
-
-        .citacion-card__foot-val {
-            color: #fff;
-        }
-
-        .com-card {
-            border-radius: 22px;
-            border-color: rgba(148,163,184,.12);
-            background:
-                radial-gradient(circle at top right, rgba(255,255,255,.03), transparent 35%),
-                linear-gradient(180deg, rgba(20,31,51,.98), rgba(16,27,46,.98));
-            box-shadow: 0 16px 34px rgba(2,6,23,.12);
-        }
-
-        .com-card::before {
-            top: 0;
-            bottom: auto;
-            width: 100%;
-            height: 3px;
-        }
-
-        .com-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 20px 40px rgba(2,6,23,.16);
-        }
-
-        .com-card__head {
-            gap: 10px;
-        }
-
-        .com-card__titulo {
-            font-size: 1.02rem;
-            letter-spacing: -.02em;
-        }
-
-        .com-card__body {
-            padding: 12px 14px;
-            border-radius: 14px;
-            background: rgba(255,255,255,.03);
-        }
-
-        .com-card__contenido {
-            color: #cad9f3;
-        }
-
-        .com-card__bottom {
-            padding-top: 10px;
-        }
-
         .grid-footer {
             margin-top: auto;
             padding-top: 18px;
@@ -1535,10 +1127,6 @@
                 flex: 1;
             }
 
-            .cit-section__body {
-                padding: 16px;
-                min-height: 280px;
-            }
         }
 
     </style>
@@ -1587,11 +1175,11 @@
                 </svg>
                 <span class="nav-label">Control Diario</span>
             </a>
-            <a href="/director/comunicados/" class="nav-item active" aria-label="Comunicados">
+            <a href="/director/comunicados/" class="nav-item active" aria-label="Avisos">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 11l19-9v18L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                 </svg>
-                <span class="nav-label">Comunicados</span>
+                <span class="nav-label">Avisos</span>
             </a>
             <a href="/director/academico/" class="nav-item" aria-label="Académico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1735,45 +1323,56 @@
                 </div>
             </div>
 
-            <!-- ── Card: Citaciones (filtros + grid) ─────────────── -->
-            <div class="list-section" id="sectionCitCard">
-                <div class="cit-filter-row" id="filterRowCit">
-                    <div class="cit-filter-row__left">
-                        <span class="cit-filter-label">FILTRAR POR ROL:</span>
+            <!-- ── Tabla: Citaciones ──────────────────────────────── -->
+            <div class="cit-table-section" id="sectionCitCard">
+                <div class="cit-table-toolbar">
+                    <div class="cit-table-toolbar__left">
+                        <span class="cit-table-toolbar__label">Filtrar por usuario</span>
                         <div class="rol-chips" id="rolChips">
                             <button class="rol-chip rol-chip--active" data-emisor="">Todos</button>
-                            <button class="rol-chip" data-emisor="Director">Director</button>
                             <button class="rol-chip" data-emisor="Profesor">Profesores</button>
                             <button class="rol-chip" data-emisor="Regente">Regentes</button>
+                            <button class="rol-chip" data-emisor="Director">Mios</button>
+                        </div>
+                        <span class="cit-table-filter-divider" aria-hidden="true"></span>
+                        <div class="rol-chips" id="estadoChipsCit">
+                            <button class="rol-chip rol-chip--active" data-estado="ACTIVO">Activas</button>
+                            <button class="rol-chip" data-estado="ANULADA">Anuladas</button>
                         </div>
                     </div>
                     <div class="cit-mes-nav" id="citMesNav">
                         <button class="cit-mes-nav__btn" id="btnMesPrev" aria-label="Mes anterior">&#8249;</button>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        <span class="cit-mes-nav__label" id="citMesLabel">—</span>
+                        <span class="cit-mes-nav__label" id="citMesLabel">-</span>
                         <button class="cit-mes-nav__btn" id="btnMesNext" aria-label="Mes siguiente">&#8250;</button>
                     </div>
                 </div>
-                <div class="cit-section__body">
-                    <div id="panelCitaciones">
-                        <div class="cit-cards-grid" id="citacionesGrid"></div>
-                        <p class="grid-footer" id="gridFooter"></p>
-                    </div>
+                <div id="panelCitaciones">
+                    <div class="cit-table-grid" id="citacionesGrid"></div>
+                    <div class="grid-footer" id="gridFooter"></div>
                 </div>
             </div>
 
-            <!-- ── Card: Comunicados ──────────────────────────────── -->
-            <div class="list-section" id="sectionComCard" style="display:none;">
-                <div class="cit-filter-row" id="filterRowCom" style="justify-content:space-between;">
-                    <div class="cit-filter-row__left">
-                        <span class="cit-filter-label">FILTRAR POR ROL:</span>
+            <!-- ── Tabla: Comunicados ─────────────────────────────── -->
+            <div class="cit-table-section" id="sectionComCard" style="display:none;">
+                <div class="cit-table-toolbar" id="filterRowCom">
+                    <div class="cit-table-toolbar__left">
+                        <span class="cit-table-toolbar__label">Filtrar por usuario</span>
                         <div class="rol-chips" id="rolChipsCom">
                             <button class="rol-chip rol-chip--active" data-emisor="">Todos</button>
                             <button class="rol-chip" data-emisor="Director">Director</button>
                             <button class="rol-chip" data-emisor="Profesor">Profesores</button>
                             <button class="rol-chip" data-emisor="Regente">Regentes</button>
+                        </div>
+                        <span class="cit-table-filter-divider" aria-hidden="true"></span>
+                        <div class="rol-chips" id="estadoChipsCom">
+                            <button class="rol-chip rol-chip--active" data-estado="ACTIVO">Activos</button>
+                            <button class="rol-chip" data-estado="ANULADO">Anulados</button>
                         </div>
                     </div>
                     <div class="cit-mes-nav" id="comMesNav">
@@ -1785,11 +1384,9 @@
                         <button class="cit-mes-nav__btn" id="btnComMesNext" aria-label="Mes siguiente">&#8250;</button>
                     </div>
                 </div>
-                <div class="cit-section__body">
-                    <div id="panelComunicados">
-                        <div class="comunicados-list" id="comunicadosList"></div>
-                        <p class="grid-footer" id="comFooter"></p>
-                    </div>
+                <div id="panelComunicados">
+                    <div class="cit-table-grid" id="comunicadosList"></div>
+                    <div class="grid-footer" id="comFooter"></div>
                 </div>
             </div>
 
@@ -2065,6 +1662,92 @@
                 </svg>
             </button>
             <div id="modalDetalleContenido"></div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Anular citación ────────────────────────────────── -->
+    <div class="modal-backdrop" id="modalAnularCitacion">
+        <div class="modal">
+            <div class="modal-icon" style="background:rgba(239,68,68,.12);color:#ef4444">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+            <p class="modal-title">Anular citación</p>
+            <p class="modal-subtitle" style="text-align:center;">
+                ¿Seguro que deseas anular la citación de <strong id="anularNombreEstudiante"></strong>?
+                Esta acción no se puede deshacer.
+            </p>
+            <div style="width:100%;margin-top:14px;">
+                <label style="display:block;font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-align:left;">
+                    Ingresa tu contraseña para confirmar
+                </label>
+                <input type="password" id="anularPasswordInput"
+                       placeholder="Contraseña"
+                       autocomplete="current-password"
+                       style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:var(--radius-sm);
+                              border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);
+                              font-size:.85rem;outline:none;transition:border-color .15s;"
+                       onfocus="this.style.borderColor='var(--accent)'"
+                       onblur="this.style.borderColor='var(--border)'">
+                <p id="anularPasswordError"
+                   style="display:none;color:#ef4444;font-size:.76rem;margin-top:6px;text-align:left;"></p>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;margin-top:14px;">
+                <button id="btnCancelarAnular" class="btn-secondary" style="flex:1;">Cancelar</button>
+                <button id="btnConfirmarAnular"
+                        style="flex:1;height:40px;border-radius:var(--radius-sm);background:#ef4444;
+                               color:#fff;border:none;cursor:pointer;font-weight:600;font-size:.85rem;">
+                    Anular citación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal: Anular comunicado ──────────────────────────────── -->
+    <div class="modal-backdrop" id="modalAnularComunicado">
+        <div class="modal">
+            <div class="modal-icon" style="background:rgba(239,68,68,.12);color:#ef4444">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+            <p class="modal-title">Anular comunicado</p>
+            <p class="modal-subtitle" style="text-align:center;">
+                ¿Seguro que deseas anular <strong id="anularComNombre"></strong>?
+                Esta acción no se puede deshacer.
+            </p>
+            <div style="width:100%;margin-top:14px;">
+                <label style="display:block;font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-align:left;">
+                    Ingresa tu contraseña para confirmar
+                </label>
+                <input type="password" id="anularComPassInput"
+                       placeholder="Contraseña"
+                       autocomplete="current-password"
+                       style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:var(--radius-sm);
+                              border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);
+                              font-size:.85rem;outline:none;transition:border-color .15s;"
+                       onfocus="this.style.borderColor='var(--accent)'"
+                       onblur="this.style.borderColor='var(--border)'">
+                <p id="anularComPassError"
+                   style="display:none;color:#ef4444;font-size:.76rem;margin-top:6px;text-align:left;"></p>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;margin-top:14px;">
+                <button id="btnCancelarAnularCom" class="btn-secondary" style="flex:1;">Cancelar</button>
+                <button id="btnConfirmarAnularCom"
+                        style="flex:1;height:40px;border-radius:var(--radius-sm);background:#ef4444;
+                               color:#fff;border:none;cursor:pointer;font-weight:600;font-size:.85rem;">
+                    Anular comunicado
+                </button>
+            </div>
         </div>
     </div>
 

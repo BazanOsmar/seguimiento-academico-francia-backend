@@ -651,3 +651,103 @@
 .cobertura-grupo__items { padding-left: 8px; }
 .cobertura-grupo--collapsed .cobertura-grupo__items { display: none; }
 .cobertura-empty { padding: 20px; text-align: center; font-size: .83rem; color: var(--text-muted); }
+
+/* ── Toolbar de tabla ────────────────────────────────────────────── */
+.cit-table-section { margin-top: 20px; }
+
+.cit-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 0 14px;
+}
+
+.cit-table-toolbar__left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cit-table-filter-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(148,163,184,.18);
+    flex-shrink: 0;
+}
+
+/* ── Tabla ─────────────────────────────────────────────────────── */
+.cit-table-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,.12);
+}
+
+.cit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+}
+
+.cit-table thead { background: rgba(15,27,48,.7); }
+
+.cit-table th {
+    padding: 11px 16px;
+    text-align: left;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted, #7895b9);
+    white-space: nowrap;
+}
+
+.cit-table th:not(:last-child) { border-right: 1px solid rgba(148,163,184,.08); }
+
+.cit-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(148,163,184,.07);
+    vertical-align: middle;
+}
+
+.cit-table tr:last-child td { border-bottom: none; }
+.cit-table tbody tr { cursor: pointer; transition: background .15s; }
+.cit-table tbody tr:hover td { background: rgba(255,255,255,.03); }
+.cit-table__main { color: var(--text-primary, #e2ecfb); font-weight: 750; }
+.cit-table__muted { color: var(--text-muted, #7895b9); font-size: .76rem; margin-top: 2px; }
+.cit-table__type {
+    display: inline-block;
+    font-size: .7rem; font-weight: 700;
+    padding: 2px 9px; border-radius: 6px;
+    background: rgba(96,165,250,.1);
+    border: 1px solid rgba(96,165,250,.2);
+    color: #93c5fd;
+}
+
+/* ── Estado badge en tabla ──────────────────────────────────────── */
+.cit-badge-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 50px;
+    font-size: .65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+}
+.cit-status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; flex-shrink: 0;
+}
+.cit-badge-status--pendiente  { background: rgba(245,158,11,.12); color: #f59e0b; }
+.cit-badge-status--asistio    { background: rgba(34,197,94,.12);  color: #22c55e; }
+.cit-badge-status--no_asistio { background: rgba(239,68,68,.12);  color: #ef4444; }
+.cit-badge-status--atraso     { background: rgba(239,68,68,.12);  color: #ef4444; }
+.cit-badge-status--anulada    { background: rgba(148,163,184,.1); color: #94a3b8; }
+
+/* ── Footer de tabla / paginación ──────────────────────────────── */
+.grid-footer {
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}

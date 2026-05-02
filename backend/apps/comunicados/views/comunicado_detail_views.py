@@ -49,11 +49,18 @@ class ComunicadoAnularView(APIView):
             return Response({'errores': 'Comunicado no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+
+        if tipo == 'Regente':
+            return Response(
+                {'errores': 'Los regentes no tienen permiso para anular comunicados.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if tipo == 'Profesor' and comunicado.emisor != request.user:
             return Response(
                 {'errores': 'Solo puedes anular comunicados que tú mismo emitiste.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        # Director puede anular cualquier comunicado
 
         if comunicado.estado == Comunicado.ESTADO_ANULADO:
             return Response({'errores': 'Este comunicado ya fue anulado.'}, status=status.HTTP_400_BAD_REQUEST)

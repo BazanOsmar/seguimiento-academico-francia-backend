@@ -23,3 +23,7 @@ pymongo==4.10.1
 whitenoise==6.9.0
 django-cors-headers==4.7.0
 gunicorn==23.0.0
+# ── Machine Learning ─────────────────────────────
+scikit-learn==1.6.1
+pandas==2.2.3
+numpy==2.2.5

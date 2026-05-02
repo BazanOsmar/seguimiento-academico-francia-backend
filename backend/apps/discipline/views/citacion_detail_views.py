@@ -148,12 +148,24 @@ class CitacionAnularView(APIView):
         except Citacion.DoesNotExist:
             return Response({"errores": "Citación no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
-        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
-        if tipo == "Profesor" and citacion.emisor != request.user:
-            return Response(
-                {"errores": "Solo puedes anular citaciones que tú mismo emitiste."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        tipo        = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+        tipo_emisor = citacion.emisor.tipo_usuario.nombre if citacion.emisor.tipo_usuario else None
+
+        if tipo == "Profesor":
+            # Profesor solo puede anular sus propias citaciones
+            if citacion.emisor != request.user:
+                return Response(
+                    {"errores": "Solo puedes anular citaciones que tú mismo emitiste."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        elif tipo == "Regente":
+            # Regente solo puede anular citaciones emitidas por otro Regente (o él mismo)
+            if tipo_emisor != "Regente":
+                return Response(
+                    {"errores": "Solo puedes anular citaciones emitidas por Regentes."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        # Director puede anular cualquier citación (sin restricción adicional)
 
         if citacion.asistencia in ("ASISTIO", "ATRASO"):
             return Response(
