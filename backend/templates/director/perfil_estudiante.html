@@ -470,6 +470,14 @@
         .perfil-cit-status--no_asistio,
         .perfil-cit-status--atraso { color: #ef4444; background: rgba(239,68,68,.13); }
         .perfil-cit-status--anulada { color: #94a3b8; background: rgba(148,163,184,.1); }
+        .cit-list-card {
+            margin-top: 12px;
+            padding: 0;
+            overflow: hidden;
+        }
+        .cit-list-card .cit-empty {
+            border-top: 0;
+        }
 
         /* ── Calendario de asistencia ── */
         .perfil-cal-card {
@@ -688,6 +696,12 @@
             width: min(540px, 100%);
             padding: 0;
             overflow: hidden;
+            background: #1d314b;
+            border-color: rgba(96,165,250,.28);
+        }
+        .modal-detalle p {
+            text-align: left;
+            margin-bottom: 0;
         }
         .modal-detalle__close {
             position: absolute;
@@ -709,9 +723,9 @@
         .modal-det__hero {
             padding: 24px 22px 18px;
             border-left: 4px solid transparent;
-            background: rgba(59,130,246,.08);
+            background: rgba(30,41,59,.72);
         }
-        .modal-det__hero--PENDIENTE { border-left-color:#f59e0b; background:linear-gradient(135deg,rgba(245,158,11,.14) 0%,rgba(245,158,11,.04) 100%); }
+        .modal-det__hero--PENDIENTE { border-left-color:#f59e0b; background:linear-gradient(135deg,rgba(30,41,59,.88) 0%,rgba(30,41,59,.7) 100%); }
         .modal-det__hero--ASISTIO { border-left-color:#22c55e; background:linear-gradient(135deg,rgba(34,197,94,.14) 0%,rgba(34,197,94,.04) 100%); }
         .modal-det__hero--NO_ASISTIO,
         .modal-det__hero--ATRASO { border-left-color:#ef4444; background:linear-gradient(135deg,rgba(239,68,68,.14) 0%,rgba(239,68,68,.04) 100%); }
@@ -743,6 +757,152 @@
         .modal-det__date-item { padding: 12px 14px; background: rgba(15,23,42,.24); }
         .modal-det__date-item:not(:last-child) { border-right: 1px solid var(--border); }
         .modal-det__date-val { color: var(--text-secondary); font-size: .84rem; font-weight: 700; }
+        .modal-motivo-badge,
+        .modal-sent-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 22px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: .72rem;
+            font-weight: 850;
+        }
+        .modal-motivo-badge--faltas { background: rgba(239,68,68,.15); color: #f87171; }
+        .modal-motivo-badge--conducta { background: rgba(168,85,247,.16); color: #c084fc; }
+        .modal-motivo-badge--atrasos { background: rgba(245,158,11,.15); color: #f59e0b; }
+        .modal-motivo-badge--default { background: rgba(96,165,250,.14); color: #60a5fa; }
+        .modal-sent-badge { background: rgba(148,163,184,.12); color: var(--text-muted); }
+        .modal-det__footer {
+            padding: 0 20px 20px;
+        }
+        .btn-modal-anular {
+            width: 100%;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(239,68,68,.42);
+            background: rgba(239,68,68,.08);
+            color: #f87171;
+            font-size: .82rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .btn-modal-anular:hover { background: rgba(239,68,68,.14); }
+        .modal-detalle {
+            max-width: 500px;
+            width: 94%;
+            padding: 0;
+            overflow: hidden;
+            align-items: stretch;
+            gap: 0;
+            background: var(--bg-card);
+            border-color: var(--border);
+        }
+        .modal-detalle p {
+            text-align: left;
+            margin: 0;
+        }
+        .modal-det__hero {
+            padding: 22px 20px 18px;
+            border-left: 5px solid var(--border);
+            position: relative;
+        }
+        .modal-det__hero--PENDIENTE { border-left-color:#f59e0b; background:linear-gradient(135deg,rgba(245,158,11,.14) 0%,rgba(245,158,11,.04) 100%); }
+        .modal-det__hero--ASISTIO { border-left-color:#22c55e; background:linear-gradient(135deg,rgba(34,197,94,.14) 0%,rgba(34,197,94,.04) 100%); }
+        .modal-det__hero--NO_ASISTIO { border-left-color:#ef4444; background:linear-gradient(135deg,rgba(239,68,68,.14) 0%,rgba(239,68,68,.04) 100%); }
+        .modal-det__hero--ATRASO { border-left-color:#dc2626; background:linear-gradient(135deg,rgba(220,38,38,.14) 0%,rgba(220,38,38,.04) 100%); }
+        .modal-det__hero--ANULADA { border-left-color:#6b7280; background:linear-gradient(135deg,rgba(107,114,128,.14) 0%,rgba(107,114,128,.04) 100%); }
+        .modal-det__nombre {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.25;
+            padding-right: 36px;
+            text-transform: uppercase;
+        }
+        .modal-det__sub {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .modal-det__info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .modal-det__info-item,
+        .modal-det__desc {
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+        }
+        .modal-det__info-item { padding: 10px 12px; }
+        .modal-det__desc { padding: 12px 14px; }
+        .modal-det__info-label,
+        .modal-det__desc-label,
+        .modal-det__date-label {
+            font-size: .63rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: 4px;
+        }
+        .modal-det__desc-label { margin-bottom: 8px; }
+        .modal-det__info-val {
+            font-size: .84rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+        .modal-det__desc-text {
+            font-size: .85rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+        .modal-det__dates {
+            display: flex;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .modal-det__date-item {
+            flex: 1;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            background: transparent;
+        }
+        .modal-det__date-item:not(:last-child) { border-right: 1px solid var(--border-subtle); }
+        .modal-det__date-val { font-size: .84rem; font-weight: 600; color: var(--text-secondary); }
+        .citacion-card__motivo {
+            display: inline-block;
+            font-size: .68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 50px;
+            background: rgba(148,163,184,.12);
+            color: var(--text-muted);
+            letter-spacing: .03em;
+            text-transform: uppercase;
+        }
+        .citacion-card__motivo--FALTAS { background: rgba(239,68,68,.13); color: #f87171; }
+        .citacion-card__motivo--ATRASOS { background: rgba(245,158,11,.13); color: #fbbf24; }
+        .citacion-card__motivo--CONDUCTA { background: rgba(168,85,247,.13); color: #c084fc; }
+        .citacion-card__motivo--RENDIMIENTO { background: rgba(59,130,246,.13); color: #60a5fa; }
+        .citacion-card__motivo--REUNION { background: rgba(20,184,166,.13); color: #2dd4bf; }
+        .estado-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: .72rem;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .estado-badge--pendiente { background: rgba(245,158,11,.15); color: #f59e0b; }
+        .estado-badge--asistio { background: rgba(34,197,94,.15); color: #22c55e; }
+        .estado-badge--no_asistio { background: rgba(239,68,68,.15); color: #ef4444; }
+        .estado-badge--atraso { background: rgba(220,38,38,.15); color: #dc2626; }
+        .estado-badge--anulada { background: rgba(107,114,128,.15); color: #94a3b8; }
         @media (max-width: 620px) {
             .cit-tabs { overflow-x: auto; }
             .cit-state-filters { padding: 10px 16px; }
@@ -1107,6 +1267,9 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="perfil-card cit-list-card">
                 <!-- Lista -->
                 <div id="citacionesContainer">
                     <div class="table-spinner" style="margin:24px auto;display:block;"></div>
@@ -1199,8 +1362,8 @@
         </div>
     </div>
 
-    <div class="confirm-modal-backdrop" id="modalDetalleCitacionPerfil">
-        <div class="confirm-modal modal-detalle">
+    <div class="modal-backdrop" id="modalDetalleCitacionPerfil">
+        <div class="modal modal-detalle">
             <button class="modal-detalle__close" id="btnCerrarDetalleCitacionPerfil" aria-label="Cerrar">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1257,6 +1420,12 @@ function fmtFecha(str) {
     const [y, m, d] = String(str).slice(0, 10).split('-');
     if (!y || !m || !d) return '-';
     return `${d}/${m}/${y}`;
+}
+
+function fmtFechaTexto(str) {
+    const f = _parseFechaLocalPerfil(str);
+    if (!f) return '-';
+    return f.toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 let _todasCitaciones = [];
@@ -1318,6 +1487,18 @@ function _claseLimitePerfil(c) {
 function _limitePerfilHTML(c) {
     const cls = _claseLimitePerfil(c);
     return `<span class="perfil-cit-limit perfil-cit-limit--${cls}">${_escPE(fmtFecha(c.fecha_limite_asistencia))}</span>`;
+}
+
+function _estadoBadgeCitPerfil(asist) {
+    const key = asist || 'PENDIENTE';
+    const cfg = {
+        PENDIENTE:  { cls: 'estado-badge--pendiente', txt: 'Pendiente' },
+        ASISTIO:    { cls: 'estado-badge--asistio', txt: 'Asistio' },
+        NO_ASISTIO: { cls: 'estado-badge--no_asistio', txt: 'No asistio' },
+        ATRASO:     { cls: 'estado-badge--atraso', txt: 'Atraso' },
+        ANULADA:    { cls: 'estado-badge--anulada', txt: 'Anulada' },
+    }[key] || { cls: 'estado-badge--pendiente', txt: key };
+    return `<span class="estado-badge ${cfg.cls}">${_escPE(cfg.txt)}</span>`;
 }
 
 const FILTROS = {
@@ -1408,7 +1589,6 @@ function _renderPaginaCit() {
                                 </td>
                                 <td>
                                     <div class="perfil-cit-main">${_escPE(c.motivo || 'Sin motivo')}</div>
-                                    ${c.descripcion ? `<div class="perfil-cit-muted">${_escPE(String(c.descripcion).slice(0, 70))}${String(c.descripcion).length > 70 ? '...' : ''}</div>` : ''}
                                 </td>
                                 <td>${_escPE(fmtFecha(c.fecha_envio))}</td>
                                 <td>${_limitePerfilHTML(c)}</td>
@@ -1516,8 +1696,6 @@ async function abrirModalDetalleCitacionPerfil(id) {
 
     const d = res.data || {};
     const asist = d.asistencia || 'PENDIENTE';
-    const label = ASISTENCIA_LABEL[asist] || asist;
-    const statusCls = String(asist).toLowerCase();
     const motivo = d.motivo || 'Sin motivo';
     const descripcion = d.motivo_descripcion || d.descripcion || 'Sin descripcion';
 
@@ -1525,9 +1703,10 @@ async function abrirModalDetalleCitacionPerfil(id) {
         <div class="modal-det__hero modal-det__hero--${_escPE(asist)}">
             <p class="modal-det__nombre">${_escPE(d.estudiante_nombre || 'Estudiante')}</p>
             <div class="modal-det__sub">
-                <span class="perfil-cit-type">${_escPE(d.curso || 'Sin curso')}</span>
-                <span class="perfil-cit-type">${_escPE(motivo)}</span>
-                <span class="perfil-cit-status perfil-cit-status--${statusCls}">${_escPE(label)}</span>
+                <span class="badge-curso">${_escPE(d.curso || 'Sin curso')}</span>
+                <span class="citacion-card__motivo citacion-card__motivo--${_escPE(String(motivo).toUpperCase())}">${_escPE(motivo)}</span>
+                ${_estadoBadgeCitPerfil(asist)}
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(148,163,184,.12);color:var(--text-muted);">Enviada</span>
             </div>
         </div>
         <div class="modal-det__body">
@@ -1543,19 +1722,20 @@ async function abrirModalDetalleCitacionPerfil(id) {
                 </div>
             </div>
             <div class="modal-det__desc">
-                <p class="modal-det__desc-label">Descripcion</p>
+                <p class="modal-det__desc-label">Descripción</p>
                 <p class="modal-det__desc-text">${_escPE(descripcion)}</p>
             </div>
             <div class="modal-det__dates">
                 <div class="modal-det__date-item">
-                    <span class="modal-det__date-label">Fecha de envio</span>
-                    <span class="modal-det__date-val">${_escPE(fmtFecha(d.fecha_envio))}</span>
+                    <span class="modal-det__date-label">Fecha de envío</span>
+                    <span class="modal-det__date-val">${_escPE(fmtFechaTexto(d.fecha_envio))}</span>
                 </div>
                 <div class="modal-det__date-item">
-                    <span class="modal-det__date-label">Fecha limite</span>
-                    <span class="modal-det__date-val">${_escPE(fmtFecha(d.fecha_limite_asistencia))}</span>
+                    <span class="modal-det__date-label">Fecha límite</span>
+                    <span class="modal-det__date-val">${_escPE(fmtFechaTexto(d.fecha_limite_asistencia))}</span>
                 </div>
             </div>
+        </div>
         </div>`;
 }
 

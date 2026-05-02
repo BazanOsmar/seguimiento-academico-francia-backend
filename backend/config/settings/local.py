@@ -29,6 +29,12 @@ try:
     os.environ.setdefault('DEV_BYPASS_REGENTE',   _s.DEV_BYPASS_REGENTE)
     os.environ.setdefault('EMAIL_HOST_USER',      getattr(_s, 'EMAIL_HOST_USER', ''))
     os.environ.setdefault('EMAIL_HOST_PASSWORD',  getattr(_s, 'EMAIL_HOST_PASSWORD', ''))
+    os.environ.setdefault('EMAIL_DESTINATARIO',   getattr(_s, 'EMAIL_DESTINATARIO', ''))
+    # Sobreescribir los settings de Django porque base.py los evaluó antes de que
+    # se inyectaran las env vars (el from .base import * corre primero)
+    EMAIL_HOST_USER     = getattr(_s, 'EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = getattr(_s, 'EMAIL_HOST_PASSWORD', '')
+    EMAIL_DESTINATARIO  = getattr(_s, 'EMAIL_DESTINATARIO', '')
 except ImportError:
     pass  # En CI/staging las variables llegan por entorno real
 
