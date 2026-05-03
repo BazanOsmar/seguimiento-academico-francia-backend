@@ -141,6 +141,10 @@ class CitacionAnularView(APIView):
     permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
 
     def patch(self, request, citacion_id):
+        contrasena = request.data.get("contrasena", "")
+        if not contrasena or not request.user.check_password(contrasena):
+            return Response({"errores": "Contraseña incorrecta."}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             citacion = Citacion.objects.select_related(
                 "estudiante", "emisor", "emisor__tipo_usuario"

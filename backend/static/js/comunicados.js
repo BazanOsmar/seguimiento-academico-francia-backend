@@ -1341,30 +1341,12 @@ btnConfirmarAnul.addEventListener('click', async () => {
     }
 
     btnConfirmarAnul.disabled    = true;
-    btnConfirmarAnul.textContent = 'Verificando...';
+    btnConfirmarAnul.textContent = 'Anulando...';
     anularPassError.style.display = 'none';
 
-    // Paso 1: verificar contraseña
-    const { ok: passOk, data: passData } = await fetchAPI('/api/auth/verificar-contrasena/', {
-        method: 'POST',
-        body:   JSON.stringify({ password }),
-    });
-
-    if (!passOk) {
-        anularPassError.textContent   = passData?.errores || 'Contraseña incorrecta.';
-        anularPassError.style.display = 'block';
-        anularPassInput.value         = '';
-        anularPassInput.focus();
-        btnConfirmarAnul.disabled    = false;
-        btnConfirmarAnul.textContent = 'Anular citación';
-        return;
-    }
-
-    // Paso 2: anular la citación
-    btnConfirmarAnul.textContent = 'Anulando...';
     const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_anularCitId}/anular/`, {
         method: 'PATCH',
-        body:   JSON.stringify({}),
+        body:   JSON.stringify({ contrasena: password }),
     });
 
     if (ok) {
@@ -1818,28 +1800,12 @@ btnConfirmarAnulCom.addEventListener('click', async () => {
     }
 
     btnConfirmarAnulCom.disabled    = true;
-    btnConfirmarAnulCom.textContent = 'Verificando...';
+    btnConfirmarAnulCom.textContent = 'Anulando...';
     anularComPassError.style.display = 'none';
 
-    const { ok: passOk, data: passData } = await fetchAPI('/api/auth/verificar-contrasena/', {
-        method: 'POST',
-        body:   JSON.stringify({ password }),
-    });
-
-    if (!passOk) {
-        anularComPassError.textContent   = passData?.errores || 'Contraseña incorrecta.';
-        anularComPassError.style.display = 'block';
-        anularComPassInput.value         = '';
-        anularComPassInput.focus();
-        btnConfirmarAnulCom.disabled    = false;
-        btnConfirmarAnulCom.textContent = 'Anular comunicado';
-        return;
-    }
-
-    btnConfirmarAnulCom.textContent = 'Anulando...';
     const { ok, data } = await fetchAPI(`/api/comunicados/${_anularComId}/anular/`, {
         method: 'PATCH',
-        body:   JSON.stringify({}),
+        body:   JSON.stringify({ contrasena: password }),
     });
 
     if (ok) {

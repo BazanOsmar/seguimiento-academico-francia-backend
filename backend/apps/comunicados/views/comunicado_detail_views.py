@@ -41,6 +41,10 @@ class ComunicadoAnularView(APIView):
     permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
 
     def patch(self, request, pk):
+        contrasena = request.data.get("contrasena", "")
+        if not contrasena or not request.user.check_password(contrasena):
+            return Response({"errores": "Contraseña incorrecta."}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             comunicado = Comunicado.objects.select_related(
                 'emisor', 'emisor__tipo_usuario'
