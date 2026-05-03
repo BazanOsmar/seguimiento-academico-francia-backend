@@ -1669,9 +1669,11 @@ document.querySelectorAll('#citEstadoChips .cit-state-chip').forEach(chip => {
 
 const _modalDetalleCitPerfil = document.getElementById('modalDetalleCitacionPerfil');
 const _modalDetalleCitPerfilContenido = document.getElementById('modalDetalleCitacionPerfilContenido');
+let _citAnularIdPerfil = null;
 
 function cerrarModalDetalleCitacionPerfil() {
     _modalDetalleCitPerfil.classList.remove('visible');
+    _citAnularIdPerfil = null;
 }
 
 document.getElementById('btnCerrarDetalleCitacionPerfil').addEventListener('click', cerrarModalDetalleCitacionPerfil);
@@ -1679,7 +1681,59 @@ _modalDetalleCitPerfil.addEventListener('click', e => {
     if (e.target === _modalDetalleCitPerfil) cerrarModalDetalleCitacionPerfil();
 });
 
+_modalDetalleCitPerfil.addEventListener('click', async e => {
+    const id = e.target.id;
+
+    if (id === 'btnIniciarAnularCitPerfil') {
+        e.target.style.display = 'none';
+        document.getElementById('anularCitPerfilForm').style.display = 'block';
+        document.getElementById('anularCitPerfilPass').focus();
+        return;
+    }
+
+    if (id === 'btnCancelarAnularCitPerfil') {
+        document.getElementById('anularCitPerfilForm').style.display = 'none';
+        document.getElementById('btnIniciarAnularCitPerfil').style.display = 'block';
+        document.getElementById('anularCitPerfilPass').value = '';
+        document.getElementById('anularCitPerfilError').style.display = 'none';
+        return;
+    }
+
+    if (id === 'btnConfirmarAnularCitPerfil') {
+        const passInput = document.getElementById('anularCitPerfilPass');
+        const errEl     = document.getElementById('anularCitPerfilError');
+        const contrasena = passInput.value;
+        if (!contrasena) {
+            errEl.textContent   = 'Ingresa tu contraseña.';
+            errEl.style.display = 'block';
+            passInput.focus();
+            return;
+        }
+        e.target.disabled    = true;
+        e.target.textContent = 'Anulando...';
+        errEl.style.display  = 'none';
+
+        const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_citAnularIdPerfil}/anular/`, {
+            method: 'PATCH',
+            body:   JSON.stringify({ contrasena }),
+        });
+
+        if (ok) {
+            cerrarModalDetalleCitacionPerfil();
+            showAppToast('success', 'Citación anulada', 'La citación fue anulada correctamente.');
+            const res = await fetchAPI(`/api/discipline/citaciones/?estudiante_id=${ESTUDIANTE_ID}`);
+            if (res.ok) renderCitaciones(Array.isArray(res.data) ? res.data : []);
+        } else {
+            errEl.textContent    = data?.errores || 'Error al anular.';
+            errEl.style.display  = 'block';
+            e.target.disabled    = false;
+            e.target.textContent = 'Confirmar';
+        }
+    }
+});
+
 async function abrirModalDetalleCitacionPerfil(id) {
+    _citAnularIdPerfil = id;
     _modalDetalleCitPerfilContenido.innerHTML = `
         <div class="modal-det__body">
             <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
@@ -1736,6 +1790,19 @@ async function abrirModalDetalleCitacionPerfil(id) {
                 </div>
             </div>
         </div>
+        ${asist === 'PENDIENTE' ? `
+        <div class="modal-det__footer">
+            <button class="btn-modal-anular" id="btnIniciarAnularCitPerfil">Anular citación</button>
+            <div id="anularCitPerfilForm" style="display:none;margin-top:10px;">
+                <input type="password" id="anularCitPerfilPass" placeholder="Tu contraseña" maxlength="64"
+                    style="width:100%;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:.85rem;box-sizing:border-box;" />
+                <p id="anularCitPerfilError" style="display:none;color:var(--danger);font-size:.78rem;margin:6px 0 0;"></p>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button id="btnCancelarAnularCitPerfil" style="flex:1;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:.82rem;cursor:pointer;">Cancelar</button>
+                    <button id="btnConfirmarAnularCitPerfil" style="flex:1;height:36px;border-radius:var(--radius-sm);border:1px solid rgba(239,68,68,.42);background:rgba(239,68,68,.08);color:#f87171;font-size:.82rem;font-weight:800;cursor:pointer;">Confirmar</button>
+                </div>
+            </div>
+        </div>` : ''}
         </div>`;
 }
 
