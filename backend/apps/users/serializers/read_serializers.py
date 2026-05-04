@@ -13,6 +13,7 @@ class UserListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'first_name', 'last_name', 'username', 'rol',
             'last_login', 'date_joined', 'tiene_fcm', 'primer_ingreso', 'total_ingresos',
+            'is_active',
         )
 
     def get_rol(self, obj):

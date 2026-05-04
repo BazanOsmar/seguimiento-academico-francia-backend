@@ -7,11 +7,14 @@ from rest_framework import status
 
 from backend.core.permissions import IsDirector
 from rest_framework.permissions import IsAuthenticated
-from ..models import ProfesorCurso
+from django.db.models import Count
+
+from ..models import ProfesorCurso, ProfesorPlan
 from ..services.notas_mongo_service import (
     cursos_con_notas_mes,
     hay_notas_mes,
     obtener_notas_mes,
+    todos_pc_con_notas_mes,
 )
 
 _MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -70,7 +73,7 @@ class DirectorResumenNotasMesView(APIView):
         asignaciones = (
             ProfesorCurso.objects
             .select_related('profesor', 'curso', 'materia')
-            .filter(profesor__tipo_usuario__nombre='Profesor')
+            .filter(profesor__tipo_usuario__nombre='Profesor', profesor__is_active=True)
             .order_by('profesor__last_name', 'profesor__first_name', 'curso__grado', 'curso__paralelo')
         )
 
@@ -192,4 +195,79 @@ class DirectorNotasMesDetalleView(APIView):
                 'mes_nombre': _MESES[mes] if 1 <= mes <= 12 else str(mes),
                 'gestion':    gestion,
             },
+        })
+
+
+class DirectorSeguimientoProfesoresView(APIView):
+    """
+    GET /api/academics/director/seguimiento-profesores/?mes=X
+
+    Devuelve todos los profesores con:
+    - cursos_asignados: total de ProfesorCurso (no depende del mes)
+    - notas_cargadas:   cuántos ProfesorCurso tienen notas subidas en MongoDB ese mes
+    - planes_completos: cuántos ProfesorCurso tienen 4 planes de trabajo ese mes
+
+    Permiso: solo Director. 3 queries totales (1 SQL asignaciones, 1 SQL planes, 1 Mongo).
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        try:
+            mes = int(request.query_params.get('mes', 0))
+        except (ValueError, TypeError):
+            mes = 0
+
+        if not 1 <= mes <= 12:
+            return Response({'errores': 'Mes inválido (1–12).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        gestion = timezone.now().year
+
+        # 1. Todas las asignaciones de profesores
+        asignaciones = list(
+            ProfesorCurso.objects
+            .select_related('profesor', 'curso', 'materia')
+            .filter(profesor__tipo_usuario__nombre='Profesor', profesor__is_active=True)
+            .order_by('profesor__last_name', 'profesor__first_name')
+        )
+
+        # 2. ProfesorCurso IDs con 4+ planes ese mes (una query SQL con anotación)
+        pc_ids_planes_ok = set(
+            ProfesorPlan.objects
+            .filter(mes=mes, eliminado=False)
+            .values('profesor_curso_id')
+            .annotate(total=Count('id'))
+            .filter(total__gte=4)
+            .values_list('profesor_curso_id', flat=True)
+        )
+
+        # 3. (profesor_id, materia_id, curso_id) con notas en Mongo ese mes
+        pares_con_notas = todos_pc_con_notas_mes(mes, gestion)
+
+        # Agrupar por profesor
+        profesores: dict = {}
+        for pc in asignaciones:
+            prof_id = pc.profesor.id
+            if prof_id not in profesores:
+                nombre = f"{pc.profesor.first_name} {pc.profesor.last_name}".strip() or pc.profesor.username
+                profesores[prof_id] = {
+                    'id':               prof_id,
+                    'nombre':           nombre,
+                    'username':         pc.profesor.username,
+                    'cursos_asignados': 0,
+                    'notas_cargadas':   0,
+                    'planes_completos': 0,
+                }
+
+            profesores[prof_id]['cursos_asignados'] += 1
+
+            if (pc.profesor_id, pc.materia_id, pc.curso_id) in pares_con_notas:
+                profesores[prof_id]['notas_cargadas'] += 1
+
+            if pc.id in pc_ids_planes_ok:
+                profesores[prof_id]['planes_completos'] += 1
+
+        return Response({
+            'mes':        mes,
+            'gestion':    gestion,
+            'profesores': list(profesores.values()),
         })

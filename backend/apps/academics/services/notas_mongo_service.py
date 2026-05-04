@@ -841,6 +841,37 @@ def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
         return {mid: None for mid in materia_ids}
 
 
+def todos_cargaron_mes(mes: int, gestion: int) -> bool:
+    """
+    Devuelve True si TODOS los ProfesorCurso tienen al menos un documento
+    en notas_mensuales para el mes/gestión indicados.
+    Se usa para disparar K-Means automáticamente al confirmar la última planilla.
+    """
+    from backend.apps.academics.models import ProfesorCurso
+
+    total_asignaciones = ProfesorCurso.objects.count()
+    if total_asignaciones == 0:
+        return False
+
+    try:
+        pipeline = [
+            {'$match': {'gestion': gestion, 'mes': mes}},
+            {'$group': {
+                '_id': {
+                    'profesor_id': '$profesor_id',
+                    'materia_id':  '$materia_id',
+                    'curso_id':    '$curso_id',
+                }
+            }},
+            {'$count': 'total'},
+        ]
+        resultado = list(_get_db()['notas_mensuales'].aggregate(pipeline))
+        cargados = resultado[0]['total'] if resultado else 0
+        return cargados >= total_asignaciones
+    except Exception:
+        return False
+
+
 def cursos_con_notas_mes(mes, gestion):
     """
     Retorna el set de (profesor_id, curso_id) que tienen al menos un documento
@@ -856,6 +887,30 @@ def cursos_con_notas_mes(mes, gestion):
         ]
         return {
             (r['_id']['profesor_id'], r['_id']['curso_id'])
+            for r in col.aggregate(pipeline)
+        }
+    except Exception:
+        return set()
+
+
+def todos_pc_con_notas_mes(mes, gestion):
+    """
+    Retorna el set de (profesor_id, materia_id, curso_id) con notas en
+    detalle_notas para el mes/gestión indicados.
+    Granularidad de ProfesorCurso — una sola query de agregación.
+    """
+    try:
+        col = _get_db()['detalle_notas']
+        pipeline = [
+            {'$match': {'mes': mes, 'gestion': gestion}},
+            {'$group': {'_id': {
+                'profesor_id': '$profesor_id',
+                'materia_id':  '$materia_id',
+                'curso_id':    '$curso_id',
+            }}},
+        ]
+        return {
+            (r['_id']['profesor_id'], r['_id']['materia_id'], r['_id']['curso_id'])
             for r in col.aggregate(pipeline)
         }
     except Exception:

@@ -98,6 +98,12 @@ class CitacionDetailView(APIView):
                 {"errores": "Esta citación ya fue marcada como atendida."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if citacion.asistencia == "ANULADA":
+            return Response(
+                {"errores": "No se puede marcar asistencia en una citación anulada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Permite PENDIENTE y NO_ASISTIO → la lógica de fecha determina ASISTIO o ATRASO
 
         hoy = timezone.now().date()
         citacion.fecha_asistencia = hoy
@@ -135,7 +141,8 @@ class CitacionAnularView(APIView):
     Marca la citación como ANULADA.
     - Director y Regente pueden anular cualquier citación.
     - Profesor solo puede anular citaciones que él mismo emitió.
-    No se puede anular una citación ya resuelta (ASISTIO, ATRASO) ni ya anulada.
+    Solo se puede anular citaciones en estado PENDIENTE o NO_ASISTIO (vencidas).
+    No se puede anular una citación ASISTIO, ATRASO o ya ANULADA.
     """
 
     permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
@@ -171,14 +178,16 @@ class CitacionAnularView(APIView):
                 )
         # Director puede anular cualquier citación (sin restricción adicional)
 
-        if citacion.asistencia in ("ASISTIO", "ATRASO"):
-            return Response(
-                {"errores": "No se puede anular una citación que ya fue atendida."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        ESTADOS_ANULABLES = ("PENDIENTE", "NO_ASISTIO")
+
         if citacion.asistencia == "ANULADA":
             return Response(
                 {"errores": "Esta citación ya fue anulada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if citacion.asistencia not in ESTADOS_ANULABLES:
+            return Response(
+                {"errores": "Solo se puede anular citaciones pendientes o vencidas."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

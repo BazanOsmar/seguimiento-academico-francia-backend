@@ -79,11 +79,25 @@
 }
 
 #vistaCursos .vc-split.has-panel {
-    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+    grid-template-columns: 1fr;
 }
 
 #vistaCursos #cursosGrid {
     min-width: 0;
+}
+
+#vistaCursos .vc-detail-backdrop {
+    display: none;
+}
+
+#vistaCursos .vc-split.has-panel .vc-detail-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 320;
+    display: block;
+    background: rgba(2, 6, 23, 0.46);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 #vistaCursos .vc-courses-grid {
@@ -94,25 +108,32 @@
 #vistaCursos .vc-course-card {
     padding: 18px;
     border-radius: 24px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.28);
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-        rgba(15, 23, 42, 0.62);
-    box-shadow: 0 18px 34px rgba(2, 6, 23, 0.14);
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.16), transparent 36%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015)),
+        rgba(17, 25, 44, 0.9);
+    box-shadow:
+        0 18px 34px rgba(2, 6, 23, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
     gap: 16px;
 }
 
 #vistaCursos .vc-course-card:hover {
-    border-color: rgba(96, 165, 250, 0.28);
-    box-shadow: 0 22px 42px rgba(2, 6, 23, 0.22);
+    border-color: rgba(96, 165, 250, 0.48);
+    box-shadow:
+        0 22px 42px rgba(2, 6, 23, 0.34),
+        0 0 0 1px rgba(96, 165, 250, 0.12) inset;
 }
 
 #vistaCursos .vc-course-card.active {
-    border-color: rgba(96, 165, 250, 0.32);
+    border-color: rgba(96, 165, 250, 0.56);
     background:
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.16), transparent 34%),
-        rgba(15, 23, 42, 0.76);
-    box-shadow: 0 18px 42px rgba(37, 99, 235, 0.16);
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.22), transparent 34%),
+        rgba(18, 30, 56, 0.94);
+    box-shadow:
+        0 18px 42px rgba(37, 99, 235, 0.2),
+        0 0 0 1px rgba(96, 165, 250, 0.16) inset;
 }
 
 #vistaCursos .vc-course-card.active::before {
@@ -142,7 +163,9 @@
 #vistaCursos .vc-card-name {
     font-size: clamp(1.25rem, 2vw, 1.55rem);
     line-height: 1;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
+    color: #f8fafc;
+    text-shadow: 0 1px 10px rgba(15, 23, 42, 0.45);
 }
 
 #vistaCursos .vc-card-badge {
@@ -182,18 +205,22 @@
     gap: 4px;
     padding: 12px 14px;
     border-radius: 16px;
-    background: rgba(15, 23, 42, 0.52);
-    border: 1px solid rgba(148, 163, 184, 0.12);
+    background:
+        linear-gradient(180deg, rgba(30, 41, 59, 0.78), rgba(15, 23, 42, 0.72));
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 #vistaCursos .vc-card-stat-label {
     font-size: 0.69rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    color: #93a4bd;
 }
 
 #vistaCursos .vc-card-stat-val {
     font-size: 1rem;
+    color: #ffffff;
 }
 
 #vistaCursos .vc-card-footer {
@@ -209,13 +236,35 @@
 }
 
 #vistaCursos .vc-detail {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 360;
+    width: min(430px, calc(100vw - 32px));
+    max-height: min(82dvh, 760px);
+    transform: translate(-50%, -50%);
     border-radius: 24px;
     border: 1px solid rgba(148, 163, 184, 0.14);
     background:
         radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
         rgba(15, 23, 42, 0.72);
     box-shadow: 0 18px 40px rgba(2, 6, 23, 0.2);
-    top: 12px;
+    animation: vcDetailModalIn .18s ease;
+}
+
+#vistaCursos .vc-split.has-panel .vc-detail {
+    display: flex;
+}
+
+@keyframes vcDetailModalIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 #vistaCursos .vc-detail-head {
@@ -341,8 +390,8 @@
     }
 
     #vistaCursos .vc-detail {
-        position: static;
-        max-height: none;
+        position: fixed;
+        max-height: min(84dvh, 720px);
     }
 }
 
@@ -358,9 +407,17 @@
         padding: 16px;
     }
 
-    #vistaCursos .vc-courses-grid,
-    #vistaCursos .vc-card-stats {
+    #vistaCursos .vc-courses-grid {
         grid-template-columns: 1fr;
+    }
+
+    #vistaCursos .vc-card-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #vistaCursos .vc-detail {
+        width: calc(100vw - 24px);
+        max-height: 86dvh;
     }
 
     #vistaCursos .vc-card-top,

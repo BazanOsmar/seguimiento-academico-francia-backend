@@ -253,3 +253,73 @@ class UserView(APIView):
             'tipo_usuario': user.tipo_usuario.nombre,
             'password_inicial': getattr(user, '_password_plain', ''),
         }, status=status.HTTP_201_CREATED)
+
+
+class ProfesorDesactivarView(APIView):
+    """
+    DELETE /api/users/profesores/<user_id>/desactivar/
+
+    Desactiva lógicamente a un profesor (is_active=False).
+    Requiere la contraseña del director autenticado para confirmar.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def delete(self, request, user_id):
+        contrasena = request.data.get('contrasena', '')
+        if not contrasena or not request.user.check_password(contrasena):
+            return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            profesor = User.objects.select_related('tipo_usuario').get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'errores': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if getattr(profesor.tipo_usuario, 'nombre', None) != 'Profesor':
+            return Response({'errores': 'El usuario no es un profesor.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not profesor.is_active:
+            return Response({'errores': 'El profesor ya estaba desactivado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        profesor.is_active = False
+        profesor.save(update_fields=['is_active'])
+
+        from backend.apps.auditoria.services import registrar
+        nombre_prof = f"{profesor.first_name} {profesor.last_name}".strip() or profesor.username
+        registrar(request.user, 'DESACTIVAR_PROFESOR', f"Desactivó al profesor {nombre_prof} (id={profesor.id})", request)
+
+        return Response({'id': profesor.id, 'is_active': False}, status=status.HTTP_200_OK)
+
+
+class ProfesorActivarView(APIView):
+    """
+    POST /api/users/profesores/<user_id>/activar/
+
+    Reactiva lógicamente a un profesor (is_active=True).
+    Requiere la contraseña del director autenticado para confirmar.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def post(self, request, user_id):
+        contrasena = request.data.get('contrasena', '')
+        if not contrasena or not request.user.check_password(contrasena):
+            return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            profesor = User.objects.select_related('tipo_usuario').get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'errores': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if getattr(profesor.tipo_usuario, 'nombre', None) != 'Profesor':
+            return Response({'errores': 'El usuario no es un profesor.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if profesor.is_active:
+            return Response({'errores': 'El profesor ya estaba activo.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        profesor.is_active = True
+        profesor.save(update_fields=['is_active'])
+
+        from backend.apps.auditoria.services import registrar
+        nombre_prof = f"{profesor.first_name} {profesor.last_name}".strip() or profesor.username
+        registrar(request.user, 'ACTIVAR_PROFESOR', f"Activó al profesor {nombre_prof} (id={profesor.id})", request)
+
+        return Response({'id': profesor.id, 'is_active': True}, status=status.HTTP_200_OK)

@@ -2,100 +2,25 @@
 
 /* ================================================================
    estadisticas.js — Dashboard analítico del Director
-   Combina datos reales de la API con datos ficticios (mockup ML)
    ================================================================ */
 
-// ── Datos ficticios K-Means ──────────────────────────────────────
-const _DATOS_KMEANS = {
-    clusters: [
-        {
-            id: 'A', label: 'Rendimiento Alto', color: '#22c55e',
-            n: 18, asistencia: 92, promedio: 78, citaciones: 0.3,
-        },
-        {
-            id: 'B', label: 'Rendimiento Regular', color: '#f59e0b',
-            n: 14, asistencia: 76, promedio: 61, citaciones: 1.2,
-        },
-        {
-            id: 'C', label: 'En Riesgo', color: '#ef4444',
-            n: 6, asistencia: 54, promedio: 42, citaciones: 3.8,
-        },
-    ],
-    puntos: [
-        // Cluster A (verde) — alto rendimiento
-        { x: 95, y: 82, r: 7, cluster: 'A' },
-        { x: 91, y: 79, r: 7, cluster: 'A' },
-        { x: 94, y: 75, r: 7, cluster: 'A' },
-        { x: 88, y: 80, r: 7, cluster: 'A' },
-        { x: 93, y: 72, r: 7, cluster: 'A' },
-        { x: 90, y: 77, r: 7, cluster: 'A' },
-        { x: 97, y: 84, r: 7, cluster: 'A' },
-        { x: 89, y: 76, r: 7, cluster: 'A' },
-        { x: 92, y: 81, r: 7, cluster: 'A' },
-        { x: 96, y: 78, r: 7, cluster: 'A' },
-        { x: 87, y: 73, r: 7, cluster: 'A' },
-        { x: 93, y: 80, r: 7, cluster: 'A' },
-        { x: 91, y: 74, r: 7, cluster: 'A' },
-        { x: 88, y: 77, r: 7, cluster: 'A' },
-        { x: 95, y: 83, r: 7, cluster: 'A' },
-        { x: 90, y: 79, r: 7, cluster: 'A' },
-        { x: 94, y: 76, r: 7, cluster: 'A' },
-        { x: 86, y: 71, r: 7, cluster: 'A' },
-        // Cluster B (amarillo) — regular
-        { x: 76, y: 63, r: 9, cluster: 'B' },
-        { x: 72, y: 58, r: 9, cluster: 'B' },
-        { x: 79, y: 65, r: 9, cluster: 'B' },
-        { x: 74, y: 60, r: 9, cluster: 'B' },
-        { x: 77, y: 62, r: 9, cluster: 'B' },
-        { x: 73, y: 57, r: 9, cluster: 'B' },
-        { x: 80, y: 66, r: 9, cluster: 'B' },
-        { x: 75, y: 59, r: 9, cluster: 'B' },
-        { x: 78, y: 64, r: 9, cluster: 'B' },
-        { x: 71, y: 56, r: 9, cluster: 'B' },
-        { x: 76, y: 61, r: 9, cluster: 'B' },
-        { x: 74, y: 63, r: 9, cluster: 'B' },
-        { x: 79, y: 58, r: 9, cluster: 'B' },
-        { x: 73, y: 60, r: 9, cluster: 'B' },
-        // Cluster C (rojo) — riesgo
-        { x: 52, y: 40, r: 13, cluster: 'C' },
-        { x: 48, y: 38, r: 13, cluster: 'C' },
-        { x: 56, y: 44, r: 13, cluster: 'C' },
-        { x: 51, y: 41, r: 13, cluster: 'C' },
-        { x: 55, y: 45, r: 13, cluster: 'C' },
-        { x: 50, y: 39, r: 13, cluster: 'C' },
-    ],
+// ── Colores por etiqueta de cluster ─────────────────────────────
+const CLUSTER_COLORES = {
+    'Excelente':            '#22c55e',
+    'Satisfactorio':        '#3b82f6',
+    'En Desarrollo':        '#06b6d4',
+    'Requiere Apoyo':       '#f59e0b',
+    'Riesgo Crítico':       '#ef4444',
+    'Rendimiento Adecuado': '#22c55e',
+    'Riesgo Académico':     '#ef4444',
+    'Muy Bien':             '#3b82f6',
 };
 
-// ── Datos ficticios Árbol de Decisión ────────────────────────────
-const _DATOS_ARBOL = {
-    en_riesgo: [
-        { nombre: 'García López, Luis',     curso: '1ro A', asistencia: 48, promedio: 39, citaciones: 5, nivel: 'ALTO' },
-        { nombre: 'Mamani Flores, Ana',     curso: '2do B', asistencia: 52, promedio: 43, citaciones: 4, nivel: 'ALTO' },
-        { nombre: 'Condori Quispe, Pedro',  curso: '1ro A', asistencia: 61, promedio: 51, citaciones: 3, nivel: 'MEDIO' },
-        { nombre: 'Vargas Solíz, Karen',    curso: '3ro A', asistencia: 57, promedio: 47, citaciones: 4, nivel: 'ALTO' },
-        { nombre: 'Chambi Roque, Diego',    curso: '2do A', asistencia: 63, promedio: 55, citaciones: 2, nivel: 'MEDIO' },
-        { nombre: 'Torrez Lima, Valeria',   curso: '1ro B', asistencia: 44, promedio: 35, citaciones: 6, nivel: 'ALTO' },
-    ],
-};
-
-// ── Datos ficticios notas ────────────────────────────────────────
-const _DATOS_NOTAS = {
-    materias: ['Matemáticas', 'Lenguaje', 'Ciencias', 'Ed. Física', 'Arte'],
-    ser:   [72, 80, 68, 88, 85],
-    saber: [61, 74, 58, 82, 78],
-    hacer: [68, 77, 65, 90, 83],
-};
+// Estado K-Means (datos cargados)
+let _kmeansData = null;
 
 // ── Estado de los gráficos ───────────────────────────────────────
 let _charts = {};
-
-// ── Utilidades de fecha ──────────────────────────────────────────
-function _mesAnterior(yyyy, mm, offset) {
-    let m = mm - offset;
-    let y = yyyy;
-    while (m <= 0) { m += 12; y--; }
-    return `${y}-${String(m).padStart(2, '0')}`;
-}
 
 // ── Colores Chart.js (fijos, usando valores de paleta) ────────────
 const C = {
@@ -105,12 +30,6 @@ const C = {
     azul:     '#6366f1',
     cyan:     '#06b6d4',
     morado:   '#a855f7',
-
-    verdeAlfa: (a) => `rgba(34,197,94,${a})`,
-    rojoAlfa:  (a) => `rgba(239,68,68,${a})`,
-    azulAlfa:  (a) => `rgba(99,102,241,${a})`,
-    amarilloAlfa: (a) => `rgba(245,158,11,${a})`,
-    cyanAlfa:  (a) => `rgba(6,182,212,${a})`,
 };
 
 // ── Opciones comunes Chart.js ─────────────────────────────────────
@@ -159,192 +78,91 @@ async function _cargarKPIs() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// 2. GRÁFICOS DE ASISTENCIA — datos reales (últimos 6 meses)
+// 2. K-MEANS — datos reales
 // ════════════════════════════════════════════════════════════════
-async function _cargarGraficosAsistencia() {
-    const hoy   = new Date();
-    const year  = hoy.getFullYear();
-    const month = hoy.getMonth() + 1; // 1-based
+async function _cargarKMeans(mes, gestion) {
+    const estadoEl = document.getElementById('kmeansEstado');
+    estadoEl.style.display = 'block';
+    estadoEl.textContent = 'Cargando resultados…';
 
-    // Generar los últimos 6 meses
-    const meses = [];
-    for (let i = 5; i >= 0; i--) {
-        meses.push(_mesAnterior(year, month, i));
+    const { ok, data } = await fetchAPI(`/api/analytics/kmeans/resultados/?gestion=${gestion}&mes=${mes}`);
+
+    if (!ok || !data.estudiantes || !data.estudiantes.length) {
+        estadoEl.textContent = 'Sin resultados para este mes. Usa el botón "Ejecutar análisis" si ya están todas las planillas cargadas.';
+        document.getElementById('tbodyKmeans').innerHTML =
+            `<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos para este mes.</td></tr>`;
+        document.getElementById('clusterCards').innerHTML =
+            `<div style="color:var(--text-muted);font-size:0.8rem;padding:20px 0">Sin datos disponibles.</div>`;
+        if (_charts.burbuja)    _charts.burbuja.destroy();
+        if (_charts.distCurso)  _charts.distCurso.destroy();
+        return;
     }
 
-    // Fetch de cada mes en paralelo
-    const resultados = await Promise.all(
-        meses.map(m => fetchAPI(`/api/attendance/calendario-mensual/?mes=${m}`))
-    );
+    _kmeansData = data;
 
-    // Calcular presencias y faltas por mes (proporción de días registrados)
-    const labels     = [];
-    const presentes  = [];
-    const faltas     = [];
-    const distribucion = { presente: 0, falta: 0, atraso: 0, licencia: 0 };
+    const mesesNombres = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const fechaStr = data.fecha_analisis ? new Date(data.fecha_analisis).toLocaleString('es-BO') : '—';
+    estadoEl.textContent = `Último análisis: ${mesesNombres[mes]} ${gestion} · ${data.estudiantes.length} estudiantes · ${data.k} grupos · Generado: ${fechaStr}`;
 
-    resultados.forEach((res, idx) => {
-        const mesStr = meses[idx];
-        const [y, m] = mesStr.split('-').map(Number);
-        const nombreMes = new Date(y, m - 1, 1)
-            .toLocaleDateString('es-BO', { month: 'short' });
-        labels.push(nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1));
+    _renderBubbleChart(data.estudiantes);
+    _renderClusterCards(data.estudiantes);
+    _renderDistribucionPorCurso(data.estudiantes);
+    _renderTablaKmeans(data.estudiantes);
+    _inicializarFiltrosKmeans(data.estudiantes);
+}
 
-        if (res.ok && res.data) {
-            const totalCursos = res.data.t || 1;
-            const dias = res.data.d || [];
-            const totalSesiones  = dias.reduce((acc, d) => acc + d.s, 0);
-            // Estimación: sesiones = días × cursos. Usamos fracción de completitud como proxy
-            const diasConRegistro = dias.length;
-            const pctCompleto = totalCursos > 0
-                ? Math.round((totalSesiones / (diasConRegistro * totalCursos || 1)) * 100)
-                : 0;
-            presentes.push(Math.min(pctCompleto, 100));
-            faltas.push(100 - Math.min(pctCompleto, 100));
-        } else {
-            presentes.push(0);
-            faltas.push(0);
-        }
+async function _ejecutarKMeans() {
+    const mes     = parseInt(document.getElementById('kmeansMes').value);
+    const gestion = new Date().getFullYear();
+    const btn     = document.getElementById('btnEjecutarKmeans');
+    const estadoEl = document.getElementById('kmeansEstado');
+
+    btn.disabled = true;
+    btn.textContent = 'Ejecutando…';
+    estadoEl.style.display = 'block';
+    estadoEl.textContent = 'Corriendo K-Means, esto puede tardar unos segundos…';
+
+    const { ok, data } = await fetchAPI('/api/analytics/kmeans/ejecutar/', {
+        method: 'POST',
+        body: JSON.stringify({ gestion, mes }),
     });
 
-    // Distribución global (acumulada): usamos proporciones ficticias si no hay datos reales suficientes
-    const totalPresentes = presentes.reduce((a, b) => a + b, 0);
-    if (totalPresentes > 0) {
-        const avg = presentes.reduce((a, b) => a + b, 0) / presentes.length;
-        distribucion.presente  = Math.round(avg);
-        distribucion.falta     = Math.round((100 - avg) * 0.55);
-        distribucion.atraso    = Math.round((100 - avg) * 0.30);
-        distribucion.licencia  = Math.round((100 - avg) * 0.15);
-    } else {
-        // Datos de demostración si la BD está vacía
-        Object.assign(distribucion, { presente: 78, falta: 12, atraso: 6, licencia: 4 });
-        for (let i = 0; i < presentes.length; i++) {
-            presentes[i] = 75 + Math.floor(Math.random() * 10);
-            faltas[i]    = 100 - presentes[i];
-        }
+    btn.disabled = false;
+    btn.textContent = 'Ejecutar análisis';
+
+    if (!ok) {
+        estadoEl.textContent = data?.errores || 'Error al ejecutar el análisis.';
+        return;
     }
 
-    _renderLineChart(labels, presentes, faltas);
-    _renderDonutChart(distribucion);
+    await _cargarKMeans(mes, gestion);
 }
 
-function _renderLineChart(labels, presentes, faltas) {
-    const ctx = document.getElementById('chartLinea').getContext('2d');
-    if (_charts.linea) _charts.linea.destroy();
-
-    _charts.linea = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Días con asistencia (%)',
-                    data: presentes,
-                    borderColor: C.verde,
-                    backgroundColor: C.verdeAlfa(0.1),
-                    borderWidth: 2.5,
-                    pointRadius: 4,
-                    pointBackgroundColor: C.verde,
-                    tension: 0.4,
-                    fill: true,
-                },
-                {
-                    label: 'Sin registro (%)',
-                    data: faltas,
-                    borderColor: C.rojo,
-                    backgroundColor: C.rojoAlfa(0.08),
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointBackgroundColor: C.rojo,
-                    tension: 0.4,
-                    fill: false,
-                    borderDash: [4, 3],
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 },
-                },
-                tooltip: { mode: 'index', intersect: false },
-            },
-            scales: {
-                x: {
-                    ticks: { color: '#64748b', font: _baseFont },
-                    grid: { color: 'rgba(255,255,255,0.04)' },
-                },
-                y: {
-                    min: 0, max: 100,
-                    ticks: {
-                        color: '#64748b', font: _baseFont,
-                        callback: v => `${v}%`,
-                    },
-                    grid: { color: 'rgba(255,255,255,0.06)' },
-                },
-            },
-        },
-    });
-}
-
-function _renderDonutChart(dist) {
-    const ctx = document.getElementById('chartDonut').getContext('2d');
-    if (_charts.donut) _charts.donut.destroy();
-
-    _charts.donut = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Presente', 'Falta', 'Atraso', 'Licencia'],
-            datasets: [{
-                data: [dist.presente, dist.falta, dist.atraso, dist.licencia],
-                backgroundColor: [C.verde, C.rojo, C.amarillo, C.cyan],
-                borderColor: '#1a1f2e',
-                borderWidth: 3,
-                hoverOffset: 6,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '68%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 12 },
-                },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.label}: ${ctx.parsed}%`,
-                    },
-                },
-            },
-        },
-    });
-}
-
-// ════════════════════════════════════════════════════════════════
-// 3. K-MEANS — Bubble chart + cluster cards
-// ════════════════════════════════════════════════════════════════
-function _renderKMeans() {
-    _renderBubbleChart();
-    _renderClusterCards();
-}
-
-function _renderBubbleChart() {
+function _renderBubbleChart(estudiantes) {
     const ctx = document.getElementById('chartBurbuja').getContext('2d');
     if (_charts.burbuja) _charts.burbuja.destroy();
 
-    const datasets = _DATOS_KMEANS.clusters.map(cl => ({
-        label: cl.label,
-        data: _DATOS_KMEANS.puntos
-            .filter(p => p.cluster === cl.id)
-            .map(p => ({ x: p.x, y: p.y, r: p.r })),
-        backgroundColor: cl.color + 'bb',
-        borderColor: cl.color,
-        borderWidth: 1.5,
-    }));
+    const porCluster = {};
+    estudiantes.forEach(e => {
+        if (!porCluster[e.cluster]) porCluster[e.cluster] = [];
+        porCluster[e.cluster].push(e);
+    });
+
+    const datasets = Object.entries(porCluster).map(([label, lista]) => {
+        const color = CLUSTER_COLORES[label] || '#94a3b8';
+        return {
+            label,
+            data: lista.map(e => ({
+                x: e.features.pct_asistencia,
+                y: e.nota_mensual,
+                r: 7,
+                nombre: e.nombre,
+            })),
+            backgroundColor: color + 'bb',
+            borderColor: color,
+            borderWidth: 1.5,
+        };
+    });
 
     _charts.burbuja = new Chart(ctx, {
         type: 'bubble',
@@ -353,14 +171,12 @@ function _renderBubbleChart() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 },
-                },
+                legend: { labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 } },
                 tooltip: {
                     callbacks: {
                         label: ctx => {
                             const d = ctx.raw;
-                            return ` Asist: ${d.x}% | Notas: ${d.y}pts`;
+                            return ` ${d.nombre} | Asist: ${d.x}% | Nota: ${d.y}/95`;
                         },
                     },
                 },
@@ -368,13 +184,13 @@ function _renderBubbleChart() {
             scales: {
                 x: {
                     title: { display: true, text: '% Asistencia', color: '#64748b', font: _baseFont },
-                    min: 30, max: 105,
+                    min: 0, max: 105,
                     ticks: { color: '#64748b', font: _baseFont, callback: v => `${v}%` },
                     grid: { color: 'rgba(255,255,255,0.04)' },
                 },
                 y: {
-                    title: { display: true, text: 'Promedio (pts)', color: '#64748b', font: _baseFont },
-                    min: 20, max: 100,
+                    title: { display: true, text: 'Nota mensual /95', color: '#64748b', font: _baseFont },
+                    min: 0, max: 100,
                     ticks: { color: '#64748b', font: _baseFont },
                     grid: { color: 'rgba(255,255,255,0.06)' },
                 },
@@ -383,37 +199,46 @@ function _renderBubbleChart() {
     });
 }
 
-function _renderClusterCards() {
+function _renderClusterCards(estudiantes) {
     const container = document.getElementById('clusterCards');
     container.innerHTML = '';
 
-    const iconos = { A: '●', B: '●', C: '●' };
+    const porCluster = {};
+    estudiantes.forEach(e => {
+        if (!porCluster[e.cluster]) porCluster[e.cluster] = [];
+        porCluster[e.cluster].push(e);
+    });
 
-    _DATOS_KMEANS.clusters.forEach(cl => {
+    Object.entries(porCluster).forEach(([label, lista]) => {
+        const color    = CLUSTER_COLORES[label] || '#94a3b8';
+        const avgAsist = Math.round(lista.reduce((s, e) => s + e.features.pct_asistencia, 0) / lista.length);
+        const avgNota  = (lista.reduce((s, e) => s + e.nota_mensual, 0) / lista.length).toFixed(1);
+        const avgCit   = (lista.reduce((s, e) => s + e.features.tasa_citaciones, 0) / lista.length).toFixed(1);
+
         const card = document.createElement('div');
         card.className = 'cluster-card';
-        card.style.borderLeftColor = cl.color;
+        card.style.borderLeftColor = color;
         card.innerHTML = `
             <div class="cluster-card__header">
-                <span class="cluster-dot" style="background:${cl.color}"></span>
-                <span class="cluster-label">${cl.label}</span>
+                <span class="cluster-dot" style="background:${color}"></span>
+                <span class="cluster-label">${label}</span>
             </div>
             <div class="cluster-stats">
                 <div class="cluster-stat">
-                    <span class="cluster-stat__val">${cl.n}</span>
+                    <span class="cluster-stat__val">${lista.length}</span>
                     <span class="cluster-stat__key">estudiantes</span>
                 </div>
                 <div class="cluster-stat">
-                    <span class="cluster-stat__val">${cl.asistencia}%</span>
+                    <span class="cluster-stat__val">${avgAsist}%</span>
                     <span class="cluster-stat__key">asistencia</span>
                 </div>
                 <div class="cluster-stat">
-                    <span class="cluster-stat__val">${cl.promedio}pts</span>
-                    <span class="cluster-stat__key">promedio</span>
+                    <span class="cluster-stat__val">${avgNota}</span>
+                    <span class="cluster-stat__key">nota prom.</span>
                 </div>
                 <div class="cluster-stat">
-                    <span class="cluster-stat__val">${cl.citaciones}</span>
-                    <span class="cluster-stat__key">citaciones avg</span>
+                    <span class="cluster-stat__val">${avgCit}%</span>
+                    <span class="cluster-stat__key">citaciones</span>
                 </div>
             </div>
         `;
@@ -421,172 +246,139 @@ function _renderClusterCards() {
     });
 }
 
-// ════════════════════════════════════════════════════════════════
-// 4. ÁRBOL DE DECISIÓN — tabla de riesgo
-// ════════════════════════════════════════════════════════════════
-function _renderArbol() {
-    const tbody   = document.getElementById('tbodyRiesgo');
-    const filtro  = document.getElementById('filtroRiesgoCurso');
-    const cursoFil = filtro ? filtro.value : '';
-
-    const datos = cursoFil
-        ? _DATOS_ARBOL.en_riesgo.filter(e => e.curso === cursoFil)
-        : _DATOS_ARBOL.en_riesgo;
-
-    tbody.innerHTML = datos.map(e => `
-        <tr>
-            <td>${e.nombre}</td>
-            <td>${e.curso}</td>
-            <td>${e.asistencia}%</td>
-            <td>${e.promedio}pts</td>
-            <td>${e.citaciones}</td>
-            <td>
-                <span class="risk-badge risk-badge--${e.nivel.toLowerCase()}">${e.nivel}</span>
-            </td>
-        </tr>
-    `).join('');
-
-    if (!datos.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Sin estudiantes en riesgo para este curso</td></tr>`;
-    }
+function _tendenciaIcon(val) {
+    if (val > 0.1)  return '<span style="color:#22c55e;font-weight:700">↑</span>';
+    if (val < -0.1) return '<span style="color:#ef4444;font-weight:700">↓</span>';
+    return '<span style="color:#64748b">→</span>';
 }
 
-function _initFiltroRiesgo() {
-    const filtro = document.getElementById('filtroRiesgoCurso');
-    if (!filtro) return;
+function _renderTablaKmeans(estudiantes) {
+    const tbody = document.getElementById('tbodyKmeans');
+    if (!estudiantes.length) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos.</td></tr>`;
+        return;
+    }
 
-    // Poblar opciones con cursos únicos del dataset
-    const cursos = [...new Set(_DATOS_ARBOL.en_riesgo.map(e => e.curso))].sort();
-    cursos.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        filtro.appendChild(opt);
+    tbody.innerHTML = estudiantes.map(e => {
+        const color = CLUSTER_COLORES[e.cluster] || '#94a3b8';
+        const f = e.features;
+        return `
+            <tr>
+                <td style="font-weight:500">${e.nombre}</td>
+                <td style="color:var(--text-muted)">${e.curso}</td>
+                <td>
+                    <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:0.7rem;font-weight:700;background:${color}22;color:${color}">
+                        ${e.cluster}
+                    </span>
+                </td>
+                <td style="font-weight:600">${e.nota_mensual}</td>
+                <td>${f.ser_pct}%</td>
+                <td>${f.saber_pct}%</td>
+                <td>${f.hacer_pct}%</td>
+                <td>${f.pct_asistencia}%</td>
+                <td>${f.tasa_entrega_tareas}%</td>
+                <td style="text-align:center">${_tendenciaIcon(f.tendencia_norm)}</td>
+                <td style="color:${f.tasa_citaciones > 50 ? '#ef4444' : 'inherit'}">${f.tasa_citaciones}%</td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('kmeansConteo').textContent = `${estudiantes.length} estudiantes`;
+}
+
+// Orden canónico de clusters de mejor a peor rendimiento
+const _ORDEN_CLUSTERS = [
+    'Excelente', 'Rendimiento Adecuado', 'Satisfactorio', 'Muy Bien',
+    'En Desarrollo', 'Requiere Apoyo', 'Riesgo Académico', 'Riesgo Crítico',
+];
+
+function _renderDistribucionPorCurso(estudiantes) {
+    const cursos = [...new Set(estudiantes.map(e => e.curso))].sort();
+    const clusters = [...new Set(estudiantes.map(e => e.cluster))]
+        .sort((a, b) => {
+            const ia = _ORDEN_CLUSTERS.indexOf(a);
+            const ib = _ORDEN_CLUSTERS.indexOf(b);
+            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        });
+
+    const datasets = clusters.map(cluster => {
+        const color = CLUSTER_COLORES[cluster] || '#94a3b8';
+        return {
+            label: cluster,
+            data: cursos.map(curso =>
+                estudiantes.filter(e => e.curso === curso && e.cluster === cluster).length
+            ),
+            backgroundColor: color + 'cc',
+            borderColor: color,
+            borderWidth: 1,
+            borderRadius: 3,
+        };
     });
 
-    filtro.addEventListener('change', _renderArbol);
-}
+    // Altura dinámica según cantidad de cursos
+    const wrap = document.getElementById('distCursoWrap');
+    wrap.style.height = `${Math.max(140, cursos.length * 38)}px`;
 
-// ════════════════════════════════════════════════════════════════
-// 5. RENDIMIENTO ACADÉMICO — Barras apiladas + Radar
-// ════════════════════════════════════════════════════════════════
-function _renderRendimiento() {
-    _renderBarrasApiladas();
-    _renderRadar();
-}
+    const ctx = document.getElementById('chartDistCurso').getContext('2d');
+    if (_charts.distCurso) _charts.distCurso.destroy();
 
-function _renderBarrasApiladas() {
-    const ctx = document.getElementById('chartBarras').getContext('2d');
-    if (_charts.barras) _charts.barras.destroy();
-
-    _charts.barras = new Chart(ctx, {
+    _charts.distCurso = new Chart(ctx, {
         type: 'bar',
-        data: {
-            labels: _DATOS_NOTAS.materias,
-            datasets: [
-                {
-                    label: 'Ser',
-                    data: _DATOS_NOTAS.ser,
-                    backgroundColor: C.verdeAlfa(0.75),
-                    borderColor: C.verde,
-                    borderWidth: 1,
-                    borderRadius: 3,
-                },
-                {
-                    label: 'Saber',
-                    data: _DATOS_NOTAS.saber,
-                    backgroundColor: C.azulAlfa(0.75),
-                    borderColor: C.azul,
-                    borderWidth: 1,
-                    borderRadius: 3,
-                },
-                {
-                    label: 'Hacer',
-                    data: _DATOS_NOTAS.hacer,
-                    backgroundColor: C.amarilloAlfa(0.75),
-                    borderColor: C.amarillo,
-                    borderWidth: 1,
-                    borderRadius: 3,
-                },
-            ],
-        },
+        data: { labels: cursos, datasets },
         options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 },
+                legend: { labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x} estudiante${ctx.parsed.x !== 1 ? 's' : ''}`,
+                    },
                 },
             },
             scales: {
                 x: {
                     stacked: true,
-                    ticks: { color: '#64748b', font: _baseFont },
-                    grid: { display: false },
+                    ticks: { color: '#64748b', font: _baseFont, stepSize: 1 },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
                 },
                 y: {
                     stacked: true,
-                    ticks: { color: '#64748b', font: _baseFont },
-                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8', font: _baseFont },
+                    grid: { display: false },
                 },
             },
         },
     });
 }
 
-function _renderRadar() {
-    const ctx = document.getElementById('chartRadar').getContext('2d');
-    if (_charts.radar) _charts.radar.destroy();
+function _inicializarFiltrosKmeans(estudiantes) {
+    const selCurso   = document.getElementById('filtroKmeansCurso');
+    const selCluster = document.getElementById('filtroKmeansCluster');
 
-    _charts.radar = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['Ser', 'Saber', 'Hacer', 'Asistencia', 'Disciplina'],
-            datasets: [
-                {
-                    label: '1ro A',
-                    data: [75, 63, 70, 88, 82],
-                    borderColor: C.azul,
-                    backgroundColor: C.azulAlfa(0.18),
-                    borderWidth: 2,
-                    pointBackgroundColor: C.azul,
-                    pointRadius: 4,
-                },
-                {
-                    label: '2do B',
-                    data: [68, 55, 62, 72, 74],
-                    borderColor: C.verde,
-                    backgroundColor: C.verdeAlfa(0.12),
-                    borderWidth: 2,
-                    pointBackgroundColor: C.verde,
-                    pointRadius: 4,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 },
-                },
-            },
-            scales: {
-                r: {
-                    min: 0, max: 100,
-                    ticks: {
-                        backdropColor: 'transparent',
-                        color: '#64748b',
-                        font: { size: 10 },
-                        stepSize: 25,
-                    },
-                    grid: { color: 'rgba(255,255,255,0.08)' },
-                    angleLines: { color: 'rgba(255,255,255,0.08)' },
-                    pointLabels: { color: '#94a3b8', font: _baseFont },
-                },
-            },
-        },
-    });
+    // Poblar cursos únicos
+    const cursos = [...new Set(estudiantes.map(e => e.curso))].sort();
+    selCurso.innerHTML = '<option value="">Todos los cursos</option>';
+    cursos.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCurso.appendChild(o); });
+
+    // Poblar clusters únicos
+    const clusters = [...new Set(estudiantes.map(e => e.cluster))];
+    selCluster.innerHTML = '<option value="">Todos los grupos</option>';
+    clusters.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCluster.appendChild(o); });
+
+    const filtrar = () => {
+        const curso   = selCurso.value;
+        const cluster = selCluster.value;
+        const filtrados = estudiantes.filter(e =>
+            (!curso   || e.curso   === curso) &&
+            (!cluster || e.cluster === cluster)
+        );
+        _renderTablaKmeans(filtrados);
+    };
+
+    selCurso.addEventListener('change', filtrar);
+    selCluster.addEventListener('change', filtrar);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -596,16 +388,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // KPIs (async, real data)
     _cargarKPIs();
 
-    // Asistencia (async, real data)
-    _cargarGraficosAsistencia();
+    // K-Means — seleccionar mes actual por defecto y cargar resultados
+    const mesActual = new Date().getMonth() + 1;
+    const selMes = document.getElementById('kmeansMes');
+    selMes.value = mesActual;
+    _cargarKMeans(mesActual, new Date().getFullYear());
 
-    // K-Means (sync, mock data)
-    _renderKMeans();
-
-    // Árbol de decisión (sync, mock data)
-    _initFiltroRiesgo();
-    _renderArbol();
-
-    // Rendimiento (sync, mock data)
-    _renderRendimiento();
+    selMes.addEventListener('change', () =>
+        _cargarKMeans(parseInt(selMes.value), new Date().getFullYear())
+    );
+    document.getElementById('btnEjecutarKmeans').addEventListener('click', _ejecutarKMeans);
 });

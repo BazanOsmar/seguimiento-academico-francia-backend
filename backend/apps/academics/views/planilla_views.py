@@ -20,6 +20,7 @@ from ..services.notas_mongo_service import (
     guardar_notas, obtener_notas, calcular_notas_mensuales,
     hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
     comparar_notas_con_mongo, obtener_detalle_notas_tutor, obtener_promedios_grupo,
+    todos_cargaron_mes,
 )
 
 _DRAFT_TTL  = 1800          # 30 minutos
@@ -244,6 +245,16 @@ class ConfirmarPlanillaView(APIView):
 
         # Invalidar el token tras el uso
         cache.delete(_DRAFT_PREFIX + token)
+
+        # ── Trigger automático de K-Means si todos los profesores ya cargaron ─
+        if mes and todos_cargaron_mes(mes, gestion):
+            import threading
+            from backend.apps.analytics.services.kmeans_service import ejecutar_analisis_kmeans
+            threading.Thread(
+                target=ejecutar_analisis_kmeans,
+                kwargs={'gestion': gestion, 'mes': mes},
+                daemon=True,
+            ).start()
 
         return Response({'guardado': True, 'resultado': resultado})
 

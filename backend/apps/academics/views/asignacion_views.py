@@ -50,17 +50,75 @@ class AsignacionListCreateView(APIView):
 class AsignacionDetailView(APIView):
     """
     DELETE /api/academics/asignaciones/{id}/  — elimina una asignación
+    Body: {"password_director": "..."}
     Permiso: Director.
     """
     permission_classes = [IsAuthenticated, IsDirector]
 
     def delete(self, request, asignacion_id):
+        password_director = request.data.get('password_director', '').strip()
+        if not password_director or not request.user.check_password(password_director):
+            return Response({"errores": "Contraseña incorrecta."}, status=status.HTTP_403_FORBIDDEN)
+
         try:
-            asignacion = ProfesorCurso.objects.get(pk=asignacion_id)
+            asignacion = ProfesorCurso.objects.select_related('profesor', 'curso', 'materia').get(pk=asignacion_id)
         except ProfesorCurso.DoesNotExist:
             return Response({"errores": "Asignación no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        from backend.apps.auditoria.services import registrar
+        director = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        registrar(
+            request.user, 'ELIMINAR_ASIGNACION',
+            f"{director} eliminó asignación: {asignacion.profesor.username} — "
+            f"{asignacion.materia.nombre} en {asignacion.curso.grado} '{asignacion.curso.paralelo}'",
+            request,
+        )
+
         asignacion.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DirectorProfesorAsignacionesView(APIView):
+    """
+    GET /api/academics/director/profesores/<profesor_id>/asignaciones/
+    Devuelve los datos del profesor y sus asignaciones Curso-Materia.
+    Permiso: Director.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request, profesor_id):
+        from backend.apps.users.models import User
+        try:
+            profesor = User.objects.select_related('tipo_usuario').get(pk=profesor_id)
+        except User.DoesNotExist:
+            return Response({"errores": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        if getattr(profesor.tipo_usuario, 'nombre', None) != 'Profesor':
+            return Response({"errores": "El usuario no es un profesor."}, status=status.HTTP_400_BAD_REQUEST)
+
+        asignaciones = (
+            ProfesorCurso.objects
+            .filter(profesor=profesor)
+            .select_related('curso', 'materia')
+            .order_by('curso__grado', 'curso__paralelo', 'materia__nombre')
+        )
+
+        return Response({
+            'id':          profesor.id,
+            'nombre':      f"{profesor.first_name} {profesor.last_name}".strip() or profesor.username,
+            'username':    profesor.username,
+            'is_active':   profesor.is_active,
+            'asignaciones': [
+                {
+                    'id':            a.id,
+                    'curso_id':      a.curso.id,
+                    'curso_nombre':  f"{a.curso.grado} \"{a.curso.paralelo}\"",
+                    'materia_id':    a.materia.id,
+                    'materia_nombre': a.materia.nombre,
+                }
+                for a in asignaciones
+            ],
+        })
 
 
 class ProfesorMisAsignacionesView(APIView):

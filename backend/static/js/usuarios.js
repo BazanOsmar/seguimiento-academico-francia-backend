@@ -416,8 +416,7 @@ function _activarEdicion() {
     pmContent.querySelector('#pmDisplayNombre').style.display  = 'none';
     pmContent.querySelector('#pmDisplayUsername').style.display = 'none';
     pmContent.querySelector('#pmEditForm').style.display       = '';
-    pmContent.querySelector('.pm-btn-edit').style.display      = 'none';
-    pmContent.querySelector('.pm-btn-reset').style.display     = 'none';
+    pmContent.querySelector('.pm-actions-section').style.display = 'none';
     pmContent.querySelector('#pmEditNombre').focus();
 
     pmContent.querySelector('.pm-btn-cancel-edit').addEventListener('click', _desactivarEdicion);
@@ -428,8 +427,7 @@ function _desactivarEdicion() {
     pmContent.querySelector('#pmDisplayNombre').style.display  = '';
     pmContent.querySelector('#pmDisplayUsername').style.display = '';
     pmContent.querySelector('#pmEditForm').style.display       = 'none';
-    pmContent.querySelector('.pm-btn-edit').style.display      = '';
-    pmContent.querySelector('.pm-btn-reset').style.display     = '';
+    pmContent.querySelector('.pm-actions-section').style.display = '';
     pmContent.querySelector('#pmEditErr').classList.add('hidden');
     pmContent.querySelector('#pmEditPwdConfirm').value         = '';
 }
@@ -655,7 +653,7 @@ function _buildPerfilHtml(data) {
         const citTitulo = rol === 'Tutor' ? 'Últimas citaciones' : 'Últimas citaciones emitidas';
         const citHeader = rol === 'Tutor' ? 'Fecha límite' : 'Fecha envío';
 
-        if (citData && citData.length > 0) {
+        if (rol !== 'Regente' && citData && citData.length > 0) {
             sectionsHtml += `
             <div class="pm-section">
                 <p class="pm-section-title">${citTitulo}</p>

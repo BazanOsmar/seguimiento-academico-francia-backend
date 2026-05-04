@@ -13,6 +13,12 @@ let _vpPlanesData   = [];   // planes del mes actual para indicadores
 let _pivotActivo    = 'profesores';
 let _vcAsigs        = [];
 let _vcPanelCursoId = null;
+let _vpSeguimientoMes = null;
+let _vpUsuariosFiltro = 'activos';
+let _vpProfesoresRender = [];
+let _vpProfesorDetalleId = null;
+let _vpCursosCache = null;
+let _vpMateriasCache = null;
 
 // ── Helpers generales ─────────────────────────────────────────────
 function _iniciales(nombre) {
@@ -60,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _initPivots();
     _initModalNuevaAsig();
     _initPlanDetalleModal();
+    _initProfesorDetalleModal();
     // Cargar vista por defecto
     _cargarVistaProfesor();
     cargarMaterias(); // precarga silenciosa
@@ -161,8 +168,10 @@ async function _activarPivot(pivot) {
 
 function _initModalNuevaAsig() {
     const modal = document.getElementById('modalNuevaAsig');
+    const btnNuevaAsig = document.getElementById('btnNuevaAsig');
+    if (!modal || !btnNuevaAsig) return;
 
-    document.getElementById('btnNuevaAsig').addEventListener('click', async () => {
+    btnNuevaAsig.addEventListener('click', async () => {
         _ocultarError('errorAsignacion');
         modal.classList.add('visible');
         await cargarSelectores();
@@ -182,36 +191,571 @@ function _initModalNuevaAsig() {
 // ════════════════════════════════════════════════════════════════
 
 async function _cargarVistaProfesor() {
-    const vpProfList = document.getElementById('vpProfList');
-    vpProfList.innerHTML = '<div class="spinner-inline"></div>';
+    const tableWrap = document.getElementById('vpSeguimientoTable');
+    if (!tableWrap) return;
 
-    const mesActual = new Date().getMonth() + 1;
-    const [resAsig, resUsers, resPlanes] = await Promise.all([
-        fetchAPI('/api/academics/asignaciones/'),
-        fetchAPI('/api/users/'),
-        fetchAPI(`/api/academics/director/planes/?mes=${mesActual}`),
-    ]);
+    _initVpSeguimientoMes();
+    _initVpFiltroUsuarios();
+    const mes = _vpSeguimientoMes || (new Date().getMonth() + 1);
 
-    _vpAsignaciones = resAsig.data   || [];
-    _vpProfesores   = (resUsers.data?.usuarios || []).filter(u => u.rol === 'Profesor');
-    _vpPlanesData   = resPlanes.data || [];
+    tableWrap.innerHTML = '<div class="vp-follow-loading"><div class="spinner-inline"></div></div>';
 
-    const porProf = {};
-    for (const a of _vpAsignaciones) {
-        if (!porProf[a.profesor]) {
-            porProf[a.profesor] = { id: a.profesor, nombre: a.profesor_nombre, asigs: [] };
-        }
-        porProf[a.profesor].asigs.push(a);
+    const res = await fetchAPI(`/api/academics/director/seguimiento-profesores/?mes=${mes}`);
+    if (!res.ok) {
+        _actualizarContadorProfesores(0);
+        tableWrap.innerHTML = `
+            <div class="empty-state vp-follow-empty">
+                ${_WARN_SVG}
+                No se pudo cargar el seguimiento de profesores.
+            </div>`;
+        return;
     }
 
-    const prioridadEstado = { red: 0, orange: 1, green: 2 };
-    const grupos = Object.values(porProf).sort((a, b) => {
-        const prioA = prioridadEstado[_planStatus(a.asigs)] ?? 99;
-        const prioB = prioridadEstado[_planStatus(b.asigs)] ?? 99;
-        if (prioA !== prioB) return prioA - prioB;
-        return a.nombre.localeCompare(b.nombre);
+    const profesoresActivos = (res.data?.profesores || []).map(p => ({ ...p, is_active: p.is_active !== false }));
+    _actualizarContadorProfesores(profesoresActivos.length);
+
+    let profesores = profesoresActivos;
+    if (_vpUsuariosFiltro === 'inactivos') {
+        profesores = await _cargarProfesoresInactivos();
+    }
+
+    _vpProfesoresRender = profesores;
+    _initVpBuscadorProfesores();
+    profesores = _filtrarProfesoresVista(profesores);
+
+    if (!profesores.length) {
+        const emptyText = _vpUsuariosFiltro === 'inactivos'
+            ? 'Sin profesores inactivos registrados.'
+            : 'Sin profesores con cursos asignados.';
+        tableWrap.innerHTML = `
+            <div class="empty-state vp-follow-empty">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                </svg>
+                ${emptyText}
+            </div>`;
+        return;
+    }
+
+    tableWrap.innerHTML = `
+        <table class="vp-follow-table">
+            <thead>
+                <tr>
+                    <th>Profesor</th>
+                    <th>Cursos asignados</th>
+                    <th>Planes de trabajo</th>
+                    <th>Calificaciones cargadas</th>
+                    <th aria-label="Acciones"></th>
+                </tr>
+            </thead>
+            <tbody>
+                ${profesores.map(_vpSeguimientoRowHtml).join('')}
+            </tbody>
+        </table>`;
+
+    tableWrap.querySelectorAll('.vp-follow-delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _desactivarProfesor(btn.dataset.profId, btn.dataset.profName);
+        });
     });
-    _renderVpSidebar(grupos);
+    tableWrap.querySelectorAll('.vp-follow-activate').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _activarProfesor(btn.dataset.profId, btn.dataset.profName);
+        });
+    });
+    _initVpProfesorRows(tableWrap);
+}
+
+function _actualizarContadorProfesores(total) {
+    const el = document.getElementById('vpProfesoresCount');
+    if (el) el.textContent = String(total);
+}
+
+function _initVpFiltroUsuarios() {
+    document.querySelectorAll('[data-vp-users-filter]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.vpUsersFilter === _vpUsuariosFiltro);
+        btn.onclick = () => {
+            _vpUsuariosFiltro = btn.dataset.vpUsersFilter;
+            _initVpFiltroUsuarios();
+            _cargarVistaProfesor();
+        };
+    });
+}
+
+async function _cargarProfesoresInactivos() {
+    const [usersRes, asigsRes] = await Promise.all([
+        fetchAPI('/api/users/'),
+        fetchAPI('/api/academics/asignaciones/'),
+    ]);
+    const usuarios = usersRes.data?.usuarios || [];
+    const asigs = asigsRes.data || [];
+    return usuarios
+        .filter(u => u.rol === 'Profesor' && u.is_active === false)
+        .map(u => ({
+            id: u.id,
+            nombre: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username,
+            username: u.username,
+            cursos_asignados: asigs.filter(a => a.profesor === u.id).length,
+            notas_cargadas: null,
+            planes_completos: null,
+            is_active: false,
+        }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+function _initVpBuscadorProfesores() {
+    const search = document.getElementById('vpBuscarProfesor');
+    if (!search || search.dataset.ready === '1') return;
+    search.dataset.ready = '1';
+    search.addEventListener('input', () => _renderVpProfesoresFiltrados());
+}
+
+function _filtrarProfesoresVista(profesores) {
+    const q = (document.getElementById('vpBuscarProfesor')?.value || '').trim().toLowerCase();
+    if (!q) return profesores;
+    return profesores.filter(p =>
+        String(p.nombre || '').toLowerCase().includes(q) ||
+        String(p.username || '').toLowerCase().includes(q)
+    );
+}
+
+function _renderVpProfesoresFiltrados() {
+    const tableWrap = document.getElementById('vpSeguimientoTable');
+    if (!tableWrap) return;
+    const profesores = _filtrarProfesoresVista(_vpProfesoresRender);
+
+    if (!profesores.length) {
+        tableWrap.innerHTML = `
+            <div class="empty-state vp-follow-empty">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                No se encontraron profesores con ese criterio.
+            </div>`;
+        return;
+    }
+
+    tableWrap.innerHTML = `
+        <table class="vp-follow-table">
+            <thead>
+                <tr>
+                    <th>Profesor</th>
+                    <th>Cursos asignados</th>
+                    <th>Planes de trabajo</th>
+                    <th>Calificaciones cargadas</th>
+                    <th aria-label="Acciones"></th>
+                </tr>
+            </thead>
+            <tbody>${profesores.map(_vpSeguimientoRowHtml).join('')}</tbody>
+        </table>`;
+
+    tableWrap.querySelectorAll('.vp-follow-delete').forEach(btn => {
+        btn.addEventListener('click', () => _desactivarProfesor(btn.dataset.profId, btn.dataset.profName));
+    });
+    tableWrap.querySelectorAll('.vp-follow-activate').forEach(btn => {
+        btn.addEventListener('click', () => _activarProfesor(btn.dataset.profId, btn.dataset.profName));
+    });
+    _initVpProfesorRows(tableWrap);
+}
+
+function _initVpProfesorRows(scope) {
+    scope.querySelectorAll('.vp-follow-row').forEach(row => {
+        row.addEventListener('click', e => {
+            if (e.target.closest('button')) return;
+            _abrirProfesorDetalle(row.dataset.profId);
+        });
+    });
+}
+
+function _initVpSeguimientoMes() {
+    const label = document.getElementById('vpMesLabel');
+    const prev  = document.getElementById('vpMesPrev');
+    const next  = document.getElementById('vpMesNext');
+    if (!label || !prev || !next) return;
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    if (!_vpSeguimientoMes) _vpSeguimientoMes = currentMonth;
+
+    const date = new Date(now.getFullYear(), _vpSeguimientoMes - 1, 1);
+    label.textContent = date.toLocaleDateString('es-BO', { month: 'long', year: 'numeric' });
+
+    prev.disabled = _vpSeguimientoMes <= 1;
+    next.disabled = _vpSeguimientoMes >= currentMonth;
+
+    prev.onclick = () => {
+        if (_vpSeguimientoMes <= 1) return;
+        _vpSeguimientoMes -= 1;
+        _cargarVistaProfesor();
+    };
+    next.onclick = () => {
+        if (_vpSeguimientoMes >= currentMonth) return;
+        _vpSeguimientoMes += 1;
+        _cargarVistaProfesor();
+    };
+}
+
+function _vpSeguimientoRowHtml(prof) {
+    const total = Number(prof.cursos_asignados) || 0;
+    const isActive = prof.is_active !== false;
+    return `
+        <tr class="vp-follow-row" data-prof-id="${prof.id}">
+            <td>
+                <div class="vp-follow-prof">
+                    <div class="vp-follow-avatar">${_iniciales(prof.nombre || prof.username || '')}</div>
+                    <div class="vp-follow-prof-copy">
+                        <span class="vp-follow-name">${_escapeHtml(prof.nombre || prof.username || 'Profesor')}</span>
+                        <span class="vp-follow-user">${_escapeHtml(prof.username || '')}</span>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="vp-follow-courses">${total}</span>
+            </td>
+            <td>${isActive ? _vpSeguimientoBadge(prof.planes_completos, total) : _vpInactiveBadge()}</td>
+            <td>${isActive ? _vpSeguimientoBadge(prof.notas_cargadas, total) : _vpInactiveBadge()}</td>
+            <td>
+                ${isActive ? `
+                    <button class="vp-follow-delete" type="button"
+                        data-prof-id="${prof.id}"
+                        data-prof-name="${_escapeHtml(prof.nombre || prof.username || 'Profesor')}"
+                        aria-label="Desactivar profesor ${_escapeHtml(prof.nombre || prof.username || '')}">
+                        ${_TRASH_ICON}
+                    </button>` : `
+                    <button class="vp-follow-activate" type="button"
+                        data-prof-id="${prof.id}"
+                        data-prof-name="${_escapeHtml(prof.nombre || prof.username || 'Profesor')}"
+                        aria-label="Activar profesor ${_escapeHtml(prof.nombre || prof.username || '')}">
+                        Activar nuevamente
+                    </button>`}
+            </td>
+        </tr>`;
+}
+
+function _vpSeguimientoBadge(valor, total) {
+    const actual = Number(valor) || 0;
+    const max    = Number(total) || 0;
+    const status = actual === 0 ? 'red' : (actual >= max ? 'green' : 'orange');
+    return `
+        <span class="vp-follow-score vp-follow-score--${status}" title="${actual}/${max}">
+            <span class="vp-follow-score-dot"></span>
+            ${actual}/${max}
+        </span>`;
+}
+
+function _vpInactiveBadge() {
+    return '<span class="vp-follow-score vp-follow-score--muted">Inactivo</span>';
+}
+
+async function _abrirProfesorDetalle(profesorId) {
+    _vpProfesorDetalleId = profesorId;
+    const overlay = document.getElementById('vpProfesorModal');
+    const body = document.getElementById('vpProfesorModalBody');
+    if (!overlay || !body) return;
+
+    overlay.classList.add('visible');
+    body.innerHTML = '<div class="vp-prof-detail-loading"><div class="spinner-inline"></div></div>';
+
+    const { ok, data } = await fetchAPI(`/api/academics/director/profesores/${profesorId}/asignaciones/`);
+    if (!ok) {
+        body.innerHTML = `<div class="empty-state vp-prof-detail-empty">${_WARN_SVG}No se pudo cargar el detalle del profesor.</div>`;
+        return;
+    }
+
+    _renderProfesorDetalle(data);
+}
+
+function _cerrarProfesorDetalle() {
+    document.getElementById('vpProfesorModal')?.classList.remove('visible');
+    _vpProfesorDetalleId = null;
+}
+
+function _initProfesorDetalleModal() {
+    const overlay = document.getElementById('vpProfesorModal');
+    const close = document.getElementById('vpProfesorModalClose');
+    if (!overlay || !close) return;
+    close.addEventListener('click', _cerrarProfesorDetalle);
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) _cerrarProfesorDetalle();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('visible')) _cerrarProfesorDetalle();
+    });
+}
+
+function _renderProfesorDetalle(data) {
+    const body = document.getElementById('vpProfesorModalBody');
+    const asignaciones = data.asignaciones || [];
+    const rows = asignaciones.length
+        ? asignaciones.map(a => `
+            <div class="vp-prof-asig-row">
+                <div class="vp-prof-asig-main">
+                    <span class="vp-prof-asig-course">${_escapeHtml(a.curso_nombre)}</span>
+                    <span class="vp-prof-asig-sub">${_escapeHtml(a.materia_nombre)}</span>
+                </div>
+                <button class="vp-prof-asig-del" type="button"
+                    data-asig-id="${a.id}"
+                    data-course="${_escapeHtml(a.curso_nombre)}"
+                    data-subject="${_escapeHtml(a.materia_nombre)}"
+                    aria-label="Eliminar asignación ${_escapeHtml(a.curso_nombre)} ${_escapeHtml(a.materia_nombre)}">
+                    ${_TRASH_ICON}
+                </button>
+            </div>`).join('')
+        : `<div class="empty-state vp-prof-detail-empty">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                Sin cursos asignados.
+            </div>`;
+
+    body.innerHTML = `
+        <div class="vp-prof-detail-head">
+            <div class="vp-prof-detail-avatar">${_iniciales(data.nombre || data.username || '')}</div>
+            <div class="vp-prof-detail-copy">
+                <h3 id="vpProfesorModalTitle">${_escapeHtml(data.nombre || data.username || 'Profesor')}</h3>
+                <p>${_escapeHtml(data.username || '')}</p>
+            </div>
+        </div>
+        <div class="vp-prof-detail-summary">
+            <span>${asignaciones.length} asignación${asignaciones.length !== 1 ? 'es' : ''}</span>
+            <span>${data.is_active ? 'Activo' : 'Inactivo'}</span>
+        </div>
+        <div class="vp-prof-detail-section">
+            <div class="vp-prof-detail-section-title">Cursos y materias</div>
+            <div class="vp-prof-asig-list">${rows}</div>
+        </div>
+        <div class="vp-prof-add-panel">
+            <button class="vp-prof-add-toggle" id="vpProfAddToggle" type="button">
+                <span>+</span> Añadir curso y materia
+            </button>
+            <div class="vp-prof-add-form" id="vpProfAddForm">
+                <select id="vpProfCursoSel" aria-label="Curso"></select>
+                <select id="vpProfMateriaSel" aria-label="Materia"></select>
+                <button class="btn-primary" id="vpProfAddSave" type="button">Agregar</button>
+            </div>
+            <p class="vp-prof-add-error" id="vpProfAddError"></p>
+        </div>`;
+
+    body.querySelectorAll('.vp-prof-asig-del').forEach(btn => {
+        btn.addEventListener('click', () => _eliminarAsignacionProfesor(
+            btn.dataset.asigId,
+            btn.dataset.course,
+            btn.dataset.subject,
+        ));
+    });
+
+    document.getElementById('vpProfAddToggle').addEventListener('click', async () => {
+        const form = document.getElementById('vpProfAddForm');
+        form.classList.toggle('visible');
+        if (form.classList.contains('visible')) await _cargarSelectoresProfesorDetalle();
+    });
+    document.getElementById('vpProfAddSave').addEventListener('click', () => _crearAsignacionProfesorDetalle(data.id));
+}
+
+async function _cargarSelectoresProfesorDetalle() {
+    const cursoSel = document.getElementById('vpProfCursoSel');
+    const materiaSel = document.getElementById('vpProfMateriaSel');
+    if (!cursoSel || !materiaSel) return;
+
+    if (!_vpCursosCache || !_vpMateriasCache) {
+        const [cursosRes, materiasRes] = await Promise.all([
+            fetchAPI('/api/academics/cursos/'),
+            fetchAPI('/api/academics/materias/'),
+        ]);
+        _vpCursosCache = cursosRes.data || [];
+        _vpMateriasCache = materiasRes.data || [];
+    }
+
+    cursoSel.innerHTML = '<option value="">Selecciona curso</option>' + _vpCursosCache
+        .map(c => `<option value="${c.id}">${_escapeHtml(`${c.grado} "${c.paralelo}"`)}</option>`)
+        .join('');
+    materiaSel.innerHTML = '<option value="">Selecciona materia</option>' + _vpMateriasCache
+        .map(m => `<option value="${m.id}">${_escapeHtml(m.nombre)}</option>`)
+        .join('');
+}
+
+async function _crearAsignacionProfesorDetalle(profesorId) {
+    const curso = document.getElementById('vpProfCursoSel')?.value;
+    const materia = document.getElementById('vpProfMateriaSel')?.value;
+    const error = document.getElementById('vpProfAddError');
+    if (!curso || !materia) {
+        if (error) error.textContent = 'Selecciona curso y materia.';
+        return;
+    }
+    if (error) error.textContent = '';
+
+    const btn = document.getElementById('vpProfAddSave');
+    btn.disabled = true;
+    const { ok, data } = await fetchAPI('/api/academics/asignaciones/', {
+        method: 'POST',
+        body: JSON.stringify({
+            profesor: Number(profesorId),
+            curso: Number(curso),
+            materia: Number(materia),
+        }),
+    });
+    btn.disabled = false;
+
+    if (!ok) {
+        if (error) error.textContent = _mensajeErrorServidor(data, 'No se pudo crear la asignación.');
+        return;
+    }
+
+    _mostrarResultadoAccion('success', 'Asignación creada', 'La asignación fue registrada correctamente.');
+    await _abrirProfesorDetalle(profesorId);
+    await _cargarVistaProfesor();
+}
+
+function _eliminarAsignacionProfesor(asigId, curso, materia) {
+    _abrirDelModal({
+        step1Title: '¿Eliminar asignación?',
+        step1Subtitle: 'Se eliminará la relación entre el profesor, el curso y la materia.',
+        nombre: `${materia} — ${curso}`,
+        confirmLabel: 'Eliminar asignación',
+        confirmBg: '#ef4444',
+        toastMsg: `Asignación de "${materia}" en ${curso} eliminada.`,
+        warnings: [
+            'Esta acción no elimina al profesor, curso ni materia.',
+            'Solo se borra esta asignación académica.',
+        ],
+        action: password => _eliminarAsignacionProfesorRequest(asigId, password),
+        onSuccess: async () => {
+            if (_vpProfesorDetalleId) await _abrirProfesorDetalle(_vpProfesorDetalleId);
+            await _cargarVistaProfesor();
+        },
+        successTitle: 'Asignación eliminada',
+        skipPreAuth: true,
+    });
+}
+
+async function _eliminarAsignacionProfesorRequest(asigId, password) {
+    const token = localStorage.getItem('access_token');
+    try {
+        const res = await fetch(`/api/academics/asignaciones/${asigId}/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ password_director: password }),
+        });
+        const ct = res.headers.get('content-type') || '';
+        const data = ct.includes('application/json') ? await res.json() : null;
+        return { ok: res.ok, status: res.status, data };
+    } catch (_) {
+        return {
+            ok: false,
+            status: 0,
+            data: { errores: 'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.' },
+        };
+    }
+}
+
+function _desactivarProfesor(id, nombre) {
+    _abrirDelModal({
+        step1Title:    '¿Desactivar profesor?',
+        step1Subtitle: 'El profesor dejará de aparecer como usuario activo del sistema.',
+        nombre,
+        confirmLabel:  'Desactivar profesor',
+        confirmBg:     '#ef4444',
+        toastMsg:      `${nombre} fue desactivado correctamente.`,
+        warnings: [
+            `${nombre} no podrá ingresar al sistema mientras esté desactivado.`,
+            'Esta acción requiere tu contraseña de director.',
+        ],
+        action: password => _desactivarProfesorRequest(id, password),
+        onSuccess: _cargarVistaProfesor,
+        successTitle: 'Profesor desactivado',
+        skipPreAuth: true,
+    });
+}
+
+function _activarProfesor(id, nombre) {
+    _abrirDelModal({
+        step1Title:    '¿Activar profesor?',
+        step1Subtitle: 'El profesor volverá a aparecer como usuario activo del sistema.',
+        nombre,
+        confirmLabel:  'Activar profesor',
+        confirmBg:     '#16a34a',
+        toastMsg:      `${nombre} fue activado correctamente.`,
+        warnings: [
+            `${nombre} podrá ingresar nuevamente al sistema.`,
+            'Esta acción requiere tu contraseña de director.',
+        ],
+        action: password => _activarProfesorRequest(id, password),
+        onSuccess: _cargarVistaProfesor,
+        successTitle: 'Profesor activado',
+        skipPreAuth: true,
+    });
+}
+
+async function _desactivarProfesorRequest(id, password) {
+    const token = localStorage.getItem('access_token');
+    try {
+        const res = await fetch(`/api/users/profesores/${id}/desactivar/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ contrasena: password }),
+        });
+        const ct = res.headers.get('content-type') || '';
+        const data = ct.includes('application/json') ? await res.json() : null;
+        return { ok: res.ok, status: res.status, data };
+    } catch (_) {
+        return {
+            ok: false,
+            status: 0,
+            data: { errores: 'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.' },
+        };
+    }
+}
+
+async function _activarProfesorRequest(id, password) {
+    const token = localStorage.getItem('access_token');
+    try {
+        const res = await fetch(`/api/users/profesores/${id}/activar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ contrasena: password }),
+        });
+        const ct = res.headers.get('content-type') || '';
+        const data = ct.includes('application/json') ? await res.json() : null;
+        return { ok: res.ok, status: res.status, data };
+    } catch (_) {
+        return {
+            ok: false,
+            status: 0,
+            data: { errores: 'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.' },
+        };
+    }
+}
+
+function _mensajeErrorServidor(data, fallback = 'No se pudo completar la acción.') {
+    if (!data) return fallback;
+    if (typeof data.errores === 'string') return data.errores;
+    if (typeof data.detail === 'string') return data.detail;
+    const values = Object.values(data).flat().filter(Boolean);
+    return values.length ? values.join(' ') : fallback;
+}
+
+function _mostrarResultadoAccion(type, title, message) {
+    if (typeof showAppToast === 'function') {
+        showAppToast(type, title, message);
+    } else if (typeof _apiToast === 'function') {
+        _apiToast(message, type);
+    } else if (typeof showToast === 'function') {
+        showToast(message, type);
+    } else {
+        alert(message);
+    }
 }
 
 function _planStatus(profAsigs) {
@@ -654,8 +1198,8 @@ function _activarModoEdicion(card, asig, grupo) {
                 `${asig.profesor_nombre} dejará de dar ${asig.materia_nombre} en ${asig.curso_nombre}.`,
                 `${nombreNuevo} será asignado en su lugar.`,
             ],
-            action: async () => {
-                const r1 = await fetchAPI(`/api/academics/asignaciones/${asig.id}/`, { method: 'DELETE' });
+            action: async password => {
+                const r1 = await _eliminarAsignacionProfesorRequest(asig.id, password);
                 if (!r1.ok) return r1;
                 return fetchAPI('/api/academics/asignaciones/', {
                     method: 'POST',
@@ -666,6 +1210,7 @@ function _activarModoEdicion(card, asig, grupo) {
                 _vpProfSelId = nuevoProfId;
                 await _cargarVistaProfesor();
             },
+            skipPreAuth: true,
         });
     });
 }
@@ -706,15 +1251,9 @@ async function _cargarVistaCursos() {
         const nMaterias = _vcAsigs.filter(a => a.curso === c.id).length;
         const nombre    = `${c.grado} "${c.paralelo}"`;
         const isActive  = _vcPanelCursoId === c.id;
-        const badgeCls  = isActive ? 'vc-card-badge--sel' : (nMaterias ? 'vc-card-badge--ok' : 'vc-card-badge--warn');
-        const badgeTxt  = isActive ? 'SELECCIONADO' : (nMaterias ? 'DISPONIBLE' : 'SIN MATERIAS');
         const valCls    = nMaterias === 0 ? ' vc-card-stat-val--warn' : '';
         return `
             <article class="vc-course-card${isActive ? ' active' : ''}" data-curso-id="${c.id}" data-has-materias="${nMaterias ? '1' : '0'}">
-                <div class="vc-card-top">
-                    <span class="vc-card-kicker">Curso</span>
-                    <span class="vc-card-badge ${badgeCls}">${badgeTxt}</span>
-                </div>
                 <div class="vc-card-name">${_escapeHtml(nombre)}</div>
                 <div class="vc-card-stats">
                     <div class="vc-card-stat-box">
@@ -737,8 +1276,6 @@ async function _cargarVistaCursos() {
                 _vcRestaurarBadgeCard(c);
             });
             card.classList.add('active');
-            card.querySelector('.vc-card-badge').className = 'vc-card-badge vc-card-badge--sel';
-            card.querySelector('.vc-card-badge').textContent = 'SELECCIONADO';
 
             const cursoId = parseInt(card.dataset.cursoId);
             const nombre  = _escapeHtml(
@@ -762,9 +1299,8 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
     _vcPanelCursoId = cursoId;
     const split  = document.getElementById('vcSplit');
     const panel  = document.getElementById('vcDetail');
+    const backdrop = document.getElementById('vcDetailBackdrop');
     const asigs  = _vcAsigs.filter(a => a.curso === cursoId);
-
-    const year = new Date().getFullYear();
 
     const materiasHtml = asigs.length
         ? asigs.map((a, i) => {
@@ -791,12 +1327,15 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
                 Sin materias asignadas
             </div>`;
 
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'vcDetailTitle');
     panel.innerHTML = `
         <div class="vc-detail-head">
             <div class="vc-detail-head-row">
                 <div>
                     <div class="vc-detail-label">Carga Académica</div>
-                    <div class="vc-detail-title">${nombre}</div>
+                    <div class="vc-detail-title" id="vcDetailTitle">${nombre}</div>
                 </div>
                 <button class="vc-detail-close" id="vcDetailClose">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -805,7 +1344,6 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
                 </button>
             </div>
             <div class="vc-detail-tags">
-                <span class="vc-detail-tag vc-detail-tag--year">${year}</span>
                 ${nEstu ? `<span class="vc-detail-tag vc-detail-tag--stu">${nEstu} estudiante${nEstu !== 1 ? 's' : ''}</span>` : ''}
                 <span class="vc-detail-tag vc-detail-tag--year">${asigs.length} materia${asigs.length !== 1 ? 's' : ''}</span>
             </div>
@@ -813,20 +1351,13 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
         <div class="vc-detail-body">
             <div class="vc-detail-section-title">Materias asignadas</div>
             ${materiasHtml}
-        </div>
-        <div class="vc-detail-footer">
-            <button class="vc-btn-planilla" id="vcBtnPlanilla">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                    <rect x="6" y="14" width="12" height="8"/>
-                </svg>
-                Imprimir Planilla de Curso
-            </button>
         </div>`;
 
     split.classList.add('has-panel');
 
     document.getElementById('vcDetailClose').addEventListener('click', _cerrarVcDetail);
+    if (backdrop) backdrop.onclick = _cerrarVcDetail;
+    document.addEventListener('keydown', _vcCerrarConEscape);
 
     panel.querySelectorAll('.btn-del').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -845,23 +1376,27 @@ function _abrirVcDetail(cursoId, nombre, nEstu) {
 
 function _cerrarVcDetail() {
     document.getElementById('vcSplit').classList.remove('has-panel');
-    document.getElementById('vcDetail').innerHTML = '';
+    const panel = document.getElementById('vcDetail');
+    panel.innerHTML = '';
+    panel.removeAttribute('role');
+    panel.removeAttribute('aria-modal');
+    panel.removeAttribute('aria-labelledby');
+    const backdrop = document.getElementById('vcDetailBackdrop');
+    if (backdrop) backdrop.onclick = null;
+    document.removeEventListener('keydown', _vcCerrarConEscape);
     document.querySelectorAll('.vc-course-card').forEach(c => {
         _vcRestaurarBadgeCard(c);
     });
     _vcPanelCursoId = null;
 }
 
+function _vcCerrarConEscape(event) {
+    if (event.key === 'Escape') _cerrarVcDetail();
+}
+
 function _vcRestaurarBadgeCard(card) {
     if (!card) return;
     card.classList.remove('active');
-
-    const badge = card.querySelector('.vc-card-badge');
-    if (!badge) return;
-
-    const hasMaterias = card.dataset.hasMaterias === '1';
-    badge.className = `vc-card-badge ${hasMaterias ? 'vc-card-badge--ok' : 'vc-card-badge--warn'}`;
-    badge.textContent = hasMaterias ? 'DISPONIBLE' : 'SIN MATERIAS';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1178,7 +1713,7 @@ function _cerrarModalExportMes() {
     _modalExportMes.classList.remove('visible');
 }
 
-document.getElementById('btnNavDescargarPlanes').addEventListener('click', _abrirModalExportMes);
+document.getElementById('btnNavDescargarPlanes')?.addEventListener('click', _abrirModalExportMes);
 document.getElementById('btnCerrarExportMes').addEventListener('click', _cerrarModalExportMes);
 document.getElementById('btnCancelarExportMes').addEventListener('click', _cerrarModalExportMes);
 _modalExportMes.addEventListener('click', e => { if (e.target === _modalExportMes) _cerrarModalExportMes(); });
@@ -1366,8 +1901,9 @@ function eliminarAsignacion(id, profesor, curso, materia, onSuccess) {
             `${profesor} dejará de estar asignado a ${materia} en ${curso}.`,
             'Esta acción no se puede deshacer.',
         ],
-        action:    () => fetchAPI(`/api/academics/asignaciones/${id}/`, { method: 'DELETE' }),
+        action:    password => _eliminarAsignacionProfesorRequest(id, password),
         onSuccess: onSuccess || _cargarVistaProfesor,
+        skipPreAuth: true,
     });
 }
 
@@ -1456,37 +1992,42 @@ delConfirmar.addEventListener('click', async () => {
     delConfirmarText.style.display  = 'none';
     delConfirmarSpinner.style.display = 'block';
 
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    const { ok: loginOk } = await fetchAPI('/api/auth/login/', {
-        method: 'POST',
-        body: JSON.stringify({ username: user?.username, password }),
-    });
+    if (!_delConfig.skipPreAuth) {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const { ok: loginOk } = await fetchAPI('/api/auth/login/', {
+            method: 'POST',
+            body: JSON.stringify({ username: user?.username, password }),
+        });
 
-    if (!loginOk) {
-        delConfirmar.disabled = false;
-        delConfirmarText.style.display    = '';
-        delConfirmarSpinner.style.display = 'none';
-        delPassError.textContent = 'Contraseña incorrecta. Intenta de nuevo.';
-        delPassInput.classList.add('input-error');
-        delPassInput.focus();
-        return;
+        if (!loginOk) {
+            delConfirmar.disabled = false;
+            delConfirmarText.style.display    = '';
+            delConfirmarSpinner.style.display = 'none';
+            delPassError.textContent = 'Contraseña incorrecta. Intenta de nuevo.';
+            delPassInput.classList.add('input-error');
+            delPassInput.focus();
+            return;
+        }
     }
 
-    const { ok, data } = await _delConfig.action();
+    const { ok, data } = await _delConfig.action(password);
 
     delConfirmar.disabled = false;
     delConfirmarText.style.display    = '';
     delConfirmarSpinner.style.display = 'none';
 
     if (!ok) {
-        delPassError.textContent = data?.errores || 'No se pudo completar la acción.';
+        delPassError.textContent = _mensajeErrorServidor(data);
+        delPassInput.classList.add('input-error');
+        delPassInput.focus();
         return;
     }
 
     const onSuccess = _delConfig.onSuccess;
     const toastMsg  = _delConfig.toastMsg || `"${_delConfig.nombre}" actualizado.`;
+    const toastTitle = _delConfig.successTitle || 'Acción completada';
     _cerrarDelModal();
-    showToast(toastMsg, 'success');
+    _mostrarResultadoAccion('success', toastTitle, toastMsg);
     await onSuccess();
 });
 

@@ -85,8 +85,6 @@
             text-transform: uppercase;
         }
         .badge-ml-kmeans  { background: rgba(99,102,241,.2);  color: #818cf8; }
-        .badge-ml-arbol   { background: rgba(168,85,247,.2);  color: #a855f7; }
-        .badge-ml-notas   { background: rgba(6,182,212,.2);   color: #06b6d4; }
         .badge-ml-real    { background: rgba(34,197,94,.2);   color: #22c55e; }
 
         .section-desc {
@@ -178,143 +176,6 @@
             font-size: 0.68rem;
             color: var(--text-muted);
         }
-
-        /* ── Árbol de decisión (CSS) ─────────────────────────────── */
-        .tree-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            padding: 20px 16px;
-            overflow-x: auto;
-        }
-        .tree {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 320px;
-            font-size: 0.78rem;
-            color: var(--text-primary);
-            gap: 0;
-        }
-
-        /* Nivel del árbol */
-        .tree-level {
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            gap: 0;
-            width: 100%;
-            position: relative;
-        }
-
-        .tree-branch {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-        }
-
-        /* Nodo */
-        .tree-node {
-            border-radius: 8px;
-            padding: 7px 12px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 0.76rem;
-            white-space: nowrap;
-            max-width: 140px;
-        }
-        .tree-node--question {
-            background: rgba(99,102,241,.15);
-            border: 1px solid rgba(99,102,241,.4);
-            color: #818cf8;
-        }
-        .tree-node--destacado {
-            background: rgba(34,197,94,.15);
-            border: 1px solid rgba(34,197,94,.4);
-            color: #22c55e;
-        }
-        .tree-node--regular {
-            background: rgba(6,182,212,.15);
-            border: 1px solid rgba(6,182,212,.4);
-            color: #06b6d4;
-        }
-        .tree-node--atencion {
-            background: rgba(245,158,11,.15);
-            border: 1px solid rgba(245,158,11,.4);
-            color: #f59e0b;
-        }
-        .tree-node--riesgo {
-            background: rgba(239,68,68,.15);
-            border: 1px solid rgba(239,68,68,.4);
-            color: #ef4444;
-        }
-
-        /* Conectores verticales */
-        .tree-vline {
-            width: 1px;
-            height: 18px;
-            background: var(--border);
-            margin: 0 auto;
-        }
-
-        /* Conector horizontal (rama) */
-        .tree-hconnect {
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            width: 100%;
-        }
-        .tree-hline {
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-            margin-top: 18px;
-        }
-        .tree-hline--hidden { background: transparent; }
-
-        /* Etiquetas Sí/No */
-        .tree-edge-label {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-align: center;
-            margin: 2px auto 2px;
-        }
-
-        /* ── Tabla riesgo ────────────────────────────────────────── */
-        .risk-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.71rem;
-            font-weight: 700;
-        }
-        .risk-badge--alto  { background: rgba(239,68,68,.15);  color: #ef4444; }
-        .risk-badge--medio { background: rgba(245,158,11,.15); color: #f59e0b; }
-
-        .risk-filter-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-        .risk-filter-row label {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
-        .risk-filter-row select {
-            background: var(--bg-input, var(--bg-hover));
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 0.8rem;
-            padding: 7px 12px;
-            outline: none;
-            cursor: pointer;
-        }
-        .risk-filter-row select:focus { border-color: var(--accent); }
 
         /* ── Skeleton loader ─────────────────────────────────────── */
         .kpi-val.loading {
@@ -515,191 +376,90 @@
             </div>
 
             <!-- ═══════════════════════════════════════════════════
-                 2. ANÁLISIS DE ASISTENCIA
+                 2. K-MEANS
             ════════════════════════════════════════════════════ -->
             <div class="section-block">
-                <div class="section-header">
-                    <span class="section-title">Análisis de Asistencia</span>
-                    <span class="section-badge badge-ml-real">Datos Reales</span>
-                    <span class="section-desc">Últimos 6 meses</span>
-                </div>
-
-                <div class="two-col">
-                    <div class="chart-card">
-                        <div class="chart-card__title">Tendencia Mensual</div>
-                        <div class="chart-wrap chart-wrap--tall">
-                            <canvas id="chartLinea"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-card__title">Distribución Global de Estados</div>
-                        <div class="chart-wrap chart-wrap--tall">
-                            <canvas id="chartDonut"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ═══════════════════════════════════════════════════
-                 3. K-MEANS
-            ════════════════════════════════════════════════════ -->
-            <div class="section-block">
-                <div class="section-header">
+                <div class="section-header" style="flex-wrap:wrap;gap:10px;">
                     <span class="section-title">Agrupamiento de Estudiantes</span>
                     <span class="section-badge badge-ml-kmeans">K-Means</span>
-                    <span class="section-desc">Agrupamiento automático por asistencia, notas y disciplina</span>
+                    <span class="section-desc" style="flex:1">Agrupamiento automático por asistencia, notas y disciplina</span>
+                    <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <select id="kmeansMes" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.8rem;padding:6px 10px;outline:none;cursor:pointer">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <button id="btnEjecutarKmeans" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.8rem;font-weight:600;cursor:pointer">
+                            Ejecutar análisis
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Estado / último análisis -->
+                <p id="kmeansEstado" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;display:none"></p>
 
                 <div class="two-col">
                     <div class="chart-card">
-                        <div class="chart-card__title">Scatter — Asistencia vs Promedio</div>
+                        <div class="chart-card__title">Scatter — Asistencia vs Nota Mensual</div>
                         <div class="chart-wrap chart-wrap--tall">
                             <canvas id="chartBurbuja"></canvas>
                         </div>
                     </div>
                     <div class="cluster-cards-col" id="clusterCards">
-                        <!-- Generado por JS -->
+                        <div style="color:var(--text-muted);font-size:0.8rem;padding:20px 0">Selecciona un mes y ejecuta el análisis.</div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ═══════════════════════════════════════════════════
-                 4. ÁRBOL DE DECISIÓN
-            ════════════════════════════════════════════════════ -->
-            <div class="section-block">
-                <div class="section-header">
-                    <span class="section-title">Clasificación de Riesgo</span>
-                    <span class="section-badge badge-ml-arbol">Árbol de Decisión</span>
-                    <span class="section-desc">Clasificación automática por nivel de riesgo académico</span>
-                </div>
-
-                <div class="two-col">
-                    <!-- Árbol visual -->
-                    <div class="tree-container">
-                        <div class="chart-card__title" style="margin-bottom:18px">Árbol de Clasificación</div>
-                        <div class="tree">
-
-                            <!-- Raíz -->
-                            <div class="tree-node tree-node--question">¿Asistencia ≥ 80%?</div>
-                            <div class="tree-vline"></div>
-
-                            <!-- Nivel 1: Sí / No -->
-                            <div class="tree-hconnect">
-                                <div class="tree-hline"></div>
-                                <div style="width:2px;background:var(--border);height:18px;flex-shrink:0"></div>
-                                <div class="tree-hline"></div>
-                            </div>
-                            <div class="tree-level" style="gap:12px">
-                                <!-- Rama Sí -->
-                                <div class="tree-branch">
-                                    <div class="tree-edge-label">Sí</div>
-                                    <div class="tree-vline"></div>
-                                    <div class="tree-node tree-node--question">¿Promedio ≥ 60?</div>
-                                    <div class="tree-vline"></div>
-
-                                    <!-- Nivel 2: Sí / No -->
-                                    <div class="tree-hconnect">
-                                        <div class="tree-hline"></div>
-                                        <div style="width:2px;background:var(--border);height:18px;flex-shrink:0"></div>
-                                        <div class="tree-hline"></div>
-                                    </div>
-                                    <div class="tree-level" style="gap:8px">
-                                        <!-- Sí → ¿Citaciones = 0? -->
-                                        <div class="tree-branch">
-                                            <div class="tree-edge-label">Sí</div>
-                                            <div class="tree-vline"></div>
-                                            <div class="tree-node tree-node--question" style="font-size:.7rem">¿Citaciones = 0?</div>
-                                            <div class="tree-vline"></div>
-                                            <div class="tree-hconnect">
-                                                <div class="tree-hline"></div>
-                                                <div style="width:2px;background:var(--border);height:14px;flex-shrink:0"></div>
-                                                <div class="tree-hline"></div>
-                                            </div>
-                                            <div class="tree-level" style="gap:6px">
-                                                <div class="tree-branch">
-                                                    <div class="tree-edge-label">Sí</div>
-                                                    <div class="tree-vline"></div>
-                                                    <div class="tree-node tree-node--destacado">DESTACADO</div>
-                                                </div>
-                                                <div class="tree-branch">
-                                                    <div class="tree-edge-label">No</div>
-                                                    <div class="tree-vline"></div>
-                                                    <div class="tree-node tree-node--regular">REGULAR</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <!-- No → ATENCIÓN -->
-                                        <div class="tree-branch">
-                                            <div class="tree-edge-label">No</div>
-                                            <div class="tree-vline"></div>
-                                            <div class="tree-node tree-node--atencion">ATENCIÓN</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Rama No → EN RIESGO -->
-                                <div class="tree-branch">
-                                    <div class="tree-edge-label">No</div>
-                                    <div class="tree-vline"></div>
-                                    <div class="tree-node tree-node--riesgo">EN RIESGO</div>
-                                </div>
-                            </div>
-
-                        </div><!-- /.tree -->
-                    </div>
-
-                    <!-- Tabla estudiantes en riesgo -->
-                    <div class="chart-card">
-                        <div class="chart-card__title">Estudiantes en Riesgo</div>
-                        <div class="risk-filter-row">
-                            <label for="filtroRiesgoCurso">Filtrar curso:</label>
-                            <select id="filtroRiesgoCurso">
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <div style="overflow-x:auto">
-                            <table class="data-table" style="font-size:0.8rem">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Curso</th>
-                                        <th>Asist.</th>
-                                        <th>Prom.</th>
-                                        <th>Cit.</th>
-                                        <th>Nivel</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyRiesgo">
-                                    <!-- Generado por JS -->
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- Distribución por curso -->
+                <div class="chart-card" style="margin-top:16px">
+                    <div class="chart-card__title">Distribución de Grupos por Curso</div>
+                    <div class="chart-wrap" style="height:auto;min-height:120px" id="distCursoWrap">
+                        <canvas id="chartDistCurso"></canvas>
                     </div>
                 </div>
-            </div>
 
-            <!-- ═══════════════════════════════════════════════════
-                 5. RENDIMIENTO ACADÉMICO
-            ════════════════════════════════════════════════════ -->
-            <div class="section-block">
-                <div class="section-header">
-                    <span class="section-title">Rendimiento Académico por Materia</span>
-                    <span class="section-badge badge-ml-notas">Notas</span>
-                    <span class="section-desc">Dimensiones: Ser / Saber / Hacer</span>
-                </div>
-
-                <div class="two-col--equal two-col">
-                    <div class="chart-card">
-                        <div class="chart-card__title">Promedio por Materia (Barras Apiladas)</div>
-                        <div class="chart-wrap chart-wrap--tall">
-                            <canvas id="chartBarras"></canvas>
-                        </div>
+                <!-- Tabla detalle de estudiantes -->
+                <div class="chart-card" style="margin-top:16px">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+                        <span class="chart-card__title" style="margin-bottom:0">Detalle por Estudiante</span>
+                        <select id="filtroKmeansCurso" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.78rem;padding:5px 10px;outline:none;cursor:pointer">
+                            <option value="">Todos los cursos</option>
+                        </select>
+                        <select id="filtroKmeansCluster" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.78rem;padding:5px 10px;outline:none;cursor:pointer">
+                            <option value="">Todos los grupos</option>
+                        </select>
+                        <span id="kmeansConteo" style="font-size:0.75rem;color:var(--text-muted);margin-left:auto"></span>
                     </div>
-                    <div class="chart-card">
-                        <div class="chart-card__title">Perfil de Curso (Radar)</div>
-                        <div class="chart-wrap chart-wrap--tall">
-                            <canvas id="chartRadar"></canvas>
-                        </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table" style="font-size:0.78rem;min-width:860px" id="tablaKmeans">
+                            <thead>
+                                <tr>
+                                    <th>Estudiante</th>
+                                    <th>Curso</th>
+                                    <th>Grupo</th>
+                                    <th title="Nota mensual sobre 95">Nota /95</th>
+                                    <th title="Dimensión SER %">SER</th>
+                                    <th title="Dimensión SABER %">SABER</th>
+                                    <th title="Dimensión HACER %">HACER</th>
+                                    <th title="Asistencia %">Asist.</th>
+                                    <th title="Entrega de tareas %">Tareas</th>
+                                    <th title="Tendencia respecto al mes anterior">Tend.</th>
+                                    <th title="Tasa de citaciones del mes">Cit.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyKmeans">
+                                <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos — ejecuta el análisis para este mes.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

@@ -222,27 +222,26 @@ function mostrarSkeletonCards() {
     grid.innerHTML = '<div class="empty-cards"><p>Cargando citaciones...</p></div>';
 }
 
-// ── Stats de citaciones ───────────────────────────────────────────
+// ── Stats de citaciones (recibe solo las del mes visible) ─────────
 function _actualizarStats(citaciones) {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    const pendientes = citaciones.filter(c => c.asistencia === 'PENDIENTE').length;
-    const vencidas   = citaciones.filter(c => {
-        if (c.asistencia !== 'PENDIENTE') return false;
-        const lim = new Date((c.fecha_limite_asistencia || '') + 'T00:00:00');
-        return lim < hoy;
-    }).length;
-    const asistidas  = citaciones.filter(c => c.asistencia === 'ASISTIO').length;
+    const pendientes  = citaciones.filter(c => c.asistencia === 'PENDIENTE').length;
+    const noAsistio   = citaciones.filter(c => c.asistencia === 'NO_ASISTIO').length;
+    const asistidas   = citaciones.filter(c => c.asistencia === 'ASISTIO').length;
+    const atrasadas   = citaciones.filter(c => c.asistencia === 'ATRASO').length;
 
-    const elT = document.getElementById('statTodos');
-    const elP = document.getElementById('statPendientes');
-    const elV = document.getElementById('statVencidas');
-    const elA = document.getElementById('statAsistidas');
-    if (elT) elT.textContent = citaciones.length;
-    if (elP) elP.textContent = pendientes;
-    if (elV) elV.textContent = vencidas;
-    if (elA) elA.textContent = asistidas;
+    const elT  = document.getElementById('statTodos');
+    const elP  = document.getElementById('statPendientes');
+    const elNA = document.getElementById('statNoAsistio');
+    const elA  = document.getElementById('statAsistidas');
+    const elAt = document.getElementById('statAtraso');
+    if (elT)  elT.textContent  = citaciones.length;
+    if (elP)  elP.textContent  = pendientes;
+    if (elNA) elNA.textContent = noAsistio;
+    if (elA)  elA.textContent  = asistidas;
+    if (elAt) elAt.textContent = atrasadas;
 }
 
 // ── Carga de datos ─────────────────────────────────────────────────
@@ -253,7 +252,6 @@ async function cargarCitaciones() {
     todasCitaciones = data;
     const pendientes = data.filter(c => c.asistencia === 'PENDIENTE').length;
     if (badgeCitaciones) badgeCitaciones.textContent = pendientes || data.length;
-    _actualizarStats(data);
     aplicarFiltro();
 }
 
@@ -273,19 +271,14 @@ function aplicarFiltro() {
             : 'Sin citaciones';
     }
 
+    _actualizarStats(filtradas);
+
     filtradas = filtradas.filter(c => {
         const anulada = c.asistencia === 'ANULADA';
         return filtroEstadoCit === 'ANULADA' ? anulada : !anulada;
     });
 
-    if (filtroEstadoCit !== 'ANULADA' && filtroActivo === 'VENCIDA') {
-        const hoyFiltro = new Date(); hoyFiltro.setHours(0, 0, 0, 0);
-        filtradas = filtradas.filter(c => {
-            if (c.asistencia !== 'PENDIENTE') return false;
-            const lim = new Date((c.fecha_limite_asistencia || '') + 'T00:00:00');
-            return lim < hoyFiltro;
-        });
-    } else if (filtroEstadoCit !== 'ANULADA' && filtroActivo) {
+    if (filtroEstadoCit !== 'ANULADA' && filtroActivo) {
         filtradas = filtradas.filter(c => c.asistencia === filtroActivo);
     }
 
@@ -1189,8 +1182,8 @@ async function abrirModalDetalle(id) {
     const esEmisor  = (actUser && actUser.id === data.emisor_id);
     const yaResuelta = ['ASISTIO', 'ATRASO', 'ANULADA'].includes(data.asistencia);
 
-    // Botón "Marcar asistencia": solo si PENDIENTE y es el emisor
-    const btnMarcar = (data.asistencia === 'PENDIENTE' && esEmisor) ? `
+    // Botón "Marcar asistencia": si PENDIENTE o NO_ASISTIO, y es el emisor
+    const btnMarcar = (['PENDIENTE', 'NO_ASISTIO'].includes(data.asistencia) && esEmisor) ? `
             <button class="btn-marcar-asistencia"
                     style="flex:1;height:40px;border-radius:var(--radius-sm);font-size:.82rem;"
                     onclick="cerrarModalDetalle();abrirModalMarcar('${data.id}','${nombreEsc}')">
@@ -1712,7 +1705,6 @@ function abrirModalDetalleComunicado(id) {
             <div class="modal-det__hero modal-det__hero--COMUNICADO">
                 <p class="modal-det__nombre">${_escapeHtml(data.titulo || 'Comunicado')}</p>
                 <div class="modal-det__sub">
-                    <span class="citacion-card__motivo citacion-card__motivo--REUNION">${_escapeHtml(alcance)}</span>
                     ${vistoBadge}
                 </div>
             </div>
