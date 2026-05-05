@@ -199,6 +199,36 @@ def _generar_notas_mayo(stdout):
     else:
         stdout.write('  notas_mensuales mayo: sin datos')
 
+    # Insertar un registro minimo en detalle_notas por PC para que hay_notas_mes
+    # retorne True y el panel del profesor muestre las asignaciones como "cargadas"
+    col_det = db['detalle_notas']
+    primer_est = {}
+    for pc in pcs:
+        if pc.curso.id not in primer_est:
+            est = Estudiante.objects.filter(curso_id=pc.curso.id, activo=True).first()
+            primer_est[pc.curso.id] = est.id if est else None
+
+    ops_det = []
+    for pc in pcs:
+        est_id = primer_est.get(pc.curso.id)
+        if not est_id:
+            continue
+        ops_det.append(UpdateOne(
+            {'estudiante_id': est_id, 'materia_id': pc.materia.id, 'trimestre': TRIMESTRE, 'dimension': 'ser', 'columna_idx': 0},
+            {'$set': {
+                'curso_id': pc.curso.id, 'profesor_id': pc.profesor.id,
+                'gestion': GESTION, 'mes': MES_NOTAS,
+                'titulo': f'{GESTION}-{MES_NOTAS:02d}-05',
+                'nota': 8.0, 'nota_maxima': 10.0,
+                'fecha_actividad': ahora, 'fecha_carga': ahora,
+            }},
+            upsert=True,
+        ))
+
+    if ops_det:
+        r2 = col_det.bulk_write(ops_det, ordered=False)
+        stdout.write(f'  detalle_notas mayo (minimo): {r2.upserted_count} insertados')
+
 
 # ─── Citaciones mayo (SQL) ────────────────────────────────────────────────────
 def _generar_citaciones_mayo(director: User, stdout):
