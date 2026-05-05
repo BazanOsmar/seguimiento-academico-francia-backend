@@ -318,9 +318,38 @@ def ejecutar_analisis_kmeans(gestion: int, mes: int) -> dict:
     df = ejecutar_kmeans(df, gestion=gestion)
     guardar_predicciones(df, gestion=gestion, trimestre=trimestre, mes=mes)
 
-    return {
+    resultado = {
         'estado':      'ok',
         'estudiantes': len(df),
         'k':           int(df['cluster_num'].nunique()),
         'clusters':    df['cluster'].value_counts().to_dict(),
     }
+
+    _notificar_director_kmeans(resultado, gestion, mes)
+
+    return resultado
+
+
+def _notificar_director_kmeans(resultado: dict, gestion: int, mes: int):
+    try:
+        from django.db import close_old_connections
+        close_old_connections()
+        from backend.apps.notifications.models import Notificacion
+        from backend.apps.users.models import TipoUsuario, User
+
+        tipo_director = TipoUsuario.objects.get(nombre='Director')
+        directores = list(User.objects.filter(tipo_usuario=tipo_director, is_active=True))
+        clusters_str = ', '.join(
+            f'{k}: {v}' for k, v in resultado['clusters'].items()
+        )
+        descripcion = (
+            f"Analisis K-Means completado para el mes {mes} de {gestion}. "
+            f"{resultado['estudiantes']} estudiantes analizados en {resultado['k']} grupos. "
+            f"{clusters_str}"
+        )
+        Notificacion.objects.bulk_create([
+            Notificacion(emisor=None, receptor=d, descripcion=descripcion)
+            for d in directores
+        ])
+    except Exception:
+        pass

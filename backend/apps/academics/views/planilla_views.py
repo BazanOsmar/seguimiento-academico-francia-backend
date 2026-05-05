@@ -262,6 +262,9 @@ class ConfirmarPlanillaView(APIView):
         # Invalidar el token tras el uso
         cache.delete(_DRAFT_PREFIX + token)
 
+        # ── Notificar al director que el profesor confirmó su planilla ────────
+        _notificar_carga_notas(profesor_curso, mes, gestion)
+
         # ── Trigger automático de K-Means si todos los profesores ya cargaron ─
         if mes and todos_cargaron_mes(mes, gestion):
             import threading
@@ -273,6 +276,27 @@ class ConfirmarPlanillaView(APIView):
             ).start()
 
         return Response({'guardado': True, 'resultado': resultado})
+
+
+def _notificar_carga_notas(profesor_curso, mes, gestion):
+    from backend.apps.notifications.models import Notificacion
+    from backend.apps.users.models import TipoUsuario, User as UserModel
+
+    try:
+        tipo_director = TipoUsuario.objects.get(nombre='Director')
+        directores = UserModel.objects.filter(tipo_usuario=tipo_director, is_active=True)
+        nombre_prof = profesor_curso.profesor.get_full_name() or profesor_curso.profesor.username
+        descripcion = (
+            f"{nombre_prof} cargo notas de {profesor_curso.materia.nombre} "
+            f"en {profesor_curso.curso.grado} {profesor_curso.curso.paralelo}, "
+            f"mes {mes} de {gestion}"
+        )
+        Notificacion.objects.bulk_create([
+            Notificacion(emisor=None, receptor=d, descripcion=descripcion)
+            for d in directores
+        ])
+    except Exception:
+        pass
 
 
 class NotasMongoView(APIView):
