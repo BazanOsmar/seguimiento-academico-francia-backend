@@ -141,11 +141,11 @@ function _initCitaciones() {
         const esCit = sec === 'cit';
         secCit.classList.toggle('sec-title--active', esCit);
         secCom.classList.toggle('sec-title--active', !esCit);
-        stats.style.display    = esCit ? '' : 'none';
-        secCitCard.style.display = esCit ? '' : 'none';
-        secComCard.style.display = esCit ? 'none' : '';
-        btnCit.style.display   = esCit ? '' : 'none';
-        btnCom.style.display   = esCit ? 'none' : '';
+        stats.style.display      = esCit ? 'grid' : 'none';
+        secCitCard.style.display = esCit ? 'block' : 'none';
+        secComCard.style.display = esCit ? 'none' : 'block';
+        btnCit.style.display     = esCit ? 'inline-flex' : 'none';
+        btnCom.style.display     = esCit ? 'none' : 'inline-flex';
         search.placeholder     = esCit
             ? 'Buscar por nombre del estudiante...'
             : 'Buscar por título del comunicado...';
@@ -893,7 +893,7 @@ async function _cambiarMesPlan() {
     spinner.style.display = 'flex';
     await _refrescarPlanesCache(_planMesVista);
     spinner.style.display = 'none';
-    main.style.display    = '';
+    main.style.display    = 'block';
     _actualizarHeaderMes();
     _renderPlanCards(_planMesVista);
     _actualizarNotificaciones(_planMesVista);
@@ -943,7 +943,7 @@ async function cargarPlanes() {
     await _refrescarPlanesCache(_planMesVista);
 
     spinner.style.display = 'none';
-    main.style.display    = '';
+    main.style.display    = 'block';
     _actualizarHeaderMes();
     _renderPlanCards(_planMesVista);
     _actualizarNotificaciones(_planMesVista);
@@ -1563,7 +1563,7 @@ function _abrirModalDetalleCom(c, currentUser) {
 
     const emisorWrap = document.getElementById('detalleComEmisorWrap');
     if (emisorWrap) {
-        emisorWrap.style.display = esDirector && c.emisor_nombre ? '' : 'none';
+        emisorWrap.style.display = esDirector && c.emisor_nombre ? 'block' : 'none';
         const emisorEl = document.getElementById('detalleComEmisor');
         if (emisorEl) emisorEl.textContent = `${c.emisor_nombre || '—'} (${c.emisor_tipo || '—'})`;
     }
@@ -1576,7 +1576,7 @@ function _abrirModalDetalleCom(c, currentUser) {
     }
 
     const btnAnular = document.getElementById('btnAnularComDesdeDetalle');
-    if (btnAnular) btnAnular.style.display = puedeAnular ? '' : 'none';
+    if (btnAnular) btnAnular.style.display = puedeAnular ? 'inline-flex' : 'none';
 
     // Colapsar panel derecho al abrir
     _colapsarDestinatariosComProf();
@@ -1741,7 +1741,7 @@ async function _abrirModalDetalleCit(id) {
     const descWrap = document.getElementById('detalleCitDescWrap');
     if (data.motivo_descripcion) {
         document.getElementById('detalleCitDesc').textContent = data.motivo_descripcion;
-        descWrap.style.display = '';
+        descWrap.style.display = 'block';
     } else {
         descWrap.style.display = 'none';
     }
@@ -1751,7 +1751,7 @@ async function _abrirModalDetalleCit(id) {
     // Botón marcar asistencia: solo si el usuario actual es el emisor y no está resuelta/anulada
     const puedeMarcar = currentUser && data.emisor_id === currentUser.id && !['ASISTIO', 'ATRASO', 'ANULADA'].includes(asist);
     const btnMarcar   = document.getElementById('btnIrAMarcarCit');
-    btnMarcar.style.display = puedeMarcar ? '' : 'none';
+    btnMarcar.style.display = puedeMarcar ? 'inline-flex' : 'none';
     if (puedeMarcar) {
         btnMarcar.onclick = () => {
             _cerrarModalDetalleCit();
@@ -1762,7 +1762,7 @@ async function _abrirModalDetalleCit(id) {
     // Botón anular: solo si no está resuelta ni anulada, y el usuario es el emisor
     const puedeAnular = currentUser && data.emisor_id === currentUser.id && !['ASISTIO', 'ATRASO', 'ANULADA'].includes(asist);
     const btnAnular   = document.getElementById('btnAnularCit');
-    btnAnular.style.display = puedeAnular ? '' : 'none';
+    btnAnular.style.display = puedeAnular ? 'inline-flex' : 'none';
     if (puedeAnular) {
         btnAnular.onclick = () => {
             _cerrarModalDetalleCit();
@@ -1770,7 +1770,7 @@ async function _abrirModalDetalleCit(id) {
         };
     }
 
-    body.style.display = '';
+    body.style.display = 'block';
 }
 
 function _cerrarModalDetalleCit() {
@@ -1806,7 +1806,7 @@ async function _confirmarMarcarCit() {
 
     if (!ok) {
         err.textContent   = data?.errores || 'Error al registrar asistencia.';
-        err.style.display = '';
+        err.style.display = 'block';
         return;
     }
 
@@ -1845,7 +1845,7 @@ async function _confirmarAnularCit() {
 
     if (!ok) {
         err.textContent   = data?.errores || 'Error al anular la citación.';
-        err.style.display = '';
+        err.style.display = 'block';
         return;
     }
 
@@ -1884,7 +1884,7 @@ async function _confirmarAnularCom() {
 
     if (!ok) {
         err.textContent   = data?.errores || 'Error al anular el comunicado.';
-        err.style.display = '';
+        err.style.display = 'block';
         return;
     }
 
@@ -1951,7 +1951,7 @@ async function _actualizarCoberturaFCMProf() {
 
     clearTimeout(_coberturaTimerProf);
     _coberturaTimerProf = setTimeout(async () => {
-        wrap.style.display = '';
+        wrap.style.display = 'block';
         texto.textContent  = 'Calculando…';
         btn.className      = 'fcm-cobertura-pill';
 
@@ -2087,8 +2087,8 @@ function _initComunicadoForm() {
     if (!modal) return;
 
     document.getElementById('comProfAlcance').addEventListener('change', function () {
-        document.getElementById('comProfCursoWrap').style.display = this.value === 'CURSO' ? '' : 'none';
-        document.getElementById('comProfGrupoWrap').style.display = this.value === 'GRUPO' ? '' : 'none';
+        document.getElementById('comProfCursoWrap').style.display = this.value === 'CURSO' ? 'block' : 'none';
+        document.getElementById('comProfGrupoWrap').style.display = this.value === 'GRUPO' ? 'block' : 'none';
         _actualizarCoberturaFCMProf();
     });
 
@@ -2155,19 +2155,19 @@ async function _enviarComunicadoProf() {
     errEl.style.display = 'none';
     if (!titulo || !contenido) {
         errEl.textContent = 'Completa todos los campos obligatorios.';
-        errEl.style.display = '';
+        errEl.style.display = 'block';
         return;
     }
     if (alcance === 'CURSO' && !cursoId) {
         errEl.textContent = 'Selecciona un curso específico.';
-        errEl.style.display = '';
+        errEl.style.display = 'block';
         return;
     }
 
     const cursosGrupo = alcance === 'GRUPO' ? _grupoSeleccionados.map(c => c.id) : [];
     if (alcance === 'GRUPO' && cursosGrupo.length < 2) {
         errEl.textContent = 'Selecciona al menos 2 cursos.';
-        errEl.style.display = '';
+        errEl.style.display = 'block';
         return;
     }
 
@@ -2189,7 +2189,7 @@ async function _enviarComunicadoProf() {
 
     if (!ok) {
         errEl.textContent   = data?.errores || data?.titulo?.[0] || data?.contenido?.[0] || 'Error al enviar el comunicado.';
-        errEl.style.display = '';
+        errEl.style.display = 'block';
         return;
     }
 

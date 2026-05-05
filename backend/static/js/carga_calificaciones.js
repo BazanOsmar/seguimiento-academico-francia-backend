@@ -133,7 +133,7 @@ function _mostrarVistaLecturaHistorial(headersPorTrim) {
     _lastResultado = r;
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = _renderSuccessDashboard(r, null, true);
-    dashboard.style.display = '';
+    dashboard.style.display = 'block';
     _initTableScrollSync();
 }
 
@@ -154,14 +154,14 @@ function _mostrarVistaLectura(headersPorTrim) {
     _lastResultado = r;
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = _renderSuccessDashboard(r, null, true);
-    dashboard.style.display = '';
+    dashboard.style.display = 'block';
     _initTableScrollSync();
 }
 
 function _mostrarVistaUpload() {
     _soloLectura = false;
     document.getElementById('ccInitLoader').style.display = 'none';
-    document.getElementById('ccCard').style.display       = '';
+    document.getElementById('ccCard').style.display       = 'block';
     document.getElementById('ccDashboard').style.display  = 'none';
 }
 
@@ -200,7 +200,7 @@ function _clearSelectedFileState() {
     document.getElementById('ccFilenameText').textContent = '';
     document.getElementById('ccDropTitle').textContent = 'Arrastra tu archivo Excel aquí';
     document.getElementById('ccDropSub').textContent = 'O haz clic para buscar en tu ordenador. Asegúrate de que el archivo siga el formato de la plantilla oficial para una validación exitosa.';
-    document.getElementById('btnSelectFile').style.display = '';
+    document.getElementById('btnSelectFile').style.display = 'inline-flex';
     document.getElementById('btnValidar').style.display = 'none';
     document.getElementById('btnValidar').disabled = true;
 }
@@ -355,7 +355,7 @@ function _setArchivo(file) {
     // Cambiar botones
     document.getElementById('btnSelectFile').style.display = 'none';
     const btnVal = document.getElementById('btnValidar');
-    btnVal.style.display = '';
+    btnVal.style.display = 'inline-flex';
     btnVal.disabled      = false;
 }
 
@@ -367,14 +367,14 @@ function _resetUpload() {
     _clearSelectedFileState();
     document.getElementById('ccDropTitle').textContent = 'Arrastra tu archivo Excel aquí';
     document.getElementById('ccDropSub').textContent   = 'O haz clic para buscar en tu ordenador. Asegúrate de que el archivo siga el formato de la plantilla oficial para una validación exitosa.';
-    document.getElementById('btnSelectFile').style.display = '';
+    document.getElementById('btnSelectFile').style.display = 'inline-flex';
     document.getElementById('btnValidar').style.display    = 'none';
     document.getElementById('btnValidar').disabled         = true;
 
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = '';
     dashboard.style.display = 'none';
-    document.getElementById('ccCard').style.display = '';
+    document.getElementById('ccCard').style.display = 'block';
     _setValidationBusy(false);
 }
 
@@ -460,7 +460,7 @@ function _mostrarResultado(r) {
     document.getElementById('ccCard').style.display = 'none';
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = _renderSuccessDashboard(r) || _renderSuccessDashboard(_buildMockResultado());
-    dashboard.style.display = '';
+    dashboard.style.display = 'block';
     _initTableScrollSync();
 
     // Scroll suave hasta el dashboard (o hasta el cuadro de cambios si existe)
