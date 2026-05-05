@@ -51,11 +51,11 @@ def _rng(est_id: int, mat_id: int) -> random.Random:
     return random.Random(est_id * 1000 + mat_id)
 
 
-def _dias_habiles_abril() -> list[date]:
+def _dias_habiles_mes(mes: int) -> list[date]:
     dias = []
-    d = date(GESTION, 4, 1)
-    while d.month == 4:
-        if d.weekday() < 5:  # lunes a viernes
+    d = date(GESTION, mes, 1)
+    while d.month == mes:
+        if d.weekday() < 5:
             dias.append(d)
         d += timedelta(days=1)
     return dias
@@ -72,7 +72,7 @@ def _limpiar_mongo(stdout):
 
 # ─── Asistencia abril ─────────────────────────────────────────────────────────
 def _generar_asistencia_abril(director: User, stdout):
-    dias = _dias_habiles_abril()
+    dias = _dias_habiles_mes(4) + _dias_habiles_mes(MES_NOTAS)
     cursos = list(Curso.objects.all())
     estudiantes_por_curso = {
         c.id: list(Estudiante.objects.filter(curso=c, activo=True).values_list('id', flat=True))
@@ -129,7 +129,7 @@ def _generar_asistencia_abril(director: User, stdout):
                 Asistencia.objects.bulk_create(asistencias_bulk, ignore_conflicts=True)
                 asistencias_creadas += len(asistencias_bulk)
 
-    stdout.write(f'  Asistencia abril: {sesiones_creadas} sesiones, {asistencias_creadas} registros')
+    stdout.write(f'  Asistencia abril+mayo: {sesiones_creadas} sesiones, {asistencias_creadas} registros')
 
 
 # ─── notas_mensuales mayo (MongoDB) ──────────────────────────────────────────
