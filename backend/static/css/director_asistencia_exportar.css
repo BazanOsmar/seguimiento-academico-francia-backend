@@ -1,0 +1,210 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 12px;
+            color: #1a1a2e;
+            background: #fff;
+            padding: 20px 24px;
+        }
+
+        /* ── Botón imprimir ────────────────────────────────────── */
+        .btn-print {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37,99,235,.35);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            z-index: 100;
+        }
+        .btn-print:hover { background: #1d4ed8; }
+
+        /* ── Cabecera ──────────────────────────────────────────── */
+        .doc-header {
+            text-align: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #1e293b;
+        }
+        .doc-school {
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 1px;
+        }
+        .doc-city {
+            font-size: 10px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .doc-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 8px;
+        }
+        .doc-meta {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            font-size: 11px;
+            color: #64748b;
+            flex-wrap: wrap;
+        }
+        .doc-meta strong { color: #1e293b; }
+
+        /* ── Tabla planilla ────────────────────────────────────── */
+        .planilla {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .planilla th,
+        .planilla td {
+            border: 1px solid #cbd5e1;
+            text-align: center;
+            vertical-align: middle;
+            padding: 0;
+        }
+
+        /* Columna N° */
+        .planilla .col-num {
+            width: 32px;
+            font-size: 10px;
+            color: #94a3b8;
+            padding: 4px 2px;
+        }
+
+        /* Columna Nombre */
+        .planilla .col-nombre {
+            text-align: left;
+            padding: 4px 8px;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+
+        /* Cabecera general */
+        .planilla thead th {
+            background-color: #1e293b;
+            color: #fff;
+            font-weight: 700;
+            font-size: 9px;
+            padding: 0;
+        }
+
+        /* Cabeceras de día — texto vertical */
+        .planilla .col-dia {
+            height: 80px;
+            padding: 2px 0;
+            font-size: 9px;
+            font-weight: 600;
+        }
+        .planilla .col-dia .dia-text {
+            display: block;
+            transform: rotate(-90deg);
+            white-space: nowrap;
+            font-size: 9px;
+            letter-spacing: .02em;
+        }
+
+        /* Cabeceras de resumen */
+        .planilla .col-resumen {
+            height: 80px;
+            padding: 2px 0;
+            font-size: 9px;
+            font-weight: 700;
+        }
+        .planilla .col-resumen .dia-text {
+            display: block;
+            transform: rotate(-90deg);
+            white-space: nowrap;
+            font-size: 10px;
+            font-weight: 800;
+        }
+        .col-resumen--faltas    { background-color: #dc2626 !important; }
+        .col-resumen--atrasos   { background-color: #d97706 !important; }
+        .col-resumen--licencias { background-color: #2563eb !important; }
+        .col-resumen--asist     { background-color: #16a34a !important; }
+
+        /* Filas alternas */
+        .planilla tbody tr:nth-child(even) { background-color: #f8fafc; }
+
+        /* Celdas de estado */
+        .celda-P { color: #16a34a; font-weight: 700; }
+        .celda-F { color: #dc2626; font-weight: 700; }
+        .celda-A { color: #d97706; font-weight: 700; }
+        .celda-L { color: #2563eb; font-weight: 700; }
+
+        .planilla tbody td {
+            padding: 3px 1px;
+            font-size: 11px;
+        }
+
+        /* Celdas resumen */
+        .td-resumen {
+            font-weight: 700;
+            font-size: 11px;
+        }
+        .td-resumen--faltas    { color: #dc2626; background-color: #fecaca; font-weight: 800; }
+        .td-resumen--atrasos   { color: #b45309; background-color: #fde68a; font-weight: 800; }
+        .td-resumen--licencias { color: #1d4ed8; background-color: #bfdbfe; font-weight: 800; }
+        .td-resumen--asist     { color: #15803d; background-color: #bbf7d0; font-weight: 800; }
+
+        /* ── Sin datos ─────────────────────────────────────────── */
+        .no-data-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 50vh;
+            gap: 12px;
+            text-align: center;
+        }
+        .no-data-box h2 { font-size: 18px; font-weight: 700; color: #1e293b; }
+        .no-data-box p  { font-size: 13px; color: #64748b; max-width: 340px; }
+
+        /* ── Error ─────────────────────────────────────────────── */
+        .error-box {
+            text-align: center;
+            padding: 64px 24px;
+            color: #dc2626;
+        }
+        .error-box h2 { font-size: 20px; margin-bottom: 10px; }
+        .error-box p  { font-size: 14px; color: #64748b; }
+
+        /* ── Pie ───────────────────────────────────────────────── */
+        .doc-footer {
+            margin-top: 14px;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 10px;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ── Print ─────────────────────────────────────────────── */
+        @media print {
+            .btn-print { display: none !important; }
+            body { padding: 0; width: 100%; }
+            .planilla { width: 100%; table-layout: fixed; }
+            .planilla .col-num { width: 24px; }
+            .planilla .col-nombre { width: auto; }
+            @page { margin: 0.8cm; size: A4 landscape; }
+        }
+
+.director-asistencia-exportar-inline-style-1 { padding:2px; }
+.director-asistencia-exportar-inline-style-2 { text-align:left; padding-left:8px; }

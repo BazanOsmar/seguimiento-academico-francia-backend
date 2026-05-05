@@ -9,179 +9,8 @@
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
-    <script>
-        const token = localStorage.getItem('access_token');
-        const user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
-            window.location.replace('/login/');
-        }
-    </script>
-    <style>
-        .upload-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 28px;
-        }
-        .upload-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .file-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 9px 14px;
-            font-size: .85rem;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: border-color .15s;
-        }
-        .file-label:hover { border-color: var(--accent); }
-        #fileInput { display: none; }
-        #fileName {
-            font-size: .82rem;
-            color: var(--text-muted);
-            flex: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            min-width: 0;
-        }
-        .btn-comparar {
-            background: var(--accent);
-            color: var(--accent-text);
-            border: none;
-            border-radius: 8px;
-            padding: 10px 22px;
-            font-size: .88rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity .15s;
-            white-space: nowrap;
-        }
-        .btn-comparar:hover { opacity: .85; }
-        .btn-comparar:disabled { opacity: .5; cursor: not-allowed; }
-
-        #cursoDetectado {
-            display: none;
-            margin-top: 14px;
-            font-size: .82rem;
-            color: var(--text-secondary);
-        }
-        #cursoDetectado strong { color: var(--text-primary); }
-
-        #errorBanner {
-            display: none;
-            background: rgba(239,68,68,.1);
-            border: 1px solid rgba(239,68,68,.3);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-size: .84rem;
-            color: #f87171;
-            margin-top: 14px;
-        }
-
-        .stats-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-        .stat-chip {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: .78rem;
-            color: var(--text-secondary);
-            flex: 1;
-            min-width: 100px;
-            text-align: center;
-        }
-        .stat-chip__val {
-            display: block;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-        .stat-chip--ok   .stat-chip__val { color: #22c55e; }
-        .stat-chip--warn .stat-chip__val { color: #f59e0b; }
-        .stat-chip--err  .stat-chip__val { color: #ef4444; }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        @media (max-width: 600px) { .results-grid { grid-template-columns: 1fr; } }
-
-        .result-col {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .result-col__hdr {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            font-size: .78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-        }
-        .result-col__hdr--excel { color: #f59e0b; }
-        .result-col__hdr--bd    { color: #ef4444; }
-
-        .result-item {
-            padding: 9px 16px;
-            font-size: .83rem;
-            color: var(--text-primary);
-            border-bottom: 1px solid var(--border-subtle);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .result-item:last-child { border-bottom: none; }
-        .result-item__dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .result-item__dot--excel { background: #f59e0b; }
-        .result-item__dot--bd    { background: #ef4444; }
-
-        .empty-msg {
-            padding: 20px 16px;
-            font-size: .82rem;
-            color: var(--text-muted);
-            font-style: italic;
-            text-align: center;
-        }
-
-        #resultSection { display: none; }
-
-        .spinner {
-            display: inline-block;
-            width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-            vertical-align: middle;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+    <script src="{% static 'js/director_comparar_nombres_inline.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/director_comparar_nombres.css' %}">
 </head>
 <body>
 
@@ -281,7 +110,7 @@
 
     <!-- ── Top bar ────────────────────────────────────────────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div class="director-comparar-nombres-inline-style-1">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="6"  x2="21" y2="6"/>
@@ -297,7 +126,7 @@
     <main class="main-content">
         <div class="content-wrap">
 
-            <p style="font-size:.83rem;color:var(--text-muted);margin:0 0 20px;">
+            <p class="director-comparar-nombres-inline-style-2">
                 Sube el mismo Excel de notas. El sistema detecta el curso automáticamente y compara los nombres.
             </p>
 
@@ -343,94 +172,6 @@
     </main>
 
 <script src="{% static_v 'js/main.js' %}"></script>
-<script>
-const fileInput     = document.getElementById('fileInput');
-const fileNameEl    = document.getElementById('fileName');
-const btnComparar   = document.getElementById('btnComparar');
-const errorBanner   = document.getElementById('errorBanner');
-const cursoDetEl    = document.getElementById('cursoDetectado');
-const resultSection = document.getElementById('resultSection');
-
-fileInput.addEventListener('change', () => {
-    const f = fileInput.files[0];
-    fileNameEl.textContent      = f ? f.name : 'Ningún archivo seleccionado';
-    btnComparar.disabled        = !f;
-    errorBanner.style.display   = 'none';
-    cursoDetEl.style.display    = 'none';
-    resultSection.style.display = 'none';
-});
-
-btnComparar.addEventListener('click', async () => {
-    const f = fileInput.files[0];
-    if (!f) return;
-
-    btnComparar.disabled    = true;
-    btnComparar.innerHTML   = '<span class="spinner"></span>';
-    errorBanner.style.display   = 'none';
-    cursoDetEl.style.display    = 'none';
-    resultSection.style.display = 'none';
-
-    const form = new FormData();
-    form.append('archivo', f);
-
-    const { ok, data } = await fetchAPI('/api/academics/director/comparar-nombres/', {
-        method: 'POST',
-        body: form,
-    });
-
-    btnComparar.disabled     = false;
-    btnComparar.textContent  = 'Comparar';
-
-    if (!ok) {
-        errorBanner.textContent   = data?.errores || 'Error al procesar el archivo.';
-        errorBanner.style.display = 'block';
-        return;
-    }
-
-    cursoDetEl.innerHTML     = `Curso detectado: <strong>${_esc(data.curso_nombre)}</strong>`;
-    cursoDetEl.style.display = 'block';
-    _renderResultados(data);
-});
-
-function _renderResultados(d) {
-    document.getElementById('statsRow').innerHTML = `
-        <div class="stat-chip stat-chip--ok">
-            <span class="stat-chip__val">${d.en_ambos}</span>coinciden
-        </div>
-        <div class="stat-chip ${d.solo_en_excel.length ? 'stat-chip--warn' : ''}">
-            <span class="stat-chip__val">${d.solo_en_excel.length}</span>solo en Excel
-        </div>
-        <div class="stat-chip ${d.solo_en_bd.length ? 'stat-chip--err' : ''}">
-            <span class="stat-chip__val">${d.solo_en_bd.length}</span>solo en BD
-        </div>
-        <div class="stat-chip">
-            <span class="stat-chip__val">${d.total_excel}</span>total Excel
-        </div>
-        <div class="stat-chip">
-            <span class="stat-chip__val">${d.total_bd}</span>total BD
-        </div>
-    `;
-
-    document.getElementById('listExcel').innerHTML = d.solo_en_excel.length
-        ? d.solo_en_excel.map(n => `
-            <div class="result-item">
-                <span class="result-item__dot result-item__dot--excel"></span>${_esc(n)}
-            </div>`).join('')
-        : '<p class="empty-msg">Sin diferencias</p>';
-
-    document.getElementById('listBd').innerHTML = d.solo_en_bd.length
-        ? d.solo_en_bd.map(n => `
-            <div class="result-item">
-                <span class="result-item__dot result-item__dot--bd"></span>${_esc(n)}
-            </div>`).join('')
-        : '<p class="empty-msg">Sin diferencias</p>';
-
-    resultSection.style.display = 'block';
-}
-
-function _esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-</script>
+<script src="{% static 'js/director_comparar_nombres_inline_2.js' %}"></script>
 </body>
 </html>

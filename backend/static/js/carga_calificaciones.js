@@ -1,11 +1,13 @@
 'use strict';
 
 // ── Parámetros de URL ─────────────────────────────────────────────
-const _params  = new URLSearchParams(window.location.search);
-const _pcId    = _params.get('pc_id')   || '';
-const _materia = _params.get('materia') || '—';
-const _curso   = _params.get('curso')   || '—';
-const _mes     = _params.get('mes')     || '';
+const _params    = new URLSearchParams(window.location.search);
+const _pcId      = _params.get('pc_id')    || '';
+const _materia   = _params.get('materia')  || '—';
+const _curso     = _params.get('curso')    || '—';
+const _mes       = _params.get('mes')      || '';
+const _mesHasta  = _params.get('mes_hasta') || '';
+const _modoParam = _params.get('modo')     || '';
 
 // ── Estado interno ────────────────────────────────────────────────
 let _archivo = null;
@@ -18,6 +20,12 @@ let _soloLectura = false;
 let _mesLabel = '';
 let _diferencias = null;   // { sin_cambios, nuevas, modificadas, nuevas_columnas }
 let _modoAnterior = false; // toggle: false = Excel actual, true = datos anteriores
+
+// ── Estado modo historial ─────────────────────────────────────────
+let _modoHistorial     = false;           // true cuando viene de "Ver notas" del historial
+let _modHistorialMap   = new Map();       // clave → {nota_original, nota_actual}
+let _hayModHistorial   = false;           // hay celdas modificadas en el historial
+let _mostrandoOriginal = true;            // true = muestra original (rojo); false = valor actual
 
 // ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,10 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ccMateria').textContent = _materia;
 
     // Badge período
-    const mesNum = parseInt(_mes, 10);
-    const meses  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    _mesLabel = (mesNum >= 1 && mesNum <= 12) ? meses[mesNum] : 'Período actual';
+    const mesRef  = parseInt(_mesHasta || _mes, 10);
+    const meses   = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    _mesLabel = (mesRef >= 1 && mesRef <= 12) ? meses[mesRef] : 'Período actual';
     const periodBadge = document.getElementById('ccPeriodBadge');
     const deptBadge   = document.getElementById('ccDeptBadge');
     if (periodBadge) periodBadge.textContent = _mesLabel.toUpperCase();
@@ -44,7 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     _initDragDrop();
     _initButtons();
-    if (_pcId && _mes) {
+
+    if (_modoParam === 'historial' && _pcId && _mesHasta) {
+        _modoHistorial = true;
+        _cargarNotasHistorico();
+    } else if (_pcId && _mes) {
         // Siempre consultar el servidor — no confiar solo en el parámetro URL
         _verificarEstadoNotas();
     } else {
@@ -72,6 +84,57 @@ async function _verificarEstadoNotas() {
     } catch {
         _mostrarVistaUpload();
     }
+}
+
+// ── Modo historial: carga notas acumuladas hasta mes_hasta ────────
+async function _cargarNotasHistorico() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const res   = await fetch(
+            `/api/academics/profesor/notas-historico/?pc_id=${encodeURIComponent(_pcId)}&mes_hasta=${encodeURIComponent(_mesHasta)}`,
+            { headers: { 'Authorization': `Bearer ${token}` } },
+        );
+        if (!res.ok) { _mostrarVistaUpload(); return; }
+        const data = await res.json();
+
+        // Construir mapa de notas modificadas
+        _hayModHistorial = data.hay_modificadas || false;
+        _modHistorialMap.clear();
+        (data.notas_modificadas || []).forEach(m => {
+            // clave compatible con la renderización: "dimension-colIdx_estudianteId"
+            const key = `${m.dimension}-${m.columna_idx}_${m.estudiante_id}`;
+            _modHistorialMap.set(key, {
+                nota_original: m.nota_original,
+                nota_actual:   m.nota_actual,
+                trimestre:     m.trimestre,
+            });
+        });
+
+        _mostrarVistaLecturaHistorial(data.headers_por_trim);
+    } catch {
+        _mostrarVistaUpload();
+    }
+}
+
+function _mostrarVistaLecturaHistorial(headersPorTrim) {
+    _soloLectura = true;
+    document.getElementById('ccInitLoader').style.display = 'none';
+    document.getElementById('ccCard').style.display       = 'none';
+    document.querySelector('.cc-title').style.display     = 'none';
+    document.querySelector('.cc-meta').style.display      = 'none';
+
+    const r = {
+        metadatos: {
+            headers_actividades: headersPorTrim,
+            hoja_origen: Object.keys(headersPorTrim)[0] || '1TRIM',
+            gestion: new Date().getFullYear(),
+        },
+    };
+    _lastResultado = r;
+    const dashboard = document.getElementById('ccDashboard');
+    dashboard.innerHTML     = _renderSuccessDashboard(r, null, true);
+    dashboard.style.display = '';
+    _initTableScrollSync();
 }
 
 function _mostrarVistaLectura(headersPorTrim) {
@@ -654,6 +717,14 @@ function _toggleModoAnterior() {
     _initTableScrollSync();
 }
 
+function _verValorActualHistorial() {
+    _mostrandoOriginal = false;
+    const dashboard = document.getElementById('ccDashboard');
+    if (!dashboard) return;
+    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, true);
+    _initTableScrollSync();
+}
+
 function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const meta = r.metadatos || {};
     const headersByTrim = meta.headers_actividades || {};
@@ -813,17 +884,40 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             const modEntry = _modMap.get(`${row.nro}_${cellKey}`);
             const esNueva  = _nuevasSet.has(cellKey);
 
+            // ── Modo historial: celdas modificadas en rojo ──────────────
+            if (_modoHistorial) {
+                // La clave del mapa historial usa col_idx real (no posición), igual que el servidor
+                const histKey = `${dim.key}-${col.col}_${row.nro}`;
+                const histEntry = _modHistorialMap.get(histKey);
+                if (histEntry) {
+                    if (_mostrandoOriginal) {
+                        const notaOrig = histEntry.nota_original;
+                        const tooltip  = 'Esta nota fue modificada en un mes posterior';
+                        return `<td class="cc-success-table__score cc-score--modificada"
+                                    title="${_esc(tooltip)}"
+                                    style="background:rgba(239,68,68,.13);color:#f87171;font-weight:700;cursor:help;">
+                                    ${_fmt1(notaOrig)}
+                                </td>`;
+                    } else {
+                        // Mostrar valor actual sin rojo
+                        return Number.isFinite(value)
+                            ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
+                            : `<td class="cc-success-table__score is-empty">-</td>`;
+                    }
+                }
+                return Number.isFinite(value)
+                    ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
+                    : `<td class="cc-success-table__score is-empty">-</td>`;
+            }
+
+            // ── Modo validación: diff con Excel anterior ──────────────
             if (_modoAnterior) {
-                // Vista "datos anteriores"
                 if (modEntry) {
-                    // Celda corregida: muestra valor anterior en naranja
                     return `<td class="cc-success-table__score" style="background:rgba(245,158,11,.13);color:#b45309;font-weight:700;">${_fmt1(modEntry.nota_anterior)}</td>`;
                 }
                 if (esNueva) {
-                    // Columna nueva: no existía en Mongo
                     return `<td class="cc-success-table__score" style="color:var(--text-muted);font-style:italic;letter-spacing:.02em;">—</td>`;
                 }
-                // Sin cambios: mismo valor, atenuado
                 return Number.isFinite(value)
                     ? `<td class="cc-success-table__score" style="color:var(--text-muted);">${_fmt1(value)}</td>`
                     : `<td class="cc-success-table__score is-empty">-</td>`;
@@ -831,7 +925,6 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
 
             // Vista "Excel actual" (default)
             if (modEntry) {
-                // Celda corregida: resaltada en azul/accent
                 return Number.isFinite(value)
                     ? `<td class="cc-success-table__score" style="background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;">${_fmt1(value)}</td>`
                     : `<td class="cc-success-table__score is-empty">-</td>`;
@@ -871,6 +964,16 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                    </svg>
                    Notas subidas
                </span>
+               ${_modoHistorial && _hayModHistorial && _mostrandoOriginal ? `
+               <button class="cc-success-tool" type="button" onclick="_verValorActualHistorial()"
+                   style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                       <circle cx="12" cy="12" r="3"/>
+                   </svg>
+                   Ver notas con valor actual
+               </button>` : ''}
                <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
                    ${trimTabsHtml}
                </div>

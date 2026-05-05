@@ -44,7 +44,7 @@
                 </svg>
                 <span class="nav-label">Citaciones</span>
             </button>
-            <button class="nav-item" id="sidePlan" aria-label="Plan de Trabajo" style="position:relative;">
+            <button class="nav-item profesor-carga-calificaciones-inline-style-1" id="sidePlan" aria-label="Plan de Trabajo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -85,7 +85,7 @@
 
     <!-- ── Topbar (idéntico al dashboard del profesor) ───────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div class="profesor-carga-calificaciones-inline-style-2">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
@@ -147,7 +147,7 @@
             </div>
 
             <!-- ── Tarjeta principal ──────────────────────────────── -->
-            <div class="cc-card" id="ccCard" style="display:none;">
+            <div class="cc-card profesor-carga-calificaciones-inline-style-3" id="ccCard">
 
                 <!-- Vista upload (estado inicial) -->
                 <div class="cc-upload-view" id="ccUploadView">
@@ -182,9 +182,9 @@
                             onclick="document.getElementById('excelInput').click()">
                         Seleccionar Archivo
                     </button>
-                    <button class="btn-validate" id="btnValidar" style="display:none;" disabled>Validar Planilla</button>
+                    <button class="btn-validate profesor-carga-calificaciones-inline-style-3" id="btnValidar" disabled>Validar Planilla</button>
 
-                    <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
+                    <input type="file" id="excelInput" accept=".xlsx,.xls" class="profesor-carga-calificaciones-inline-style-4">
 
                     <div class="cc-formats">
                         <span class="cc-fmt-badge">
@@ -224,7 +224,7 @@
 
             </div><!-- /cc-card -->
 
-        <div id="ccDashboard" style="display:none;"></div>
+        <div id="ccDashboard" class="profesor-carga-calificaciones-inline-style-3"></div>
 
         </div><!-- /cc-body -->
 
@@ -247,79 +247,7 @@
         </div>
     </div>
 
-    <script>
-        'use strict';
-
-        // ── Auth guard ───────────────────────────────────────────────
-        const _token = localStorage.getItem('access_token');
-        const _user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!_token || !_user || _user.tipo_usuario !== 'Profesor') {
-            window.location.replace('/login/');
-        }
-
-        // ── Nombre de perfil ─────────────────────────────────────────
-        if (_user) {
-            const name = [_user.first_name, _user.last_name].filter(Boolean).join(' ') || _user.username;
-            document.getElementById('profileName').textContent  = "Republica de Francia 'A'";
-            document.getElementById('profileRole').textContent  = 'Docente';
-            document.getElementById('pageSubtitle').textContent = name;
-        }
-
-        // ── Sidebar expand / toggle ──────────────────────────────────
-        const _sidebar  = document.querySelector('.sidebar');
-        const _backdrop = document.getElementById('sidebarBackdrop');
-        const _isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
-
-        let _leaveTimer;
-        _sidebar.addEventListener('mouseenter', () => {
-            clearTimeout(_leaveTimer);
-            if (_isDesktop()) _sidebar.classList.add('sidebar--expanded');
-        });
-        _sidebar.addEventListener('mouseleave', () => {
-            if (_isDesktop())
-                _leaveTimer = setTimeout(() => _sidebar.classList.remove('sidebar--expanded'), 200);
-        });
-
-        // Por si el cursor ya está sobre el sidebar al cargar la página
-        document.addEventListener('mousemove', function _check(e) {
-            document.removeEventListener('mousemove', _check);
-            if (!_isDesktop()) return;
-            const r = _sidebar.getBoundingClientRect();
-            if (e.clientX >= r.left && e.clientX <= r.right &&
-                e.clientY >= r.top  && e.clientY <= r.bottom) {
-                _sidebar.classList.add('sidebar--expanded');
-            }
-        });
-
-        document.getElementById('btnMenu').addEventListener('click', () => {
-            _sidebar.classList.toggle('sidebar--open');
-            _backdrop.classList.toggle('visible');
-        });
-        _backdrop.addEventListener('click', () => {
-            _sidebar.classList.remove('sidebar--open');
-            _backdrop.classList.remove('visible');
-        });
-
-        document.getElementById('btnBackCalificaciones').addEventListener('click', () => {
-            if (window.history.length > 1) {
-                window.history.back();
-                return;
-            }
-            window.location.href = '/profesor/';
-        });
-
-        // ── Navegación sidebar ───────────────────────────────────────
-        document.getElementById('sideNotas').addEventListener('click',      () => window.location.href = '/profesor/');
-        document.getElementById('sideCitaciones').addEventListener('click', () => window.location.href = '/profesor/citaciones/');
-        document.getElementById('sidePlan').addEventListener('click',       () => window.location.href = '/profesor/plan/');
-        document.getElementById('sideCuenta').addEventListener('click',     () => window.location.href = '/profesor/cuenta/');
-
-        // ── Logout ───────────────────────────────────────────────────
-        document.getElementById('btnLogout').addEventListener('click', () => {
-            localStorage.clear();
-            window.location.replace('/login/');
-        });
-    </script>
+    <script src="{% static 'js/profesor_carga_calificaciones_inline.js' %}"></script>
 
     <script src="{% static 'js/carga_calificaciones.js' %}?v=3"></script>
 

@@ -1211,3 +1211,8 @@
 @keyframes dlg-spin {
     to { transform: rotate(360deg); }
 }
+
+.profesor-carga-calificaciones-inline-style-1 { position:relative; }
+.profesor-carga-calificaciones-inline-style-2 { display:flex;align-items:center;gap:12px; }
+.profesor-carga-calificaciones-inline-style-3 { display:none; }
+.profesor-carga-calificaciones-inline-style-4 { display:none }

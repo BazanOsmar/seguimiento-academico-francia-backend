@@ -8,15 +8,10 @@
     <title>Dashboard — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <link rel="stylesheet" href="{% static 'css/director_dashboard.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
 
-    <script>
-        const token = localStorage.getItem('access_token');
-        const user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!token || !user || !['Director', 'Regente'].includes(user.tipo_usuario)) {
-            window.location.replace('/login/');
-        }
-    </script>
+    <script src="{% static 'js/director_dashboard_inline.js' %}"></script>
 </head>
 <body>
 
@@ -131,7 +126,7 @@
 
     <!-- ── Top bar ───────────────────────────────────────────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div class="director-dashboard-inline-style-1">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
@@ -165,7 +160,7 @@
     <!-- ── Modal Broadcast ──────────────────────────────────────── -->
     <div class="modal-backdrop" id="broadcastBackdrop">
         <div class="modal modal--wide">
-            <div class="modal-icon" style="background:var(--accent-dim,rgba(99,102,241,.15));color:var(--accent)">
+            <div class="modal-icon director-dashboard-inline-style-2">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
@@ -176,173 +171,36 @@
             <p class="modal-title">Enviar comunicado</p>
             <p class="modal-subtitle">El mensaje llegará a todos los dispositivos registrados.</p>
 
-            <div class="form-group" style="width:100%;text-align:left">
+            <div class="form-group director-dashboard-inline-style-3">
                 <label class="form-label">Título</label>
                 <input id="broadcastTitulo" class="form-input" type="text"
                        placeholder="Ej: Reunión de padres" maxlength="80">
             </div>
-            <div class="form-group" style="width:100%;text-align:left">
+            <div class="form-group director-dashboard-inline-style-3">
                 <label class="form-label">Mensaje</label>
                 <textarea id="broadcastCuerpo" class="form-input form-textarea"
                           placeholder="Escribe el mensaje aquí..." maxlength="300" rows="4"></textarea>
             </div>
 
-            <p id="broadcastError" class="form-error" style="display:none"></p>
+            <p id="broadcastError" class="form-error director-dashboard-inline-style-4"></p>
 
-            <div style="display:flex;gap:10px;width:100%;margin-top:4px">
-                <button id="broadcastCancelar" class="btn-secondary" style="flex:1">Cancelar</button>
-                <button id="broadcastEnviar"   class="btn-primary"   style="flex:1">Enviar</button>
+            <div class="director-dashboard-inline-style-5">
+                <button id="broadcastCancelar" class="btn-secondary director-dashboard-inline-style-6">Cancelar</button>
+                <button id="broadcastEnviar" class="btn-primary director-dashboard-inline-style-6" >Enviar</button>
             </div>
         </div>
     </div>
 
-<script>
-    const _user = JSON.parse(localStorage.getItem('user') || 'null');
-    const _nombreDir = _user ? (`${_user.first_name || ''} ${_user.last_name || ''}`.trim() || _user.username) : '';
-    if (_user) {
-        document.getElementById('profileName').textContent = "Republica de Francia 'A'";
-        document.getElementById('profileRole').textContent = _user.tipo_usuario || 'Administración';
-        document.getElementById('pageTitle').textContent   = `Panel de ${_nombreDir}`;
-    }
-
-    // ── Hamburguesa (móvil/tablet) ───────────────────────────────
-    const sidebar  = document.querySelector('.sidebar');
-    const backdrop = document.getElementById('sidebarBackdrop');
-    const btnMenu  = document.getElementById('btnMenu');
-
-    const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
-
-    let _leaveTimer;
-    sidebar.addEventListener('mouseenter', () => {
-        clearTimeout(_leaveTimer);
-        if (isDesktop()) sidebar.classList.add('sidebar--expanded');
-    });
-    sidebar.addEventListener('mouseleave', () => {
-        if (isDesktop()) _leaveTimer = setTimeout(() => sidebar.classList.remove('sidebar--expanded'), 200);
-    });
-
-    // Si la página carga con el cursor ya encima del sidebar, expandirlo en el primer movimiento
-    document.addEventListener('mousemove', function _checkSidebar(e) {
-        document.removeEventListener('mousemove', _checkSidebar);
-        if (!isDesktop()) return;
-        const r = sidebar.getBoundingClientRect();
-        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-            sidebar.classList.add('sidebar--expanded');
-        }
-    });
-
-    function openSidebar() {
-        sidebar.classList.add('sidebar--open');
-        backdrop.classList.add('visible');
-    }
-    function closeSidebar() {
-        sidebar.classList.remove('sidebar--open');
-        backdrop.classList.remove('visible');
-    }
-
-    btnMenu.addEventListener('click', () =>
-        sidebar.classList.contains('sidebar--open') ? closeSidebar() : openSidebar()
-    );
-    backdrop.addEventListener('click', closeSidebar);
-
-    // Cambio de sección: si el href es "#" solo actualiza título/activo,
-    // si tiene ruta real deja navegar normalmente.
-    const pageTitle = document.getElementById('pageTitle');
-    document.querySelectorAll('.nav-item[data-title]').forEach(item => {
-        item.addEventListener('click', (e) => {
-            const href = item.getAttribute('href');
-            if (!href || href === '#') {
-                e.preventDefault();
-                pageTitle.textContent = `Panel de ${_nombreDir}`;
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-            }
-            // Si tiene href real → navega normalmente (no se previene)
-        });
-    });
-
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-        await logoutFCM();
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        window.location.replace('/login/');
-    });
-</script>
+<script src="{% static 'js/director_dashboard_inline_2.js' %}"></script>
 
 <!-- Broadcast -->
-<script>
-(function () {
-    const backdrop  = document.getElementById('broadcastBackdrop');
-    const btnOpen   = document.getElementById('btnBroadcast');
-    const btnClose  = document.getElementById('broadcastCancelar');
-    const btnSend   = document.getElementById('broadcastEnviar');
-    const inputTit  = document.getElementById('broadcastTitulo');
-    const inputMsg  = document.getElementById('broadcastCuerpo');
-    const errorEl   = document.getElementById('broadcastError');
-
-    function openModal()  { backdrop.classList.add('visible'); inputTit.focus(); }
-    function closeModal() {
-        backdrop.classList.remove('visible');
-        inputTit.value = '';
-        inputMsg.value = '';
-        errorEl.style.display = 'none';
-        btnSend.disabled = false;
-        btnSend.textContent = 'Enviar';
-    }
-
-    btnOpen.addEventListener('click', openModal);
-    btnClose.addEventListener('click', closeModal);
-    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
-
-    btnSend.addEventListener('click', async () => {
-        const titulo = inputTit.value.trim();
-        const cuerpo = inputMsg.value.trim();
-        errorEl.style.display = 'none';
-
-        if (!titulo || !cuerpo) {
-            errorEl.textContent = 'Completa el título y el mensaje.';
-            errorEl.style.display = 'block';
-            return;
-        }
-
-        btnSend.disabled = true;
-        btnSend.textContent = 'Enviando...';
-
-        try {
-            const res = await fetchAPI('/api/notifications/broadcast/', {
-                method: 'POST',
-                body: JSON.stringify({ titulo, cuerpo }),
-            });
-
-            if (res.sin_dispositivos) {
-                errorEl.textContent = 'No hay dispositivos registrados para recibir notificaciones.';
-                errorEl.style.display = 'block';
-                btnSend.disabled = false;
-                btnSend.textContent = 'Enviar';
-                return;
-            }
-
-            closeModal();
-            if (typeof showAppToast === 'function') {
-                showAppToast('success', 'Comunicado enviado',
-                    `Entregado a ${res.enviados} dispositivo(s).`);
-            }
-        } catch (err) {
-            errorEl.textContent = err.message || 'Error al enviar. Intenta de nuevo.';
-            errorEl.style.display = 'block';
-            btnSend.disabled = false;
-            btnSend.textContent = 'Enviar';
-        }
-    });
-})();
-</script>
+<script src="{% static 'js/director_dashboard_inline_3.js' %}"></script>
 
 <!-- Firebase Cloud Messaging -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
 <script src="{% static 'js/fcm.js' %}"></script>
-<script>initFCM();</script>
+<script src="{% static 'js/director_dashboard_inline_4.js' %}"></script>
 <script src="{% static 'js/notif_bell.js' %}"></script>
 
 </body>

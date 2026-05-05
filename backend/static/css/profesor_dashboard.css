@@ -1680,3 +1680,44 @@
         .badge--success  { background: rgba(34,197,94,.15);  color: #16a34a; }
         .badge--error    { background: rgba(239,68,68,.15);   color: #dc2626; }
         .badge--neutral  { background: var(--bg-hover);       color: var(--text-muted); }
+
+.profesor-dashboard-inline-style-1 { position:relative; }
+.profesor-dashboard-inline-style-2 { display:flex;align-items:center;gap:12px; }
+.profesor-dashboard-inline-style-3 { display:none; }
+.profesor-dashboard-inline-style-4 { height:3px;background:linear-gradient(90deg,var(--accent),#818cf8); }
+.profesor-dashboard-inline-style-5 { display:flex;flex-direction:column;gap:14px; }
+.profesor-dashboard-inline-style-6 { display:none }
+.profesor-dashboard-inline-style-7 { display:flex;align-items:center;justify-content:space-between; }
+.profesor-dashboard-inline-style-8 { padding-top:0; }
+.profesor-dashboard-inline-style-9 { overflow:hidden; }
+.profesor-dashboard-inline-style-10 { font-size:.75rem;color:var(--text-muted); }
+.profesor-dashboard-inline-style-11 { display:none;padding:16px 20px; }
+.profesor-dashboard-inline-style-12 { color:var(--accent);font-weight:700; }
+.profesor-dashboard-inline-style-13 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.profesor-dashboard-inline-style-14 { margin-top:16px;display:flex;justify-content:center;align-items:center;gap:8px; }
+.profesor-dashboard-inline-style-15 { padding:0; }
+.profesor-dashboard-inline-style-16 { display:flex;justify-content:center;padding:20px 0; }
+.profesor-dashboard-inline-style-17 { background:var(--danger,#dc2626); }
+.profesor-dashboard-inline-style-18 { margin-bottom:0; }
+.profesor-dashboard-inline-style-19 { resize:none; }
+.profesor-dashboard-inline-style-20 { display:flex;justify-content:flex-end;gap:10px; }
+.profesor-dashboard-inline-style-21 { padding:52px; }
+.profesor-dashboard-inline-style-22 { font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em; }
+.profesor-dashboard-inline-style-23 { display:flex;justify-content:space-between;align-items:center;gap:10px; }
+.profesor-dashboard-inline-style-24 { display:flex;gap:10px;margin-left:auto; }
+.profesor-dashboard-inline-style-25 { max-width:420px; }
+.profesor-dashboard-inline-style-26 { background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3);color:#22c55e; }
+.profesor-dashboard-inline-style-27 { font-size:.9rem;color:var(--text);margin:0; }
+.profesor-dashboard-inline-style-28 { font-size:.83rem;color:var(--text-muted);margin:0; }
+.profesor-dashboard-inline-style-29 { border-left-color:var(--accent); }
+.profesor-dashboard-inline-style-30 { font-size:1.12rem; }
+.profesor-dashboard-inline-style-31 { margin-top:10px; }
+.profesor-dashboard-inline-style-32 { display:flex;gap:8px;margin-left:auto; }
+.profesor-dashboard-inline-style-33 { display:flex;align-items:center;gap:6px; }
+.profesor-dashboard-inline-style-34 { background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px; }
+.profesor-dashboard-inline-style-35 { font-size:.83rem;padding:7px 11px; }
+.profesor-dashboard-inline-style-36 { padding:12px;font-size:.83rem;color:var(--text-muted); }
+.profesor-dashboard-inline-style-37 { font-size:.76rem;color:var(--text-muted);margin:0; }
+.profesor-dashboard-inline-style-38 { max-width:400px; }
+.profesor-dashboard-inline-style-39 { background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.22);color:#ef4444; }
+.profesor-dashboard-inline-style-40 { display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:28px; }

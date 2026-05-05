@@ -139,6 +139,57 @@
         padding: 2px 8px; white-space: nowrap; flex-shrink: 0;
     }
 
+    /* ── Dropdown historial de cargas ── */
+    .notas-historial-wrap { position: relative; }
+    .notas-historial-panel {
+        position: absolute; top: calc(100% + 8px); left: 0; z-index: 200;
+        min-width: 230px; background: #0f1e38;
+        border: 1px solid rgba(96,165,250,.22); border-radius: 14px;
+        box-shadow: 0 16px 40px rgba(2,6,23,.45);
+        overflow: hidden;
+    }
+    .notas-historial-panel__inner { padding: 10px 0; }
+    .notas-historial-spinner {
+        display: flex; align-items: center; gap: 10px;
+        padding: 14px 18px; color: var(--text-muted); font-size: .82rem;
+    }
+
+    /* Ítem de mes en el dropdown */
+    .notas-hist-mes {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 18px; font-size: .82rem; font-weight: 600;
+        cursor: pointer; transition: background .15s; color: var(--text-secondary);
+        border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .notas-hist-mes:hover { background: rgba(255,255,255,.05); }
+    .notas-hist-mes__dot {
+        width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+    }
+    .notas-hist-mes__dot--completo  { background: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,.6); }
+    .notas-hist-mes__dot--parcial   { background: #fb923c; box-shadow: 0 0 8px rgba(251,146,60,.5); }
+    .notas-hist-mes__dot--sin_datos { background: #475569; }
+    .notas-hist-mes__nombre { flex: 1; }
+    .notas-hist-mes__sub {
+        font-size: .7rem; color: var(--text-muted); font-weight: 400;
+    }
+    .notas-hist-mes--sin_datos { opacity: .55; cursor: default; }
+    .notas-hist-mes--sin_datos:hover { background: transparent; }
+
+    /* Tarjeta histórica: estado deshabilitado */
+    .notas-clase-card--disabled {
+        opacity: .45; pointer-events: none;
+    }
+    .notas-clase-card--disabled .notas-clase-card__band {
+        background: #334155;
+    }
+    /* Fecha de carga dentro de la tarjeta histórica */
+    .notas-card-fecha {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: .7rem; font-weight: 600; color: var(--text-muted);
+        margin-top: 4px;
+    }
+    .notas-card-fecha svg { opacity: .6; }
+
     .notas-empty { grid-column: 1/-1; text-align: center; padding: 56px 20px; color: var(--text-muted); }
     .notas-empty svg { opacity: .25; display: block; margin: 0 auto 12px; }
 
@@ -152,3 +203,5 @@
         .notas-classes-grid { grid-template-columns: 1fr; padding: 16px; }
         .notas-clase-card__body { padding: 16px 16px 14px; }
     }
+
+.profesor-notas-inline-style-1 { width:22px;height:22px;border-width:2.5px; }

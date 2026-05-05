@@ -111,3 +111,6 @@
     .warn-modal-body p { font-size: .845rem; color: var(--text-muted); margin: 0 0 22px; line-height: 1.5; }
     .warn-modal-actions { display: flex; gap: 10px; width: 100%; }
     .warn-modal-actions button { flex: 1; justify-content: center; }
+
+.profesor-plan-trabajo-inline-style-1 { display:none; }
+.profesor-plan-trabajo-inline-style-2 { background:var(--danger,#dc2626); }

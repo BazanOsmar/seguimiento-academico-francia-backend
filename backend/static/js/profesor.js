@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('notasClasesGrid')) {
         cargarAsignacionesNotas();
         _cargarUltimaCarga();
+        _initHistorialBtn();
     }
     _verificarDotPlan();
     // Modo páginas separadas: cargar datos de la sección activa directamente
@@ -457,6 +458,197 @@ async function cargarAsignacionesNotas() {
                 btn.dataset.mes, btn.dataset.materia, btn.dataset.curso,
                 btn.dataset.yaSubidas === '1',
             );
+        });
+    });
+}
+
+// ── Historial de cargas: dropdown de meses ────────────────────────
+let _historialCargado = false;
+
+function _initHistorialBtn() {
+    const btn   = document.getElementById('btnVerHistorial');
+    const panel = document.getElementById('notasHistorialPanel');
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const abierto = !panel.hidden;
+        if (abierto) { panel.hidden = true; return; }
+
+        panel.hidden = false;
+        if (_historialCargado) return;
+
+        // Primera vez: fetch al servidor
+        _historialCargado = true;
+        const inner = document.getElementById('notasHistorialInner');
+        inner.innerHTML = `
+            <div class="notas-historial-spinner">
+                <div class="notas-loading__spinner" style="width:22px;height:22px;border-width:2.5px;"></div>
+                <span>Cargando historial...</span>
+            </div>`;
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch('/api/academics/profesor/historial-meses/', {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error();
+            const { meses } = await res.json();
+            _renderHistorialMeses(meses, inner);
+        } catch {
+            inner.innerHTML = `<p style="padding:14px 18px;color:var(--text-muted);font-size:.82rem;">No se pudo cargar el historial.</p>`;
+        }
+    });
+
+    // Cerrar al clicar fuera
+    document.addEventListener('click', (e) => {
+        const wrap = document.getElementById('notasHistorialWrap');
+        if (wrap && !wrap.contains(e.target)) panel.hidden = true;
+    });
+}
+
+const _MESES_NOMBRE = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+function _renderHistorialMeses(meses, inner) {
+    if (!meses || !meses.length) {
+        inner.innerHTML = `<p style="padding:14px 18px;color:var(--text-muted);font-size:.82rem;">No hay cargas registradas aún.</p>`;
+        return;
+    }
+
+    inner.innerHTML = meses.map(m => {
+        const esSinDatos = m.estado === 'sin_datos';
+        const claseItem  = esSinDatos ? 'notas-hist-mes notas-hist-mes--sin_datos' : 'notas-hist-mes';
+        const claseDot   = `notas-hist-mes__dot notas-hist-mes__dot--${m.estado}`;
+        const sub        = esSinDatos
+            ? 'Sin datos'
+            : `${m.con_notas} de ${m.total} cursos`;
+        return `
+        <button class="${claseItem}" data-mes="${m.mes}" data-estado="${m.estado}" ${esSinDatos ? 'disabled' : ''}>
+            <span class="${claseDot}"></span>
+            <span class="notas-hist-mes__nombre">${_MESES_NOMBRE[m.mes]}</span>
+            <span class="notas-hist-mes__sub">${sub}</span>
+        </button>`;
+    }).join('');
+
+    inner.querySelectorAll('.notas-hist-mes:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('notasHistorialPanel').hidden = true;
+            _cargarVistaHistorialMes(parseInt(btn.dataset.mes));
+        });
+    });
+}
+
+async function _cargarVistaHistorialMes(mes) {
+    const grid      = document.getElementById('notasClasesGrid');
+    const countEl   = document.getElementById('notasMateriasCount');
+    const periodLbl = document.getElementById('notasPeriodLabel');
+    const mesPill   = document.getElementById('notasMesPill');
+
+    if (mesPill)   mesPill.textContent  = `${_MESES_NOMBRE[mes]} ${_anioBolivia()} — Historial`.toUpperCase();
+    if (periodLbl) periodLbl.textContent = _MESES_NOMBRE[mes];
+    if (countEl)   countEl.innerHTML    = '';
+
+    grid.innerHTML = `
+        <div class="notas-loading">
+            <div class="notas-loading__spinner"></div>
+            <p>Cargando asignaciones de ${_MESES_NOMBRE[mes]}...</p>
+        </div>`;
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const res   = await fetch(`/api/academics/profesor/asignaciones-historial-mes/?mes=${mes}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        _renderGridHistorial(data, mes, countEl, grid);
+    } catch {
+        grid.innerHTML = `<div class="notas-empty"><p>Error al cargar el historial.</p></div>`;
+    }
+}
+
+function _renderGridHistorial(data, mes, countEl, grid) {
+    if (!Array.isArray(data) || !data.length) {
+        grid.innerHTML = `<div class="notas-empty"><p>Sin asignaciones registradas.</p></div>`;
+        return;
+    }
+    const conNotas  = data.filter(a => a.tiene_notas).length;
+    const sinNotas  = data.length - conNotas;
+    if (countEl) {
+        countEl.innerHTML =
+            `<span class="notas-prog__cargadas">${conNotas} con notas</span>` +
+            `<span class="notas-prog__sep"> · </span>` +
+            `<span class="notas-prog__pendientes">${sinNotas} sin datos</span>`;
+    }
+
+    const _svgBook = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>`;
+    const _svgClock = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>`;
+    const _svgChevron = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+    </svg>`;
+
+    grid.innerHTML = data.map(a => {
+        if (!a.tiene_notas) {
+            return `
+            <div class="notas-clase-card notas-clase-card--disabled">
+                <div class="notas-clase-card__band"></div>
+                <div class="notas-clase-card__body">
+                    <div class="notas-clase-card__top">
+                        <span class="notas-clase-card__curso-tag">${_escapeHtml(a.materia_nombre)}</span>
+                        <span class="notas-clase-card__icon">${_svgBook}</span>
+                    </div>
+                    <p class="notas-clase-card__materia">${_escapeHtml(a.curso_nombre)}</p>
+                    <div class="notas-clase-card__footer">
+                        <span style="font-size:.72rem;color:var(--text-muted);">Sin datos en ${_MESES_NOMBRE[mes]}</span>
+                    </div>
+                </div>
+            </div>`;
+        }
+        return `
+        <div class="notas-clase-card notas-clase-card--subido">
+            <div class="notas-clase-card__band"></div>
+            <div class="notas-clase-card__body">
+                <div class="notas-clase-card__top">
+                    <span class="notas-clase-card__curso-tag">${_escapeHtml(a.materia_nombre)}</span>
+                    <div class="notas-clase-card__top-right">
+                        <span class="notas-subido-badge">✓ Cargado</span>
+                        <span class="notas-clase-card__icon">${_svgBook}</span>
+                    </div>
+                </div>
+                <p class="notas-clase-card__materia">${_escapeHtml(a.curso_nombre)}</p>
+                <span class="notas-card-fecha">${_svgClock} Cargado el ${_escapeHtml(a.fecha_carga)}</span>
+                <div class="notas-clase-card__footer">
+                    <button class="notas-clase-card__btn"
+                            data-pc-id="${a.id}"
+                            data-label="${_escapeHtml(a.materia_nombre)} — ${_escapeHtml(a.curso_nombre)}"
+                            data-materia="${_escapeHtml(a.materia_nombre)}"
+                            data-curso="${_escapeHtml(a.curso_nombre)}"
+                            data-mes="${mes}">
+                        ${_svgChevron}
+                        Ver notas
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const q = new URLSearchParams({
+                pc_id:     btn.dataset.pcId,
+                label:     btn.dataset.label,
+                materia:   btn.dataset.materia,
+                curso:     btn.dataset.curso,
+                mes_hasta: btn.dataset.mes,
+                modo:      'historial',
+            });
+            window.location.href = `/profesor/calificaciones/?${q.toString()}`;
         });
     });
 }

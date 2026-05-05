@@ -11,1110 +11,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
     <link rel="stylesheet" href="{% static 'css/flatpickr-dark.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
-    <script>
-        const token = localStorage.getItem('access_token');
-        const user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!token || !user || !['Director'].includes(user.tipo_usuario)) {
-            window.location.replace('/login/');
-        }
-    </script>
+    <script src="{% static 'js/director_comunicados_inline.js' %}"></script>
 
-    <style>
-        /* ── Layout ──────────────────────────────────────────────── */
-        .page-inner { max-width: 1100px; margin: 0 auto; }
-
-        .btn-nueva-accion {
-            display: inline-flex; align-items: center; gap: 9px;
-            padding: 11px 24px;
-            background: var(--accent-dim);
-            border: 1px solid var(--accent);
-            border-radius: var(--radius-sm);
-            color: var(--accent-text);
-            font-size: 0.9rem; font-weight: 600;
-            cursor: pointer;
-            transition: opacity .15s, background .15s, border-color .15s, color .15s;
-            white-space: nowrap;
-        }
-        .btn-nueva-accion:hover { opacity: .8; }
-        .btn-nueva-accion.is-open {
-            background: var(--bg-input);
-            border-color: var(--border);
-            color: var(--text-muted);
-        }
-
-        /* ── Formulario inline ────────────────────────────────────── */
-        .form-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            overflow: hidden;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 28px;
-        }
-        .form-card__header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 18px 24px 16px;
-            background: linear-gradient(135deg,
-                rgba(59,130,246,0.12) 0%,
-                rgba(99,102,241,0.08) 100%);
-            border-bottom: 1px solid rgba(59,130,246,0.15);
-        }
-        .form-card__icon {
-            width: 44px; height: 44px;
-            border-radius: 11px;
-            background: rgba(59,130,246,0.15);
-            border: 1px solid rgba(59,130,246,0.3);
-            color: var(--accent-text);
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .form-card__title {
-            font-size: 1rem; font-weight: 700;
-            color: var(--text-primary); line-height: 1.2;
-        }
-        .form-card__subtitle {
-            font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;
-        }
-        .form-card__body { padding: 20px 24px 22px; }
-
-        /* ── Fila 2 columnas ─────────────────────────────────────── */
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        @media (max-width: 620px) { .form-row { grid-template-columns: 1fr; } }
-
-        /* ── Radios ──────────────────────────────────────────────── */
-        .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-        .radio-option {
-            display: flex; align-items: center; gap: 7px;
-            cursor: pointer; font-size: 0.875rem; color: var(--text-secondary);
-            padding: 8px 16px;
-            border: 1px solid var(--border); border-radius: var(--radius-sm);
-            background: var(--bg-input);
-            transition: border-color .17s, color .17s, background .17s;
-            user-select: none;
-        }
-        .radio-option input { accent-color: var(--accent); }
-        .radio-option:has(input:checked) {
-            border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim);
-        }
-        .form-textarea {
-            height: auto; resize: vertical;
-            padding-top: 10px; padding-bottom: 10px; line-height: 1.5;
-        }
-
-        /* ── Progreso ────────────────────────────────────────────── */
-        .progress-msg {
-            padding: 10px 14px;
-            background: var(--bg-app);
-            border: 1px solid var(--border-subtle);
-            border-left: 3px solid var(--accent);
-            border-radius: var(--radius-sm);
-            font-size: 0.82rem; color: var(--accent-text); font-weight: 500;
-            margin-top: 14px;
-        }
-
-        .btn-nueva-com {
-            display: inline-flex; align-items: center; gap: 9px;
-            padding: 11px 22px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            font-size: 0.9rem; font-weight: 600;
-            cursor: pointer;
-            transition: border-color .15s, color .15s, background .15s;
-            white-space: nowrap;
-        }
-        .btn-nueva-com:hover { border-color: var(--border); color: var(--text-primary); background: var(--bg-card-hover); }
-        .btn-nueva-com.is-open { border-color: var(--accent); color: var(--accent-text); background: var(--accent-dim); }
-
-        /* Tabla de citaciones */
-        /* Badge estado (pill con dot) */
-        .cit-badge-status {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 4px 10px; border-radius: 50px;
-            font-size: .65rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .05em;
-        }
-        .cit-status-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: currentColor; flex-shrink: 0;
-        }
-        .cit-badge-status--pendiente  { background: rgba(245,158,11,.12); color: #f59e0b; }
-        .cit-badge-status--asistio    { background: rgba(34,197,94,.12);  color: #22c55e; }
-        .cit-badge-status--no_asistio { background: rgba(239,68,68,.12);  color: #ef4444; }
-        .cit-badge-status--atraso     { background: rgba(220,38,38,.12);  color: #dc2626; }
-
-        .cit-table-wrap {
-            border: 1px solid var(--border);
-            border-radius: var(--radius-card);
-            overflow-x: auto;
-            background: rgba(15,23,42,.18);
-            width: 100%;
-        }
-        .cit-table-grid {
-            display: block;
-            width: 100%;
-        }
-        .cit-table-section {
-            width: 100%;
-            margin-top: 20px;
-        }
-        .cit-table-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            margin-bottom: 12px;
-        }
-        .cit-table-toolbar__left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-        .cit-table-filter-divider {
-            width: 1px;
-            height: 26px;
-            background: rgba(148,163,184,.18);
-            margin: 0 4px;
-            flex-shrink: 0;
-        }
-        .cit-table-toolbar__label {
-            color: var(--text-muted);
-            font-size: .68rem;
-            font-weight: 800;
-            letter-spacing: .07em;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-        #panelCitaciones {
-            width: 100%;
-        }
-        @media (max-width: 780px) {
-            .cit-table-toolbar {
-                align-items: stretch;
-                flex-direction: column;
-            }
-            .cit-table-toolbar__left {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-            .cit-table-filter-divider {
-                width: 100%;
-                height: 1px;
-                margin: 2px 0;
-            }
-            .cit-table-toolbar .rol-chips {
-                width: 100%;
-                overflow-x: auto;
-                padding-bottom: 2px;
-            }
-            .cit-table-toolbar .cit-mes-nav {
-                justify-content: space-between;
-                width: 100%;
-            }
-        }
-        .cit-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .82rem;
-        }
-        .cit-table thead {
-            background: linear-gradient(180deg, rgba(30,41,59,.98), rgba(15,23,42,.98));
-            box-shadow: inset 0 -1px 0 rgba(96,165,250,.16);
-        }
-        .cit-table th {
-            color: var(--text-muted);
-            font-size: .68rem;
-            font-weight: 800;
-            letter-spacing: .05em;
-            padding: 13px 14px;
-            text-align: left;
-            text-transform: uppercase;
-            white-space: nowrap;
-            border-bottom: 1px solid rgba(96,165,250,.2);
-        }
-        .cit-table th:not(:last-child) { border-right: 1px solid rgba(148,163,184,.08); }
-        .cit-table td {
-            color: var(--text-secondary);
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border-subtle);
-            vertical-align: middle;
-        }
-        .cit-table tr:last-child td { border-bottom: none; }
-        .cit-table tbody tr { cursor: pointer; transition: background .15s; }
-        .cit-table tbody tr:hover td { background: var(--bg-card-hover); }
-        .cit-table__main { color: var(--text-primary); font-weight: 750; }
-        .cit-table__muted { color: var(--text-muted); font-size: .76rem; margin-top: 2px; }
-        .cit-table__type {
-            display: inline-flex;
-            align-items: center;
-            border-radius: 999px;
-            padding: 3px 9px;
-            background: rgba(59,130,246,.12);
-            color: var(--accent-text);
-            font-size: .72rem;
-            font-weight: 800;
-            white-space: nowrap;
-        }
-        .cit-limit {
-            font-size: .78rem;
-            font-weight: 700;
-            color: #fff;
-            white-space: nowrap;
-        }
-        .cit-limit--ok,
-        .cit-limit--warn,
-        .cit-limit--danger,
-        .cit-limit--neutral { color: #fff; }
-
-        /* Skeleton */
-/* Motivo como badge coloreado según tipo */
-        .citacion-card__motivo {
-            display: inline-block;
-            font-size: .68rem; font-weight: 700;
-            padding: 2px 8px; border-radius: 50px;
-            background: rgba(148,163,184,.12);
-            color: var(--text-muted);
-            letter-spacing: .03em;
-            text-transform: uppercase;
-        }
-        .citacion-card__motivo--FALTAS      { background: rgba(239,68,68,.13);  color: #f87171; }
-        .citacion-card__motivo--ATRASOS     { background: rgba(245,158,11,.13); color: #fbbf24; }
-        .citacion-card__motivo--CONDUCTA    { background: rgba(168,85,247,.13); color: #c084fc; }
-        .citacion-card__motivo--RENDIMIENTO { background: rgba(59,130,246,.13); color: #60a5fa; }
-        .citacion-card__motivo--REUNION     { background: rgba(20,184,166,.13); color: #2dd4bf; }
-
-        /* Cuerpo — descripción */
-/* Pie — fecha límite */
-.btn-marcar-asistencia {
-            display: flex; align-items: center; justify-content: center; gap: 7px;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            font-size: .78rem; font-weight: 600;
-            cursor: pointer;
-            transition: background .17s, border-color .17s, color .17s;
-        }
-        .btn-marcar-asistencia:hover {
-            background: var(--success-dim);
-            border-color: var(--success);
-            color: var(--success);
-        }
-
-        /* ── Modal detalle citación ──────────────────────────────── */
-        .modal-detalle {
-            max-width: 500px; width: 94%;
-            position: relative;
-            padding: 0; overflow: hidden;
-            align-items: stretch; gap: 0;
-        }
-        .modal-detalle__close {
-            position: absolute; top: 12px; right: 12px; z-index: 1;
-            background: rgba(0,0,0,.25); border: none; cursor: pointer;
-            color: rgba(255,255,255,.8); padding: 5px;
-            border-radius: 6px; display: flex; align-items: center;
-            transition: background .15s, color .15s;
-        }
-        .modal-detalle__close:hover { background: rgba(0,0,0,.45); color: #fff; }
-
-        .modal-det__hero {
-            padding: 22px 20px 18px;
-            border-left: 5px solid var(--border);
-            position: relative;
-        }
-        .modal-det__hero--PENDIENTE  { border-left-color:#f59e0b; background:linear-gradient(135deg,rgba(245,158,11,.14) 0%,rgba(245,158,11,.04) 100%); }
-        .modal-det__hero--ASISTIO    { border-left-color:#22c55e; background:linear-gradient(135deg,rgba(34,197,94,.14) 0%,rgba(34,197,94,.04) 100%); }
-        .modal-det__hero--NO_ASISTIO { border-left-color:#ef4444; background:linear-gradient(135deg,rgba(239,68,68,.14) 0%,rgba(239,68,68,.04) 100%); }
-        .modal-det__hero--ATRASO     { border-left-color:#dc2626; background:linear-gradient(135deg,rgba(220,38,38,.14) 0%,rgba(220,38,38,.04) 100%); }
-        .modal-det__hero--COMUNICADO { border-left-color:#60a5fa; background:linear-gradient(135deg,rgba(59,130,246,.16) 0%,rgba(59,130,246,.05) 100%); }
-
-        .modal-det__nombre {
-            font-size: 1.05rem; font-weight: 800;
-            color: var(--text-primary); line-height: 1.25;
-            padding-right: 36px;
-        }
-        .modal-det__sub {
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-            margin-top: 8px;
-        }
-
-        .modal-det__body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-
-        .modal-det__info-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-        }
-        .modal-det__info-item {
-            background: var(--bg-app);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 10px 12px;
-        }
-        .modal-det__info-label {
-            font-size: .63rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px;
-        }
-        .modal-det__info-val {
-            font-size: .84rem; font-weight: 600; color: var(--text-secondary);
-            line-height: 1.3;
-        }
-        .modal-det__desc {
-            background: var(--bg-app);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
-        }
-        .modal-det__desc-label {
-            font-size: .63rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px;
-        }
-        .modal-det__desc-text {
-            font-size: .85rem; color: var(--text-primary); line-height: 1.7;
-        }
-
-        .modal-det__dates {
-            display: flex; border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm); overflow: hidden;
-        }
-        .modal-det__date-item {
-            flex: 1; padding: 10px 14px;
-            display: flex; flex-direction: column; gap: 3px;
-        }
-        .modal-det__date-item:not(:last-child) { border-right: 1px solid var(--border-subtle); }
-        .modal-det__date-label {
-            font-size: .63rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .07em;
-        }
-        .modal-det__date-val { font-size: .84rem; font-weight: 600; color: var(--text-secondary); }
-
-        .modal-det__footer {
-            padding: 0 20px 18px;
-        }
-        .modal-det__courses {
-            background: var(--bg-app);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
-        }
-        .modal-det__course-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 7px;
-            margin-top: 9px;
-        }
-        .modal-det__course-chip {
-            display: inline-flex;
-            align-items: center;
-            border-radius: 999px;
-            padding: 4px 10px;
-            background: rgba(59,130,246,.12);
-            border: 1px solid rgba(59,130,246,.22);
-            color: var(--accent-text);
-            font-size: .72rem;
-            font-weight: 800;
-        }
-
-        /* ── Badges estado ───────────────────────────────────────── */
-        .estado-badge {
-            display: inline-block; padding: 3px 10px;
-            border-radius: 50px; font-size: .72rem; font-weight: 700;
-            white-space: nowrap; flex-shrink: 0;
-        }
-        .estado-badge--pendiente   { background: rgba(245,158,11,.15);  color: #f59e0b; }
-
-        .estado-badge--asistio     { background: rgba(34,197,94,.15);   color: #22c55e; }
-        .estado-badge--no_asistio  { background: rgba(239,68,68,.15);   color: #ef4444; }
-        .estado-badge--atraso      { background: rgba(220,38,38,.15);   color: #dc2626; }
-/* ── Empty state ─────────────────────────────────────────── */
-        .empty-cards {
-            grid-column: 1 / -1;
-            display: flex; flex-direction: column;
-            align-items: center; gap: 12px;
-            padding: 56px 16px;
-            color: var(--text-muted); font-size: .875rem;
-        }
-
-        /* ── Footer grid ─────────────────────────────────────────── */
-        .grid-footer {
-            text-align: right; font-size: .78rem;
-            color: var(--text-muted); margin-top: 10px;
-        }
-
-        /* Navegador de mes inline (en la fila de tabs) */
-        .cit-mes-nav {
-            display: flex; align-items: center; gap: 4px;
-            margin-left: auto;
-            padding: 0 16px;
-            border-left: 1px solid var(--border-subtle);
-        }
-        .cit-mes-nav__btn {
-            background: none; border: none;
-            color: var(--text-muted); cursor: pointer;
-            font-size: 1rem; font-weight: 700;
-            width: 26px; height: 26px;
-            border-radius: 4px; line-height: 1;
-            display: flex; align-items: center; justify-content: center;
-            transition: background .15s, color .15s;
-        }
-        .cit-mes-nav__btn:hover:not(:disabled) {
-            background: var(--bg-card-hover); color: var(--text-primary);
-        }
-        .cit-mes-nav__btn:disabled { opacity: .3; cursor: default; }
-        .cit-mes-nav__label {
-            font-size: .8rem; font-weight: 600;
-            color: var(--text-secondary);
-            min-width: 110px; text-align: center;
-            text-transform: capitalize;
-        }
-
-        /* ── ID de citación ───────────────────────────────────── */
-/* ── Encabezado grande con selector de sección ───────────── */
-        .sec-hdr { margin-bottom: 24px; }
-        .sec-hdr__title-row {
-            display: flex; align-items: baseline; gap: 18px;
-            margin-bottom: 6px;
-        }
-        .sec-title {
-            font-size: 2.4rem; font-weight: 900;
-            color: var(--text-muted);
-            cursor: pointer;
-            letter-spacing: -.03em;
-            transition: color .2s;
-            line-height: 1;
-            user-select: none;
-        }
-        .sec-title--active { color: var(--text-primary); }
-        .sec-title:hover:not(.sec-title--active) { color: var(--text-secondary); }
-        .sec-hdr__sep {
-            font-size: 2.4rem; font-weight: 300;
-            color: var(--border); line-height: 1;
-        }
-        .sec-hdr__sub {
-            font-size: .82rem; color: var(--text-muted);
-            margin-bottom: 16px; max-width: 620px;
-        }
-        .sec-hdr__actions-row {
-            display: flex; align-items: center;
-            gap: 10px; flex-wrap: wrap;
-        }
-        .sec-search-wrap {
-            position: relative; flex: 1;
-            min-width: 200px; max-width: 440px;
-        }
-        .sec-search-wrap svg {
-            position: absolute; left: 11px; top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted); pointer-events: none;
-        }
-        .sec-search-input {
-            width: 100%; box-sizing: border-box;
-            background: var(--bg-input); border: 1px solid var(--border);
-            border-radius: var(--radius-sm); color: var(--text-primary);
-            font-size: .85rem; padding: 9px 12px 9px 36px;
-            transition: border-color .15s;
-        }
-        .sec-search-input:focus { border-color: var(--accent); outline: none; }
-        .sec-search-input::placeholder { color: var(--text-muted); font-size: .82rem; }
-
-        /* ── Stats row ────────────────────────────────────────────── */
-        .cit-stats-row {
-            display: grid; grid-template-columns: repeat(5, 1fr);
-            gap: 14px; margin-bottom: 16px;
-        }
-        @media (max-width: 900px) { .cit-stats-row { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 600px) { .cit-stats-row { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 440px) { .cit-stats-row { grid-template-columns: 1fr; } }
-        .cit-stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            padding: 10px 16px;
-            min-height: 64px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .cit-stat-card__icon {
-            width: 38px; height: 38px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .cit-stat-card__icon--blue   { background: rgba(59,130,246,.15); color: #60a5fa; }
-        .cit-stat-card__icon--yellow { background: rgba(245,158,11,.15); color: #f59e0b; }
-        .cit-stat-card__icon--red    { background: rgba(239,68,68,.15);  color: #ef4444; }
-        .cit-stat-card__icon--green  { background: rgba(34,197,94,.15);  color: #22c55e; }
-        .cit-stat-card__icon--orange { background: rgba(249,115,22,.15); color: #f97316; }
-        .cit-stat-card__label {
-            font-size: .62rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px;
-        }
-        .cit-stat-card__value {
-            font-size: 1.42rem; font-weight: 800;
-            color: var(--text-primary); line-height: 1;
-        }
-
-        /* ── Fila de filtros por rol ──────────────────────────────── */
-        .cit-filter-row {
-            display: flex; align-items: center;
-            justify-content: space-between; gap: 12px;
-            flex-wrap: wrap;
-        }
-        .cit-filter-row__left {
-            display: flex; align-items: center;
-            gap: 10px; flex-wrap: wrap;
-        }
-        .cit-filter-label {
-            font-size: .65rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
-        }
-        .rol-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-        .rol-chip {
-            display: inline-flex; align-items: center;
-            height: 30px; padding: 0 14px;
-            border-radius: 50px; font-size: .77rem; font-weight: 600;
-            cursor: pointer; border: 1px solid var(--border);
-            background: var(--bg-card); color: var(--text-secondary);
-            transition: background .15s, color .15s, border-color .15s;
-            white-space: nowrap;
-        }
-        .rol-chip:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-        .rol-chip--active { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .rol-chip--active:hover { background: var(--accent); opacity: .88; }
-
-        /* ── Modal de formulario ──────────────────────────────────── */
-        .modal-form {
-            max-width: 600px; width: 94%;
-            padding: 0; overflow: hidden;
-            position: relative;
-            max-height: 90vh; overflow-y: auto;
-        }
-        .modal-form .form-card {
-            box-shadow: none; border: none; margin: 0; border-radius: 0;
-        }
-        .modal-form__close {
-            position: absolute; top: 12px; right: 12px; z-index: 10;
-            background: rgba(0,0,0,.28); border: none; cursor: pointer;
-            color: rgba(255,255,255,.85); padding: 6px;
-            border-radius: 6px; display: flex; align-items: center;
-            transition: background .15s, color .15s;
-        }
-        .modal-form__close:hover { background: rgba(0,0,0,.5); color: #fff; }
-
-        /* ── Pill cobertura FCM ───────────────────────────────────── */
-        .fcm-cobertura-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 7px 14px;
-            background: rgba(99,102,241,.08);
-            border: 1px solid rgba(99,102,241,.22);
-            border-radius: 50px;
-            color: var(--text-secondary);
-            font-size: .8rem;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background .15s, border-color .15s, color .15s;
-            line-height: 1.3;
-        }
-        .fcm-cobertura-pill:hover {
-            background: rgba(99,102,241,.16);
-            border-color: rgba(99,102,241,.4);
-            color: var(--text-primary);
-        }
-        .fcm-cobertura-pill--ok   { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.25);  }
-        .fcm-cobertura-pill--warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3);  }
-        .fcm-cobertura-pill--none { background: rgba(220,38,38,.06);  border-color: rgba(220,38,38,.2);   }
-
-        /* ── Items del panel cobertura ──────────────────────────── */
-        .cobertura-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 7px 10px;
-            border-radius: 8px;
-            transition: background .12s;
-        }
-        .cobertura-item:hover { background: var(--bg-card-hover); }
-        .cobertura-item__dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            margin-top: 4px;
-        }
-        .cobertura-item__dot--si  { background: #22c55e; }
-        .cobertura-item__dot--no  { background: var(--border); }
-        .cobertura-item__info     { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-        .cobertura-item__nombre   { font-size: .85rem; color: var(--text-primary); line-height: 1.3; }
-        .cobertura-item__hijos    { display: flex; flex-direction: column; gap: 1px; }
-        .cobertura-item__hijo     { font-size: .73rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
-        .cobertura-item__curso    { background: rgba(99,102,241,.1); color: var(--text-secondary); border-radius: 4px; padding: 0 5px; font-size: .68rem; font-weight: 600; white-space: nowrap; }
-        .cobertura-item__badge    { font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 50px; white-space: nowrap; align-self: flex-start; }
-        .cobertura-item__badge--si  { background: rgba(34,197,94,.12);  color: #22c55e; }
-        .cobertura-item__badge--no  { background: var(--bg-input,rgba(255,255,255,.05)); color: var(--text-muted); }
-
-        /* ── Grupos de curso en panel cobertura ─────────────────── */
-        .cobertura-grupo { margin-bottom: 4px; }
-        .cobertura-grupo__header {
-            display: flex; align-items: center; gap: 8px;
-            padding: 6px 8px; border-radius: 8px; cursor: pointer;
-            transition: background .12s; user-select: none;
-        }
-        .cobertura-grupo__header:hover { background: var(--bg-card-hover); }
-        .cobertura-grupo__chevron {
-            color: var(--text-muted); transition: transform .2s; flex-shrink: 0;
-        }
-        .cobertura-grupo--collapsed .cobertura-grupo__chevron { transform: rotate(-90deg); }
-        .cobertura-grupo__nombre { font-size: .82rem; font-weight: 700; color: var(--text-secondary); flex: 1; }
-        .cobertura-grupo__badge  {
-            font-size: .7rem; font-weight: 700; padding: 2px 9px;
-            border-radius: 50px; white-space: nowrap;
-        }
-        .cobertura-grupo__badge--ok   { background: rgba(34,197,94,.12);  color: #22c55e; }
-        .cobertura-grupo__badge--warn { background: rgba(245,158,11,.12); color: #f59e0b; }
-        .cobertura-grupo__badge--none { background: rgba(220,38,38,.08);  color: #ef4444; }
-        .cobertura-grupo__items { padding-left: 8px; }
-        .cobertura-grupo--collapsed .cobertura-grupo__items { display: none; }
-        .cobertura-empty { padding: 20px; text-align: center; font-size: .83rem; color: var(--text-muted); }
-
-        /* ── Stat cards clickeables ───────────────────────────────── */
-        .cit-stat-card {
-            cursor: pointer;
-            transition: border-color .18s, box-shadow .18s, transform .15s;
-        }
-        .cit-stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.22); }
-        .cit-stat-card[data-filter=""].cit-stat-card--active {
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 2px rgba(59,130,246,.22), 0 4px 16px rgba(59,130,246,.12);
-        }
-        .cit-stat-card[data-filter="PENDIENTE"].cit-stat-card--active {
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 2px rgba(245,158,11,.22), 0 4px 16px rgba(245,158,11,.12);
-        }
-        .cit-stat-card[data-filter="NO_ASISTIO"].cit-stat-card--active {
-            border-color: #ef4444;
-            box-shadow: 0 0 0 2px rgba(239,68,68,.22), 0 4px 16px rgba(239,68,68,.12);
-        }
-        .cit-stat-card[data-filter="ASISTIO"].cit-stat-card--active {
-            border-color: #22c55e;
-            box-shadow: 0 0 0 2px rgba(34,197,94,.22), 0 4px 16px rgba(34,197,94,.12);
-        }
-        .cit-stat-card[data-filter="ATRASO"].cit-stat-card--active {
-            border-color: #f97316;
-            box-shadow: 0 0 0 2px rgba(249,115,22,.22), 0 4px 16px rgba(249,115,22,.12);
-        }
-
-        /* ── Filter row dentro del card (sin margin externo) ─────── */
-        .cit-filter-row {
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 0;
-        }
-        #panelCitaciones, #panelComunicados { flex: 1; display: flex; flex-direction: column; }
-
-        /* ── Tag emisor en tarjeta (Profesor / Regente) ──────────── */
-/* ── Grid 2 columnas de cards ─────────────────────────────── */
-/* ── Scrollbars personalizados ────────────────────────────── */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(99,130,190,.35);
-            border-radius: 99px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(99,130,190,.6);
-        }
-        /* Scrollbars más finos solo en los paneles pequeños */
-        #grupoChips::-webkit-scrollbar,
-        #selectorEstList::-webkit-scrollbar { width: 4px; }
-        #grupoChips::-webkit-scrollbar-thumb,
-        #selectorEstList::-webkit-scrollbar-thumb {
-            background: rgba(59,130,246,.3);
-            border-radius: 99px;
-        }
-        #grupoChips::-webkit-scrollbar-thumb:hover,
-        #selectorEstList::-webkit-scrollbar-thumb:hover {
-            background: rgba(59,130,246,.55);
-        }
-        /* Firefox */
-        * { scrollbar-width: thin; scrollbar-color: rgba(99,130,190,.35) transparent; }
-        #grupoChips, #selectorEstList {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(59,130,246,.3) transparent;
-        }
-
-        /* Overrides visuales 2026 */
-        .page-inner {
-            max-width: 1180px;
-            padding: 4px 4px 28px;
-        }
-
-        .sec-hdr {
-            position: relative;
-            margin-bottom: 22px;
-            padding: 30px 30px 24px;
-            border: 1px solid rgba(148,163,184,.14);
-            border-radius: 26px;
-            background:
-                radial-gradient(circle at top right, rgba(59,130,246,.17), transparent 34%),
-                radial-gradient(circle at left center, rgba(96,165,250,.08), transparent 26%),
-                linear-gradient(180deg, rgba(24,40,67,.94), rgba(20,35,58,.96));
-            box-shadow: 0 26px 60px rgba(2,6,23,.22);
-            overflow: hidden;
-        }
-
-        .sec-hdr__title-row {
-            gap: 14px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .sec-title {
-            font-size: clamp(2.3rem, 3.8vw, 3.15rem);
-            line-height: .98;
-            letter-spacing: -.05em;
-            transition: color .18s ease, opacity .18s ease, transform .18s ease;
-        }
-
-        .sec-title--active {
-            color: #fff;
-            text-shadow: 0 10px 28px rgba(15,23,42,.28);
-        }
-
-        .sec-title:not(.sec-title--active) {
-            opacity: .44;
-        }
-
-        .sec-title:hover:not(.sec-title--active) {
-            opacity: .76;
-            transform: translateY(-1px);
-        }
-
-        .sec-hdr__sep {
-            font-size: clamp(2rem, 3vw, 2.5rem);
-            color: rgba(148,163,184,.34);
-        }
-
-        .sec-hdr__sub {
-            max-width: 780px;
-            margin-bottom: 18px;
-            font-size: .92rem;
-            line-height: 1.6;
-            color: #94a9cb;
-        }
-
-        .sec-hdr__actions-row {
-            gap: 12px;
-        }
-
-        .sec-search-wrap {
-            position: relative;
-            flex: 1 1 360px;
-            max-width: 460px;
-        }
-
-        .sec-search-wrap svg {
-            left: 14px;
-            color: #87a2cc;
-        }
-
-        .sec-search-wrap::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 14px;
-            pointer-events: none;
-            box-shadow: 0 0 0 0 rgba(59,130,246,0);
-            transition: box-shadow .18s ease;
-        }
-
-        .sec-search-wrap:focus-within::after {
-            box-shadow: 0 0 0 3px rgba(59,130,246,.14);
-        }
-
-        .sec-search-input {
-            height: 48px;
-            border-radius: 14px;
-            border-color: rgba(96,165,250,.24);
-            background: linear-gradient(180deg, rgba(23,38,63,.96), rgba(18,31,52,.96));
-            padding-left: 40px;
-            font-size: .92rem;
-            color: #edf5ff;
-        }
-
-        .sec-search-input:focus {
-            border-color: #60a5fa;
-            box-shadow: none;
-        }
-
-        .sec-search-input::placeholder {
-            color: #7f96bb;
-            font-size: .88rem;
-        }
-
-        .btn-nueva-accion,
-        .btn-nueva-com {
-            min-height: 48px;
-            padding: 0 18px;
-            border-radius: 14px;
-            font-size: .9rem;
-            font-weight: 800;
-            letter-spacing: .02em;
-            box-shadow: 0 18px 38px rgba(2,6,23,.14);
-        }
-
-        .btn-nueva-accion {
-            background: linear-gradient(180deg, rgba(41,111,255,.22), rgba(25,90,214,.12));
-            border-color: rgba(96,165,250,.55);
-        }
-
-        .btn-nueva-accion:hover {
-            background: linear-gradient(180deg, rgba(59,130,246,.28), rgba(30,96,217,.18));
-            opacity: 1;
-            transform: translateY(-1px);
-        }
-
-        .btn-nueva-com {
-            background: linear-gradient(180deg, rgba(52,211,153,.14), rgba(22,163,74,.08));
-            border-color: rgba(52,211,153,.3);
-        }
-
-        .btn-nueva-com:hover {
-            background: linear-gradient(180deg, rgba(52,211,153,.2), rgba(22,163,74,.12));
-        }
-
-        .cit-stats-row {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .cit-stat-card {
-            position: relative;
-            padding: 10px 16px;
-            min-height: 64px;
-            border-radius: 22px;
-            border: 1px solid rgba(148,163,184,.12);
-            background:
-                radial-gradient(circle at top right, rgba(255,255,255,.04), transparent 40%),
-                linear-gradient(180deg, rgba(34,52,82,.98), rgba(25,41,67,.98));
-            box-shadow: 0 18px 36px rgba(2,6,23,.12);
-            overflow: hidden;
-        }
-
-        .cit-stat-card::before {
-            content: '';
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 3px;
-            background: rgba(255,255,255,.04);
-        }
-
-        .cit-stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 22px 42px rgba(2,6,23,.18);
-        }
-
-        .cit-stat-card__icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-        }
-
-        .cit-stat-card__label {
-            margin-bottom: 2px;
-            color: #7e95b9;
-        }
-
-        .cit-stat-card__value {
-            font-size: 1.55rem;
-            letter-spacing: -.05em;
-            color: #fff;
-        }
-
-        .cit-stat-card[data-filter=""].cit-stat-card--active::before { background: #60a5fa; }
-        .cit-stat-card[data-filter="PENDIENTE"].cit-stat-card--active::before { background: #f59e0b; }
-        .cit-stat-card[data-filter="NO_ASISTIO"].cit-stat-card--active::before { background: #f87171; }
-        .cit-stat-card[data-filter="ASISTIO"].cit-stat-card--active::before { background: #22c55e; }
-        .cit-stat-card[data-filter="ATRASO"].cit-stat-card--active::before { background: #f97316; }
-
-        .cit-filter-row {
-            padding: 15px 18px;
-            border-bottom: 1px solid rgba(148,163,184,.08);
-            background: rgba(255,255,255,.02);
-        }
-
-        .cit-filter-row__left {
-            gap: 12px;
-        }
-
-        .cit-filter-label {
-            color: #8097bb;
-        }
-
-        .rol-chips {
-            gap: 8px;
-        }
-
-        .rol-chip {
-            height: 34px;
-            padding: 0 16px;
-            border-radius: 999px;
-            border-color: rgba(96,165,250,.16);
-            background: rgba(17,29,49,.38);
-            color: #9fb4d7;
-        }
-
-        .rol-chip:hover {
-            border-color: rgba(96,165,250,.34);
-            background: rgba(59,130,246,.10);
-            color: #eff6ff;
-        }
-
-        .rol-chip--active,
-        .rol-chip--active:hover {
-            background: linear-gradient(180deg, #4d8cff, #2f75ef);
-            border-color: rgba(125,167,255,.65);
-            color: #fff;
-            box-shadow: 0 10px 24px rgba(37,99,235,.22);
-        }
-
-        .cit-mes-nav {
-            gap: 8px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(148,163,184,.12);
-            background: rgba(12,21,37,.28);
-        }
-
-        .cit-mes-nav__btn {
-            width: 34px;
-            height: 34px;
-            border-radius: 999px;
-            background: transparent;
-            color: #acc3e7;
-        }
-
-        .cit-mes-nav__btn:hover:not(:disabled) {
-            background: rgba(59,130,246,.12);
-            color: #fff;
-        }
-
-        .cit-mes-nav__label {
-            min-width: 144px;
-            font-size: .92rem;
-            font-weight: 700;
-            color: #d9e6fa;
-            text-transform: capitalize;
-            text-align: center;
-        }
-
-        .empty-cards {
-            min-height: 260px;
-            border-radius: 20px;
-            border: 1px dashed rgba(148,163,184,.16);
-            background:
-                radial-gradient(circle at center, rgba(96,165,250,.05), transparent 54%),
-                rgba(10,19,34,.14);
-        }
-
-        .empty-cards svg {
-            width: 44px;
-            height: 44px;
-            color: #6f86a9;
-        }
-
-        .empty-cards p {
-            font-size: .94rem;
-            color: #7f96bb;
-        }
-.citacion-card__motivo {
-            border-radius: 999px;
-            padding: 4px 10px;
-            font-size: .72rem;
-            font-weight: 700;
-        }
-.cit-badge-status {
-            border: 1px solid rgba(148,163,184,.14);
-            border-radius: 999px;
-            padding: 5px 10px;
-            font-size: .72rem;
-            font-weight: 800;
-        }
-        .grid-footer {
-            margin-top: auto;
-            padding-top: 18px;
-            color: #8fa6ca;
-            font-weight: 700;
-        }
-
-        @media (max-width: 980px) {
-            .page-inner {
-                max-width: none;
-            }
-        }
-
-        @media (max-width: 760px) {
-            .page-inner {
-                padding: 2px 0 24px;
-            }
-
-            .sec-hdr {
-                padding: 24px 18px 20px;
-                border-radius: 22px;
-            }
-
-            .sec-title {
-                font-size: clamp(1.9rem, 8vw, 2.45rem);
-            }
-
-            .sec-hdr__actions-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .sec-search-wrap {
-                max-width: none;
-                flex: 0 0 auto;
-            }
-
-            .btn-nueva-accion,
-            .btn-nueva-com {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .cit-filter-row {
-                padding: 14px 14px;
-                align-items: stretch;
-            }
-
-            .cit-filter-row__left {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .cit-mes-nav {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .cit-mes-nav__label {
-                min-width: 0;
-                flex: 1;
-            }
-
-        }
-
-    </style>
+    <link rel="stylesheet" href="{% static 'css/director_comunicados.css' %}">
 </head>
 <body>
 
@@ -1200,7 +99,7 @@
 
     <!-- ── Top bar ───────────────────────────────────────────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div class="director-comunicados-inline-style-1">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1223,9 +122,9 @@
 
             <!-- ── Page header ────────────────────────────────────── -->
             <!-- badges ocultos para compatibilidad JS -->
-            <span id="badgeCitaciones" style="display:none;">0</span>
-            <span id="badgeComunicados" style="display:none;">0</span>
-            <select id="selectEmisor" style="display:none;"><option value="">Todos</option></select>
+            <span id="badgeCitaciones" class="director-comunicados-inline-style-2">0</span>
+            <span id="badgeComunicados" class="director-comunicados-inline-style-2">0</span>
+            <select id="selectEmisor" class="director-comunicados-inline-style-2"><option value="">Todos</option></select>
 
             <!-- ── Encabezado grande con selector de sección ─────── -->
             <div class="sec-hdr">
@@ -1249,7 +148,7 @@
                         </svg>
                         NUEVA CITACIÓN
                     </button>
-                    <button class="btn-nueva-com" id="btnToggleCom" style="display:none;">
+                    <button class="btn-nueva-com director-comunicados-inline-style-2" id="btnToggleCom">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -1338,7 +237,7 @@
                     </div>
                     <div class="cit-mes-nav" id="citMesNav">
                         <button class="cit-mes-nav__btn" id="btnMesPrev" aria-label="Mes anterior">&#8249;</button>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="director-comunicados-inline-style-3">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
                             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -1355,7 +254,7 @@
             </div>
 
             <!-- ── Tabla: Comunicados ─────────────────────────────── -->
-            <div class="cit-table-section" id="sectionComCard" style="display:none;">
+            <div class="cit-table-section director-comunicados-inline-style-2" id="sectionComCard">
                 <div class="cit-table-toolbar" id="filterRowCom">
                     <div class="cit-table-toolbar__left">
                         <span class="cit-table-toolbar__label">Filtrar por usuario</span>
@@ -1373,7 +272,7 @@
                     </div>
                     <div class="cit-mes-nav" id="comMesNav">
                         <button class="cit-mes-nav__btn" id="btnComMesPrev" aria-label="Mes anterior">&#8249;</button>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="director-comunicados-inline-style-3">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
                         <span class="cit-mes-nav__label" id="comMesLabel">—</span>
@@ -1415,7 +314,7 @@
                 <div class="form-card__body">
                     <form id="formNuevaCitacion" onsubmit="return false;">
                         <div>
-                            <label class="form-label" style="margin-bottom:8px;display:block;">Tipo de citación</label>
+                            <label class="form-label director-comunicados-inline-style-4">Tipo de citación</label>
                             <div class="radio-group">
                                 <label class="radio-option"><input type="radio" name="tipoCitacion" value="individual" checked> Individual</label>
                                 <label class="radio-option"><input type="radio" name="tipoCitacion" value="grupo"> Grupo de estudiantes</label>
@@ -1423,54 +322,33 @@
                         </div>
                         <!-- Fila Curso + Estudiante (modos individual/curso) -->
                         <div class="form-row" id="rowCursoEstud">
-                            <div class="form-group" id="wrapCurso" style="margin-bottom:0;">
+                            <div class="form-group director-comunicados-inline-style-5" id="wrapCurso">
                                 <label class="form-label">Curso <span class="req">*</span></label>
                                 <select id="nuevaCurso" class="form-input form-select"><option value="">Cargando...</option></select>
                             </div>
                             <!-- Individual: select único -->
-                            <div class="form-group" id="wrapEstudiante" style="margin-bottom:0;opacity:.45;transition:opacity .2s;">
+                            <div class="form-group director-comunicados-inline-style-6" id="wrapEstudiante">
                                 <label class="form-label">Estudiante <span class="req">*</span></label>
                                 <select id="nuevaEstudiante" class="form-input form-select" disabled><option value="">— Selecciona estudiante —</option></select>
                             </div>
                         </div>
                         <!-- Info tutor: solo visible en modo individual al seleccionar estudiante -->
-                        <div id="infTutorIndiv" style="display:none;"></div>
+                        <div id="infTutorIndiv" class="director-comunicados-inline-style-2"></div>
                         <!-- Grupo: botón selector + lista de seleccionados (ancho completo, separado) -->
-                        <div id="wrapGrupo" style="display:none;">
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <button type="button" id="btnAbrirSelectorEst"
-                                    style="display:flex;align-items:center;gap:7px;flex:1;
-                                           padding:9px 14px;
-                                           background:var(--bg-input,var(--bg-card));border:1px solid var(--border);
-                                           border-radius:8px;color:var(--text-secondary);font-size:.84rem;
-                                           cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;" disabled>
+                        <div id="wrapGrupo" class="director-comunicados-inline-style-2">
+                            <div class="director-comunicados-inline-style-7">
+                                <button type="button" id="btnAbrirSelectorEst" class="director-comunicados-inline-style-8" disabled>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                     <span id="btnSelectorLabel">Seleccionar estudiantes…</span>
                                 </button>
                                 <!-- Badge de cuenta -->
-                                <span id="grupoCountBadge" style="display:none;
-                                    background:var(--accent-dim,rgba(59,130,246,.12));
-                                    color:var(--accent-text,#60a5fa);
-                                    border:1px solid rgba(59,130,246,.2);
-                                    border-radius:50px;padding:3px 11px;
-                                    font-size:.74rem;font-weight:700;white-space:nowrap;"></span>
+                                <span id="grupoCountBadge" class="director-comunicados-inline-style-9"></span>
                             </div>
                             <!-- Lista compacta de seleccionados con scroll -->
-                            <div id="grupoChips" style="
-                                margin-top:8px;
-                                max-height:110px;
-                                overflow-y:auto;
-                                display:none;
-                                flex-direction:column;
-                                gap:3px;
-                                border:1px solid var(--border);
-                                border-radius:8px;
-                                padding:4px 6px;
-                                background:var(--bg-input,var(--bg-card));
-                            "></div>
+                            <div id="grupoChips" class="director-comunicados-inline-style-10"></div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group director-comunicados-inline-style-5">
                                 <label class="form-label">Motivo <span class="req">*</span></label>
                                 <select id="nuevaMotivo" class="form-input form-select">
                                     <option value="">— Selecciona motivo —</option>
@@ -1482,21 +360,21 @@
                                     <option value="OTRO">Otro</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group director-comunicados-inline-style-5">
                                 <label class="form-label">Fecha límite <span class="req">*</span></label>
                                 <input id="nuevaFechaLimite" type="text" class="form-input" placeholder="Selecciona una fecha..." readonly>
                             </div>
                         </div>
-                        <div class="form-group" style="margin-bottom:0;">
+                        <div class="form-group director-comunicados-inline-style-5">
                             <label class="form-label">Descripción <span class="req">*</span></label>
                             <textarea id="nuevaDescripcion" class="form-input form-textarea" rows="3" maxlength="500" placeholder="Describe el motivo de la citación..."></textarea>
                         </div>
                     </form>
-                    <div id="progressMsg" class="progress-msg" style="display:none;"></div>
-                    <p id="errorNueva" class="form-error" style="display:none;margin-top:10px;"></p>
-                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
-                        <button id="btnLimpiarForm" class="btn-secondary" style="display:none;">Limpiar formulario</button>
-                        <button id="btnEnviarNueva" class="btn-primary" style="height:42px;padding:0 24px;">
+                    <div id="progressMsg" class="progress-msg director-comunicados-inline-style-2"></div>
+                    <p id="errorNueva" class="form-error director-comunicados-inline-style-11"></p>
+                    <div class="director-comunicados-inline-style-12">
+                        <button id="btnLimpiarForm" class="btn-secondary director-comunicados-inline-style-2">Limpiar formulario</button>
+                        <button id="btnEnviarNueva" class="btn-primary director-comunicados-inline-style-13">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                             </svg>
@@ -1532,7 +410,7 @@
                 <div class="form-card__body">
                     <form id="formNuevoComunicado" onsubmit="return false;">
                         <div>
-                            <label class="form-label" style="margin-bottom:8px;display:block;">Destinatarios</label>
+                            <label class="form-label director-comunicados-inline-style-4">Destinatarios</label>
                             <div class="radio-group">
                                 <label class="radio-option"><input type="radio" name="comAlcance" value="TODOS" checked> Todo el colegio</label>
                                 <label class="radio-option"><input type="radio" name="comAlcance" value="GRADO"> Por grado</label>
@@ -1540,24 +418,24 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group" id="wrapComGrado" style="display:none;margin-bottom:0;">
+                            <div class="form-group director-comunicados-inline-style-14" id="wrapComGrado">
                                 <label class="form-label">Grado <span class="req">*</span></label>
                                 <select id="comGrado" class="form-input form-select"><option value="">— Selecciona grado —</option></select>
                             </div>
-                            <div class="form-group" id="wrapComCurso" style="display:none;margin-bottom:0;">
+                            <div class="form-group director-comunicados-inline-style-14" id="wrapComCurso">
                                 <label class="form-label">Curso <span class="req">*</span></label>
                                 <select id="comCurso" class="form-input form-select"><option value="">— Selecciona curso —</option></select>
                             </div>
                         </div>
                         <!-- Pill de cobertura FCM -->
-                        <div id="fcmCoberturaWrap" style="display:none;">
+                        <div id="fcmCoberturaWrap" class="director-comunicados-inline-style-2">
                             <button type="button" id="fcmCoberturaBtn" class="fcm-cobertura-pill">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                                 </svg>
                                 <span id="fcmCoberturaTexto">Calculando…</span>
-                                <svg id="fcmCoberturaChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;opacity:.7;">
+                                <svg id="fcmCoberturaChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="director-comunicados-inline-style-15">
                                     <polyline points="9 18 15 12 9 6"/>
                                 </svg>
                             </button>
@@ -1567,19 +445,19 @@
                             <label class="form-label">Título <span class="req">*</span></label>
                             <input id="comTitulo" type="text" class="form-input" placeholder="Ej: Reunión de padres de familia" maxlength="150">
                         </div>
-                        <div class="form-group" style="margin-bottom:0;">
+                        <div class="form-group director-comunicados-inline-style-5">
                             <label class="form-label">Contenido <span class="req">*</span></label>
                             <textarea id="comContenido" class="form-input form-textarea" rows="3" maxlength="1000" placeholder="Escribe el mensaje del comunicado..."></textarea>
                         </div>
-                        <div class="form-group" style="margin-top:16px;margin-bottom:0;">
-                            <label class="form-label">Fecha de expiración <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
+                        <div class="form-group director-comunicados-inline-style-16">
+                            <label class="form-label">Fecha de expiración <span class="director-comunicados-inline-style-17">(opcional)</span></label>
                             <input id="comFechaExpiracion" type="text" class="form-input" placeholder="Selecciona fecha..." readonly>
                         </div>
                     </form>
-                    <div id="progressMsgCom" class="progress-msg" style="display:none;"></div>
-                    <p id="errorNuevaCom" class="form-error" style="display:none;margin-top:10px;"></p>
-                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
-                        <button id="btnEnviarCom" class="btn-primary" style="height:42px;padding:0 24px;">
+                    <div id="progressMsgCom" class="progress-msg director-comunicados-inline-style-2"></div>
+                    <p id="errorNuevaCom" class="form-error director-comunicados-inline-style-11"></p>
+                    <div class="director-comunicados-inline-style-12">
+                        <button id="btnEnviarCom" class="btn-primary director-comunicados-inline-style-13">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                             </svg>
@@ -1592,62 +470,39 @@
     </div>
 
     <!-- ── Panel flotante: Selector de estudiantes (modo Grupo) ───── -->
-    <div id="panelSelectorEst" style="
-        display:none;
-        position:fixed;
-        z-index:2000;
-        top:50%; left:50%;
-        transform:translate(-50%,-50%);
-        width:min(420px,94vw);
-        background:var(--bg-card);
-        border:1px solid var(--border);
-        border-radius:16px;
-        box-shadow:0 24px 64px rgba(0,0,0,.55);
-        overflow:hidden;
-        flex-direction:column;
-        animation:fadeScaleIn .18s ease;
-    ">
+    <div id="panelSelectorEst" class="director-comunicados-inline-style-18">
         <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <div class="director-comunicados-inline-style-19">
             <div>
-                <p style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin:0;">Seleccionar estudiantes</p>
-                <p id="selectorCursoLabel" style="font-size:.75rem;color:var(--text-muted);margin:2px 0 0;"></p>
+                <p class="director-comunicados-inline-style-20">Seleccionar estudiantes</p>
+                <p id="selectorCursoLabel" class="director-comunicados-inline-style-21"></p>
             </div>
-            <button id="btnCerrarSelectorEst" style="background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px;" aria-label="Cerrar">
+            <button id="btnCerrarSelectorEst" class="director-comunicados-inline-style-22" aria-label="Cerrar">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
         </div>
         <!-- Barra seleccionar todos + búsqueda rápida -->
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-            <input id="selectorBuscar" type="text" placeholder="Buscar estudiante…"
-                style="flex:1;background:var(--bg-input,var(--bg-card));border:1px solid var(--border);border-radius:8px;
-                       padding:7px 11px;font-size:.82rem;color:var(--text-primary);font-family:inherit;outline:none;
-                       transition:border-color .15s;">
-            <button id="btnSelectorToggleAll" type="button"
-                style="white-space:nowrap;font-size:.75rem;font-weight:600;color:var(--accent);
-                       background:none;border:none;cursor:pointer;font-family:inherit;padding:0;">
+        <div class="director-comunicados-inline-style-23">
+            <input id="selectorBuscar" type="text" placeholder="Buscar estudiante…" class="director-comunicados-inline-style-24">
+            <button id="btnSelectorToggleAll" type="button" class="director-comunicados-inline-style-25">
                 Seleccionar todos
             </button>
         </div>
         <!-- Lista de checkboxes -->
-        <div id="selectorEstList" style="overflow-y:auto;max-height:280px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;">
-            <p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>
+        <div id="selectorEstList" class="director-comunicados-inline-style-26">
+            <p class="director-comunicados-inline-style-27">Cargando…</p>
         </div>
         <!-- Footer contador + confirmar -->
-        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <p id="selectorContador" style="font-size:.78rem;color:var(--text-muted);margin:0;">0 seleccionados</p>
-            <button id="btnConfirmarSelectorEst" type="button"
-                style="display:flex;align-items:center;gap:6px;padding:8px 20px;
-                       background:var(--accent);color:#fff;border:none;border-radius:8px;
-                       font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit;
-                       transition:opacity .15s;">
+        <div class="director-comunicados-inline-style-28">
+            <p id="selectorContador" class="director-comunicados-inline-style-29">0 seleccionados</p>
+            <button id="btnConfirmarSelectorEst" type="button" class="director-comunicados-inline-style-30">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 Confirmar
             </button>
         </div>
     </div>
     <!-- Backdrop del selector flotante -->
-    <div id="backdropSelectorEst" style="display:none;position:fixed;inset:0;z-index:1999;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);"></div>
+    <div id="backdropSelectorEst" class="director-comunicados-inline-style-31"></div>
 
     <!-- ── Modal: Detalle citación ───────────────────────────────── -->
     <div class="modal-backdrop" id="modalDetalleCitacion">
@@ -1664,7 +519,7 @@
     <!-- ── Modal: Anular citación ────────────────────────────────── -->
     <div class="modal-backdrop" id="modalAnularCitacion">
         <div class="modal">
-            <div class="modal-icon" style="background:rgba(239,68,68,.12);color:#ef4444">
+            <div class="modal-icon director-comunicados-inline-style-32">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
@@ -1674,30 +529,20 @@
                 </svg>
             </div>
             <p class="modal-title">Anular citación</p>
-            <p class="modal-subtitle" style="text-align:center;">
+            <p class="modal-subtitle director-comunicados-inline-style-33">
                 ¿Seguro que deseas anular la citación de <strong id="anularNombreEstudiante"></strong>?
                 Esta acción no se puede deshacer.
             </p>
-            <div style="width:100%;margin-top:14px;">
-                <label style="display:block;font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-align:left;">
+            <div class="director-comunicados-inline-style-34">
+                <label class="director-comunicados-inline-style-35">
                     Ingresa tu contraseña para confirmar
                 </label>
-                <input type="password" id="anularPasswordInput"
-                       placeholder="Contraseña"
-                       autocomplete="current-password"
-                       style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:var(--radius-sm);
-                              border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);
-                              font-size:.85rem;outline:none;transition:border-color .15s;"
-                       onfocus="this.style.borderColor='var(--accent)'"
-                       onblur="this.style.borderColor='var(--border)'">
-                <p id="anularPasswordError"
-                   style="display:none;color:#ef4444;font-size:.76rem;margin-top:6px;text-align:left;"></p>
+                <input type="password" id="anularPasswordInput" placeholder="Contraseña" autocomplete="current-password" class="director-comunicados-inline-style-36" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                <p id="anularPasswordError" class="director-comunicados-inline-style-37"></p>
             </div>
-            <div style="display:flex;gap:10px;width:100%;margin-top:14px;">
-                <button id="btnCancelarAnular" class="btn-secondary" style="flex:1;">Cancelar</button>
-                <button id="btnConfirmarAnular"
-                        style="flex:1;height:40px;border-radius:var(--radius-sm);background:#ef4444;
-                               color:#fff;border:none;cursor:pointer;font-weight:600;font-size:.85rem;">
+            <div class="director-comunicados-inline-style-38">
+                <button id="btnCancelarAnular" class="btn-secondary director-comunicados-inline-style-39">Cancelar</button>
+                <button id="btnConfirmarAnular" class="director-comunicados-inline-style-40">
                     Anular citación
                 </button>
             </div>
@@ -1707,7 +552,7 @@
     <!-- ── Modal: Anular comunicado ──────────────────────────────── -->
     <div class="modal-backdrop" id="modalAnularComunicado">
         <div class="modal">
-            <div class="modal-icon" style="background:rgba(239,68,68,.12);color:#ef4444">
+            <div class="modal-icon director-comunicados-inline-style-32">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
@@ -1717,30 +562,20 @@
                 </svg>
             </div>
             <p class="modal-title">Anular comunicado</p>
-            <p class="modal-subtitle" style="text-align:center;">
+            <p class="modal-subtitle director-comunicados-inline-style-33">
                 ¿Seguro que deseas anular <strong id="anularComNombre"></strong>?
                 Esta acción no se puede deshacer.
             </p>
-            <div style="width:100%;margin-top:14px;">
-                <label style="display:block;font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-align:left;">
+            <div class="director-comunicados-inline-style-34">
+                <label class="director-comunicados-inline-style-35">
                     Ingresa tu contraseña para confirmar
                 </label>
-                <input type="password" id="anularComPassInput"
-                       placeholder="Contraseña"
-                       autocomplete="current-password"
-                       style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:var(--radius-sm);
-                              border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);
-                              font-size:.85rem;outline:none;transition:border-color .15s;"
-                       onfocus="this.style.borderColor='var(--accent)'"
-                       onblur="this.style.borderColor='var(--border)'">
-                <p id="anularComPassError"
-                   style="display:none;color:#ef4444;font-size:.76rem;margin-top:6px;text-align:left;"></p>
+                <input type="password" id="anularComPassInput" placeholder="Contraseña" autocomplete="current-password" class="director-comunicados-inline-style-36" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                <p id="anularComPassError" class="director-comunicados-inline-style-37"></p>
             </div>
-            <div style="display:flex;gap:10px;width:100%;margin-top:14px;">
-                <button id="btnCancelarAnularCom" class="btn-secondary" style="flex:1;">Cancelar</button>
-                <button id="btnConfirmarAnularCom"
-                        style="flex:1;height:40px;border-radius:var(--radius-sm);background:#ef4444;
-                               color:#fff;border:none;cursor:pointer;font-weight:600;font-size:.85rem;">
+            <div class="director-comunicados-inline-style-38">
+                <button id="btnCancelarAnularCom" class="btn-secondary director-comunicados-inline-style-39">Cancelar</button>
+                <button id="btnConfirmarAnularCom" class="director-comunicados-inline-style-40">
                     Anular comunicado
                 </button>
             </div>
@@ -1750,7 +585,7 @@
     <!-- ── Modal: Marcar asistencia ──────────────────────────────── -->
     <div class="modal-backdrop" id="modalMarcarAsistencia">
         <div class="modal">
-            <div class="modal-icon" style="background:var(--success-dim);color:var(--success)">
+            <div class="modal-icon director-comunicados-inline-style-41">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
@@ -1758,87 +593,49 @@
                 </svg>
             </div>
             <p class="modal-title">Confirmar asistencia</p>
-            <p class="modal-subtitle" style="text-align:center;">
+            <p class="modal-subtitle director-comunicados-inline-style-33">
                 ¿El tutor de <strong id="marcarNombreEstudiante"></strong> se presentó a la citación?
             </p>
-            <div style="display:flex;gap:10px;width:100%;margin-top:8px;">
-                <button id="btnCancelarMarcar"  class="btn-secondary" style="flex:1;">Cancelar</button>
-                <button id="btnConfirmarMarcar" class="btn-primary"   style="flex:1;">Confirmar asistencia</button>
+            <div class="director-comunicados-inline-style-42">
+                <button id="btnCancelarMarcar" class="btn-secondary director-comunicados-inline-style-39">Cancelar</button>
+                <button id="btnConfirmarMarcar" class="btn-primary director-comunicados-inline-style-39" >Confirmar asistencia</button>
             </div>
         </div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-<script>
-/* Locale español incrustado — sin depender del CDN l10n/es.js */
-flatpickr.l10ns.es = {
-    firstDayOfWeek: 1,
-    weekdays: {
-        shorthand: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
-        longhand:  ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
-    },
-    months: {
-        shorthand: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
-        longhand:  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
-    },
-    ordinal:       () => "º",
-    rangeSeparator: " a ",
-    time_24hr:     true,
-};
-</script>
+<script src="{% static 'js/director_comunicados_inline_2.js' %}"></script>
 <!-- ── Panel flotante: Detalle cobertura FCM ─────────────────────── -->
-<div id="panelCobertura" style="
-    display:none;
-    position:fixed;
-    z-index:2100;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:min(480px,95vw);
-    background:var(--bg-card);
-    border:1px solid var(--border);
-    border-radius:16px;
-    box-shadow:0 24px 64px rgba(0,0,0,.55);
-    overflow:hidden;
-    flex-direction:column;
-    animation:fadeScaleIn .18s ease;
-">
+<div id="panelCobertura" class="director-comunicados-inline-style-43">
     <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="director-comunicados-inline-style-19">
         <div>
-            <p style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin:0;">Cobertura de notificación</p>
-            <p id="panelCoberturaSubtitle" style="font-size:.75rem;color:var(--text-muted);margin:2px 0 0;"></p>
+            <p class="director-comunicados-inline-style-20">Cobertura de notificación</p>
+            <p id="panelCoberturaSubtitle" class="director-comunicados-inline-style-21"></p>
         </div>
-        <button id="btnCerrarPanelCobertura" style="background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px;" aria-label="Cerrar">
+        <button id="btnCerrarPanelCobertura" class="director-comunicados-inline-style-22" aria-label="Cerrar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
     </div>
     <!-- Buscador -->
-    <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
-        <div style="position:relative;">
-            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="director-comunicados-inline-style-44">
+        <div class="director-comunicados-inline-style-45">
+            <svg class="director-comunicados-inline-style-46" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input id="coberturaBuscar" type="text" placeholder="Buscar por padre o estudiante…" style="
-                width:100%;box-sizing:border-box;
-                background:var(--bg-input,rgba(255,255,255,.05));
-                border:1px solid var(--border);border-radius:8px;
-                padding:7px 10px 7px 30px;
-                font-size:.82rem;color:var(--text-primary);
-                font-family:inherit;outline:none;
-                transition:border-color .15s;
-            ">
+            <input id="coberturaBuscar" type="text" placeholder="Buscar por padre o estudiante…" class="director-comunicados-inline-style-47">
         </div>
     </div>
     <!-- Lista agrupada por curso -->
-    <div id="panelCoberturaList" style="overflow-y:auto;max-height:380px;padding:8px 12px;">
-        <p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>
+    <div id="panelCoberturaList" class="director-comunicados-inline-style-48">
+        <p class="director-comunicados-inline-style-27">Cargando…</p>
     </div>
     <!-- Footer resumen -->
-    <div style="padding:10px 20px;border-top:1px solid var(--border);">
-        <p id="panelCoberturaFooter" style="font-size:.76rem;color:var(--text-muted);margin:0;"></p>
+    <div class="director-comunicados-inline-style-49">
+        <p id="panelCoberturaFooter" class="director-comunicados-inline-style-50"></p>
     </div>
 </div>
-<div id="backdropCobertura" style="display:none;position:fixed;inset:0;z-index:2099;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);"></div>
+<div id="backdropCobertura" class="director-comunicados-inline-style-51"></div>
 
 <script src="{% static 'js/main.js' %}"></script>
 <script src="{% static 'js/fcm.js' %}"></script>

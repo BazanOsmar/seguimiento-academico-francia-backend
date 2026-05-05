@@ -923,6 +923,210 @@ def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
         return {mid: None for mid in materia_ids}
 
 
+def historial_meses_profesor(profesor_id: int, gestion: int, total_asignaciones: int) -> list:
+    """
+    Devuelve el estado de carga por mes para un profesor en la gestión dada.
+    Solo incluye los meses escolares (3-11) que ya pasaron.
+
+    Estado por mes:
+        'completo'  → cargó todos sus cursos ese mes
+        'parcial'   → cargó al menos uno pero no todos
+        'sin_datos' → no cargó ninguno
+
+    Returns:
+        [{'mes': int, 'estado': str, 'con_notas': int, 'total': int}]
+    """
+    try:
+        col = _get_db()['detalle_notas']
+        pipeline = [
+            {'$match': {'profesor_id': profesor_id, 'gestion': gestion}},
+            {'$group': {'_id': {'mes': '$mes', 'materia_id': '$materia_id', 'curso_id': '$curso_id'}}},
+            {'$group': {'_id': '$_id.mes', 'con_notas': {'$sum': 1}}},
+        ]
+        por_mes = {r['_id']: r['con_notas'] for r in col.aggregate(pipeline) if r['_id']}
+    except Exception:
+        por_mes = {}
+
+    resultado = []
+    for mes in range(3, 12):  # Marzo (3) a Noviembre (11)
+        con = por_mes.get(mes, 0)
+        if con == 0:
+            estado = 'sin_datos'
+        elif con >= total_asignaciones:
+            estado = 'completo'
+        else:
+            estado = 'parcial'
+        resultado.append({'mes': mes, 'estado': estado, 'con_notas': con, 'total': total_asignaciones})
+    return resultado
+
+
+def estado_asignaciones_mes_historico(asignaciones: list, profesor_id: int, mes: int, gestion: int) -> dict:
+    """
+    Para cada asignación de la lista, devuelve si tiene notas en el mes dado
+    y la fecha_carga más antigua de ese profesor/materia/curso/mes.
+
+    Returns:
+        { (materia_id, curso_id): {'tiene_notas': bool, 'fecha_carga': datetime | None} }
+    """
+    if not asignaciones:
+        return {}
+    try:
+        col = _get_db()['detalle_notas']
+        pipeline = [
+            {'$match': {
+                'profesor_id': profesor_id,
+                'mes': mes,
+                'gestion': gestion,
+                '$or': [{'materia_id': a['materia_id'], 'curso_id': a['curso_id']} for a in asignaciones],
+            }},
+            {'$group': {
+                '_id': {'materia_id': '$materia_id', 'curso_id': '$curso_id'},
+                'fecha_carga': {'$min': '$fecha_carga'},
+            }},
+        ]
+        return {
+            (r['_id']['materia_id'], r['_id']['curso_id']): {
+                'tiene_notas': True,
+                'fecha_carga': r['fecha_carga'],
+            }
+            for r in col.aggregate(pipeline)
+        }
+    except Exception:
+        return {}
+
+
+def notas_historico(materia_id: int, curso_id: int, profesor_id: int, mes_hasta: int, gestion: int) -> dict:
+    """
+    Devuelve las notas acumuladas hasta mes_hasta (inclusive) y detecta cuáles
+    fueron modificadas después de su carga original, recuperando el valor original
+    desde historial_notas.
+
+    Returns:
+        {
+            'headers_por_trim': { ... },   # mismo formato que obtener_notas_mes
+            'notas_modificadas': [         # celdas con valor original distinto al actual
+                {
+                    'estudiante_id': int,
+                    'trimestre': int,
+                    'dimension': str,
+                    'columna_idx': int,
+                    'nota_original': float,
+                    'nota_actual': float,
+                }
+            ],
+        }
+    """
+    _TRIM_INV = {1: '1TRIM', 2: '2TRIM', 3: '3TRIM'}
+    try:
+        col_detalle   = _get_db()['detalle_notas']
+        col_historial = _get_db()['historial_notas']
+
+        # 1. Notas actuales hasta mes_hasta
+        docs = list(col_detalle.find({
+            'materia_id':  materia_id,
+            'curso_id':    curso_id,
+            'profesor_id': profesor_id,
+            'gestion':     gestion,
+            'mes':         {'$lte': mes_hasta},
+        }, {'_id': 0}).sort([
+            ('trimestre', 1), ('dimension', 1), ('columna_idx', 1), ('estudiante_id', 1),
+        ]))
+
+        if not docs:
+            return {'headers_por_trim': {}, 'notas_modificadas': []}
+
+        # Fallback a SQL cuando algún doc no tiene nombre guardado
+        nro_a_nombre = {}
+        if any(not doc.get('nombre_estudiante') for doc in docs):
+            from backend.apps.students.models import Estudiante
+            for i, est in enumerate(
+                Estudiante.objects
+                .filter(curso_id=curso_id)
+                .order_by('apellido_paterno', 'apellido_materno', 'nombre')
+                .values('apellido_paterno', 'apellido_materno', 'nombre'),
+                start=1,
+            ):
+                partes = [est['apellido_paterno'], est['apellido_materno'], est['nombre']]
+                nro_a_nombre[i] = ' '.join(p for p in partes if p)
+
+        # Agrupar en headers_por_trim
+        buckets = {}
+        actuales = {}  # (trimestre, dimension, columna_idx, estudiante_id) → nota_actual
+        for doc in docs:
+            trim_key = _TRIM_INV.get(doc['trimestre'], '1TRIM')
+            dim      = doc['dimension']
+            col_idx  = doc['columna_idx']
+            nro      = doc['estudiante_id']
+            nombre   = doc.get('nombre_estudiante') or nro_a_nombre.get(nro, f'Estudiante {nro}')
+
+            buckets.setdefault(trim_key, {}).setdefault(dim, {})
+            if col_idx not in buckets[trim_key][dim]:
+                buckets[trim_key][dim][col_idx] = {
+                    'col': col_idx, 'titulo': doc['titulo'],
+                    'nota_maxima': doc['nota_maxima'], 'notas': [],
+                }
+            buckets[trim_key][dim][col_idx]['notas'].append(
+                {'nro': nro, 'nombre': nombre, 'nota': doc['nota']}
+            )
+            actuales[(doc['trimestre'], dim, col_idx, nro)] = doc['nota']
+
+        headers_por_trim = {
+            trim_key: {
+                dim: sorted(col_data.values(), key=lambda x: x['col'])
+                for dim, col_data in dims.items()
+            }
+            for trim_key, dims in buckets.items()
+        }
+
+        # 2. Recuperar valores originales desde historial_notas
+        # Agrupamos por clave de celda y tomamos el nota_anterior del cambio más antiguo
+        pipeline = [
+            {'$match': {
+                'materia_id':  materia_id,
+                'curso_id':    curso_id,
+                'profesor_id': profesor_id,
+                'gestion':     gestion,
+            }},
+            {'$sort': {'fecha_cambio': 1}},
+            {'$group': {
+                '_id': {
+                    'estudiante_id': '$estudiante_id',
+                    'trimestre':     '$trimestre',
+                    'dimension':     '$dimension',
+                    'columna_idx':   '$columna_idx',
+                },
+                'nota_original':      {'$first': '$nota_anterior'},
+                'fecha_primer_cambio': {'$first': '$fecha_cambio'},
+            }},
+        ]
+        notas_modificadas = []
+        for r in col_historial.aggregate(pipeline):
+            k = (
+                r['_id']['trimestre'],
+                r['_id']['dimension'],
+                r['_id']['columna_idx'],
+                r['_id']['estudiante_id'],
+            )
+            nota_actual = actuales.get(k)
+            if nota_actual is None:
+                continue  # celda no está en el rango mes <= mes_hasta
+            nota_orig = r['nota_original']
+            if nota_orig != nota_actual:
+                notas_modificadas.append({
+                    'estudiante_id': r['_id']['estudiante_id'],
+                    'trimestre':     r['_id']['trimestre'],
+                    'dimension':     r['_id']['dimension'],
+                    'columna_idx':   r['_id']['columna_idx'],
+                    'nota_original': nota_orig,
+                    'nota_actual':   nota_actual,
+                })
+
+        return {'headers_por_trim': headers_por_trim, 'notas_modificadas': notas_modificadas}
+
+    except Exception:
+        return {'headers_por_trim': {}, 'notas_modificadas': []}
+
+
 def ultima_fecha_carga_profesor(profesor_id: int):
     """
     Retorna la fecha_carga más reciente del profesor en detalle_notas, o None si nunca subió notas.

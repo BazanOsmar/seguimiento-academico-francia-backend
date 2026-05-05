@@ -21,6 +21,7 @@ from ..services.notas_mongo_service import (
     hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
     comparar_notas_con_mongo, obtener_detalle_notas_tutor, obtener_promedios_grupo,
     todos_cargaron_mes, ultima_fecha_carga_profesor,
+    historial_meses_profesor, estado_asignaciones_mes_historico, notas_historico,
 )
 
 _DRAFT_TTL  = 1800          # 30 minutos
@@ -467,6 +468,114 @@ class ResumenGrupoProfesorView(APIView):
             })
 
         return Response(data)
+
+
+class HistorialMesesView(APIView):
+    """
+    GET /api/academics/profesor/historial-meses/
+
+    Devuelve el estado de carga (completo/parcial/sin_datos) por mes escolar
+    para el profesor autenticado en la gestión actual.
+    Solo incluye meses pasados (< mes actual de Bolivia).
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        gestion          = timezone.localtime(timezone.now()).year
+        mes_actual       = timezone.localtime(timezone.now()).month
+        total_asignaciones = ProfesorCurso.objects.filter(profesor=request.user).count()
+
+        meses = historial_meses_profesor(request.user.id, gestion, total_asignaciones)
+        # Solo meses pasados (estricto: < mes actual)
+        meses_pasados = [m for m in meses if m['mes'] < mes_actual]
+        return Response({'meses': meses_pasados})
+
+
+class AsignacionesHistorialMesView(APIView):
+    """
+    GET /api/academics/profesor/asignaciones-historial-mes/?mes=X
+
+    Devuelve las asignaciones del profesor con estado de notas para el mes X.
+    No valida contra el mes actual (es vista histórica).
+    Incluye fecha_carga formateada para las que sí tienen notas.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        import zoneinfo
+        try:
+            mes = int(request.query_params.get('mes', 0))
+            if not 1 <= mes <= 12:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetro mes inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        gestion = timezone.localtime(timezone.now()).year
+        asignaciones = list(
+            ProfesorCurso.objects
+            .filter(profesor=request.user)
+            .select_related('materia', 'curso')
+            .order_by('curso__grado', 'curso__paralelo', 'materia__nombre')
+            .values('id', 'materia_id', 'curso_id',
+                    'materia__nombre', 'curso__grado', 'curso__paralelo')
+        )
+
+        estado_map = estado_asignaciones_mes_historico(
+            asignaciones, request.user.id, mes, gestion
+        )
+
+        la_paz = zoneinfo.ZoneInfo('America/La_Paz')
+        resultado = []
+        for a in asignaciones:
+            clave  = (a['materia_id'], a['curso_id'])
+            estado = estado_map.get(clave, {'tiene_notas': False, 'fecha_carga': None})
+            fecha  = estado['fecha_carga']
+            resultado.append({
+                'id':            a['id'],
+                'materia_id':    a['materia_id'],
+                'curso_id':      a['curso_id'],
+                'materia_nombre': a['materia__nombre'],
+                'curso_nombre':  f"{a['curso__grado']} \"{a['curso__paralelo']}\"",
+                'tiene_notas':   estado['tiene_notas'],
+                'fecha_carga':   fecha.astimezone(la_paz).strftime('%d/%m/%Y') if fecha else None,
+            })
+        return Response(resultado)
+
+
+class NotasHistoricoView(APIView):
+    """
+    GET /api/academics/profesor/notas-historico/?pc_id=X&mes_hasta=Y
+
+    Devuelve notas acumuladas hasta mes_hasta con detección de valores
+    modificados post-carga (valor original desde historial_notas).
+    Permiso: Profesor dueño de la asignación.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        try:
+            pc_id    = int(request.query_params.get('pc_id', 0))
+            mes_hasta = int(request.query_params.get('mes_hasta', 0))
+            if not pc_id or not 1 <= mes_hasta <= 12:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pc = ProfesorCurso.objects.select_related('materia', 'curso').get(
+                pk=pc_id, profesor=request.user
+            )
+        except ProfesorCurso.DoesNotExist:
+            return Response({'errores': 'Asignación no válida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        gestion = timezone.localtime(timezone.now()).year
+        resultado = notas_historico(pc.materia.id, pc.curso.id, request.user.id, mes_hasta, gestion)
+        return Response({
+            'ya_subidas':        True,
+            'headers_por_trim':  resultado['headers_por_trim'],
+            'notas_modificadas': resultado['notas_modificadas'],
+            'hay_modificadas':   len(resultado['notas_modificadas']) > 0,
+        })
 
 
 class UltimaCargaProfesorView(APIView):

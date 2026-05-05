@@ -7,6 +7,7 @@ from .plan_views import (
 )
 from .planilla_views import (
     ValidarPlanillaView, ConfirmarPlanillaView, UltimaCargaProfesorView,
+    HistorialMesesView, AsignacionesHistorialMesView, NotasHistoricoView,
     NotasMongoView, EstadoNotasView, NotasEstadoMesView,
     NotasEstudianteProfesorView, ResumenGrupoProfesorView,
 )

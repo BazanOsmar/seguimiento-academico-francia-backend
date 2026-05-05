@@ -68,7 +68,7 @@
                 <h3 class="card-title">Mis cursos</h3>
             </div>
             <div class="card-body" id="perfilCursosList">
-                <div style="display:flex;justify-content:center;padding:20px 0;">
+                <div class="profesor-cuenta-inline-style-1">
                     <div class="spinner"></div>
                 </div>
             </div>
@@ -77,88 +77,26 @@
 {% endblock %}
 
 {% block page_modals %}
-<div class="modal-overlay" id="modalSugerencia" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;">
-    <div style="background:var(--bg-card,#1e2433);border:1px solid var(--border,#2a3148);border-radius:12px;padding:28px 24px;width:100%;max-width:420px;margin:16px;">
-        <p style="font-size:1rem;font-weight:700;color:var(--text-primary,#e2e8f0);margin:0 0 4px;">Enviar sugerencia</p>
-        <p style="font-size:.82rem;color:var(--text-muted,#8892a4);margin:0 0 18px;">Tu mensaje llegará directamente al equipo de desarrollo.</p>
-        <textarea id="inputSugerencia" maxlength="1000" rows="5"
-            placeholder="Escribí tu sugerencia aquí…"
-            style="width:100%;box-sizing:border-box;background:var(--bg-input,#141927);border:1px solid var(--border,#2a3148);border-radius:8px;color:var(--text-primary,#e2e8f0);font-size:.84rem;padding:10px 12px;resize:vertical;min-height:100px;font-family:inherit;line-height:1.5;outline:none;transition:border-color .15s;"
-            onfocus="this.style.borderColor='var(--accent,#6366f1)'" onblur="this.style.borderColor='var(--border,#2a3148)'"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:3px;">
-            <span id="contadorSugerencia" style="font-size:.7rem;color:var(--text-muted,#8892a4);">0/1000</span>
+<div class="modal-overlay profesor-cuenta-inline-style-2" id="modalSugerencia" role="dialog" aria-modal="true">
+    <div class="profesor-cuenta-inline-style-3">
+        <p class="profesor-cuenta-inline-style-4">Enviar sugerencia</p>
+        <p class="profesor-cuenta-inline-style-5">Tu mensaje llegará directamente al equipo de desarrollo.</p>
+        <textarea id="inputSugerencia" maxlength="1000" rows="5" placeholder="Escribí tu sugerencia aquí…" class="profesor-cuenta-inline-style-6" onfocus="this.style.borderColor='var(--accent,#6366f1)'" onblur="this.style.borderColor='var(--border,#2a3148)'"></textarea>
+        <div class="profesor-cuenta-inline-style-7">
+            <span id="contadorSugerencia" class="profesor-cuenta-inline-style-8">0/1000</span>
         </div>
-        <div id="errSugerencia" style="display:none;font-size:.76rem;color:var(--danger,#ef4444);margin-top:6px;"></div>
-        <div id="sugerenciaExito" style="display:none;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:10px 14px;font-size:.82rem;color:#22c55e;margin-top:10px;">
+        <div id="errSugerencia" class="profesor-cuenta-inline-style-9"></div>
+        <div id="sugerenciaExito" class="profesor-cuenta-inline-style-10">
             ✓ ¡Sugerencia enviada! Gracias por tu comentario.
         </div>
-        <div style="display:flex;gap:10px;margin-top:18px;">
-            <button id="btnCancelarSugerencia" style="flex:1;padding:10px;background:var(--bg-input,#141927);color:var(--text-primary,#e2e8f0);border:1px solid var(--border,#2a3148);border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;">Cancelar</button>
-            <button id="btnEnviarSugerencia"   style="flex:1;padding:10px;background:var(--accent,#6366f1);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:opacity .15s;">Enviar</button>
+        <div class="profesor-cuenta-inline-style-11">
+            <button id="btnCancelarSugerencia" class="profesor-cuenta-inline-style-12">Cancelar</button>
+            <button id="btnEnviarSugerencia" class="profesor-cuenta-inline-style-13">Enviar</button>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block page_scripts %}
-<script>
-(function () {
-    const modal       = document.getElementById('modalSugerencia');
-    const inputSug    = document.getElementById('inputSugerencia');
-    const contador    = document.getElementById('contadorSugerencia');
-    const errEl       = document.getElementById('errSugerencia');
-    const exitoEl     = document.getElementById('sugerenciaExito');
-    const btnEnviar   = document.getElementById('btnEnviarSugerencia');
-    const btnCancelar = document.getElementById('btnCancelarSugerencia');
-
-    function abrirModal() {
-        inputSug.value = '';
-        contador.textContent = '0/1000';
-        errEl.style.display = 'none';
-        exitoEl.style.display = 'none';
-        btnEnviar.style.display = '';
-        btnEnviar.disabled = false;
-        btnEnviar.textContent = 'Enviar';
-        btnCancelar.textContent = 'Cancelar';
-        modal.style.display = 'flex';
-        inputSug.focus();
-    }
-
-    function cerrarModal() { modal.style.display = 'none'; }
-
-    document.getElementById('btnAbrirSugerencias').addEventListener('click', abrirModal);
-    btnCancelar.addEventListener('click', cerrarModal);
-    modal.addEventListener('click', e => { if (e.target === modal) cerrarModal(); });
-
-    inputSug.addEventListener('input', () => {
-        contador.textContent = `${inputSug.value.length}/1000`;
-        errEl.style.display = 'none';
-    });
-
-    btnEnviar.addEventListener('click', async () => {
-        const msg = inputSug.value.trim();
-        if (!msg) {
-            errEl.textContent = 'El mensaje no puede estar vacío.';
-            errEl.style.display = 'block';
-            return;
-        }
-        btnEnviar.disabled = true;
-        btnEnviar.textContent = 'Enviando…';
-        const res = await fetchAPI('/api/auth/sugerencias/', {
-            method: 'POST',
-            body: JSON.stringify({ mensaje: msg }),
-        });
-        if (res.ok || res.status === 204) {
-            exitoEl.style.display = 'block';
-            btnEnviar.style.display = 'none';
-            btnCancelar.textContent = 'Cerrar';
-        } else {
-            errEl.textContent = res.data?.errores || 'No se pudo enviar. Intenta más tarde.';
-            errEl.style.display = 'block';
-            btnEnviar.disabled = false;
-            btnEnviar.textContent = 'Enviar';
-        }
-    });
-})();
-</script>
+<script src="{% static 'js/profesor_cuenta_inline.js' %}"></script>
 {% endblock %}

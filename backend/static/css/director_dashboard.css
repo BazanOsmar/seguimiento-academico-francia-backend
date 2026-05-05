@@ -1,0 +1,7 @@
+
+.director-dashboard-inline-style-1 { display:flex;align-items:center;gap:12px; }
+.director-dashboard-inline-style-2 { background:var(--accent-dim,rgba(99,102,241,.15));color:var(--accent) }
+.director-dashboard-inline-style-3 { width:100%;text-align:left }
+.director-dashboard-inline-style-4 { display:none }
+.director-dashboard-inline-style-5 { display:flex;gap:10px;width:100%;margin-top:4px }
+.director-dashboard-inline-style-6 { flex:1 }

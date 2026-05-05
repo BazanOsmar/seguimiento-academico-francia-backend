@@ -27,9 +27,22 @@
                     <span class="notas-ultima-carga__label">Notas guardadas hasta:</span>
                     <span class="notas-ultima-carga__fecha" id="notasUltimaCargaFecha">—</span>
                 </div>
-                <button class="notas-ultima-carga__btn" id="btnVerHistorial" disabled>
-                    Ver historial
-                </button>
+                <!-- Wrapper relativo para el dropdown -->
+                <div class="notas-historial-wrap" id="notasHistorialWrap">
+                    <button class="notas-ultima-carga__btn" id="btnVerHistorial" disabled>
+                        Ver historial de cargas
+                    </button>
+                    <!-- Panel desplegable de meses -->
+                    <div class="notas-historial-panel" id="notasHistorialPanel" hidden>
+                        <div class="notas-historial-panel__inner" id="notasHistorialInner">
+                            <!-- spinner o lista de meses -->
+                            <div class="notas-historial-spinner">
+                                <div class="notas-loading__spinner profesor-notas-inline-style-1"></div>
+                                <span>Cargando historial...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="notas-mes-pill" id="notasMesPill">—</div>
         </div>

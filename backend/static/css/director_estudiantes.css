@@ -1,0 +1,62 @@
+#importDropZone:hover,
+    #importDropZone.over  { border-color: var(--accent); background: var(--accent-dim, rgba(99,102,241,.06)); }
+    #importDropZone.ready { border-color: var(--success); background: rgba(34,197,94,.05); }
+
+    /* ── Page layout ─────────────────────────────────────────── */
+    .page-header-row {
+        display: flex; align-items: flex-end;
+        justify-content: space-between; gap: 16px;
+        margin-bottom: 28px;
+    }
+    .page-section-title {
+        font-size: 1.75rem; font-weight: 800;
+        color: var(--text-primary); margin: 0 0 4px; line-height: 1.2;
+    }
+    .page-section-desc { font-size: .8rem; color: var(--text-muted); margin: 0; }
+
+    /* ── Métricas ─────────────────────────────────────────────── */
+    .metrics-row { display: none; margin-bottom: 24px; }
+    .metrics-inner { display: flex; flex-wrap: wrap; gap: 12px; }
+    .metric-card {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: var(--radius-card); padding: 14px 20px;
+        display: flex; flex-direction: column; gap: 4px;
+        min-width: 110px; flex: 1;
+    }
+    .metric-card__label {
+        font-size: .72rem; font-weight: 600; color: var(--text-muted);
+        text-transform: uppercase; letter-spacing: .06em;
+    }
+    .metric-card__value { font-size: 1.6rem; font-weight: 700; }
+
+    /* ── Label sección cursos ─────────────────────────────────── */
+    .courses-section-label {
+        font-size: .68rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .08em; color: var(--text-muted);
+        margin: 0 0 14px; padding-left: 2px;
+    }
+
+.director-estudiantes-inline-style-1 { display:flex;align-items:center;gap:12px; }
+.director-estudiantes-inline-style-2 { white-space:nowrap;flex-shrink:0; }
+.director-estudiantes-inline-style-3 { margin-right:7px; }
+.director-estudiantes-inline-style-4 { max-width:560px;width:100%; }
+.director-estudiantes-inline-style-5 { display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px; }
+.director-estudiantes-inline-style-6 { background:rgba(34,197,94,.12);color:var(--success);flex-shrink:0; }
+.director-estudiantes-inline-style-7 { text-align:left; }
+.director-estudiantes-inline-style-8 { margin:0; }
+.director-estudiantes-inline-style-9 { margin:0;font-size:.8rem;color:var(--text-muted); }
+.director-estudiantes-inline-style-10 { background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px; }
+.director-estudiantes-inline-style-11 { width:100%;border:none;border-top:1px solid var(--border);margin:12px 0 20px; }
+.director-estudiantes-inline-style-12 { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; width: 100%; box-sizing: border-box; }
+.director-estudiantes-inline-style-13 { color:var(--text-muted);margin-bottom:14px; }
+.director-estudiantes-inline-style-14 { margin:0 0 6px;font-weight:600;color:var(--text); }
+.director-estudiantes-inline-style-15 { margin:0;font-size:.85rem;color:var(--text-muted); }
+.director-estudiantes-inline-style-16 { display:none;margin-top:12px;font-size:.82rem;font-weight:600;color:var(--success);word-break:break-all; }
+.director-estudiantes-inline-style-17 { display:none; }
+.director-estudiantes-inline-style-18 { margin-top:20px;background:var(--bg-hover);border-radius:var(--radius);padding:14px 16px;width:100%;box-sizing:border-box;text-align:left; }
+.director-estudiantes-inline-style-19 { margin:0 0 8px;font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em; }
+.director-estudiantes-inline-style-20 { display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+.director-estudiantes-inline-style-21 { font-size:.82rem;color:var(--text); }
+.director-estudiantes-inline-style-22 { display:none;margin-top:12px;font-size:.85rem;color:var(--error,#ef4444);width:100%;text-align:left; }
+.director-estudiantes-inline-style-23 { display:flex;gap:10px;width:100%;margin-top:20px; }
+.director-estudiantes-inline-style-24 { flex:1; }

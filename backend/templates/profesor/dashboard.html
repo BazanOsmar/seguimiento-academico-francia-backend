@@ -11,13 +11,7 @@
     <link rel="stylesheet" href="{% static 'css/profesor-citcom.css' %}?v=2">
     <script src="{% static 'js/api.js' %}"></script>
 
-    <script>
-        const token = localStorage.getItem('access_token');
-        const user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!token || !user || user.tipo_usuario !== 'Profesor') {
-            window.location.replace('/login/');
-        }
-    </script>
+    <script src="{% static 'js/profesor_dashboard_inline.js' %}"></script>
 
 <link rel="stylesheet" href="{% static 'css/profesor_dashboard.css' %}">
 </head>
@@ -53,7 +47,7 @@
                 </svg>
                 <span class="nav-label">Citaciones</span>
             </button>
-            <button class="nav-item" id="sidePlan" aria-label="Plan de Trabajo" style="position:relative;">
+            <button class="nav-item profesor-dashboard-inline-style-1" id="sidePlan" aria-label="Plan de Trabajo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -94,7 +88,7 @@
 
     <!-- ── Top bar ───────────────────────────────────────────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div class="profesor-dashboard-inline-style-2">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
@@ -116,7 +110,7 @@
 
 
         <!-- ══ Panel Notas ══════════════════════════════════════════ -->
-        <div class="tab-panel active" id="panelNotas" role="tabpanel" style="position:relative;">
+        <div class="tab-panel active profesor-dashboard-inline-style-1" id="panelNotas" role="tabpanel">
             <!-- Sub-vista A: Mis Clases ──────────────────────── -->
             <div id="vistaClases" class="page-inner">
                 <div class="notas-header">
@@ -146,7 +140,7 @@
             </div>
 
             <!-- Sub-vista B: Carga de Notas ──────────────────── -->
-            <div id="vistaSubirNotas" class="page-inner" style="display:none;">
+            <div id="vistaSubirNotas" class="page-inner profesor-dashboard-inline-style-3">
                 <input type="hidden" id="selectAsignacion" value="">
 
                 <div class="cn-header">
@@ -187,12 +181,12 @@
 
                         <!-- Card upload -->
                         <div class="card cn-upload-card">
-                            <div style="height:3px;background:linear-gradient(90deg,var(--accent),#818cf8);"></div>
+                            <div class="profesor-dashboard-inline-style-4"></div>
                             <div class="card-header">
                                 <h3 class="card-title">Importar Planilla</h3>
                                 <p class="cn-card-sub">Formatos soportados: .xlsx · .xls</p>
                             </div>
-                            <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+                            <div class="card-body profesor-dashboard-inline-style-5">
                                 <div class="drop-zone" id="dropZone" role="button" tabindex="0"
                                      aria-label="Zona para arrastrar archivo Excel">
                                     <div class="drop-zone__icon-wrap">
@@ -217,7 +211,7 @@
                                     </div>
                                     <p class="drop-zone__filename" id="nombreArchivo"></p>
                                 </div>
-                                <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none">
+                                <input type="file" id="excelInput" accept=".xlsx,.xls" class="profesor-dashboard-inline-style-6">
                                 <div class="cn-warning-note">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -225,7 +219,7 @@
                                     </svg>
                                     Asegúrese de que la planilla corresponda al curso seleccionado para evitar errores de sincronización.
                                 </div>
-                                <p class="form-error" id="notasAsignacionError" style="display:none;">
+                                <p class="form-error profesor-dashboard-inline-style-3" id="notasAsignacionError">
                                     Sin asignación seleccionada.
                                 </p>
                                 <button class="btn-primary" id="btnSubirNotas" disabled>
@@ -235,22 +229,22 @@
                         </div>
 
                         <!-- Card metadata (aparece tras validación) -->
-                        <div class="card" id="cnMetaCard" style="display:none;">
-                            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                        <div class="card profesor-dashboard-inline-style-3" id="cnMetaCard">
+                            <div class="card-header profesor-dashboard-inline-style-7">
                                 <h3 class="card-title">Resumen</h3>
                                 <span id="cnStatusBadge"></span>
                             </div>
-                            <div class="card-body" id="cnMetaContent" style="padding-top:0;"></div>
+                            <div class="card-body profesor-dashboard-inline-style-8" id="cnMetaContent"></div>
                         </div>
 
                     </div><!-- /cn-col-left -->
 
                     <!-- Columna derecha: tabla preview -->
                     <div class="cn-col-right">
-                        <div class="card cn-preview-card" style="overflow:hidden;">
+                        <div class="card cn-preview-card profesor-dashboard-inline-style-9">
                             <div class="cn-table-header">
                                 <h3 class="card-title">Vista Previa</h3>
-                                <span id="cnTableBadge" style="font-size:.75rem;color:var(--text-muted);"></span>
+                                <span id="cnTableBadge" class="profesor-dashboard-inline-style-10"></span>
                             </div>
 
                             <!-- Estado vacío -->
@@ -266,10 +260,10 @@
                             </div>
 
                             <!-- Errores -->
-                            <div id="cnErrorState" style="display:none;padding:16px 20px;"></div>
+                            <div id="cnErrorState" class="profesor-dashboard-inline-style-11"></div>
 
                             <!-- Datos validados -->
-                            <div id="cnNotasData" style="display:none;"></div>
+                            <div id="cnNotasData" class="profesor-dashboard-inline-style-3"></div>
 
                         </div>
                     </div><!-- /cn-col-right -->
@@ -278,7 +272,7 @@
             </div>
 
             <!-- ══ Vista Notas (solo lectura) ════════════════════════ -->
-            <div id="vistaVerNotas" class="page-inner" style="display:none;">
+            <div id="vistaVerNotas" class="page-inner profesor-dashboard-inline-style-3">
 
                 <div class="cn-header">
                     <button class="btn-back-notas" id="btnVolverDesdeVer">
@@ -292,8 +286,8 @@
                         <div class="cn-page-title">
                             <h2 id="vnTitulo">Notas</h2>
                         </div>
-                        <p class="cn-page-subtitle">Vista de solo lectura. Las columnas <span style="color:var(--accent);font-weight:700;">resaltadas</span> corresponden al mes actual.</p>
-                        <div class="cn-header-meta" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+                        <p class="cn-page-subtitle">Vista de solo lectura. Las columnas <span class="profesor-dashboard-inline-style-12">resaltadas</span> corresponden al mes actual.</p>
+                        <div class="cn-header-meta profesor-dashboard-inline-style-13">
                             <div class="cn-header-meta-item">
                                 <span class="cn-header-meta-label">Materia</span>
                                 <span class="cn-header-meta-value" id="vnMateria">—</span>
@@ -312,7 +306,7 @@
                     <button class="vn-trim-btn" data-trim="3">3er Trimestre</button>
                 </div>
 
-                <div id="vnSpinner" class="historial-spinner" style="display:none;">
+                <div id="vnSpinner" class="historial-spinner profesor-dashboard-inline-style-3">
                     <div class="spinner"></div>
                 </div>
                 <div id="vnTablas"></div>
@@ -322,7 +316,7 @@
         </div>
 
         <!-- ══ Panel Citaciones ═════════════════════════════════════ -->
-        <div class="tab-panel" id="panelCitaciones" role="tabpanel" style="position:relative;">
+        <div class="tab-panel profesor-dashboard-inline-style-1" id="panelCitaciones" role="tabpanel">
             <div class="page-inner">
                 <div class="sec-hdr">
                     <div class="sec-hdr__title-row">
@@ -344,7 +338,7 @@
                             </svg>
                             NUEVA CITACION
                         </button>
-                        <button class="btn-nueva-com" id="btnToggleComProf" type="button" style="display:none;">
+                        <button class="btn-nueva-com profesor-dashboard-inline-style-3" id="btnToggleComProf" type="button">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"/>
                                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -420,16 +414,16 @@
                         </div>
                     </div>
                     <div class="cit-section__body">
-                        <div class="historial-spinner" id="citSpinner" style="display:none;"><div class="spinner"></div></div>
+                        <div class="historial-spinner profesor-dashboard-inline-style-3" id="citSpinner"><div class="spinner"></div></div>
                         <div class="cit-cards-grid" id="citCardsGrid"></div>
-                        <div class="empty-cards" id="citEmpty" style="display:none;">
+                        <div class="empty-cards profesor-dashboard-inline-style-3" id="citEmpty">
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <p>No hay citaciones registradas en este período.</p>
                         </div>
-                        <div id="citPagination" style="margin-top:16px;display:flex;justify-content:center;align-items:center;gap:8px;"></div>
+                        <div id="citPagination" class="profesor-dashboard-inline-style-14"></div>
                     </div>
                 </div>
-                <div class="list-section" id="sectionComCardProf" style="display:none;">
+                <div class="list-section profesor-dashboard-inline-style-3" id="sectionComCardProf">
                     <div class="cit-filter-row">
                         <div class="cit-filter-row__left">
                             <span class="cit-filter-label">FILTRAR POR ROL:</span>
@@ -447,9 +441,9 @@
                         </div>
                     </div>
                     <div class="cit-section__body">
-                        <div class="historial-spinner" id="comSpinner" style="display:none;"><div class="spinner"></div></div>
+                        <div class="historial-spinner profesor-dashboard-inline-style-3" id="comSpinner"><div class="spinner"></div></div>
                         <div class="comunicados-list" id="comCardsList"></div>
-                        <div class="empty-cards" id="comEmpty" style="display:none;">
+                        <div class="empty-cards profesor-dashboard-inline-style-3" id="comEmpty">
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                             <p>No hay comunicados en este período.</p>
                         </div>
@@ -459,13 +453,13 @@
         </div>
 
         <!-- ══ Panel Plan de Trabajo ════════════════════════════════ -->
-        <div class="tab-panel" id="panelPlan" role="tabpanel" style="padding:0;">
+        <div class="tab-panel profesor-dashboard-inline-style-15" id="panelPlan" role="tabpanel">
 
             <div class="historial-spinner" id="planSpinner">
                 <div class="spinner"></div>
             </div>
 
-            <div id="ptwMain" style="display:none;">
+            <div id="ptwMain" class="profesor-dashboard-inline-style-3">
                 <div class="ptw-header">
                     <button class="ptw-nav-btn" id="ptwPrevMes" aria-label="Mes anterior">&#8249;</button>
                     <h1 class="ptw-title">Plan de Trabajo:&nbsp;<span class="ptw-title-mes" id="ptwMesLabel"></span></h1>
@@ -532,7 +526,7 @@
                     <h3 class="card-title">Mis cursos</h3>
                 </div>
                 <div class="card-body" id="perfilCursosList">
-                    <div style="display:flex;justify-content:center;padding:20px 0;">
+                    <div class="profesor-dashboard-inline-style-16">
                         <div class="spinner"></div>
                     </div>
                 </div>
@@ -592,8 +586,7 @@
                 <p id="warnSinGuardarMsg">Tienes contenido sin guardar que se perderá si cierras ahora.</p>
                 <div class="warn-modal-actions">
                     <button class="btn-ghost" id="warnSinGuardarQuedarme">Quedarme</button>
-                    <button class="btn-primary" id="warnSinGuardarSalir"
-                            style="background:var(--danger,#dc2626);">Salir de todas formas</button>
+                    <button class="btn-primary profesor-dashboard-inline-style-17" id="warnSinGuardarSalir" >Salir de todas formas</button>
                 </div>
             </div>
         </div>
@@ -637,7 +630,7 @@
                                    autocomplete="current-password" required>
                             <button type="button" class="btn-toggle-pass" data-target="piPassActual" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor-dashboard-inline-style-6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
@@ -649,7 +642,7 @@
                                    autocomplete="new-password" required>
                             <button type="button" class="btn-toggle-pass" data-target="piPassNueva" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor-dashboard-inline-style-6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
@@ -712,7 +705,7 @@
             <div class="cred-modal-body">
 
                 <!-- Usuario actual (visible solo en modos username/both) -->
-                <div class="cred-current-user" id="credCurrentUserRow" style="display:none;">
+                <div class="cred-current-user profesor-dashboard-inline-style-3" id="credCurrentUserRow">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                     </svg>
@@ -726,7 +719,7 @@
                     Credenciales actualizadas correctamente.
                 </div>
 
-                <form id="formCred" style="display:flex;flex-direction:column;gap:14px;">
+                <form id="formCred" class="profesor-dashboard-inline-style-5">
 
                     <!-- Contraseña actual — siempre visible -->
                     <div class="form-group">
@@ -736,27 +729,27 @@
                                    placeholder="Tu contraseña actual" maxlength="64" autocomplete="current-password">
                             <button type="button" class="btn-toggle-pass" data-target="credPassActual" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor-dashboard-inline-style-6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
 
                     <!-- Nuevo usuario — solo en modos username/both -->
-                    <div class="form-group" id="credGroupUsername" style="display:none;">
+                    <div class="form-group profesor-dashboard-inline-style-3" id="credGroupUsername">
                         <label class="form-label" for="credUsernameNuevo">Nuevo usuario</label>
                         <input class="form-input" id="credUsernameNuevo" type="text"
                                placeholder="5–20 car. · solo letras, números y _" maxlength="20" autocomplete="off">
                     </div>
 
                     <!-- Nueva contraseña — solo en modos password/both -->
-                    <div class="form-group" id="credGroupPassword" style="display:none;">
+                    <div class="form-group profesor-dashboard-inline-style-3" id="credGroupPassword">
                         <label class="form-label" for="credPassNueva">Nueva contraseña</label>
                         <div class="pass-input-wrap">
                             <input class="form-input" id="credPassNueva" type="password"
                                    placeholder="Mínimo 8 caracteres" maxlength="64" autocomplete="new-password">
                             <button type="button" class="btn-toggle-pass" data-target="credPassNueva" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor-dashboard-inline-style-6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
@@ -771,7 +764,7 @@
                         <div class="pass-check-item" id="credCheckSpace"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Sin espacios</div>
                     </div>
 
-                    <p id="credError" class="form-error" style="display:none;"></p>
+                    <p id="credError" class="form-error profesor-dashboard-inline-style-3"></p>
                     <button type="submit" class="btn-primary" id="btnGuardarCred">Guardar cambios</button>
                 </form>
             </div>
@@ -831,15 +824,15 @@
                     </div>
                 </div>
                 <div class="form-card__body">
-                    <form id="formCitacion" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
+                    <form id="formCitacion" class="profesor-dashboard-inline-style-5" onsubmit="return false;">
                         <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group profesor-dashboard-inline-style-18">
                                 <label class="form-label" for="citCurso">Curso <span class="req">*</span></label>
                                 <select id="citCurso" class="form-input form-select" disabled>
                                     <option value="">— Cargando cursos… —</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group profesor-dashboard-inline-style-18">
                                 <label class="form-label" for="citEstudiante">Estudiante <span class="req">*</span></label>
                                 <select id="citEstudiante" class="form-input form-select" disabled>
                                     <option value="">— Selecciona un estudiante —</option>
@@ -847,7 +840,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group profesor-dashboard-inline-style-18">
                                 <label class="form-label" for="citMotivo">Motivo <span class="req">*</span></label>
                                 <select id="citMotivo" class="form-input form-select" required>
                                     <option value="">— Selecciona un motivo —</option>
@@ -857,19 +850,17 @@
                                     <option value="OTRO">Otro</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group profesor-dashboard-inline-style-18">
                                 <label class="form-label" for="citFechaLimite">Fecha límite <span class="req">*</span></label>
                                 <input id="citFechaLimite" class="form-input" type="date" required>
                             </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="citDescripcion">Descripción</label>
-                            <textarea id="citDescripcion" class="form-input form-textarea"
-                                      rows="4" placeholder="Describe el motivo de la citación…"
-                                      maxlength="500" style="resize:none;"></textarea>
+                            <textarea id="citDescripcion" class="form-input form-textarea profesor-dashboard-inline-style-19" rows="4" placeholder="Describe el motivo de la citación…" maxlength="500"></textarea>
                         </div>
-                        <p id="citError" class="form-error" style="display:none"></p>
-                        <div style="display:flex;justify-content:flex-end;gap:10px;">
+                        <p id="citError" class="form-error profesor-dashboard-inline-style-6"></p>
+                        <div class="profesor-dashboard-inline-style-20">
                             <button type="button" class="btn-secondary" id="btnCancelarCitProf">Cancelar</button>
                             <button type="submit" class="btn-primary" id="btnEnviarCitacion">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -890,12 +881,12 @@
             <button class="modal-detalle__close" id="btnCerrarDetalleCitProf" aria-label="Cerrar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <div id="detalleCitSpinner" class="historial-spinner" style="padding:52px;"><div class="spinner"></div></div>
-            <div id="detalleCitBody" style="display:none;">
+            <div id="detalleCitSpinner" class="historial-spinner profesor-dashboard-inline-style-21"><div class="spinner"></div></div>
+            <div id="detalleCitBody" class="profesor-dashboard-inline-style-3">
                 <div id="detalleCitHero" class="modal-det__hero">
                     <div class="modal-det__nombre" id="detalleCitNombre"></div>
                     <div class="modal-det__sub">
-                        <span id="detalleCitCurso" style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;"></span>
+                        <span id="detalleCitCurso" class="profesor-dashboard-inline-style-22"></span>
                         <span id="detalleCitBadge"></span>
                     </div>
                 </div>
@@ -928,19 +919,19 @@
                             <div class="modal-det__date-val" id="detalleCitFechaAsist"></div>
                         </div>
                     </div>
-                    <div class="modal-det__desc" id="detalleCitDescWrap" style="display:none;">
+                    <div class="modal-det__desc profesor-dashboard-inline-style-3" id="detalleCitDescWrap">
                         <div class="modal-det__desc-label">Descripción</div>
                         <p class="modal-det__desc-text" id="detalleCitDesc"></p>
                     </div>
                 </div>
-                <div class="modal-det__footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-                    <button class="btn-danger" id="btnAnularCit" style="display:none;">
+                <div class="modal-det__footer profesor-dashboard-inline-style-23">
+                    <button class="btn-danger profesor-dashboard-inline-style-3" id="btnAnularCit">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         Anular
                     </button>
-                    <div style="display:flex;gap:10px;margin-left:auto;">
+                    <div class="profesor-dashboard-inline-style-24">
                         <button class="btn-secondary" id="btnCerrarDetalleCitBtn">Cerrar</button>
-                        <button class="btn-primary" id="btnIrAMarcarCit" style="display:none;">
+                        <button class="btn-primary profesor-dashboard-inline-style-3" id="btnIrAMarcarCit">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                             Marcar asistencia
                         </button>
@@ -952,13 +943,13 @@
 
     <!-- ── Modal: Marcar Asistencia ─────────────────────────────────── -->
     <div class="modal-backdrop" id="modalMarcarCitProf">
-        <div class="modal modal-form" style="max-width:420px;">
+        <div class="modal modal-form profesor-dashboard-inline-style-25">
             <button class="modal-form__close" id="btnCerrarMarcarCitProf" aria-label="Cerrar">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <div class="form-card">
                 <div class="form-card__header">
-                    <div class="form-card__icon" style="background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3);color:#22c55e;">
+                    <div class="form-card__icon profesor-dashboard-inline-style-26">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
                     <div>
@@ -966,11 +957,11 @@
                         <p class="form-card__subtitle">Registrar presencia del tutor a la citación.</p>
                     </div>
                 </div>
-                <div class="form-card__body" style="display:flex;flex-direction:column;gap:14px;">
-                    <p style="font-size:.9rem;color:var(--text);margin:0;">¿Confirmas la asistencia del tutor de <strong id="marcarCitNombre"></strong>?</p>
-                    <p style="font-size:.83rem;color:var(--text-muted);margin:0;">El estado se calculará automáticamente según la fecha límite.</p>
-                    <p id="marcarCitError" class="form-error" style="display:none;"></p>
-                    <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <div class="form-card__body profesor-dashboard-inline-style-5">
+                    <p class="profesor-dashboard-inline-style-27">¿Confirmas la asistencia del tutor de <strong id="marcarCitNombre"></strong>?</p>
+                    <p class="profesor-dashboard-inline-style-28">El estado se calculará automáticamente según la fecha límite.</p>
+                    <p id="marcarCitError" class="form-error profesor-dashboard-inline-style-3"></p>
+                    <div class="profesor-dashboard-inline-style-20">
                         <button class="btn-secondary" id="btnCancelarMarcarCitProf">Cancelar</button>
                         <button class="btn-primary" id="btnConfirmarMarcarCitProf">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -991,9 +982,9 @@
                 <button class="modal-detalle__close" id="btnCerrarDetalleComProf" aria-label="Cerrar">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
-                <div class="modal-det__hero" id="detalleComHero" style="border-left-color:var(--accent);">
-                    <div class="modal-det__nombre" id="detalleComTitulo" style="font-size:1.12rem;"></div>
-                    <div class="modal-det__sub" style="margin-top:10px;">
+                <div class="modal-det__hero profesor-dashboard-inline-style-29" id="detalleComHero">
+                    <div class="modal-det__nombre profesor-dashboard-inline-style-30" id="detalleComTitulo"></div>
+                    <div class="modal-det__sub profesor-dashboard-inline-style-31">
                         <span id="detalleComBadge"></span>
                     </div>
                 </div>
@@ -1011,20 +1002,20 @@
                             <div class="modal-det__info-label">Fecha de envío</div>
                             <div class="modal-det__info-val" id="detalleComFecha"></div>
                         </div>
-                        <div class="modal-det__info-item modal-det__info-item--full" id="detalleComEmisorWrap" style="display:none;">
+                        <div class="modal-det__info-item modal-det__info-item--full profesor-dashboard-inline-style-3" id="detalleComEmisorWrap">
                             <div class="modal-det__info-label">Enviado por</div>
                             <div class="modal-det__info-val" id="detalleComEmisor"></div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-det__footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-                    <button class="btn-danger" id="btnAnularComDesdeDetalle" style="display:none;">
+                <div class="modal-det__footer profesor-dashboard-inline-style-23">
+                    <button class="btn-danger profesor-dashboard-inline-style-3" id="btnAnularComDesdeDetalle">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         Anular
                     </button>
-                    <div style="display:flex;gap:8px;margin-left:auto;">
+                    <div class="profesor-dashboard-inline-style-32">
                         <button class="btn-secondary" id="btnCerrarDetalleComBtn">Cerrar</button>
-                        <button class="btn-secondary" id="btnVerDestinatariosComProf" style="display:flex;align-items:center;gap:6px;">
+                        <button class="btn-secondary profesor-dashboard-inline-style-33" id="btnVerDestinatariosComProf">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Ver destinatarios
                         </button>
@@ -1039,18 +1030,18 @@
                         <p class="com-dest__titulo">Destinatarios</p>
                         <p class="com-dest__sub" id="comDestSubtitulo"></p>
                     </div>
-                    <button id="btnCerrarDestinatariosComProf" style="background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px;" aria-label="Cerrar panel">
+                    <button id="btnCerrarDestinatariosComProf" class="profesor-dashboard-inline-style-34" aria-label="Cerrar panel">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
                 <div class="com-dest__search">
-                    <input id="comDestBuscar" type="text" placeholder="Buscar padre o estudiante…" class="form-input" style="font-size:.83rem;padding:7px 11px;">
+                    <input id="comDestBuscar" type="text" placeholder="Buscar padre o estudiante…" class="form-input profesor-dashboard-inline-style-35">
                 </div>
                 <div class="com-dest__list" id="comDestList">
-                    <p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>
+                    <p class="profesor-dashboard-inline-style-36">Cargando…</p>
                 </div>
                 <div class="com-dest__foot">
-                    <p id="comDestFooter" style="font-size:.76rem;color:var(--text-muted);margin:0;"></p>
+                    <p id="comDestFooter" class="profesor-dashboard-inline-style-37"></p>
                 </div>
             </div>
 
@@ -1059,10 +1050,10 @@
 
     <!-- ── Modal: Confirmar anulación de Citación ────────────────── -->
     <div class="modal-backdrop" id="modalAnularCitProf">
-        <div class="modal modal-form" style="max-width:400px;">
+        <div class="modal modal-form profesor-dashboard-inline-style-38">
             <div class="form-card">
                 <div class="form-card__header">
-                    <div class="form-card__icon" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.22);color:#ef4444;">
+                    <div class="form-card__icon profesor-dashboard-inline-style-39">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     </div>
                     <div>
@@ -1070,10 +1061,10 @@
                         <p class="form-card__subtitle">Esta acción no se puede deshacer.</p>
                     </div>
                 </div>
-                <div class="form-card__body" style="display:flex;flex-direction:column;gap:14px;">
-                    <p style="font-size:.9rem;color:var(--text);margin:0;">¿Confirmas la anulación de la citación de <strong id="anularCitNombre"></strong>?</p>
-                    <p id="anularCitError" class="form-error" style="display:none;"></p>
-                    <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <div class="form-card__body profesor-dashboard-inline-style-5">
+                    <p class="profesor-dashboard-inline-style-27">¿Confirmas la anulación de la citación de <strong id="anularCitNombre"></strong>?</p>
+                    <p id="anularCitError" class="form-error profesor-dashboard-inline-style-3"></p>
+                    <div class="profesor-dashboard-inline-style-20">
                         <button class="btn-secondary" id="btnCancelarAnularCit">Cancelar</button>
                         <button class="btn-danger" id="btnConfirmarAnularCit">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1087,10 +1078,10 @@
 
     <!-- ── Modal: Confirmar anulación de Comunicado ───────────────── -->
     <div class="modal-backdrop" id="modalAnularComProf">
-        <div class="modal modal-form" style="max-width:400px;">
+        <div class="modal modal-form profesor-dashboard-inline-style-38">
             <div class="form-card">
                 <div class="form-card__header">
-                    <div class="form-card__icon" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.22);color:#ef4444;">
+                    <div class="form-card__icon profesor-dashboard-inline-style-39">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     </div>
                     <div>
@@ -1098,10 +1089,10 @@
                         <p class="form-card__subtitle">Los tutores ya no verán este comunicado.</p>
                     </div>
                 </div>
-                <div class="form-card__body" style="display:flex;flex-direction:column;gap:14px;">
-                    <p style="font-size:.9rem;color:var(--text);margin:0;">¿Confirmas la anulación de <strong id="anularComTitulo"></strong>?</p>
-                    <p id="anularComError" class="form-error" style="display:none;"></p>
-                    <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <div class="form-card__body profesor-dashboard-inline-style-5">
+                    <p class="profesor-dashboard-inline-style-27">¿Confirmas la anulación de <strong id="anularComTitulo"></strong>?</p>
+                    <p id="anularComError" class="form-error profesor-dashboard-inline-style-3"></p>
+                    <div class="profesor-dashboard-inline-style-20">
                         <button class="btn-secondary" id="btnCancelarAnularCom">Cancelar</button>
                         <button class="btn-danger" id="btnConfirmarAnularCom">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1130,16 +1121,14 @@
                     </div>
                 </div>
                 <div class="form-card__body">
-                    <form id="formComunicadoProf" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
+                    <form id="formComunicadoProf" class="profesor-dashboard-inline-style-5" onsubmit="return false;">
                         <div class="form-group">
                             <label class="form-label" for="comProfTitulo">Título <span class="req">*</span></label>
                             <input id="comProfTitulo" class="form-input" type="text" maxlength="150" placeholder="Título del comunicado" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="comProfContenido">Contenido <span class="req">*</span></label>
-                            <textarea id="comProfContenido" class="form-input form-textarea" rows="4"
-                                      placeholder="Escribe el contenido del comunicado…" maxlength="2000"
-                                      style="resize:none;" required></textarea>
+                            <textarea id="comProfContenido" class="form-input form-textarea profesor-dashboard-inline-style-19" rows="4" placeholder="Escribe el contenido del comunicado…" maxlength="2000" required></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="comProfAlcance">Alcance <span class="req">*</span></label>
@@ -1149,21 +1138,21 @@
                                 <option value="GRUPO">Grupo de cursos</option>
                             </select>
                         </div>
-                        <div class="form-group" id="comProfCursoWrap" style="display:none;">
+                        <div class="form-group profesor-dashboard-inline-style-3" id="comProfCursoWrap">
                             <label class="form-label" for="comProfCurso">Curso <span class="req">*</span></label>
                             <select id="comProfCurso" class="form-input form-select">
                                 <option value="">— Selecciona un curso —</option>
                             </select>
                         </div>
-                        <div class="form-group" id="comProfGrupoWrap" style="display:none;">
-                            <label class="form-label">Cursos <span class="req">*</span> <span style="font-size:.75rem;color:var(--text-muted);">(mín. 2)</span></label>
+                        <div class="form-group profesor-dashboard-inline-style-3" id="comProfGrupoWrap">
+                            <label class="form-label">Cursos <span class="req">*</span> <span class="profesor-dashboard-inline-style-10">(mín. 2)</span></label>
                             <select id="comProfGrupoSelect" class="form-input form-select">
                                 <option value="">— Añadir curso —</option>
                             </select>
-                            <div id="comProfGrupoPills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:28px;"></div>
+                            <div id="comProfGrupoPills" class="profesor-dashboard-inline-style-40"></div>
                         </div>
-                        <p id="comProfError" class="form-error" style="display:none;"></p>
-                        <div style="display:flex;justify-content:flex-end;gap:10px;">
+                        <p id="comProfError" class="form-error profesor-dashboard-inline-style-3"></p>
+                        <div class="profesor-dashboard-inline-style-20">
                             <button type="button" class="btn-secondary" id="btnCancelarComProf">Cancelar</button>
                             <button type="submit" class="btn-primary" id="btnEnviarComProf">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>

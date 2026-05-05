@@ -11,15 +11,10 @@
     <link rel="stylesheet" href="{% static 'css/profesor-citcom.css' %}">
     <script src="{% static 'js/api.js' %}"></script>
 
-    <script>
-        const token = localStorage.getItem('access_token');
-        const user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!token || !user || user.tipo_usuario !== 'Profesor') {
-            window.location.replace('/login/');
-        }
-    </script>
+    <script src="{% static 'js/profesor__base_profesor_inline.js' %}"></script>
 
 <link rel="stylesheet" href="{% static 'css/profesor_base_profesor.css' %}">
+<link rel="stylesheet" href="{% static 'css/profesor__base_profesor.css' %}">
     {% block page_css %}{% endblock %}
 </head>
 <body>
@@ -56,8 +51,7 @@
                 </svg>
                 <span class="nav-label">Citaciones</span>
             </button>
-            <button class="nav-item {% if active_nav == 'plan' %}active{% endif %}"
-                    id="sidePlan" aria-label="Plan de Trabajo" style="position:relative;">
+            <button class="nav-item {% if active_nav == 'plan' %}active{% endif %} profesor--base-profesor-inline-style-1" id="sidePlan" aria-label="Plan de Trabajo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -99,7 +93,7 @@
 
     <!-- ── Topbar ─────────────────────────────────────────────────────── -->
     <header class="topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div class="profesor--base-profesor-inline-style-2">
             <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2"
@@ -159,7 +153,7 @@
                                    autocomplete="current-password" required>
                             <button type="button" class="btn-toggle-pass" data-target="piPassActual" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor--base-profesor-inline-style-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
@@ -171,7 +165,7 @@
                                    autocomplete="new-password" required>
                             <button type="button" class="btn-toggle-pass" data-target="piPassNueva" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor--base-profesor-inline-style-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
@@ -208,7 +202,7 @@
                 </button>
             </div>
             <div class="cred-modal-body">
-                <div class="cred-current-user" id="credCurrentUserRow" style="display:none;">
+                <div class="cred-current-user profesor--base-profesor-inline-style-4" id="credCurrentUserRow">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                     </svg>
@@ -218,7 +212,7 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Credenciales actualizadas correctamente.
                 </div>
-                <form id="formCred" style="display:flex;flex-direction:column;gap:14px;">
+                <form id="formCred" class="profesor--base-profesor-inline-style-5">
                     <div class="form-group">
                         <label class="form-label" for="credPassActual">Contraseña actual</label>
                         <div class="pass-input-wrap">
@@ -226,23 +220,23 @@
                                    placeholder="Tu contraseña actual" maxlength="64" autocomplete="current-password">
                             <button type="button" class="btn-toggle-pass" data-target="credPassActual" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor--base-profesor-inline-style-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
-                    <div class="form-group" id="credGroupUsername" style="display:none;">
+                    <div class="form-group profesor--base-profesor-inline-style-4" id="credGroupUsername">
                         <label class="form-label" for="credUsernameNuevo">Nuevo usuario</label>
                         <input class="form-input" id="credUsernameNuevo" type="text"
                                placeholder="5–20 car. · solo letras, números y _" maxlength="20" autocomplete="off">
                     </div>
-                    <div class="form-group" id="credGroupPassword" style="display:none;">
+                    <div class="form-group profesor--base-profesor-inline-style-4" id="credGroupPassword">
                         <label class="form-label" for="credPassNueva">Nueva contraseña</label>
                         <div class="pass-input-wrap">
                             <input class="form-input" id="credPassNueva" type="password"
                                    placeholder="Mínimo 8 caracteres" maxlength="64" autocomplete="new-password">
                             <button type="button" class="btn-toggle-pass" data-target="credPassNueva" aria-label="Mostrar contraseña">
                                 <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                <svg class="icon-eye-off profesor--base-profesor-inline-style-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                             </button>
                         </div>
                     </div>
@@ -254,7 +248,7 @@
                         <div class="pass-check-item" id="credCheckSpec"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Al menos un carácter especial (@, #, !, ...)</div>
                         <div class="pass-check-item" id="credCheckSpace"><span class="pass-check-icon"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Sin espacios</div>
                     </div>
-                    <p id="credError" class="form-error" style="display:none;"></p>
+                    <p id="credError" class="form-error profesor--base-profesor-inline-style-4"></p>
                     <button type="submit" class="btn-primary" id="btnGuardarCred">Guardar cambios</button>
                 </form>
             </div>
