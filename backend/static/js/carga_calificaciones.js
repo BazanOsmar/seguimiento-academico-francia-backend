@@ -45,14 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     _initDragDrop();
     _initButtons();
     if (_pcId && _mes) {
-        const yaSubidas = _params.get('ya_subidas');
-        if (yaSubidas === '0') {
-            // La vista de cards ya sabe que no hay notas → saltar el fetch
-            _mostrarVistaUpload();
-        } else {
-            // '1' o null (acceso directo sin parámetro) → verificar siempre
-            _verificarEstadoNotas();
-        }
+        // Siempre consultar el servidor — no confiar solo en el parámetro URL
+        _verificarEstadoNotas();
     } else {
         _mostrarVistaUpload();
     }
@@ -163,8 +157,7 @@ function _initButtons() {
     dlgCancelar.addEventListener('click', () => dlg.close());
     dlgCerrar.addEventListener('click', () => {
         dlg.close();
-        const mesParam = _mes ? `?mes=${_mes}` : '';
-        window.location.href = `/profesor/notas/${mesParam}`;
+        window.location.href = '/profesor/';
     });
 
     // Bloquear cierre con backdrop durante la carga

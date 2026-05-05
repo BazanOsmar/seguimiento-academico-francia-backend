@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _initProfesorDetalleModal();
     // Cargar vista por defecto
     _cargarVistaProfesor();
-    cargarMaterias(); // precarga silenciosa
+    cargarMaterias({ notifyError: false }); // precarga silenciosa
 });
 
 // ── Sidebar ───────────────────────────────────────────────────────
@@ -1403,34 +1403,35 @@ function _vcRestaurarBadgeCard(card) {
 // VISTA MATERIAS
 // ════════════════════════════════════════════════════════════════
 
-async function cargarMaterias() {
-    const spinner = document.getElementById('spinnerMaterias');
-    const wrap    = document.getElementById('wrapMaterias');
-    const empty   = document.getElementById('emptyMaterias');
-    const tbody   = document.getElementById('tbodyMaterias');
+let _materiasRenderCache = [];
 
-    spinner.style.display = 'flex';
-    wrap.style.display    = 'none';
-    empty.style.display   = 'none';
+function _renderMateriasList(data, highlightId = null) {
+    const wrap  = document.getElementById('wrapMaterias');
+    const empty = document.getElementById('emptyMaterias');
+    const tbody = document.getElementById('tbodyMaterias');
+    if (!wrap || !empty || !tbody) return;
 
-    const { ok, data } = await fetchAPI('/api/academics/materias/');
-    spinner.style.display = 'none';
+    _materiasRenderCache = Array.isArray(data) ? data : [];
 
-    if (!ok || !data.length) {
+    if (!_materiasRenderCache.length) {
+        wrap.style.display = 'none';
         empty.style.display = 'flex';
         return;
     }
 
-    tbody.innerHTML = data.map((m, i) => `
-        <article class="mat-item-card">
+    empty.style.display = 'none';
+    tbody.innerHTML = _materiasRenderCache.map((m, i) => `
+        <article class="mat-item-card${String(m.id) === String(highlightId) ? ' mat-item-card--new' : ''}">
             <div class="mat-item-index">${i + 1}</div>
             <div class="mat-item-main">
-                <div class="mat-item-label">Materia</div>
                 <div class="mat-item-name">
                     <span class="chip chip--blue">${_escapeHtml(m.nombre)}</span>
                 </div>
             </div>
             <div class="mat-item-actions">
+                <button class="mat-btn-edit" data-id="${m.id}" data-nombre="${_escapeHtml(m.nombre)}">
+                    Editar
+                </button>
                 <button class="btn-del mat-btn-del" data-id="${m.id}" data-nombre="${_escapeHtml(m.nombre)}">
                     ${_TRASH_ICON} Eliminar
                 </button>
@@ -1441,14 +1442,154 @@ async function cargarMaterias() {
     tbody.querySelectorAll('.btn-del').forEach(btn => {
         btn.addEventListener('click', () => eliminarMateria(btn.dataset.id, btn.dataset.nombre));
     });
+    tbody.querySelectorAll('.mat-btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => _abrirModalEditarMateria(btn.dataset.id, btn.dataset.nombre));
+    });
 
     wrap.style.display = 'block';
 }
 
+async function cargarMaterias(options = {}) {
+    const highlightId = options?.highlightId ?? null;
+    const notifyError = options?.notifyError !== false;
+    const spinner = document.getElementById('spinnerMaterias');
+    const wrap    = document.getElementById('wrapMaterias');
+    const empty   = document.getElementById('emptyMaterias');
+
+    spinner.style.display = 'flex';
+    wrap.style.display    = 'none';
+    empty.style.display   = 'none';
+
+    const { ok, data } = await fetchAPI(`/api/academics/materias/?_=${Date.now()}`, { cache: 'no-store' });
+    spinner.style.display = 'none';
+
+    if (!ok) {
+        if (_materiasRenderCache.length) {
+            _renderMateriasList(_materiasRenderCache, highlightId);
+        } else {
+            empty.style.display = 'flex';
+        }
+        if (notifyError) {
+            _mostrarResultadoAccion('error', 'No se cargó la lista', _mensajeErrorServidor(data, 'No se pudo cargar el listado de materias.'));
+        }
+        return false;
+    }
+
+    if (!Array.isArray(data) || !data.length) {
+        empty.style.display = 'flex';
+        _materiasRenderCache = [];
+        return true;
+    }
+
+    _renderMateriasList(data, highlightId);
+    return true;
+}
+
 const btnCrearMateria = document.getElementById('btnCrearMateria');
+const formCrearMateria = document.getElementById('formCrearMateria');
+const modalNuevaMateria = document.getElementById('modalNuevaMateria');
+const btnAbrirCrearMateria = document.getElementById('btnAbrirCrearMateria');
+const btnCancelNuevaMateria = document.getElementById('btnCancelNuevaMateria');
+const modalEditarMateria = document.getElementById('modalEditarMateria');
+const formEditarMateria = document.getElementById('formEditarMateria');
+const btnGuardarEditarMateria = document.getElementById('btnGuardarEditarMateria');
+const btnCancelEditarMateria = document.getElementById('btnCancelEditarMateria');
+let _materiaEditId = null;
+
+function _abrirModalNuevaMateria() {
+    if (!modalNuevaMateria) return;
+    const input = document.getElementById('inputNombreMateria');
+    _ocultarError('errorMateria');
+    if (input) input.value = '';
+    modalNuevaMateria.classList.add('visible');
+    setTimeout(() => input?.focus(), 0);
+}
+
+function _cerrarModalNuevaMateria() {
+    modalNuevaMateria?.classList.remove('visible');
+}
+
+btnAbrirCrearMateria?.addEventListener('click', _abrirModalNuevaMateria);
+btnCancelNuevaMateria?.addEventListener('click', _cerrarModalNuevaMateria);
+modalNuevaMateria?.addEventListener('click', e => {
+    if (e.target === modalNuevaMateria) _cerrarModalNuevaMateria();
+});
+
+function _abrirModalEditarMateria(id, nombre) {
+    if (!modalEditarMateria) return;
+    _materiaEditId = id;
+    const input = document.getElementById('inputEditarMateria');
+    _ocultarError('errorEditarMateria');
+    if (input) {
+        input.value = nombre || '';
+        input.dataset.original = nombre || '';
+    }
+    modalEditarMateria.classList.add('visible');
+    setTimeout(() => input?.focus(), 0);
+}
+
+function _cerrarModalEditarMateria() {
+    modalEditarMateria?.classList.remove('visible');
+    _materiaEditId = null;
+}
+
+btnCancelEditarMateria?.addEventListener('click', _cerrarModalEditarMateria);
+modalEditarMateria?.addEventListener('click', e => {
+    if (e.target === modalEditarMateria) _cerrarModalEditarMateria();
+});
+
+formEditarMateria?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!_materiaEditId) return;
+
+    const input = document.getElementById('inputEditarMateria');
+    const nombre = input?.value.trim() || '';
+    const original = input?.dataset.original || '';
+    _ocultarError('errorEditarMateria');
+
+    if (!nombre) {
+        _mostrarError('errorEditarMateriaMsg', 'errorEditarMateria', 'Escribe el nombre de la materia.');
+        return;
+    }
+    if (nombre.toLowerCase() === original.trim().toLowerCase()) {
+        _mostrarError('errorEditarMateriaMsg', 'errorEditarMateria', 'El nombre no cambió.');
+        return;
+    }
+
+    btnGuardarEditarMateria.disabled = true;
+    const { ok, data } = await fetchAPI(`/api/academics/materias/${_materiaEditId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nombre }),
+    });
+    btnGuardarEditarMateria.disabled = false;
+
+    if (!ok) {
+        const mensaje = _mensajeErrorServidor(data, 'No se pudo actualizar la materia.');
+        _mostrarError('errorEditarMateriaMsg', 'errorEditarMateria', mensaje);
+        _mostrarResultadoAccion('error', 'No se actualizó', mensaje);
+        return;
+    }
+
+    const updatedId = data?.id || _materiaEditId;
+    _cerrarModalEditarMateria();
+    const nextMaterias = _materiasRenderCache
+        .map(m => String(m.id) === String(updatedId) ? data : m)
+        .sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+    _renderMateriasList(nextMaterias, updatedId);
+
+    const refreshed = await cargarMaterias({ highlightId: updatedId, notifyError: false });
+    if (refreshed) {
+        _mostrarResultadoAccion('success', 'Materia actualizada', `"${data.nombre}" se actualizó correctamente.`);
+    } else {
+        _mostrarResultadoAccion('warning', 'Materia actualizada', `"${data.nombre}" se guardó, pero no se pudo refrescar la lista automáticamente.`);
+    }
+});
+
 if (btnCrearMateria) {
-    btnCrearMateria.addEventListener('click', async () => {
+    const crearMateria = async event => {
+        event?.preventDefault();
         const input  = document.getElementById('inputNombreMateria');
+        if (!input) return;
         const nombre = input.value.trim();
         _ocultarError('errorMateria');
 
@@ -1467,15 +1608,36 @@ if (btnCrearMateria) {
         btnCrearMateria.disabled = false;
 
         if (!ok) {
-            _mostrarError('errorMateriaMsg', 'errorMateria',
-                data?.errores || data?.nombre?.[0] || 'Error al crear la materia.');
+            const mensaje = _mensajeErrorServidor(data, 'Error al crear la materia.');
+            _mostrarError('errorMateriaMsg', 'errorMateria', mensaje);
+            _mostrarResultadoAccion('error', 'No se añadió', mensaje);
             return;
         }
 
         input.value = '';
-        showToast(`Materia "${data.nombre}" agregada correctamente.`, 'success');
-        await cargarMaterias();
-    });
+        _cerrarModalNuevaMateria();
+
+        if (data?.id) {
+            const nextMaterias = [
+                ..._materiasRenderCache.filter(m => String(m.id) !== String(data.id)),
+                data,
+            ].sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+            _renderMateriasList(nextMaterias, data.id);
+        }
+
+        const refreshed = await cargarMaterias({ highlightId: data?.id, notifyError: false });
+        if (refreshed) {
+            _mostrarResultadoAccion('success', 'Materia añadida', `"${data.nombre}" se añadió correctamente y ya está en la lista.`);
+        } else {
+            _mostrarResultadoAccion('warning', 'Materia guardada', `"${data.nombre}" se guardó, pero no se pudo refrescar la lista automáticamente.`);
+        }
+    };
+
+    if (formCrearMateria) {
+        formCrearMateria.addEventListener('submit', crearMateria);
+    } else {
+        btnCrearMateria.addEventListener('click', crearMateria);
+    }
 }
 
 function eliminarMateria(id, nombre) {
@@ -1501,15 +1663,42 @@ function eliminarMateria(id, nombre) {
 
 (function _initPlanesMes() {
     const sel = document.getElementById('planesMesSel');
+    const label = document.getElementById('planesMesLabel');
+    const btnPrev = document.getElementById('planesMesPrev');
+    const btnNext = document.getElementById('planesMesNext');
+    const meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    const actualizarLabel = () => {
+        if (label) label.textContent = meses[Number(sel.value)];
+    };
+
+    const moverMes = delta => {
+        const actual = Number(sel.value);
+        const siguiente = Math.min(12, Math.max(1, actual + delta));
+        if (siguiente === actual) return;
+        sel.value = String(siguiente);
+        sel.dispatchEvent(new Event('change'));
+    };
+
     // Preseleccionar mes actual
     sel.value = String(new Date().getMonth() + 1);
-    sel.addEventListener('change', () => _cargarPlanes(sel.value));
+    actualizarLabel();
+    sel.addEventListener('change', () => {
+        actualizarLabel();
+        _cargarPlanes(sel.value);
+    });
+    btnPrev?.addEventListener('click', () => moverMes(-1));
+    btnNext?.addEventListener('click', () => moverMes(1));
 })();
 
 // Almacén de planes para el modal
 let _planesData       = [];
 let _planesStats      = { totalProfs: 0, incompletosProfs: 0 };
 let _dirPlanAsigsByProf = {};   // profId → { nombre, pcs } — usado para stats de exportación
+
+let _planesFiltro = 'todos';
+let _planesRows = [];
+let _planesSemanasPorPc = {};
 
 async function _cargarPlanes(mes) {
     const sel = document.getElementById('planesMesSel');
@@ -1561,47 +1750,160 @@ async function _cargarPlanes(mes) {
         prof.pcs.some(pc => (semanasPorPc[pc.id]?.size || 0) < 4)
     ).length;
 
+    _planesRows = sortedProfs;
+    _planesSemanasPorPc = semanasPorPc;
+    _renderPlanesCards();
+    return;
+
     container.innerHTML = `<div class="prof-planes-grid">${
         sortedProfs.map(([profId, prof]) => {
-            const pcs          = prof.pcs;
-            const completedPcs = pcs.filter(pc => (semanasPorPc[pc.id]?.size || 0) === 4).length;
-            const allComplete  = completedPcs === pcs.length;
+            const pcs = prof.pcs;
+            const totalPlanes = pcs.length * 4;
+            const filledPlanes = pcs.reduce((total, pc) => total + (semanasPorPc[pc.id]?.size || 0), 0);
+            const progressPct = totalPlanes ? Math.round((filledPlanes / totalPlanes) * 100) : 0;
+            const allComplete = totalPlanes > 0 && filledPlanes === totalPlanes;
+            const visiblePcs = pcs;
+            const hiddenCount = Math.max(0, pcs.length - visiblePcs.length);
 
-            const dotsHtml = pcs.map(pc => {
+            const coursesHtml = visiblePcs.map(pc => {
                 const count = semanasPorPc[pc.id]?.size || 0;
-                const cls   = count === 4 ? 'prof-planes-dot--ok'
-                            : count  > 0 ? 'prof-planes-dot--partial'
-                            :              'prof-planes-dot--empty';
-                return `<span class="prof-planes-dot ${cls}" title="${_escapeHtml(pc.materia_nombre)} — ${_escapeHtml(pc.curso_nombre)} (${count}/4 semanas)"></span>`;
+                const complete = count === 4;
+                const partial = count > 0 && count < 4;
+                const label = pc.curso_nombre || 'Curso';
+                return `
+                    <button class="prof-planes-course${complete ? ' prof-planes-course--complete' : partial ? ' prof-planes-course--partial' : ''}" type="button" data-prof-id="${profId}" data-pc-id="${pc.id}" title="${_escapeHtml(label)}">
+                        <span class="prof-planes-course__name">${_escapeHtml(label)}</span>
+                    </button>`;
             }).join('');
 
-            const subTxt = allComplete
-                ? 'Plan completo'
-                : `${completedPcs}/${pcs.length} asignación${pcs.length !== 1 ? 'es' : ''} completa${completedPcs !== 1 ? 's' : ''}`;
+            const subTxt = `${filledPlanes}/${totalPlanes} planes llenados`;
 
             return `
                 <div class="prof-planes-card${allComplete ? ' prof-planes-card--complete' : ''}" data-prof-id="${profId}">
                     <div class="prof-planes-top">
                         <div class="prof-planes-avatar">${_iniciales(prof.nombre)}</div>
-                        <div>
+                        <div style="min-width:0;flex:1;">
                             <div class="prof-planes-name">${_escapeHtml(prof.nombre)}</div>
                             <div class="prof-planes-sub">${_escapeHtml(subTxt)}</div>
                         </div>
                     </div>
-                    <div class="prof-planes-dots">${dotsHtml}</div>
+                    <div class="prof-planes-progress" aria-hidden="true">
+                        <span class="prof-planes-progress__bar" style="--progress:${progressPct}%"></span>
+                    </div>
+                    <div class="prof-planes-course-list">
+                        ${coursesHtml || '<div class="prof-planes-more">Sin cursos asignados</div>'}
+                    </div>
                 </div>`;
         }).join('')
     }</div>`;
 
     // Tarjetas clicables → ver planes (solo lectura)
-    container.querySelectorAll('.prof-planes-card').forEach(card => {
-        card.addEventListener('click', () => _abrirDirPlanModal(Number(card.dataset.profId)));
+    container.querySelectorAll('.prof-planes-course').forEach(chip => {
+        chip.addEventListener('click', e => {
+            e.stopPropagation();
+            _abrirDirPlanModal(Number(chip.dataset.profId), Number(chip.dataset.pcId));
+        });
     });
 }
 
 // ════════════════════════════════════════════════════════════════
 // MODAL VER PLANES POR PROFESOR (solo lectura)
 // ════════════════════════════════════════════════════════════════
+
+function _renderPlanesCards() {
+    const container = document.getElementById('planesContent');
+    if (!container) return;
+
+    const query = (document.getElementById('planesBuscarProfesor')?.value || '').trim().toLowerCase();
+    const rows = _planesRows.filter(([, prof]) => {
+        if (query && !String(prof.nombre || '').toLowerCase().includes(query)) return false;
+        return _planesFiltro === 'todos' || _planesEstadoProfesor(prof, _planesSemanasPorPc) === _planesFiltro;
+    });
+
+    if (!rows.length) {
+        container.innerHTML = '<div class="empty-state">No hay profesores para este filtro.</div>';
+        return;
+    }
+
+    container.innerHTML = `<div class="prof-planes-grid">${
+        rows.map(([profId, prof]) => _planesProfesorCardHtml(profId, prof, _planesSemanasPorPc)).join('')
+    }</div>`;
+
+    container.querySelectorAll('.prof-planes-course').forEach(chip => {
+        chip.addEventListener('click', e => {
+            e.stopPropagation();
+            _abrirDirPlanModal(Number(chip.dataset.profId), Number(chip.dataset.pcId));
+        });
+    });
+}
+
+function _planesProfesorCardHtml(profId, prof, semanasPorPc) {
+    const pcs = prof.pcs || [];
+    const totalPlanes = pcs.length * 4;
+    const filledPlanes = pcs.reduce((total, pc) => total + (semanasPorPc[pc.id]?.size || 0), 0);
+    const progressPct = totalPlanes ? Math.round((filledPlanes / totalPlanes) * 100) : 0;
+    const allComplete = totalPlanes > 0 && filledPlanes === totalPlanes;
+    const coursesHtml = pcs.map(pc => {
+        const count = semanasPorPc[pc.id]?.size || 0;
+        const complete = count === 4;
+        const partial = count > 0 && count < 4;
+        const label = pc.curso_nombre || 'Curso';
+        return `
+            <button class="prof-planes-course${complete ? ' prof-planes-course--complete' : partial ? ' prof-planes-course--partial' : ''}" type="button" data-prof-id="${profId}" data-pc-id="${pc.id}" title="${_escapeHtml(label)}">
+                <span class="prof-planes-course__name">${_escapeHtml(label)}</span>
+            </button>`;
+    }).join('');
+
+    return `
+        <div class="prof-planes-card${allComplete ? ' prof-planes-card--complete' : ''}" data-prof-id="${profId}">
+            <div class="prof-planes-top">
+                <div class="prof-planes-avatar">${_iniciales(prof.nombre)}</div>
+                <div style="min-width:0;flex:1;">
+                    <div class="prof-planes-name">${_escapeHtml(prof.nombre)}</div>
+                    <div class="prof-planes-sub">${filledPlanes}/${totalPlanes} planes llenados</div>
+                </div>
+            </div>
+            <div class="prof-planes-progress" aria-hidden="true">
+                <span class="prof-planes-progress__bar" style="--progress:${progressPct}%"></span>
+            </div>
+            <div class="prof-planes-course-list">
+                ${coursesHtml || '<div class="prof-planes-more">Sin cursos asignados</div>'}
+            </div>
+        </div>`;
+}
+
+function _planesEstadoProfesor(prof, semanasPorPc) {
+    const pcs = prof.pcs || [];
+    const totalPlanes = pcs.length * 4;
+    const filledPlanes = pcs.reduce((total, pc) => total + (semanasPorPc[pc.id]?.size || 0), 0);
+    if (totalPlanes > 0 && filledPlanes === totalPlanes) return 'completos';
+    if (filledPlanes === 0) return 'sin-iniciar';
+    return 'progreso';
+}
+
+function _setPlanesFiltro(filtro) {
+    _planesFiltro = filtro || 'todos';
+    const labels = {
+        'todos': 'Todos',
+        'completos': 'Completos',
+        'progreso': 'En progreso',
+        'sin-iniciar': 'No empezaron',
+    };
+    document.querySelectorAll('[data-planes-filter]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.planesFilter === _planesFiltro);
+    });
+    const summary = document.getElementById('planesFilterSummary');
+    if (summary) summary.textContent = labels[_planesFiltro] || 'Todos';
+    document.querySelector('.planes-filter-menu')?.removeAttribute('open');
+    _renderPlanesCards();
+}
+
+(function _initPlanesFilters() {
+    document.querySelectorAll('[data-planes-filter]').forEach(btn => {
+        btn.addEventListener('click', () => _setPlanesFiltro(btn.dataset.planesFilter));
+    });
+    document.getElementById('planesBuscarProfesor')?.addEventListener('input', _renderPlanesCards);
+})();
 
 (function _initDirPlanModal() {
     const overlay = document.getElementById('dirPlanOverlay');
@@ -1611,7 +1913,7 @@ async function _cargarPlanes(mes) {
     overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(); });
 })();
 
-function _abrirDirPlanModal(profId) {
+function _abrirDirPlanModal(profId, pcId = null) {
     const prof  = _dirPlanAsigsByProf[profId];
     const mes   = Number(document.getElementById('planesMesSel').value);
     const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1657,16 +1959,184 @@ function _abrirDirPlanModal(profId) {
     document.getElementById('dirPlanOverlay').classList.add('visible');
 }
 
+let _dirPlanSemanaLectura = 1;
+let _dirPlanLecturaCtx = null;
+
+function _abrirDirPlanModal(profId, pcId = null) {
+    const prof = _dirPlanAsigsByProf[profId];
+    const mes = Number(document.getElementById('planesMesSel').value);
+    const meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    if (!prof) return;
+
+    _dirPlanSemanaLectura = 1;
+    const planesPorSemana = { 1: [], 2: [], 3: [], 4: [] };
+    _planesData
+        .filter(p => p.profesor_id === profId)
+        .filter(p => !pcId || p.profesor_curso_id === pcId)
+        .forEach(p => {
+            if (!planesPorSemana[p.semana]) planesPorSemana[p.semana] = [];
+            planesPorSemana[p.semana].push(p);
+        });
+
+    const selectedPc = pcId ? (prof.pcs || []).find(pc => pc.id === pcId) : null;
+    _dirPlanLecturaCtx = { prof, mes, meses, planesPorSemana, selectedPc };
+    document.getElementById('dirPlanTitle').textContent = `Planificacion Semanal: ${meses[mes]} ${new Date().getFullYear()}`;
+    _renderDirPlanTitleChips(prof);
+    document.getElementById('dirPlanSub').innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        ${_escapeHtml(prof.nombre)} - vista solo lectura para direccion.`;
+
+    _renderDirPlanLecturaSidebar();
+    _renderDirPlanLecturaContent();
+    document.getElementById('dirPlanOverlay').classList.add('visible');
+}
+
+function _renderDirPlanTitleChips(prof) {
+    const chips = document.getElementById('dirPlanTitleChips');
+    if (!chips) return;
+
+    const planesSemana = _dirPlanLecturaCtx?.planesPorSemana?.[_dirPlanSemanaLectura] || [];
+    const selectedPc = _dirPlanLecturaCtx?.selectedPc;
+    const fuente = selectedPc ? [selectedPc] : (planesSemana.length ? planesSemana : (prof.pcs || []));
+    const materias = [...new Set(fuente.map(item => item.materia_nombre).filter(Boolean))];
+    const cursos = [...new Set(fuente.map(item => item.curso_nombre).filter(Boolean))];
+    const materiaLabel = materias.length === 1
+        ? materias[0]
+        : `${materias.length || 0} materias`;
+    const cursoLabel = cursos.length === 1
+        ? cursos[0]
+        : `${cursos.length || 0} cursos`;
+
+    chips.innerHTML = `
+        <span class="pm-title-chip" title="${_escapeHtml(prof.nombre || 'Profesor')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>${_escapeHtml(prof.nombre || 'Profesor')}</span>
+        </span>
+        <span class="pm-title-chip pm-title-chip--subject" title="${_escapeHtml(materiaLabel)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <span>${_escapeHtml(materiaLabel)}</span>
+        </span>
+        <span class="pm-title-chip pm-title-chip--course" title="${_escapeHtml(cursoLabel)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <span>${_escapeHtml(cursoLabel)}</span>
+        </span>`;
+}
+
+const _DIR_PLAN_SVG_CAL_OK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>`;
+const _DIR_PLAN_SVG_CAL = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+function _renderDirPlanLecturaSidebar() {
+    const list = document.getElementById('dirPlanWeekList');
+    if (!_dirPlanLecturaCtx || !list) return;
+
+    list.innerHTML = [1, 2, 3, 4].map(semana => {
+        const saved = (_dirPlanLecturaCtx.planesPorSemana[semana] || []).length > 0;
+        const active = semana === _dirPlanSemanaLectura;
+        return `<button class="pm-week-item${active ? ' pm-week-item--active' : ''}" data-s="${semana}">
+            <span class="pm-week-icon">${saved ? _DIR_PLAN_SVG_CAL_OK : _DIR_PLAN_SVG_CAL}</span>
+            <span>Semana ${semana}</span>
+            ${saved ? '<span class="pm-week-saved-dot"></span>' : ''}
+        </button>`;
+    }).join('');
+
+    list.querySelectorAll('.pm-week-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const semana = Number(btn.dataset.s);
+            if (semana === _dirPlanSemanaLectura) return;
+            _dirPlanSemanaLectura = semana;
+            _renderDirPlanLecturaSidebar();
+            _renderDirPlanTitleChips(_dirPlanLecturaCtx.prof);
+            _renderDirPlanLecturaContent();
+        });
+    });
+}
+
+function _renderDirPlanLecturaContent() {
+    const body = document.getElementById('dirPlanBody');
+    if (!_dirPlanLecturaCtx || !body) return;
+
+    const { mes, meses, planesPorSemana, selectedPc } = _dirPlanLecturaCtx;
+    const planes = [...(planesPorSemana[_dirPlanSemanaLectura] || [])].sort((a, b) =>
+        String(a.curso_nombre || '').localeCompare(String(b.curso_nombre || '')) ||
+        String(a.materia_nombre || '').localeCompare(String(b.materia_nombre || ''))
+    );
+    const rango = _dirPlanLecturaPeriodo(mes, _dirPlanSemanaLectura, planes[0]);
+    const ordinal = ['', 'primera', 'segunda', 'tercera', 'cuarta'];
+    const headerHtml = `
+        <div class="pm-content-header">
+            <div class="pm-content-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+            </div>
+            <div>
+                <p class="pm-content-title">${_escapeHtml(rango)}</p>
+                <p class="pm-content-sub">Planes registrados para la ${ordinal[_dirPlanSemanaLectura]} semana de ${meses[mes]}.</p>
+            </div>
+        </div>`;
+
+    if (!planes.length) {
+        body.innerHTML = `${headerHtml}<div class="pm-readonly-text pm-readonly-text--empty">Sin plan registrado para esta semana.</div>`;
+        return;
+    }
+
+    body.innerHTML = `${headerHtml}
+        <div class="dir-plan-readonly-list">
+            ${planes.map(p => `
+                <article class="dir-plan-readonly-item">
+                    <div class="dir-plan-readonly-head">${_escapeHtml(selectedPc?.curso_nombre || p.curso_nombre || 'Curso')}</div>
+                    <div class="dir-plan-readonly-text">${_escapeHtml(p.descripcion || 'Sin descripcion.')}</div>
+                </article>
+            `).join('')}
+        </div>`;
+}
+
+function _dirPlanLecturaPeriodo(mes, semana, plan = null) {
+    if (plan?.fecha_inicio && plan?.fecha_fin) {
+        return `${_dirPlanLecturaFmtFecha(plan.fecha_inicio)} - ${_dirPlanLecturaFmtFecha(plan.fecha_fin)}`;
+    }
+    const year = new Date().getFullYear();
+    const first = new Date(year, mes - 1, 1);
+    const dowMon = (first.getDay() + 6) % 7;
+    const daysToMonday = (7 - dowMon) % 7;
+    const start = new Date(year, mes - 1, 1 + daysToMonday + (semana - 1) * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return `${_dirPlanLecturaFmtDate(start)} - ${_dirPlanLecturaFmtDate(end)}`;
+}
+
+function _dirPlanLecturaFmtFecha(value) {
+    return _dirPlanLecturaFmtDate(new Date(`${value}T00:00:00`));
+}
+
+function _dirPlanLecturaFmtDate(date) {
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return `${date.getDate()} de ${meses[date.getMonth()]}`;
+}
+
 async function _ejecutarDescargaExcel() {
     const mes = document.getElementById('planesMesSel').value;
     const btn = document.getElementById('btnExportarPlanes');
+    const meses = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const SVG_DOWNLOAD = `
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Descargar Excel`;
+        Descargar Planes`;
 
     btn.disabled = true;
     btn.innerHTML = `
@@ -1677,27 +2147,48 @@ async function _ejecutarDescargaExcel() {
 
     const token = localStorage.getItem('access_token');
     try {
+        if (!token) {
+            throw new Error('Tu sesion expiro. Vuelve a iniciar sesion para descargar el Excel.');
+        }
+        _mostrarResultadoAccion('info', 'Iniciando descarga', `Preparando el Excel de planes de trabajo de ${meses[mes]}.`);
+
         const res = await fetch(`/api/academics/director/planes/exportar/?mes=${mes}`, {
             headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.errores || 'Error al generar el archivo.');
+            const err = await _leerErrorExportacion(res);
+            throw new Error(err || `No se pudo generar el Excel. Error ${res.status}.`);
         }
         const blob = await res.blob();
+        if (!blob.size) {
+            throw new Error('El servidor genero un archivo vacio.');
+        }
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
-        const meses = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
         a.href     = url;
         a.download = `planes_trabajo_${meses[mes]}_2026.xlsx`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        _mostrarResultadoAccion('success', 'Descarga iniciada', 'El Excel se esta descargando en tu navegador.');
     } catch (e) {
-        showToast(e.message || 'No se pudo descargar el archivo.', 'error');
+        _mostrarResultadoAccion('error', 'No se pudo descargar', e.message || 'No se pudo descargar el archivo.');
     } finally {
         btn.disabled = false;
         btn.innerHTML = SVG_DOWNLOAD;
     }
+}
+
+async function _leerErrorExportacion(res) {
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        const data = await res.json().catch(() => null);
+        return _mensajeErrorServidor(data, '');
+    }
+    const text = await res.text().catch(() => '');
+    return text ? text.slice(0, 180) : '';
 }
 
 // ── Modal exportar mes global ──────────────────────────────────
@@ -1724,20 +2215,37 @@ _btnConfExport.addEventListener('click', async () => {
     const meses = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const token = localStorage.getItem('access_token');
     try {
+        if (!token) {
+            _mostrarResultadoAccion('error', 'No se pudo descargar', 'Tu sesion expiro. Vuelve a iniciar sesion para descargar el Excel.');
+            return;
+        }
+        _mostrarResultadoAccion('info', 'Iniciando descarga', `Preparando el Excel de planes de trabajo de ${meses[mes]}.`);
+
         const res = await fetch(`/api/academics/director/planes/exportar/?mes=${mes}`, {
             headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            showToast(data.errores || 'No hay planes para ese mes.', 'error');
+            const mensaje = await _leerErrorExportacion(res);
+            _mostrarResultadoAccion('error', 'No se pudo descargar', mensaje || 'No hay planes para ese mes.');
             return;
         }
         const blob = await res.blob();
+        if (!blob.size) {
+            _mostrarResultadoAccion('error', 'No se pudo descargar', 'El servidor genero un archivo vacio.');
+            return;
+        }
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href = url; a.download = `planes_trabajo_${meses[mes]}.xlsx`;
-        a.click(); URL.revokeObjectURL(url);
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        _mostrarResultadoAccion('success', 'Descarga iniciada', 'El Excel se esta descargando en tu navegador.');
         _cerrarModalExportMes();
+    } catch (e) {
+        _mostrarResultadoAccion('error', 'No se pudo descargar', e.message || 'No se pudo descargar el archivo.');
     } finally {
         _btnConfExport.disabled = false;
     }
@@ -1746,7 +2254,7 @@ _btnConfExport.addEventListener('click', async () => {
 document.getElementById('btnExportarPlanes').addEventListener('click', () => {
     // Sin datos en absoluto → bloquear
     if (_planesData.length === 0) {
-        showToast('No hay planes registrados para este mes. No se puede generar el Excel.', 'error');
+        _mostrarResultadoAccion('error', 'No se puede descargar', 'No hay planes registrados para este mes. No se puede generar el Excel.');
         return;
     }
 
@@ -2053,6 +2561,10 @@ function _pnActivar() {
 }
 
 function _pnInicializar() {
+    document.getElementById('pnMesPrev')?.addEventListener('click', () => _pnMoverMes(-1));
+    document.getElementById('pnMesNext')?.addEventListener('click', () => _pnMoverMes(1));
+    document.getElementById('pnBuscarProfesor')?.addEventListener('input', _pnAplicarFiltro);
+
     // Pastillas de filtro — solo esconden/muestran, sin re-fetch
     document.querySelectorAll('.pn-pill').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2073,8 +2585,19 @@ function _pnInicializar() {
     _pnCargar();
 }
 
+function _pnMoverMes(delta) {
+    const siguiente = Math.min(12, Math.max(1, _pnMes + delta));
+    if (siguiente === _pnMes) return;
+    _pnMes = siguiente;
+    _pnActualizarBadge();
+    _pnCargar();
+}
+
 function _pnActualizarBadge() {
-    document.getElementById('pnMesBadgeText').textContent = _MESES_NOMBRE[_pnMes] || '–';
+    const badgeText = document.getElementById('pnMesBadgeText');
+    if (badgeText) badgeText.textContent = _MESES_NOMBRE[_pnMes] || '–';
+    const label = document.getElementById('pnMesLabel');
+    if (label) label.textContent = _MESES_NOMBRE[_pnMes] || '–';
 }
 
 // ── Carga de datos ────────────────────────────────────────────────
@@ -2102,10 +2625,16 @@ async function _pnCargar() {
 // ── Contadores de tabs ────────────────────────────────────────────
 function _pnActualizarContadores() {
     const completados = _pnDatos.filter(p => p.total_cursos > 0 && p.cursos_con_notas === p.total_cursos).length;
-    const faltantes   = _pnDatos.filter(p => p.cursos_con_notas < p.total_cursos).length;
-    document.getElementById('pnCountTodos').textContent        = _pnDatos.length;
-    document.getElementById('pnCountCompletados').textContent  = completados;
-    document.getElementById('pnCountFaltantes').textContent    = faltantes;
+    const progreso = _pnDatos.filter(p => p.cursos_con_notas > 0 && p.cursos_con_notas < p.total_cursos).length;
+    const noIniciado = _pnDatos.filter(p => (p.cursos_con_notas || 0) === 0).length;
+    const countTodos = document.getElementById('pnCountTodos');
+    const countCompletados = document.getElementById('pnCountCompletados');
+    const countProgreso = document.getElementById('pnCountProgreso');
+    const countNoIniciado = document.getElementById('pnCountNoIniciado');
+    if (countTodos) countTodos.textContent = _pnDatos.length;
+    if (countCompletados) countCompletados.textContent = completados;
+    if (countProgreso) countProgreso.textContent = progreso;
+    if (countNoIniciado) countNoIniciado.textContent = noIniciado;
 
     const summaryTodos = document.getElementById('pnSummaryTodos');
     const summaryCompletados = document.getElementById('pnSummaryCompletados');
@@ -2114,14 +2643,15 @@ function _pnActualizarContadores() {
 
     if (summaryTodos) summaryTodos.textContent = _pnDatos.length;
     if (summaryCompletados) summaryCompletados.textContent = completados;
-    if (summaryFaltantes) summaryFaltantes.textContent = faltantes;
+    if (summaryFaltantes) summaryFaltantes.textContent = progreso + noIniciado;
     if (summaryCaption) {
         if (!_pnDatos.length) {
             summaryCaption.textContent = 'No hay profesores registrados para mostrar en este mes.';
-        } else if (faltantes === 0) {
+        } else if (progreso + noIniciado === 0) {
             summaryCaption.textContent = `Todos los profesores cerraron su carga de notas en ${_MESES_NOMBRE[_pnMes]}.`;
         } else {
-            summaryCaption.textContent = `${faltantes} profesor${faltantes !== 1 ? 'es' : ''} requieren seguimiento en ${_MESES_NOMBRE[_pnMes]}.`;
+            const pendientes = progreso + noIniciado;
+            summaryCaption.textContent = `${pendientes} profesor${pendientes !== 1 ? 'es' : ''} requieren seguimiento en ${_MESES_NOMBRE[_pnMes]}.`;
         }
     }
 }
@@ -2167,13 +2697,17 @@ function _pnRenderGrid() {
 // ── Filtro por CSS — sin re-fetch, sin re-render ──────────────────
 function _pnAplicarFiltro() {
     const cards  = document.querySelectorAll('.pn-card[data-estado]');
+    const query = (document.getElementById('pnBuscarProfesor')?.value || '').trim().toLowerCase();
     let   visible = 0;
 
     cards.forEach(card => {
         const estado = card.dataset.estado;
+        const search = card.dataset.search || '';
         let mostrar = true;
         if (_pnFiltro === 'completados') mostrar = estado === 'completo';
-        if (_pnFiltro === 'faltantes')   mostrar = estado === 'faltante';
+        if (_pnFiltro === 'progreso') mostrar = estado === 'progreso';
+        if (_pnFiltro === 'no-iniciado') mostrar = estado === 'no-iniciado';
+        if (query && !search.includes(query)) mostrar = false;
         card.style.display = mostrar ? '' : 'none';
         if (mostrar) visible++;
     });
@@ -2186,9 +2720,10 @@ function _pnAplicarFiltro() {
         if (msgEl && visible === 0) {
             const msgs = {
                 completados: `Ningún profesor completó todas sus notas en ${_MESES_NOMBRE[_pnMes]}.`,
-                faltantes:   `Todos los profesores ya subieron sus notas en ${_MESES_NOMBRE[_pnMes]}.`,
+                progreso:    `Ningún profesor está en progreso en ${_MESES_NOMBRE[_pnMes]}.`,
+                'no-iniciado': `No hay profesores sin iniciar en ${_MESES_NOMBRE[_pnMes]}.`,
             };
-            msgEl.textContent = msgs[_pnFiltro] || 'Sin resultados.';
+            msgEl.textContent = query ? 'No se encontraron profesores con ese nombre.' : (msgs[_pnFiltro] || 'Sin resultados.');
         }
     }
 }
@@ -2196,7 +2731,11 @@ function _pnAplicarFiltro() {
 // ── HTML de una tarjeta de profesor ──────────────────────────────
 function _pnHtmlCard(p, profIdx) {
     const estaCompleto = p.total_cursos > 0 && p.cursos_con_notas === p.total_cursos;
-    const cursosPendientes = Math.max((p.total_cursos || 0) - (p.cursos_con_notas || 0), 0);
+    const estaEnProgreso = !estaCompleto && (p.cursos_con_notas || 0) > 0;
+    const estadoAttr = estaCompleto ? 'completo' : estaEnProgreso ? 'progreso' : 'no-iniciado';
+    const statusText = estaCompleto ? 'Completo' : estaEnProgreso ? 'En progreso' : 'No iniciado';
+    const statusCls = estaCompleto ? 'pn-status--ok' : estaEnProgreso ? 'pn-status--warn' : 'pn-status--empty';
+    const searchText = `${p.nombre || ''} ${p.username || ''}`.toLowerCase();
     const chips = p.cursos.map((c, cursoIdx) => {
         if (c.tiene_notas) {
             return `<button
@@ -2215,11 +2754,7 @@ function _pnHtmlCard(p, profIdx) {
         </span>`;
     }).join('');
 
-    const estadoAttr = estaCompleto ? 'completo' : 'faltante';
-    const statusText = estaCompleto ? 'Completo' : 'Pendiente';
-    const statusCls = estaCompleto ? 'pn-status--ok' : 'pn-status--warn';
-
-    return `<article class="pn-card${estaCompleto ? ' pn-card--ok' : ''}" data-estado="${estadoAttr}">
+    return `<article class="pn-card${estaCompleto ? ' pn-card--ok' : ''}" data-estado="${estadoAttr}" data-search="${_escapeHtml(searchText)}">
         <div class="pn-card-accent"></div>
         <div class="pn-card-top">
             <div class="pn-card-head">
@@ -2234,20 +2769,6 @@ function _pnHtmlCard(p, profIdx) {
             <span class="pn-status ${statusCls}">${statusText}</span>
         </div>
         <div class="pn-card-body">
-            <div class="pn-card-metrics">
-                <div class="pn-mini-stat">
-                    <span class="pn-mini-stat-label">Cursos</span>
-                    <strong class="pn-mini-stat-value">${p.total_cursos}</strong>
-                </div>
-                <div class="pn-mini-stat">
-                    <span class="pn-mini-stat-label">Con notas</span>
-                    <strong class="pn-mini-stat-value">${p.cursos_con_notas}</strong>
-                </div>
-                <div class="pn-mini-stat">
-                    <span class="pn-mini-stat-label">Pendientes</span>
-                    <strong class="pn-mini-stat-value">${cursosPendientes}</strong>
-                </div>
-            </div>
             ${p.cursos.length ? `<div class="pn-chips-label">Cursos asignados</div>
             <div class="pn-chips">${chips}</div>` : `<div class="pn-no-courses">Sin asignaciones en este periodo.</div>`}
         </div>

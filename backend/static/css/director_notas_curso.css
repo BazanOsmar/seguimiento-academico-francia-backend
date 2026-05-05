@@ -53,6 +53,30 @@
     align-self: flex-start;
 }
 
+.nm-changes-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 13px;
+    border: 1px solid rgba(245, 158, 11, 0.26);
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #fcd34d;
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+
+.nm-changes-btn:hover,
+.nm-changes-btn.active {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.44);
+}
+
 .nm-data-shell {
     display: flex;
     flex-direction: column;
@@ -263,6 +287,25 @@
     font-size: 0.76rem;
 }
 
+.nm-td-score--changed {
+    background: rgba(245, 158, 11, 0.18) !important;
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.46);
+    color: #fef3c7;
+}
+
+.nm-score-current {
+    display: block;
+}
+
+.nm-score-prev {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: #fbbf24;
+    line-height: 1;
+}
+
 .nm-td-avg,
 .nm-th-avg {
     width: 58px;
@@ -315,6 +358,10 @@
 
     .nm-readonly-badge {
         margin-left: 0;
+    }
+
+    .nm-changes-btn {
+        width: 100%;
     }
 
     .nm-stats {

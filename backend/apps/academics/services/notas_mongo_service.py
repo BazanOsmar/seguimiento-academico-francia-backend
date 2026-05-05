@@ -748,6 +748,88 @@ def obtener_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
         return {}
 
 
+def obtener_cambios_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
+    """
+    Devuelve cambios registrados en historial_notas para celdas que actualmente
+    pertenecen al mes consultado. Cada cambio se puede mapear a una celda por:
+    trimestre + dimension + columna_idx + estudiante_id.
+    """
+    try:
+        db = _get_db()
+        detalle_col = db['detalle_notas']
+        historial_col = db['historial_notas']
+
+        actuales = {}
+        for doc in detalle_col.find({
+            'materia_id':  materia_id,
+            'curso_id':    curso_id,
+            'profesor_id': profesor_id,
+            'mes':         mes,
+            'gestion':     gestion,
+        }, {
+            '_id': 0,
+            'estudiante_id': 1,
+            'nombre_estudiante': 1,
+            'trimestre': 1,
+            'dimension': 1,
+            'columna_idx': 1,
+            'titulo': 1,
+            'nota': 1,
+        }):
+            key = (
+                doc.get('estudiante_id'),
+                doc.get('trimestre'),
+                doc.get('dimension'),
+                doc.get('columna_idx'),
+            )
+            actuales[key] = doc
+
+        if not actuales:
+            return []
+
+        cambios_por_key = {}
+        for hist in historial_col.find({
+            'materia_id':  materia_id,
+            'curso_id':    curso_id,
+            'profesor_id': profesor_id,
+            'gestion':     gestion,
+        }, {'_id': 0}).sort([('fecha_cambio', 1)]):
+            key = (
+                hist.get('estudiante_id'),
+                hist.get('trimestre'),
+                hist.get('dimension'),
+                hist.get('columna_idx'),
+            )
+            actual = actuales.get(key)
+            if not actual:
+                continue
+
+            nota_actual = actual.get('nota')
+            nota_hist = hist.get('nota_nueva')
+            if nota_hist is not None and nota_actual is not None and float(nota_hist) != float(nota_actual):
+                continue
+
+            cambios_por_key[key] = {
+                'estudiante_id':   key[0],
+                'nombre_estudiante': actual.get('nombre_estudiante') or '',
+                'trimestre':       key[1],
+                'dimension':       key[2],
+                'columna_idx':     key[3],
+                'titulo':          actual.get('titulo') or hist.get('titulo_nuevo') or '',
+                'nota_anterior':   hist.get('nota_anterior'),
+                'nota_nueva':      nota_actual,
+                'titulo_anterior': hist.get('titulo_anterior'),
+                'titulo_nuevo':    hist.get('titulo_nuevo'),
+                'tipo_cambio':     hist.get('tipo_cambio') or 'nota',
+                'fecha_cambio':    hist.get('fecha_cambio').isoformat() if hist.get('fecha_cambio') else None,
+            }
+
+        return list(cambios_por_key.values())
+
+    except Exception:
+        return []
+
+
 def promedios_saber_hacer_por_materia(estudiante_id, materia_ids, trimestre=None):
     """
     Devuelve el promedio de (saber + hacer) por materia para un estudiante,
@@ -839,6 +921,22 @@ def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
 
     except Exception:
         return {mid: None for mid in materia_ids}
+
+
+def ultima_fecha_carga_profesor(profesor_id: int):
+    """
+    Retorna la fecha_carga más reciente del profesor en detalle_notas, o None si nunca subió notas.
+    """
+    try:
+        col = _get_db()['detalle_notas']
+        doc = col.find_one(
+            {'profesor_id': profesor_id},
+            {'fecha_carga': 1},
+            sort=[('fecha_carga', -1)],
+        )
+        return doc['fecha_carga'] if doc and doc.get('fecha_carga') else None
+    except Exception:
+        return None
 
 
 def todos_cargaron_mes(mes: int, gestion: int) -> bool:

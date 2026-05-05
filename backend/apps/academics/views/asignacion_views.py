@@ -130,6 +130,7 @@ class ProfesorMisAsignacionesView(APIView):
     permission_classes = [IsAuthenticated, IsProfesor]
 
     def get(self, request):
+        from django.utils import timezone
         try:
             mes = int(request.query_params.get('mes', 0))
             if not (1 <= mes <= 12):
@@ -137,6 +138,13 @@ class ProfesorMisAsignacionesView(APIView):
         except (ValueError, TypeError):
             return Response(
                 {'errores': 'El parámetro mes es requerido y debe ser un número entre 1 y 12.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        mes_servidor = timezone.localtime(timezone.now()).month
+        if mes != mes_servidor:
+            return Response(
+                {'errores': 'El mes solicitado no coincide con el mes actual del sistema.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

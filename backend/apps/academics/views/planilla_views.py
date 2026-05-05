@@ -20,7 +20,7 @@ from ..services.notas_mongo_service import (
     guardar_notas, obtener_notas, calcular_notas_mensuales,
     hay_notas_mes, obtener_notas_mes, pc_ids_con_notas_mes,
     comparar_notas_con_mongo, obtener_detalle_notas_tutor, obtener_promedios_grupo,
-    todos_cargaron_mes,
+    todos_cargaron_mes, ultima_fecha_carga_profesor,
 )
 
 _DRAFT_TTL  = 1800          # 30 minutos
@@ -139,12 +139,18 @@ class ValidarPlanillaView(APIView):
         # ── Planilla válida: guardar borrador en cache y devolver preview ─
         if es_2026:
             headers_por_trim = estructura['metadatos'].get('headers_actividades', {})
+
+            # El mes siempre lo determina el servidor (zona horaria Bolivia)
+            mes_num = timezone.localtime(timezone.now()).month
             try:
-                mes_num = int(request.data.get('mes', 0))
-                if not 1 <= mes_num <= 12:
-                    mes_num = 0
+                mes_cliente = int(request.data.get('mes', 0))
             except (ValueError, TypeError):
-                mes_num = 0
+                mes_cliente = 0
+            if mes_cliente and mes_cliente != mes_num:
+                return _error(
+                    'El período enviado no coincide con el mes actual del sistema. '
+                    'Recarga la página e intenta de nuevo.'
+                )
 
             gestion = timezone.now().year
             diferencias = comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=gestion)
@@ -214,9 +220,18 @@ class ConfirmarPlanillaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Verificar que no se hayan subido notas de ese mes previamente
         mes     = draft.get('mes', 0)
         gestion = draft.get('gestion', timezone.now().year)
+
+        # Verificar que el mes del draft coincide con el mes actual del sistema
+        if mes and mes != timezone.localtime(timezone.now()).month:
+            cache.delete(_DRAFT_PREFIX + token)
+            return Response(
+                {'errores': 'El período de este borrador ya no corresponde al mes actual. Vuelve a validar la planilla.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verificar que no se hayan subido notas de ese mes previamente
         if mes and hay_notas_mes(
             profesor_curso.materia.id, profesor_curso.curso.id,
             profesor_curso.profesor.id, mes, gestion,
@@ -452,3 +467,21 @@ class ResumenGrupoProfesorView(APIView):
             })
 
         return Response(data)
+
+
+class UltimaCargaProfesorView(APIView):
+    """
+    GET /api/academics/profesor/ultima-carga/
+
+    Retorna la fecha de carga más reciente del profesor en detalle_notas,
+    convertida a zona horaria de Bolivia.
+    """
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        import zoneinfo
+        fecha = ultima_fecha_carga_profesor(request.user.id)
+        if not fecha:
+            return Response({'fecha_carga': None})
+        la_paz = zoneinfo.ZoneInfo('America/La_Paz')
+        return Response({'fecha_carga': fecha.astimezone(la_paz).strftime('%d/%m/%Y %H:%M')})

@@ -21,10 +21,13 @@
         /* -- Subnav — tab bar ------------------------------------- */
         .acad-subnav {
             display: flex;
-            align-items: stretch;
-            border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 10px;
-            gap: 0;
+            align-items: center;
+            margin-bottom: 18px;
+            gap: 10px;
+            padding: 10px;
+            background: linear-gradient(180deg, rgba(30, 50, 82, .72), rgba(15, 27, 46, .72));
+            border: 1px solid rgba(59, 130, 246, .18);
+            border-radius: 22px;
             overflow-x: auto;
             overflow-y: hidden;
             scrollbar-width: none;
@@ -32,35 +35,76 @@
         .acad-subnav::-webkit-scrollbar { display: none; }
 
         .acad-pivot {
-            padding: 0 18px;
-            height: 44px;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid transparent;
+            min-height: 44px;
+            padding: 8px 18px;
+            background: rgba(15, 23, 42, .26);
+            border: 1px solid transparent;
+            border-radius: 14px;
             color: var(--text-muted);
             font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
+            font-weight: 700;
+            cursor: default;
             display: flex;
             align-items: center;
-            gap: 8px;
-            transition: color .15s, border-color .15s;
+            justify-content: center;
+            gap: 10px;
+            line-height: 1.1;
+            overflow: hidden;
+            transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
             white-space: nowrap;
-            margin-bottom: -1px;
             flex-shrink: 0;
         }
         .acad-pivot svg {
-            flex-shrink: 0; width: 15px; height: 15px;
-            opacity: .45; transition: opacity .15s;
+            flex: 0 0 34px;
+            width: 34px;
+            height: 34px;
+            padding: 8px;
+            border-radius: 12px;
+            background: rgba(148, 163, 184, .12);
+            color: var(--text-secondary);
+            opacity: 1;
+            display: block;
+            transition: background .15s, color .15s, box-shadow .15s;
         }
-        .acad-pivot:hover { color: var(--text-secondary); }
-        .acad-pivot:hover svg { opacity: .7; }
-        .acad-pivot.active {
+        .acad-pivot:hover {
+            background: rgba(15, 23, 42, .36);
+            color: var(--text-secondary);
+        }
+        .acad-pivot:hover svg {
+            background: rgba(96, 165, 250, .14);
             color: var(--accent-text);
-            font-weight: 600;
-            border-bottom-color: var(--accent);
         }
-        .acad-pivot.active svg { opacity: 1; }
+        .acad-pivot.active {
+            background: rgba(30, 64, 175, .42);
+            color: #fff;
+            border-color: rgba(96, 165, 250, .36);
+            box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .14);
+        }
+        .acad-pivot.active svg {
+            background: rgba(37, 99, 235, .42);
+            color: #dbeafe;
+            box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .24);
+        }
+        @media (max-width: 640px) {
+            .acad-subnav {
+                gap: 8px;
+                padding: 8px;
+                border-radius: 18px;
+            }
+            .acad-pivot {
+                min-height: 40px;
+                padding: 6px 12px;
+                gap: 8px;
+                font-size: 0.8rem;
+            }
+            .acad-pivot svg {
+                flex-basis: 30px;
+                width: 30px;
+                height: 30px;
+                padding: 7px;
+                border-radius: 10px;
+            }
+        }
 
         .acad-subnav-sep {
             width: 1px;
@@ -611,7 +655,7 @@
             font-size: 1.25rem;
             font-weight: 800;
             line-height: 1;
-            cursor: pointer;
+            cursor: default;
             transition: background .15s, color .15s, opacity .15s;
         }
         .vp-follow-month-nav .cit-mes-nav__btn:hover:not(:disabled) {
@@ -1541,8 +1585,193 @@
         .empty-state svg { opacity: .35; margin-bottom: 6px; }
 
         /* -- Vista Planes de Trabajo ------------------------------- */
+        #vistaPlanes {
+            padding-top: 6px;
+        }
+        #vistaPlanes .planes-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        #vistaPlanes .planes-overview-card {
+            padding: 22px;
+            background:
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 30%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+                rgba(15, 23, 42, 0.64);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 24px;
+            box-shadow: 0 18px 40px rgba(2, 6, 23, 0.18);
+        }
+        #vistaPlanes .planes-overview-note {
+            margin: 14px 0 0;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            line-height: 1.55;
+        }
         .planes-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
         .planes-header h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0; flex: 1; }
+        .planes-controls {
+            grid-template-columns: minmax(240px, 1fr) 150px minmax(430px, 1.25fr);
+            margin-bottom: 2px;
+        }
+        .planes-month-wrap {
+            position: relative;
+            min-width: 0;
+        }
+        .planes-month-wrap .cit-mes-nav {
+            width: 100%;
+            min-width: 0;
+            min-height: 44px;
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) 28px;
+            gap: 4px;
+            padding: 0 8px;
+            overflow: hidden;
+        }
+        .planes-month-wrap .cit-mes-nav__btn {
+            width: 28px;
+            min-width: 28px;
+            justify-self: center;
+        }
+        .planes-month-wrap .cit-mes-nav__label {
+            min-width: 0;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .planes-mes-sel--overlay {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            left: 50%;
+            bottom: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .planes-filter {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+        .planes-filter .vp-follow-user-filter {
+            min-width: 0;
+        }
+        .planes-filter .vp-follow-user-filter__btn {
+            min-width: 0;
+            padding: 0 8px;
+            font-size: 0.72rem;
+            white-space: nowrap;
+        }
+        .planes-filter .vp-follow-user-filter__btn:not(.active) {
+            color: var(--text-muted);
+        }
+        .planes-filter-menu {
+            display: none;
+            position: relative;
+            min-width: 0;
+        }
+        .planes-filter-menu summary {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 14px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.44);
+            color: var(--text-primary);
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            list-style: none;
+        }
+        .planes-filter-menu summary::-webkit-details-marker {
+            display: none;
+        }
+        .planes-filter-menu summary::after {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg) translateY(-2px);
+            opacity: .7;
+            transition: transform .15s;
+        }
+        .planes-filter-menu[open] summary::after {
+            transform: rotate(225deg) translateY(-2px);
+        }
+        .planes-filter-menu__list {
+            position: absolute;
+            z-index: 12;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            padding: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.98);
+            box-shadow: 0 18px 40px rgba(2, 6, 23, 0.32);
+        }
+        .planes-filter-menu__item {
+            width: 100%;
+            min-height: 38px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .planes-filter-menu__item.active {
+            background: rgba(37, 99, 235, 0.38);
+            color: #dbeafe;
+        }
+        #vistaPlanes .btn-exportar-excel {
+            min-height: 44px;
+            justify-content: center;
+            border-radius: 999px;
+            padding-inline: 18px;
+        }
+        @media (max-width: 1100px) {
+            .planes-controls {
+                grid-template-columns: minmax(220px, 1fr) 150px 190px;
+            }
+            .planes-filter {
+                grid-column: 1 / -1;
+            }
+        }
+        @media (max-width: 980px) {
+            .planes-controls {
+                grid-template-columns: 1fr 1fr;
+            }
+            .planes-filter {
+                grid-column: 1 / -1;
+            }
+        }
+        @media (max-width: 760px) {
+            .planes-filter .vp-follow-user-filter {
+                display: none;
+            }
+            .planes-filter-menu {
+                display: block;
+            }
+        }
+        @media (max-width: 640px) {
+            .planes-controls {
+                grid-template-columns: 1fr;
+            }
+            .planes-filter {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+        }
         .planes-mes-sel { padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.875rem; cursor: pointer; outline: none; }
         .planes-mes-sel:focus { border-color: var(--accent); }
         .btn-exportar-excel {
@@ -1560,38 +1789,144 @@
         .btn-exportar-excel svg { flex-shrink: 0; }
 
         /* -- Vista Planes — tarjetas por profesor ------------------- */
-        .prof-planes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+        .prof-planes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
         .prof-planes-card {
-            background: var(--bg-card);
-            border: 2px solid var(--border-subtle);
-            border-radius: var(--radius-card);
-            padding: 18px 16px;
-            transition: border-color .15s, background .15s;
-            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(30, 50, 82, .82), rgba(22, 38, 62, .78)),
+                rgba(15, 23, 42, .62);
+            border: 1px solid rgba(148, 163, 184, .12);
+            border-radius: 16px;
+            padding: 17px 18px 18px;
+            min-width: 0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 10px 24px rgba(2, 6, 23, .14);
+            transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
+            cursor: default;
         }
-        .prof-planes-card:hover { border-color: var(--accent); }
+        .prof-planes-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(96, 165, 250, .24), transparent);
+            pointer-events: none;
+        }
+        .prof-planes-card:hover {
+            border-color: rgba(96, 165, 250, .28);
+            transform: translateY(-1px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 14px 30px rgba(2, 6, 23, .2);
+        }
         .prof-planes-card--complete {
-            border-color: rgba(34,197,94,.5);
-            background: rgba(34,197,94,.03);
+            border-color: rgba(34,197,94,.24);
+            background:
+                linear-gradient(180deg, rgba(25, 58, 54, .72), rgba(22, 43, 56, .76)),
+                rgba(15, 23, 42, .62);
         }
-        .prof-planes-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .prof-planes-top { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; min-width: 0; }
         .prof-planes-avatar {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: var(--accent); color: #fff;
+            width: 38px; height: 38px; border-radius: 14px;
+            background: linear-gradient(135deg, #2563eb, #60a5fa); color: #fff;
             display: flex; align-items: center; justify-content: center;
             font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
             letter-spacing: .04em;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .24);
         }
         .prof-planes-card--complete .prof-planes-avatar {
-            background: rgba(34,197,94,.18); color: #22c55e;
+            background: rgba(34,197,94,.16); color: #86efac;
+            box-shadow: none;
         }
-        .prof-planes-name { font-size: 0.84rem; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
-        .prof-planes-sub  { font-size: 0.71rem; color: var(--text-muted); margin-top: 3px; }
-        .prof-planes-dots { display: flex; flex-wrap: wrap; gap: 7px; }
-        .prof-planes-dot  { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-        .prof-planes-dot--ok      { background: #22c55e; }
-        .prof-planes-dot--partial { background: #f59e0b; }
-        .prof-planes-dot--empty   { background: var(--border); }
+        .prof-planes-name {
+            color: var(--text-primary);
+            font-size: 0.86rem;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .prof-planes-sub {
+            color: #7f92ad;
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .prof-planes-progress {
+            height: 3px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, .10);
+            margin: 0 0 13px;
+        }
+        .prof-planes-progress__bar {
+            display: block;
+            height: 100%;
+            width: var(--progress, 0%);
+            border-radius: inherit;
+            background: linear-gradient(90deg, #60a5fa, #22c55e);
+        }
+        .prof-planes-card--complete .prof-planes-progress__bar { background: #22c55e; }
+        .prof-planes-course-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .prof-planes-course {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            min-height: 27px;
+            padding: 0 11px;
+            border: 1px solid rgba(148, 163, 184, .13);
+            border-radius: 999px;
+            background: rgba(12, 22, 38, .48);
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+            transition: background .15s, border-color .15s, color .15s, transform .15s;
+        }
+        .prof-planes-course:hover {
+            border-color: rgba(96, 165, 250, .32);
+            background: rgba(37, 99, 235, .16);
+            transform: translateY(-1px);
+        }
+        .prof-planes-course--complete {
+            border-color: rgba(34, 197, 94, .28);
+            background: rgba(34, 197, 94, .1);
+        }
+        .prof-planes-course--partial {
+            border-color: rgba(245, 158, 11, .3);
+            background: rgba(245, 158, 11, .1);
+        }
+        .prof-planes-course__name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #9fb1ca;
+            font-size: 0.74rem;
+            font-weight: 800;
+        }
+        .prof-planes-course--complete .prof-planes-course__name { color: #bbf7d0; }
+        .prof-planes-course--partial .prof-planes-course__name { color: #fcd34d; }
+        .prof-planes-more {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 2px 0;
+        }
+        @media (max-width: 980px) {
+            .prof-planes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .prof-planes-grid { grid-template-columns: 1fr; }
+        }
 
         /* -- Modal Nueva Asignación -------------------------------- */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 300; align-items: center; justify-content: center; }
@@ -1606,42 +1941,336 @@
         .modal-actions-row .btn-ghost { flex: 1; }
         .modal-actions-row .btn-primary { flex: 1; }
 
-        /* -- Modal Ver Planes de un Profesor (solo lectura) ------- */
-        .dir-plan-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 450; align-items: center; justify-content: center; }
-        .dir-plan-overlay.visible { display: flex; }
-        .dir-plan-box {
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius-card);
-            width: 100%; max-width: 560px; max-height: 82vh;
-            margin: 16px; display: flex; flex-direction: column; overflow: hidden;
+        /* -- Modal Ver Planes de Trabajo (solo lectura director) --- */
+        @keyframes pmIn { from { opacity: 0; transform: scale(.97) translateY(12px); } to { opacity: 1; transform: none; } }
+        #dirPlanOverlay.pm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(8, 13, 28, .82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
-        .dir-plan-head {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            padding: 20px 22px 14px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+        #dirPlanOverlay.pm-overlay.visible { display: flex; }
+        #dirPlanOverlay .pm-modal {
+            width: min(860px, 100%);
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 18px;
+            box-shadow: 0 32px 80px rgba(0,0,0,.65);
+            animation: pmIn .2s ease;
         }
-        .dir-plan-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
-        .dir-plan-sub   { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
-        .dir-plan-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; transition: color .15s; flex-shrink: 0; }
-        .dir-plan-close:hover { color: var(--text-primary); }
-        .dir-plan-body  { overflow-y: auto; padding: 16px 22px; flex: 1; }
-        .dir-plan-section { margin-bottom: 20px; }
-        .dir-plan-section:last-child { margin-bottom: 0; }
-        .dir-plan-section-head {
-            font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .05em; color: var(--accent-text);
-            margin-bottom: 10px; padding-bottom: 6px;
-            border-bottom: 1px solid var(--border-subtle);
+        #dirPlanOverlay .pm-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 24px 28px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            flex-shrink: 0;
         }
-        .dir-plan-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
-        .dir-plan-row:last-child { border-bottom: none; }
-        .dir-plan-week {
-            font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .04em; color: var(--text-muted);
-            width: 54px; flex-shrink: 0; padding-top: 2px;
+        #dirPlanOverlay .pm-eyebrow {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            font-size: .6rem;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
         }
-        .dir-plan-text  { flex: 1; font-size: 0.82rem; color: var(--text-primary); line-height: 1.5; }
-        .dir-plan-text--empty { flex: 1; font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
-        .dir-plan-footer { padding: 12px 22px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; display: flex; justify-content: flex-end; }
+        #dirPlanOverlay .pm-title {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.45rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        #dirPlanOverlay .pm-title-chips {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        #dirPlanOverlay .pm-title-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            max-width: 100%;
+            min-height: 28px;
+            padding: 0 11px;
+            border: 1px solid rgba(96, 165, 250, .2);
+            border-radius: 999px;
+            background: rgba(59, 130, 246, .1);
+            color: #bfdbfe;
+            font-size: .74rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        #dirPlanOverlay .pm-title-chip svg {
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+        }
+        #dirPlanOverlay .pm-title-chip span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #dirPlanOverlay .pm-title-chip--course {
+            border-color: rgba(168, 85, 247, .24);
+            background: rgba(168, 85, 247, .11);
+            color: #e9d5ff;
+        }
+        #dirPlanOverlay .pm-title-chip--subject {
+            border-color: rgba(34, 197, 94, .22);
+            background: rgba(34, 197, 94, .1);
+            color: #bbf7d0;
+        }
+        #dirPlanOverlay .pm-close {
+            flex-shrink: 0;
+            padding: 4px 8px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: color .15s, background .15s;
+        }
+        #dirPlanOverlay .pm-close:hover {
+            background: rgba(255,255,255,.07);
+            color: var(--text-primary);
+        }
+        #dirPlanOverlay .pm-body {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        #dirPlanOverlay .pm-sidebar {
+            width: 210px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 20px 14px;
+            border-right: 1px solid rgba(255,255,255,.07);
+            overflow-y: auto;
+        }
+        #dirPlanOverlay .pm-sidebar-label {
+            display: block;
+            margin-bottom: 6px;
+            padding: 0 8px;
+            color: var(--text-muted);
+            font-size: .58rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        #dirPlanOverlay .pm-week-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: .875rem;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        #dirPlanOverlay .pm-week-item:hover:not(.pm-week-item--active) {
+            background: rgba(255,255,255,.05);
+            color: var(--text-primary);
+        }
+        #dirPlanOverlay .pm-week-item--active {
+            background: rgba(59,130,246,.14);
+            color: var(--text-primary);
+            font-weight: 700;
+            border-left: 3px solid var(--accent);
+        }
+        #dirPlanOverlay .pm-week-icon {
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 6px;
+            background: rgba(255,255,255,.05);
+            color: var(--text-muted);
+        }
+        #dirPlanOverlay .pm-week-item--active .pm-week-icon {
+            background: rgba(59,130,246,.2);
+            border-color: rgba(59,130,246,.4);
+            color: var(--accent-text);
+        }
+        #dirPlanOverlay .pm-week-saved-dot {
+            width: 7px;
+            height: 7px;
+            flex-shrink: 0;
+            margin-left: auto;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+        #dirPlanOverlay .pm-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        #dirPlanOverlay .pm-content::-webkit-scrollbar { width: 5px; }
+        #dirPlanOverlay .pm-content::-webkit-scrollbar-track { background: transparent; }
+        #dirPlanOverlay .pm-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+        #dirPlanOverlay .pm-content-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+        #dirPlanOverlay .pm-content-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border-radius: 10px;
+            background: rgba(59,130,246,.15);
+            border: 1px solid rgba(59,130,246,.3);
+            color: var(--accent-text);
+        }
+        #dirPlanOverlay .pm-content-title {
+            margin: 0 0 3px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        #dirPlanOverlay .pm-content-sub {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: .8rem;
+            line-height: 1.4;
+        }
+        #dirPlanOverlay .pm-readonly-text {
+            min-height: 260px;
+            padding: 16px 18px;
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 12px;
+            background: rgba(255,255,255,.03);
+            color: var(--text-primary);
+            font-size: .9rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        #dirPlanOverlay .pm-readonly-text--empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .dir-plan-readonly-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .dir-plan-readonly-item {
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 12px;
+            background: rgba(255,255,255,.03);
+            overflow: hidden;
+        }
+        .dir-plan-readonly-head {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            color: var(--accent-text);
+            font-size: .74rem;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .dir-plan-readonly-text {
+            padding: 14px;
+            color: var(--text-primary);
+            font-size: .9rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        #dirPlanOverlay .pm-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 24px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            background: rgba(255,255,255,.02);
+            flex-shrink: 0;
+        }
+        #dirPlanOverlay .pm-footer-hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            font-size: .75rem;
+        }
+        #dirPlanOverlay .pm-btn-cancel {
+            padding: 9px 22px;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: .875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        #dirPlanOverlay .pm-btn-cancel:hover {
+            background: rgba(255,255,255,.06);
+            color: var(--text-primary);
+        }
+        @media (max-width: 600px) {
+            #dirPlanOverlay .pm-body { flex-direction: column; }
+            #dirPlanOverlay .pm-sidebar {
+                width: 100%;
+                flex-direction: row;
+                gap: 6px;
+                padding: 12px 10px;
+                border-right: 0;
+                border-bottom: 1px solid rgba(255,255,255,.07);
+                overflow-x: auto;
+                overflow-y: visible;
+            }
+            #dirPlanOverlay .pm-sidebar-label { display: none; }
+            #dirPlanOverlay .pm-week-item {
+                min-width: 90px;
+                flex-shrink: 0;
+            }
+            #dirPlanOverlay .pm-footer {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
 
         /* -- Modal Advertencia Exportar --------------------------- */
         /* -- Modal exportar mes global ------------------------ */
@@ -2125,12 +2754,12 @@
                     </svg>
                     Profesores y asignaciones
                 </button>
-                <button class="acad-pivot" data-pivot="cursos">
+                <button class="acad-pivot" data-pivot="planes">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                     </svg>
-                    Por Curso
+                    Plan de trabajo
                 </button>
                 <button class="acad-pivot" data-pivot="materias">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2138,6 +2767,13 @@
                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                     </svg>
                     Materias
+                </button>
+                <button class="acad-pivot" data-pivot="cursos">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                    Por Curso
                 </button>
                 <button class="acad-pivot" data-pivot="notas">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2147,7 +2783,7 @@
                         <line x1="16" y1="17" x2="8" y2="17"/>
                         <line x1="10" y1="9" x2="8" y2="9"/>
                     </svg>
-                    Notas
+                    Control Calificaciones
                 </button>
             </nav>
                 <!-- -- Contenido principal ------------------------- -->
@@ -2247,10 +2883,10 @@
                             <section class="mat-overview-card">
                                 <div class="mat-header mat-header--materias">
                                     <div class="mat-header__copy">
-                                        <span class="mat-kicker">Catálogo académico</span>
                                         <h2 class="mat-header__title">Gestión de Materias</h2>
                                         <p class="mat-header__sub">Consulta y administra el listado académico de la institución con una vista más clara en escritorio y móvil.</p>
                                     </div>
+                                    <button class="btn-primary mat-add-trigger" id="btnAbrirCrearMateria" type="button">Añadir Materia</button>
                                 </div>
                                 <p class="mat-overview-note">Cada materia se muestra como un elemento independiente para facilitar lectura, revisión y eliminación sin depender de una tabla rígida.</p>
                             </section>
@@ -2286,36 +2922,77 @@
 
                     <!-- Vista: Planes de Trabajo -->
                     <div class="acad-vista" id="vistaPlanes">
-                        <div class="mat-header">
-                            <h2 class="mat-header__title">Planes de Trabajo</h2>
-                            <p class="mat-header__sub">Supervisa el avance mensual de planes y exporta reportes consolidados.</p>
-                        </div>
-                        <div class="planes-header">
-                            <select class="planes-mes-sel" id="planesMesSel">
-                                <option value="1">Enero</option>
-                                <option value="2">Febrero</option>
-                                <option value="3">Marzo</option>
-                                <option value="4">Abril</option>
-                                <option value="5">Mayo</option>
-                                <option value="6">Junio</option>
-                                <option value="7">Julio</option>
-                                <option value="8">Agosto</option>
-                                <option value="9">Septiembre</option>
-                                <option value="10">Octubre</option>
-                                <option value="11">Noviembre</option>
-                                <option value="12">Diciembre</option>
-                            </select>
-                            <button class="btn-exportar-excel" id="btnExportarPlanes">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                Descargar Excel
-                            </button>
-                        </div>
-                        <div id="planesContent">
-                            <div class="spinner-inline"></div>
+                        <div class="planes-shell">
+                            <section class="planes-overview-card">
+                                <div class="mat-header mat-header--actions">
+                                    <div class="mat-header__copy">
+                                        <h2 class="mat-header__title">Planes de trabajo</h2>
+                                        <p class="mat-header__sub">Consulta el avance mensual de los planes por profesor y revisa el estado de cada asignación.</p>
+                                    </div>
+                                    <button class="btn-exportar-excel" id="btnExportarPlanes">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Descargar Planes
+                                    </button>
+                                </div>
+                                <p class="planes-overview-note">Selecciona un mes para revisar los planes registrados y abre un profesor para ver el detalle por materia y curso.</p>
+                            </section>
+
+                            <div class="vp-follow-controls planes-controls">
+                                <label class="vp-follow-search" for="planesBuscarProfesor">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <path d="m21 21-4.35-4.35"/>
+                                    </svg>
+                                    <input id="planesBuscarProfesor" type="search" placeholder="Buscar profesor" autocomplete="off">
+                                </label>
+                                <div class="planes-month-wrap">
+                                    <div class="cit-mes-nav vp-follow-month-nav">
+                                        <button class="cit-mes-nav__btn" id="planesMesPrev" type="button" aria-label="Mes anterior">&#8249;</button>
+                                        <span class="cit-mes-nav__label" id="planesMesLabel">Mayo</span>
+                                        <button class="cit-mes-nav__btn" id="planesMesNext" type="button" aria-label="Mes siguiente">&#8250;</button>
+                                    </div>
+                                    <select class="planes-mes-sel planes-mes-sel--overlay" id="planesMesSel" aria-label="Mes de planes">
+                                        <option value="1">Enero</option>
+                                        <option value="2">Febrero</option>
+                                        <option value="3">Marzo</option>
+                                        <option value="4">Abril</option>
+                                        <option value="5">Mayo</option>
+                                        <option value="6">Junio</option>
+                                        <option value="7">Julio</option>
+                                        <option value="8">Agosto</option>
+                                        <option value="9">Septiembre</option>
+                                        <option value="10">Octubre</option>
+                                        <option value="11">Noviembre</option>
+                                        <option value="12">Diciembre</option>
+                                    </select>
+                                </div>
+                                <div class="vp-follow-control-field planes-filter">
+                                    <span class="vp-follow-control-label">Planes</span>
+                                    <div class="vp-follow-user-filter" role="group" aria-label="Filtro de planes">
+                                        <button class="vp-follow-user-filter__btn active" type="button" data-planes-filter="todos">Todos</button>
+                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="completos">Completos</button>
+                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="progreso">En progreso</button>
+                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="sin-iniciar">No empezaron</button>
+                                    </div>
+                                    <details class="planes-filter-menu">
+                                        <summary id="planesFilterSummary">Todos</summary>
+                                        <div class="planes-filter-menu__list">
+                                            <button class="planes-filter-menu__item active" type="button" data-planes-filter="todos">Todos</button>
+                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="completos">Completos</button>
+                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="progreso">En progreso</button>
+                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="sin-iniciar">No empezaron</button>
+                                        </div>
+                                    </details>
+                                </div>
+                            </div>
+
+                            <div id="planesContent">
+                                <div class="spinner-inline"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -2325,94 +3002,52 @@
                             <section class="pn-overview-card">
                                 <div class="mat-header mat-header--actions pn-header">
                                     <div class="mat-header__copy">
-                                        <span class="pn-kicker">Seguimiento docente</span>
-                                        <h2 class="mat-header__title">Notas por Profesor</h2>
+                                        <h2 class="mat-header__title">Control Calificaciones</h2>
                                         <p class="mat-header__sub">Control mensual de carga de calificaciones. Haz clic en un curso verde para ver el detalle de notas.</p>
                                     </div>
-                                    <div class="acad-actions-row">
-                                        <span class="pn-mes-badge" id="pnMesBadge">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                                <line x1="8"  y1="2" x2="8"  y2="6"/>
-                                                <line x1="3"  y1="10" x2="21" y2="10"/>
-                                            </svg>
-                                            <span id="pnMesBadgeText">–</span>
-                                        </span>
-                                    </div>
                                 </div>
-                                <div class="pn-summary-grid">
-                                    <article class="pn-summary-card pn-summary-card--all">
-                                        <div class="pn-summary-card-inner">
-                                            <div class="pn-summary-copy">
-                                                <span class="pn-summary-label">Profesores</span>
-                                                <strong class="pn-summary-value" id="pnSummaryTodos">0</strong>
-                                                <span class="pn-summary-note">Total en seguimiento</span>
-                                            </div>
-                                            <span class="pn-summary-icon pn-summary-icon--all" aria-hidden="true">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                                    <circle cx="9" cy="7" r="4"></circle>
-                                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </article>
-                                    <article class="pn-summary-card pn-summary-card--ok">
-                                        <div class="pn-summary-card-inner">
-                                            <div class="pn-summary-copy">
-                                                <span class="pn-summary-label">Completados</span>
-                                                <strong class="pn-summary-value" id="pnSummaryCompletados">0</strong>
-                                                <span class="pn-summary-note">Carga de notas completa</span>
-                                            </div>
-                                            <span class="pn-summary-icon pn-summary-icon--ok" aria-hidden="true">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M20 6 9 17l-5-5"></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </article>
-                                    <article class="pn-summary-card pn-summary-card--warn">
-                                        <div class="pn-summary-card-inner">
-                                            <div class="pn-summary-copy">
-                                                <span class="pn-summary-label">Faltantes</span>
-                                                <strong class="pn-summary-value" id="pnSummaryFaltantes">0</strong>
-                                                <span class="pn-summary-note">Aun requieren seguimiento</span>
-                                            </div>
-                                            <span class="pn-summary-icon pn-summary-icon--warn" aria-hidden="true">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M12 9v4"></path>
-                                                    <path d="M12 17h.01"></path>
-                                                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </article>
-                                </div>
-                                <p class="pn-summary-caption" id="pnSummaryCaption">Visualiza el estado general de carga de notas del mes actual.</p>
                             </section>
 
-                            <section class="pn-toolbar-card">
-                                <div class="pn-toolbar-copy">
-                                    <span class="pn-toolbar-label">Filtros</span>
-                                    <p class="pn-toolbar-text">Usa estas vistas para revisar el avance y detectar rápidamente a quienes aún no cerraron su carga.</p>
-                                </div>
+                            <div class="pn-controls">
                                 <div class="pn-pills">
                                     <button class="pn-pill active" data-filter="todos">
                                         Todos
                                         <span class="pn-pill-count" id="pnCountTodos">0</span>
                                     </button>
                                     <button class="pn-pill" data-filter="completados">
-                                        Completados
+                                        Completos
                                         <span class="pn-pill-count" id="pnCountCompletados">0</span>
                                     </button>
-                                    <button class="pn-pill" data-filter="faltantes">
-                                        Faltantes
-                                        <span class="pn-pill-count" id="pnCountFaltantes">0</span>
+                                    <button class="pn-pill" data-filter="progreso">
+                                        En progreso
+                                        <span class="pn-pill-count" id="pnCountProgreso">0</span>
+                                    </button>
+                                    <button class="pn-pill" data-filter="no-iniciado">
+                                        No iniciado
+                                        <span class="pn-pill-count" id="pnCountNoIniciado">0</span>
                                     </button>
                                 </div>
-                            </section>
+                                <label class="pn-search" for="pnBuscarProfesor">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <path d="m21 21-4.35-4.35"/>
+                                    </svg>
+                                    <input id="pnBuscarProfesor" type="search" placeholder="Buscar profesor" autocomplete="off">
+                                </label>
+                                <div class="pn-month-nav" aria-label="Selector de mes">
+                                    <button class="pn-month-btn" id="pnMesPrev" type="button" aria-label="Mes anterior">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="15 18 9 12 15 6"/>
+                                        </svg>
+                                    </button>
+                                    <span class="pn-month-label" id="pnMesLabel">Mayo</span>
+                                    <button class="pn-month-btn" id="pnMesNext" type="button" aria-label="Mes siguiente">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="9 18 15 12 9 6"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
 
                             <div class="pn-grid-wrap">
                                 <div class="pn-grid-head">
@@ -2459,6 +3094,42 @@
                 <button class="btn-ghost" id="pnPickerCancel">Cancelar</button>
             </div>
         </div>
+    </div>
+
+    <!-- -- Modal: Nueva Materia ------------------------------------ -->
+    <div class="modal-overlay" id="modalNuevaMateria">
+        <form class="modal-box" id="formCrearMateria" autocomplete="off">
+            <h3 class="modal-title">Añadir Materia</h3>
+            <div class="modal-field">
+                <label class="modal-label" for="inputNombreMateria">Nombre de la materia</label>
+                <input class="modal-select" id="inputNombreMateria" type="text" placeholder="Ej. Biología">
+            </div>
+            <div class="error-inline" id="errorMateria">
+                <span id="errorMateriaMsg"></span>
+            </div>
+            <div class="modal-actions-row">
+                <button class="btn-ghost" id="btnCancelNuevaMateria" type="button">Cancelar</button>
+                <button class="btn-primary" id="btnCrearMateria" type="submit">Añadir Materia</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- -- Modal: Editar Materia ----------------------------------- -->
+    <div class="modal-overlay" id="modalEditarMateria">
+        <form class="modal-box" id="formEditarMateria" autocomplete="off">
+            <h3 class="modal-title">Editar Materia</h3>
+            <div class="modal-field">
+                <label class="modal-label" for="inputEditarMateria">Nombre de la materia</label>
+                <input class="modal-select" id="inputEditarMateria" type="text" placeholder="Nombre de la materia">
+            </div>
+            <div class="error-inline" id="errorEditarMateria">
+                <span id="errorEditarMateriaMsg"></span>
+            </div>
+            <div class="modal-actions-row">
+                <button class="btn-ghost" id="btnCancelEditarMateria" type="button">Cancelar</button>
+                <button class="btn-primary" id="btnGuardarEditarMateria" type="submit">Guardar</button>
+            </div>
+        </form>
     </div>
 
     <!-- -- Modal: Nueva Asignación -------------------------------- -->
@@ -2564,22 +3235,33 @@
     </div>
 
     <!-- -- Modal: Ver planes de un profesor (solo lectura) ------- -->
-    <div class="dir-plan-overlay" id="dirPlanOverlay">
-        <div class="dir-plan-box">
-            <div class="dir-plan-head">
+    <div class="pm-overlay" id="dirPlanOverlay">
+        <div class="pm-modal">
+            <div class="pm-header">
                 <div>
-                    <div class="dir-plan-title" id="dirPlanTitle"></div>
-                    <div class="dir-plan-sub"   id="dirPlanSub"></div>
+                    <span class="pm-eyebrow">Plan académico del profesor</span>
+                    <h2 class="pm-title" id="dirPlanTitle">Planificación Semanal</h2>
+                    <div class="pm-title-chips" id="dirPlanTitleChips"></div>
                 </div>
-                <button class="dir-plan-close" id="btnCerrarDirPlan">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+                <button class="pm-close" id="btnCerrarDirPlan" aria-label="Cerrar">&#10005;</button>
             </div>
-            <div class="dir-plan-body" id="dirPlanBody"></div>
-            <div class="dir-plan-footer">
-                <button class="btn-ghost" id="btnCerrarDirPlan2">Cerrar</button>
+            <div class="pm-body">
+                <nav class="pm-sidebar">
+                    <span class="pm-sidebar-label">Semanas Académicas</span>
+                    <div id="dirPlanWeekList"></div>
+                </nav>
+                <div class="pm-content" id="dirPlanBody"></div>
+            </div>
+            <div class="pm-footer">
+                <span class="pm-footer-hint" id="dirPlanSub">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Vista solo lectura para dirección.
+                </span>
+                <div class="pm-footer-actions">
+                    <button class="pm-btn-cancel" id="btnCerrarDirPlan2">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2652,7 +3334,7 @@
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
-                    Descargar Excel
+                    Descargar Planes
                 </button>
             </div>
         </div>

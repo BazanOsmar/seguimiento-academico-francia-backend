@@ -36,15 +36,46 @@ class MateriaListCreateView(APIView):
 
 class MateriaDetailView(APIView):
     """
-    DELETE /api/academics/materias/{id}/  — elimina una materia
+    PUT/PATCH /api/academics/materias/{id}/  — actualiza una materia
+    DELETE    /api/academics/materias/{id}/  — elimina una materia
     Permiso: Director.
     """
     permission_classes = [IsAuthenticated, IsDirector]
 
-    def delete(self, request, materia_id):
+    def _get_materia(self, materia_id):
         try:
-            materia = Materia.objects.get(pk=materia_id)
+            return Materia.objects.get(pk=materia_id)
         except Materia.DoesNotExist:
+            return None
+
+    def put(self, request, materia_id):
+        return self._actualizar(request, materia_id)
+
+    def patch(self, request, materia_id):
+        return self._actualizar(request, materia_id)
+
+    def _actualizar(self, request, materia_id):
+        materia = self._get_materia(materia_id)
+        if materia is None:
+            return Response({"errores": "Materia no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MateriaSerializer(materia, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        nombre = serializer.validated_data.get('nombre', materia.nombre).strip()
+        if Materia.objects.exclude(pk=materia.pk).filter(nombre__iexact=nombre).exists():
+            return Response(
+                {"errores": "Ya existe una materia con ese nombre."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        materia = serializer.save(nombre=nombre)
+        return Response(MateriaSerializer(materia).data)
+
+    def delete(self, request, materia_id):
+        materia = self._get_materia(materia_id)
+        if materia is None:
             return Response({"errores": "Materia no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
         if ProfesorCurso.objects.filter(materia=materia).exists():

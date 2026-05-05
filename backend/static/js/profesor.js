@@ -57,15 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
     _initUserInfo();
     _initTabs();
     _initCitaciones();
-    _initNotasFolderTabs();
     _initCitacionForm();
     _initPlanForm();
     _initPrimerIngreso();
     cargarCursos();
-    // Cargar con el mes activo del folder tab (0-based idx + 1 = mes API)
     if (document.getElementById('notasClasesGrid')) {
-        const _tabActivo = document.querySelector('.notas-folder-tab.active');
-        cargarAsignacionesNotas(_tabActivo ? parseInt(_tabActivo.dataset.mes) + 1 : null);
+        cargarAsignacionesNotas();
+        _cargarUltimaCarga();
     }
     _verificarDotPlan();
     // Modo páginas separadas: cargar datos de la sección activa directamente
@@ -328,16 +326,67 @@ function _initUserInfo() {
 
 
 
-// ── Cargar asignaciones para el panel de Notas ────────────────────
-async function cargarAsignacionesNotas(mes = null) {
-    const grid = document.getElementById('notasClasesGrid');
-    const countEl = document.getElementById('notasMateriasCount');
-    const url = mes !== null
-        ? `/api/academics/profesor/mis-asignaciones/?mes=${mes}`
-        : '/api/academics/profesor/mis-asignaciones/';
-    const { ok, data } = await fetchAPI(url);
+// ── Zona horaria Bolivia (UTC-4, sin DST) ─────────────────────────
+function _mesBolivia() {
+    return new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/La_Paz' })
+    ).getMonth() + 1; // 1-based
+}
 
-    if (!ok || !data || !data.length) {
+function _anioBolivia() {
+    return new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/La_Paz' })
+    ).getFullYear();
+}
+
+const _MESES_LABEL = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+// ── Cargar asignaciones para el panel de Notas ────────────────────
+async function cargarAsignacionesNotas() {
+    const grid      = document.getElementById('notasClasesGrid');
+    const countEl   = document.getElementById('notasMateriasCount');
+    const periodLbl = document.getElementById('notasPeriodLabel');
+    const mesPill   = document.getElementById('notasMesPill');
+
+    const mes  = _mesBolivia();
+    const anio = _anioBolivia();
+
+    // Actualizar pill de mes
+    if (mesPill) mesPill.textContent = `${_MESES_LABEL[mes]} ${anio}`.toUpperCase();
+    if (periodLbl) periodLbl.textContent = _MESES_LABEL[mes];
+
+    // Mostrar spinner mientras se cargan los datos
+    grid.innerHTML = `
+        <div class="notas-loading">
+            <div class="notas-loading__spinner"></div>
+            <p>Cargando asignaciones...</p>
+        </div>`;
+    if (countEl) countEl.innerHTML = '';
+
+    const token   = localStorage.getItem('access_token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // Ambas peticiones en paralelo: asignaciones + estado de notas del mes
+    const [asignResult, estadoResult] = await Promise.allSettled([
+        fetch(`/api/academics/profesor/mis-asignaciones/?mes=${mes}`, { headers }),
+        fetch(`/api/academics/profesor/notas-estado-mes/?mes=${mes}`, { headers }),
+    ]);
+
+    let data = [];
+    if (asignResult.status === 'fulfilled' && asignResult.value.ok) {
+        try { data = await asignResult.value.json(); } catch { data = []; }
+    }
+
+    const pcSubidas = new Set();
+    if (estadoResult.status === 'fulfilled' && estadoResult.value.ok) {
+        try {
+            const estadoData = await estadoResult.value.json();
+            (estadoData.pc_ids_con_notas || []).forEach(id => pcSubidas.add(String(id)));
+        } catch { /* silencioso */ }
+    }
+
+    if (!Array.isArray(data) || !data.length) {
         grid.innerHTML = `<div class="notas-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -345,134 +394,95 @@ async function cargarAsignacionesNotas(mes = null) {
             </svg>
             <p>No tienes asignaciones registradas.</p>
         </div>`;
-        if (countEl) countEl.textContent = '0 materias';
         return;
     }
 
-    if (countEl) countEl.textContent = `${data.length} materia${data.length !== 1 ? 's' : ''}`;
+    // Indicador de progreso
+    const cargadas   = data.filter(a => pcSubidas.has(String(a.id))).length;
+    const pendientes = data.length - cargadas;
+    if (countEl) {
+        countEl.innerHTML =
+            `<span class="notas-prog__cargadas">${cargadas} cargada${cargadas !== 1 ? 's' : ''}</span>` +
+            `<span class="notas-prog__sep"> · </span>` +
+            `<span class="notas-prog__pendientes">${pendientes} pendiente${pendientes !== 1 ? 's' : ''}</span>`;
+    }
 
-    grid.innerHTML = data.map((a) => `
-        <div class="notas-clase-card">
+    const _svgBook = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>`;
+    const _svgChevron = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+    </svg>`;
+
+    // Renderizar todas las tarjetas con estado ya conocido (sin segunda pasada)
+    grid.innerHTML = data.map(a => {
+        const yaSubidas = pcSubidas.has(String(a.id));
+        const badge     = yaSubidas
+            ? `<span class="notas-subido-badge">✓ Notas cargadas</span>`
+            : '';
+        const btnLabel  = yaSubidas ? 'Ver notas' : 'Gestionar';
+        return `
+        <div class="notas-clase-card${yaSubidas ? ' notas-clase-card--subido' : ''}">
             <div class="notas-clase-card__band"></div>
             <div class="notas-clase-card__body">
                 <div class="notas-clase-card__top">
                     <span class="notas-clase-card__curso-tag">${_escapeHtml(a.materia_nombre)}</span>
-                    <span class="notas-clase-card__icon">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                        </svg>
-                    </span>
+                    <div class="notas-clase-card__top-right">
+                        ${badge}
+                        <span class="notas-clase-card__icon">${_svgBook}</span>
+                    </div>
                 </div>
                 <p class="notas-clase-card__materia">${_escapeHtml(a.curso_nombre)}</p>
                 <div class="notas-clase-card__footer">
                     <button class="notas-clase-card__btn"
                             data-pc-id="${a.id}"
-                            data-curso-id="${a.curso_id}"
                             data-label="${_escapeHtml(a.materia_nombre)} — ${_escapeHtml(a.curso_nombre)}"
                             data-materia="${_escapeHtml(a.materia_nombre)}"
-                            data-curso="${_escapeHtml(a.curso_nombre)}">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                        Gestionar
+                            data-curso="${_escapeHtml(a.curso_nombre)}"
+                            data-mes="${mes}"
+                            data-ya-subidas="${yaSubidas ? '1' : '0'}">
+                        ${_svgChevron}
+                        ${btnLabel}
                     </button>
                 </div>
             </div>
-        </div>`
-    ).join('');
-
-    // Obtener el número de mes activo (1-based) para verificar estado de notas
-    const activeTab = document.querySelector('.notas-folder-tab.active');
-    const mesNum = activeTab ? parseInt(activeTab.dataset.mes, 10) + 1 : null;
-
-    // Wiring de botones con ya_subidas=false por defecto
-    const _pcSubidas = new Set();
-    grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const yaSubidas = _pcSubidas.has(btn.dataset.pcId);
-            _irASubirNotas(btn.dataset.pcId, btn.dataset.label, mesNum || '', btn.dataset.materia, btn.dataset.curso, yaSubidas);
-        });
-    });
-
-    // Verificar estado de notas en batch (sin bloquear la UI)
-    if (mesNum) { _marcarNotasCargadas(mesNum, _pcSubidas); }
-}
-
-async function _marcarNotasCargadas(mes, pcSubidasSet) {
-    const token = localStorage.getItem('access_token');
-    if (!token) return;
-    try {
-        const res = await fetch(
-            `/api/academics/profesor/notas-estado-mes/?mes=${mes}`,
-            { headers: { 'Authorization': `Bearer ${token}` } },
-        );
-        if (!res.ok) return;
-        const { pc_ids_con_notas } = await res.json();
-        if (!pc_ids_con_notas || !pc_ids_con_notas.length) return;
-
-        pc_ids_con_notas.forEach(id => pcSubidasSet.add(String(id)));
-
-        pc_ids_con_notas.forEach(pcId => {
-            const btn = document.querySelector(`.notas-clase-card__btn[data-pc-id="${pcId}"]`);
-            if (!btn) return;
-            const card = btn.closest('.notas-clase-card');
-            if (!card) return;
-            // Añadir banda de color al card
-            card.classList.add('notas-clase-card--subido');
-            // Añadir badge si aún no existe
-            if (!card.querySelector('.notas-subido-badge')) {
-                const badge = document.createElement('span');
-                badge.className = 'notas-subido-badge';
-                badge.textContent = '✓ Notas cargadas';
-                card.querySelector('.notas-clase-card__top').appendChild(badge);
-            }
-        });
-    } catch { /* silencioso — no afectar la UI si falla */ }
-}
-
-// ── Folder tabs de meses (Marzo–Diciembre, meses futuros bloqueados) ─
-function _initNotasFolderTabs() {
-    if (!document.getElementById('notasFolderTabs')) return;
-    const MESES_ESCOLAR = [
-        { nombre: 'Marzo', idx: 2 }, { nombre: 'Abril',      idx: 3 },
-        { nombre: 'Mayo',  idx: 4 }, { nombre: 'Junio',      idx: 5 },
-        { nombre: 'Julio', idx: 6 }, { nombre: 'Agosto',     idx: 7 },
-        { nombre: 'Sep.',  idx: 8 }, { nombre: 'Octubre',    idx: 9 },
-        { nombre: 'Nov.',  idx:10 }, { nombre: 'Diciembre',  idx:11 },
-    ];
-    const mesActual  = new Date().getMonth(); // 0-based
-    const container  = document.getElementById('notasFolderTabs');
-    const periodLabel = document.getElementById('notasPeriodLabel');
-
-    // El mes activo es el actual (o Marzo si estamos antes de Marzo)
-    const mesActivoIdx = Math.max(mesActual, 2);
-
-    container.innerHTML = MESES_ESCOLAR.map(({ nombre, idx }) => {
-        const locked = idx > mesActual;
-        const active = idx === mesActivoIdx;
-        return `<button class="notas-folder-tab${active ? ' active' : ''}${locked ? ' locked' : ''}"
-                        data-mes="${idx}" data-nombre="${nombre}" ${locked ? 'disabled' : ''}>
-            ${nombre}
-        </button>`;
+        </div>`;
     }).join('');
 
-    // Inicializar label del período activo
-    const activeTab = container.querySelector('.active');
-    if (activeTab && periodLabel) periodLabel.textContent = activeTab.dataset.nombre;
-
-    container.addEventListener('click', e => {
-        const btn = e.target.closest('.notas-folder-tab');
-        if (!btn || btn.classList.contains('locked')) return;
-        container.querySelectorAll('.notas-folder-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (periodLabel) periodLabel.textContent = btn.dataset.nombre;
-        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        // data-mes es 0-based (JS), la API espera 1-based
-        cargarAsignacionesNotas(parseInt(btn.dataset.mes) + 1);
+    grid.querySelectorAll('.notas-clase-card__btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _irASubirNotas(
+                btn.dataset.pcId, btn.dataset.label,
+                btn.dataset.mes, btn.dataset.materia, btn.dataset.curso,
+                btn.dataset.yaSubidas === '1',
+            );
+        });
     });
+}
 
-    if (activeTab) activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
+// ── Cargar fecha de última subida de notas ────────────────────────
+async function _cargarUltimaCarga() {
+    const fechaEl = document.getElementById('notasUltimaCargaFecha');
+    const btnEl   = document.getElementById('btnVerHistorial');
+    if (!fechaEl) return;
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const res   = await fetch('/api/academics/profesor/ultima-carga/', {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) { fechaEl.textContent = 'Sin datos'; return; }
+        const { fecha_carga } = await res.json();
+        if (fecha_carga) {
+            fechaEl.textContent = fecha_carga;
+            if (btnEl) btnEl.disabled = false;
+        } else {
+            fechaEl.textContent = 'Sin datos';
+        }
+    } catch {
+        fechaEl.textContent = 'Sin datos';
+    }
 }
 
 

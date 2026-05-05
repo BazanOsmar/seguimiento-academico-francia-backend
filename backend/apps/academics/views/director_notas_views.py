@@ -13,6 +13,7 @@ from ..models import ProfesorCurso, ProfesorPlan
 from ..services.notas_mongo_service import (
     cursos_con_notas_mes,
     hay_notas_mes,
+    obtener_cambios_notas_mes,
     obtener_notas_mes,
     todos_pc_con_notas_mes,
 )
@@ -181,12 +182,16 @@ class DirectorNotasMesDetalleView(APIView):
         headers_por_trim = obtener_notas_mes(
             pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion
         )
+        cambios_notas = obtener_cambios_notas_mes(
+            pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion
+        )
 
         nombre_prof = f"{pc.profesor.first_name} {pc.profesor.last_name}".strip() or pc.profesor.username
 
         return Response({
             'ya_subidas':      True,
             'headers_por_trim': headers_por_trim,
+            'cambios_notas':    cambios_notas,
             'metadata': {
                 'materia':    pc.materia.nombre,
                 'curso':      f"{pc.curso.grado} \"{pc.curso.paralelo}\"",

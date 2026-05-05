@@ -452,6 +452,9 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                         Notas subidas
                     </span>
+                    <button class="nm-changes-btn" id="nmCambiosBtn" type="button" style="display:none;">
+                        Ver cambios
+                    </button>
                 </div>
 
                 <div class="nm-data-shell">
@@ -520,6 +523,8 @@
     let _headersPorTrim = {};
     let _metadata       = {};
     let _trimActivo     = '';
+    let _cambiosNotas   = {};
+    let _mostrarCambios = false;
 
     const _TRIM_ORDER  = ['1TRIM', '2TRIM', '3TRIM'];
     const _TRIM_LABELS = { '1TRIM': '1er Trimestre', '2TRIM': '2do Trimestre', '3TRIM': '3er Trimestre' };
@@ -598,6 +603,8 @@
 
         _headersPorTrim = data.headers_por_trim || {};
         _metadata       = data.metadata || {};
+        _cambiosNotas   = _normalizarCambios(data.cambios_notas || []);
+        _configurarBotonCambios(data.cambios_notas || []);
 
         _poblarHeader();
         _poblarTrimTabs();
@@ -608,6 +615,36 @@
         document.getElementById('nmContent').style.display = '';
         document.getElementById('pageTitle').textContent =
             `${_metadata.materia || '–'} · ${_metadata.curso || '–'}`;
+    }
+
+    function _changeKey(trim, dimension, colIdx, estudianteId) {
+        return `${trim}|${dimension}|${colIdx}|${estudianteId}`;
+    }
+
+    function _normalizarCambios(cambios) {
+        const map = {};
+        cambios.forEach(c => {
+            const trim = `${Number(c.trimestre || 1)}TRIM`;
+            map[_changeKey(trim, c.dimension, c.columna_idx, c.estudiante_id)] = c;
+        });
+        return map;
+    }
+
+    function _configurarBotonCambios(cambios) {
+        const btn = document.getElementById('nmCambiosBtn');
+        if (!btn) return;
+        if (!cambios.length) {
+            btn.style.display = 'none';
+            return;
+        }
+        btn.style.display = 'inline-flex';
+        btn.textContent = `Ver cambios (${cambios.length})`;
+        btn.addEventListener('click', () => {
+            _mostrarCambios = !_mostrarCambios;
+            btn.classList.toggle('active', _mostrarCambios);
+            btn.textContent = _mostrarCambios ? `Ocultar cambios (${cambios.length})` : `Ver cambios (${cambios.length})`;
+            _renderTabla(_trimActivo);
+        });
     }
 
     function _mostrarError(titulo, msg) {
@@ -750,8 +787,16 @@
         const dataRows = rowsWithAvg.map(r => {
             const scoresCells = dims.map(d => d.cols.map(col => {
                 const v = r.vals[col.__ck];
+                const cambio = _cambiosNotas[_changeKey(trimKey, d.key, col.col, r.nro)];
+                const cambioCls = cambio && _mostrarCambios ? ' nm-td-score--changed' : '';
+                const cambioTitle = cambio
+                    ? `Nota anterior: ${_fmt1(Number(cambio.nota_anterior))}`
+                    : '';
                 return isFinite(v)
-                    ? `<td class="nm-td-score">${_fmt1(v)}</td>`
+                    ? `<td class="nm-td-score${cambioCls}" title="${_esc(cambioTitle)}">
+                        <span class="nm-score-current">${_fmt1(v)}</span>
+                        ${cambio && _mostrarCambios ? `<span class="nm-score-prev">Antes: ${_fmt1(Number(cambio.nota_anterior))}</span>` : ''}
+                    </td>`
                     : `<td class="nm-td-score is-empty">–</td>`;
             }).join('')).join('');
 
