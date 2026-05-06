@@ -722,7 +722,7 @@
             width: 48px;
             min-width: 48px;
             max-width: 48px;
-            height: 104px;
+            height: 136px;
             padding: 0;
             vertical-align: bottom;
             text-align: center;
@@ -731,13 +731,28 @@
         }
 
         .cc-success-table__head--rot span {
-            display: inline-block;
+            display: inline-flex;
+            flex-direction: column;
             writing-mode: vertical-rl;
             transform: rotate(180deg);
-            padding: 10px 0;
-            line-height: 1.1;
-            max-height: 84px;
+            padding: 10px 4px;
+            line-height: 1.2;
+            max-height: 116px;
             overflow: hidden;
+            gap: 3px;
+        }
+
+        .cc-rot-date {
+            font-style: normal;
+            font-weight: 300;
+            opacity: .55;
+            font-size: .58rem;
+            letter-spacing: .02em;
+        }
+
+        .cc-rot-title {
+            font-weight: 700;
+            font-size: .65rem;
         }
 
         .cc-success-table__dim-prom {

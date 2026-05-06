@@ -22,10 +22,14 @@ let _diferencias = null;   // { sin_cambios, nuevas, modificadas, nuevas_columna
 let _modoAnterior = false; // toggle: false = Excel actual, true = datos anteriores
 
 // ── Estado modo historial ─────────────────────────────────────────
-let _modoHistorial     = false;           // true cuando viene de "Ver notas" del historial
-let _modHistorialMap   = new Map();       // clave → {nota_original, nota_actual}
-let _hayModHistorial   = false;           // hay celdas modificadas en el historial
-let _mostrandoOriginal = true;            // true = muestra original (rojo); false = valor actual
+let _modoHistorial     = false;
+let _modHistorialMap   = new Map();
+let _hayModHistorial   = false;
+let _mostrandoOriginal = true;
+
+// ── Filtros de vista ──────────────────────────────────────────────
+let _dimFilter   = null;   // null = todas | 'saber'|'hacer'|'ser' = solo esa
+let _currentTrim = null;   // trimestre activo para preservarlo al cambiar filtro
 
 // ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -686,10 +690,25 @@ function _renderDim(dim, titulo, color, maxPts) {
 
 function _ccSwitchDashboard(trim) {
     if (!_lastResultado) return;
+    if (trim) _currentTrim = trim;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
-    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, trim, _soloLectura);
+    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, _currentTrim, _soloLectura);
     _initTableScrollSync();
+}
+
+function _ccSwitchDim(dim) {
+    _dimFilter = dim || null;
+    _ccSwitchDashboard(_currentTrim);
+}
+
+function _rotHeaderHtml(titulo) {
+    const raw = String(titulo || '').trim();
+    const m = raw.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s*[-·]\s*(.*)/);
+    if (m) {
+        return `<em class="cc-rot-date">${_esc(m[1])}</em><strong class="cc-rot-title">${_esc(m[2].trim())}</strong>`;
+    }
+    return `<strong class="cc-rot-title">${_esc(raw)}</strong>`;
 }
 
 function _initTableScrollSync() {
@@ -773,16 +792,20 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         { key: 'ser',   label: 'SER',    css: 'ser',   short: 'Ser'   },
     ];
 
-    const dimensions = dimensionDefs
+    const allDimensions = dimensionDefs
         .map(def => ({ ...def, columns: Array.isArray(trimData[def.key]) ? trimData[def.key] : [] }))
         .filter(def => def.columns.length);
 
-    if (!dimensions.length) return '';
+    if (!allDimensions.length) return '';
+
+    const displayDimensions = _dimFilter
+        ? allDimensions.filter(d => d.key === _dimFilter)
+        : allDimensions;
 
     const rowMap = new Map();
     const allCellKeys = [];
 
-    dimensions.forEach(dim => {
+    allDimensions.forEach(dim => {
         dim.columns.forEach((col, index) => {
             const cellKey = `${dim.key}-${index}`;
             col.__cellKey = cellKey;
@@ -815,7 +838,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             .map(key => row.values[key])
             .filter(value => Number.isFinite(value));
         const dimPromedios = {};
-        dimensions.forEach(dim => {
+        allDimensions.forEach(dim => {
             const dimVals = dim.columns
                 .map(col => row.values[col.__cellKey])
                 .filter(v => Number.isFinite(v));
@@ -830,7 +853,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     });
 
     const dimAverages = {};
-    dimensions.forEach(dim => {
+    allDimensions.forEach(dim => {
         const values = [];
         dim.columns.forEach(col => {
             (col.notas || []).forEach(nota => {
@@ -850,12 +873,12 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const coverageLabel = coverage >= 95 ? 'Excelente' : coverage >= 80 ? 'Completo' : 'En proceso';
     const gestion = meta.gestion || new Date().getFullYear();
 
-    const totalScoreCols = dimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
-    const tableWidth = 54 + 260 + totalScoreCols * 48 + dimensions.length * 60 + 80;
+    const totalScoreCols = displayDimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
+    const tableWidth = 54 + 260 + totalScoreCols * 48 + displayDimensions.length * 60 + 80;
     const colgroup = `<colgroup>
         <col style="width:54px">
         <col style="width:260px">
-        ${dimensions.map(dim => [
+        ${displayDimensions.map(dim => [
             ...dim.columns.map(() => '<col style="width:48px">'),
             '<col style="width:60px">',
         ].join('')).join('')}
@@ -868,36 +891,35 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     };
     const trimLabel = trimLabels[trimKey] || trimKey;
 
-    const trimTabsHtml = trimOrder.map(t => {
-        const hasData = !!headersByTrim[t];
-        const isActive = t === trimKey;
-        return `<button
-            onclick="_ccSwitchDashboard('${t}')"
-            ${!hasData ? 'disabled' : ''}
-            style="padding:7px 18px;border-radius:8px;border:none;cursor:${hasData ? 'pointer' : 'not-allowed'};font-family:inherit;font-size:.82rem;font-weight:600;transition:background .15s,color .15s;
-                   background:${isActive ? 'var(--accent)' : 'var(--bg-input)'};
-                   color:${isActive ? '#fff' : hasData ? 'var(--text-secondary)' : 'var(--text-muted)'};
-                   opacity:${hasData ? '1' : '.45'};">
-            ${trimLabels[t]}
-        </button>`;
-    }).join('');
+    const _selectStyle = 'padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,.2);background:var(--bg-input,#1a2535);color:var(--text-primary,#eff6ff);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;outline:none;';
+    const trimSelectHtml = `<select onchange="_ccSwitchDashboard(this.value)" style="${_selectStyle}">
+        ${trimOrder.map(t => {
+            const hasData = !!headersByTrim[t];
+            return `<option value="${t}" ${t === trimKey ? 'selected' : ''} ${!hasData ? 'disabled' : ''}>${trimLabels[t]}</option>`;
+        }).join('')}
+    </select>`;
+    const dimSelectHtml = `<select onchange="_ccSwitchDim(this.value)" style="${_selectStyle}">
+        <option value="" ${!_dimFilter ? 'selected' : ''}>Todas las dimensiones</option>
+        ${allDimensions.map(d => `<option value="${d.key}" ${_dimFilter === d.key ? 'selected' : ''}>${d.label}</option>`).join('')}
+    </select>`;
+    const trimTabsHtml = `${trimSelectHtml}${dimSelectHtml}`;
 
-    const groupedHeaders = dimensions.map(dim => `
+    const groupedHeaders = displayDimensions.map(dim => `
         <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${dim.columns.length + 1}">
             ${_esc(dim.label)}
         </th>
     `).join('');
 
-    const rotatedHeaders = dimensions.map(dim => [
-        ...dim.columns.map((col, index) => `
+    const rotatedHeaders = displayDimensions.map(dim => [
+        ...dim.columns.map(col => `
             <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
-                <span>${_esc(_shortActivityLabel(col.titulo, index))}</span>
+                <span>${_rotHeaderHtml(col.titulo)}</span>
             </th>`),
         `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
     ].join('')).join('');
 
     const tableRows = rowSummaries.map(row => {
-        const scoreCells = dimensions.map(dim => {
+        const scoreCells = displayDimensions.map(dim => {
             const cells = dim.columns.map(col => {
                 const cellKey  = col.__cellKey;
                 const value    = row.values[cellKey];
@@ -967,7 +989,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         `;
     }).join('');
 
-    const dimFooter = dimensions.map(dim => `
+    const dimFooter = displayDimensions.map(dim => `
         <div class="cc-success-dim">
             <span class="cc-success-dim-bar cc-success-dim-bar--${dim.css}"></span>
             <span>${_esc(dim.short)} Promedio: ${_fmt1(dimAverages[dim.key])}</span>
