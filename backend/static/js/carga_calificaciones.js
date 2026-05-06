@@ -714,22 +714,25 @@ function _rotHeaderHtml(titulo) {
 function _initTableScrollSync() {
     const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
     if (!shell) return;
-    const headWrap  = shell.querySelector('.cc-success-table-head-wrap');
-    const headTable = headWrap ? headWrap.querySelector('table') : null;
-    const ghost     = shell.querySelector('.cc-success-ghost-scroll');
-    const bodyWrap  = shell.querySelector('.cc-success-table-body-wrap');
-    if (!headTable || !ghost || !bodyWrap) return;
+    const headWrap = shell.querySelector('.cc-success-table-head-wrap');
+    const ghost    = shell.querySelector('.cc-success-ghost-scroll');
+    const bodyWrap = shell.querySelector('.cc-success-table-body-wrap');
+    if (!headWrap || !ghost || !bodyWrap) return;
 
-    const syncHead = (left) => {
-        headWrap.scrollLeft = left;
-    };
+    let syncing = false;
     ghost.addEventListener('scroll', () => {
+        if (syncing) return;
+        syncing = true;
         bodyWrap.scrollLeft = ghost.scrollLeft;
-        syncHead(ghost.scrollLeft);
+        headWrap.scrollLeft = ghost.scrollLeft;
+        syncing = false;
     });
     bodyWrap.addEventListener('scroll', () => {
+        if (syncing) return;
+        syncing = true;
         ghost.scrollLeft = bodyWrap.scrollLeft;
-        syncHead(bodyWrap.scrollLeft);
+        headWrap.scrollLeft = bodyWrap.scrollLeft;
+        syncing = false;
     });
 }
 
@@ -874,12 +877,12 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const gestion = meta.gestion || new Date().getFullYear();
 
     const totalScoreCols = displayDimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
-    const tableWidth = 54 + 260 + totalScoreCols * 48 + displayDimensions.length * 60 + 80;
+    const tableWidth = 54 + 260 + totalScoreCols * 52 + displayDimensions.length * 60 + 80;
     const colgroup = `<colgroup>
         <col style="width:54px">
         <col style="width:260px">
         ${displayDimensions.map(dim => [
-            ...dim.columns.map(() => '<col style="width:48px">'),
+            ...dim.columns.map(() => '<col style="width:52px">'),
             '<col style="width:60px">',
         ].join('')).join('')}
         <col>
