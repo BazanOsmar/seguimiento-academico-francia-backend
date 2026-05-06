@@ -1557,7 +1557,7 @@ function _abrirModalDetalleCom(c, currentUser) {
     if (c.alcance === 'GRADO' && c.grado)        alcanceTexto = `Padres del grado ${c.grado}`;
 
     document.getElementById('detalleComTitulo').textContent    = c.titulo || '—';
-    document.getElementById('detalleComContenido').textContent = c.contenido || '—';
+    document.getElementById('detalleComContenido').textContent = c.descripcion || '—';
     document.getElementById('detalleComAlcance').textContent   = alcanceTexto;
     document.getElementById('detalleComFecha').textContent     = fecha;
 
@@ -2171,7 +2171,7 @@ async function _enviarComunicadoProf() {
         return;
     }
 
-    const payload = { titulo, contenido, alcance };
+    const payload = { titulo, descripcion: contenido, alcance };
     if (alcance === 'CURSO') payload.curso = parseInt(cursoId);
     if (alcance === 'GRUPO') payload.cursos_grupo_ids = cursosGrupo;
 
@@ -2188,7 +2188,7 @@ async function _enviarComunicadoProf() {
     btn.innerHTML = btnHtml;
 
     if (!ok) {
-        errEl.textContent   = data?.errores || data?.titulo?.[0] || data?.contenido?.[0] || 'Error al enviar el comunicado.';
+        errEl.textContent   = data?.errores || data?.titulo?.[0] || data?.descripcion?.[0] || 'Error al enviar el comunicado.';
         errEl.style.display = 'block';
         return;
     }

@@ -644,16 +644,21 @@ function _renderDim(dim, titulo, color, maxPts) {
     const filas = dim.datos.map(est => {
         const celdas = dim.casilleros.map(c => {
             const v = est.notas[c];
-            return `<td style="text-align:center;font-variant-numeric:tabular-nums;">${v !== null && v !== undefined ? v : '<span style="color:var(--text-muted);">—</span>'}</td>`;
+            const display = v !== null && v !== undefined
+                ? Math.round(Number(v))
+                : '<span style="color:var(--text-muted);">—</span>';
+            return `<td style="text-align:center;font-variant-numeric:tabular-nums;">${display}</td>`;
         }).join('');
-        const prom = est.promedio;
-        const promColor = prom === null || prom === undefined ? 'var(--text-muted)'
+        const prom = est.promedio !== null && est.promedio !== undefined
+            ? Math.round(Number(est.promedio))
+            : null;
+        const promColor = prom === null ? 'var(--text-muted)'
             : prom >= maxPts * 0.7 ? '#22c55e' : prom >= maxPts * 0.5 ? '#f59e0b' : '#ef4444';
         return `<tr>
             <td style="font-variant-numeric:tabular-nums;color:var(--text-muted);text-align:center;">${est.numero ?? ''}</td>
             <td style="white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${_esc(est.nombre)}</td>
             ${celdas}
-            <td style="text-align:center;font-weight:700;color:${promColor};">${prom !== null && prom !== undefined ? prom : '—'}</td>
+            <td style="text-align:center;font-weight:700;color:${promColor};">${prom !== null ? prom : '—'}</td>
         </tr>`;
     }).join('');
 
@@ -809,9 +814,17 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         const values = allCellKeys
             .map(key => row.values[key])
             .filter(value => Number.isFinite(value));
+        const dimPromedios = {};
+        dimensions.forEach(dim => {
+            const dimVals = dim.columns
+                .map(col => row.values[col.__cellKey])
+                .filter(v => Number.isFinite(v));
+            dimPromedios[dim.key] = _avg(dimVals);
+        });
         return {
             ...row,
             promedio: _avg(values),
+            dimPromedios,
         };
     });
 
@@ -837,11 +850,14 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const gestion = meta.gestion || new Date().getFullYear();
 
     const totalScoreCols = dimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
-    const tableWidth = 54 + 260 + totalScoreCols * 48 + 80;
+    const tableWidth = 54 + 260 + totalScoreCols * 48 + dimensions.length * 60 + 80;
     const colgroup = `<colgroup>
         <col style="width:54px">
         <col style="width:260px">
-        ${dimensions.map(dim => dim.columns.map(() => '<col style="width:48px">').join('')).join('')}
+        ${dimensions.map(dim => [
+            ...dim.columns.map(() => '<col style="width:48px">'),
+            '<col style="width:60px">',
+        ].join('')).join('')}
         <col>
     </colgroup>`;
     const trimLabels = {
@@ -866,73 +882,79 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     }).join('');
 
     const groupedHeaders = dimensions.map(dim => `
-        <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${dim.columns.length}">
+        <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${dim.columns.length + 1}">
             ${_esc(dim.label)}
         </th>
     `).join('');
 
-    const rotatedHeaders = dimensions.map(dim => dim.columns.map((col, index) => `
-        <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
-            <span>${_esc(_shortActivityLabel(col.titulo, index))}</span>
-        </th>
-    `).join('')).join('');
+    const rotatedHeaders = dimensions.map(dim => [
+        ...dim.columns.map((col, index) => `
+            <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
+                <span>${_esc(_shortActivityLabel(col.titulo, index))}</span>
+            </th>`),
+        `<th class="cc-success-table__head cc-success-table__head--fixed cc-success-table__avg" style="font-size:.65rem;white-space:nowrap;">Prom.</th>`,
+    ].join('')).join('');
 
     const tableRows = rowSummaries.map(row => {
-        const scoreCells = dimensions.map(dim => dim.columns.map(col => {
-            const cellKey  = col.__cellKey;
-            const value    = row.values[cellKey];
-            const modEntry = _modMap.get(`${row.nro}_${cellKey}`);
-            const esNueva  = _nuevasSet.has(cellKey);
+        const scoreCells = dimensions.map(dim => {
+            const cells = dim.columns.map(col => {
+                const cellKey  = col.__cellKey;
+                const value    = row.values[cellKey];
+                const modEntry = _modMap.get(`${row.nro}_${cellKey}`);
+                const esNueva  = _nuevasSet.has(cellKey);
 
-            // ── Modo historial: celdas modificadas en rojo ──────────────
-            if (_modoHistorial) {
-                // La clave del mapa historial usa col_idx real (no posición), igual que el servidor
-                const histKey = `${dim.key}-${col.col}_${row.nro}`;
-                const histEntry = _modHistorialMap.get(histKey);
-                if (histEntry) {
-                    if (_mostrandoOriginal) {
-                        const notaOrig = histEntry.nota_original;
-                        const tooltip  = 'Esta nota fue modificada en un mes posterior';
-                        return `<td class="cc-success-table__score cc-score--modificada"
-                                    title="${_esc(tooltip)}"
-                                    style="background:rgba(239,68,68,.13);color:#f87171;font-weight:700;cursor:help;">
-                                    ${_fmt1(notaOrig)}
-                                </td>`;
-                    } else {
-                        // Mostrar valor actual sin rojo
-                        return Number.isFinite(value)
-                            ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
-                            : `<td class="cc-success-table__score is-empty">-</td>`;
+                // ── Modo historial: celdas modificadas en rojo ──────────────
+                if (_modoHistorial) {
+                    const histKey = `${dim.key}-${col.col}_${row.nro}`;
+                    const histEntry = _modHistorialMap.get(histKey);
+                    if (histEntry) {
+                        if (_mostrandoOriginal) {
+                            const notaOrig = histEntry.nota_original;
+                            const tooltip  = 'Esta nota fue modificada en un mes posterior';
+                            return `<td class="cc-success-table__score cc-score--modificada"
+                                        title="${_esc(tooltip)}"
+                                        style="background:rgba(239,68,68,.13);color:#f87171;font-weight:700;cursor:help;">
+                                        ${_fmt1(notaOrig)}
+                                    </td>`;
+                        } else {
+                            return Number.isFinite(value)
+                                ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
+                                : `<td class="cc-success-table__score is-empty">-</td>`;
+                        }
                     }
+                    return Number.isFinite(value)
+                        ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
+                        : `<td class="cc-success-table__score is-empty">-</td>`;
+                }
+
+                // ── Modo validación: diff con Excel anterior ──────────────
+                if (_modoAnterior) {
+                    if (modEntry) {
+                        return `<td class="cc-success-table__score" style="background:rgba(245,158,11,.13);color:#b45309;font-weight:700;">${_fmt1(modEntry.nota_anterior)}</td>`;
+                    }
+                    if (esNueva) {
+                        return `<td class="cc-success-table__score" style="color:var(--text-muted);font-style:italic;letter-spacing:.02em;">—</td>`;
+                    }
+                    return Number.isFinite(value)
+                        ? `<td class="cc-success-table__score" style="color:var(--text-muted);">${_fmt1(value)}</td>`
+                        : `<td class="cc-success-table__score is-empty">-</td>`;
+                }
+
+                // Vista "Excel actual" (default)
+                if (modEntry) {
+                    return Number.isFinite(value)
+                        ? `<td class="cc-success-table__score" style="background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;">${_fmt1(value)}</td>`
+                        : `<td class="cc-success-table__score is-empty">-</td>`;
                 }
                 return Number.isFinite(value)
                     ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
                     : `<td class="cc-success-table__score is-empty">-</td>`;
-            }
+            }).join('');
 
-            // ── Modo validación: diff con Excel anterior ──────────────
-            if (_modoAnterior) {
-                if (modEntry) {
-                    return `<td class="cc-success-table__score" style="background:rgba(245,158,11,.13);color:#b45309;font-weight:700;">${_fmt1(modEntry.nota_anterior)}</td>`;
-                }
-                if (esNueva) {
-                    return `<td class="cc-success-table__score" style="color:var(--text-muted);font-style:italic;letter-spacing:.02em;">—</td>`;
-                }
-                return Number.isFinite(value)
-                    ? `<td class="cc-success-table__score" style="color:var(--text-muted);">${_fmt1(value)}</td>`
-                    : `<td class="cc-success-table__score is-empty">-</td>`;
-            }
-
-            // Vista "Excel actual" (default)
-            if (modEntry) {
-                return Number.isFinite(value)
-                    ? `<td class="cc-success-table__score" style="background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;">${_fmt1(value)}</td>`
-                    : `<td class="cc-success-table__score is-empty">-</td>`;
-            }
-            return Number.isFinite(value)
-                ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
-                : `<td class="cc-success-table__score is-empty">-</td>`;
-        }).join('')).join('');
+            const dimProm = row.dimPromedios[dim.key];
+            const dimPromCell = `<td class="cc-success-table__avg">${_fmt1(dimProm)}</td>`;
+            return cells + dimPromCell;
+        }).join('');
 
         return `
             <tr>
@@ -1141,7 +1163,7 @@ function _avg(values) {
 
 function _fmt1(value) {
     if (!Number.isFinite(value)) return '-';
-    return (Math.round(value * 10) / 10).toFixed(1);
+    return String(Math.round(value));
 }
 
 function _shortActivityLabel(title, index) {
