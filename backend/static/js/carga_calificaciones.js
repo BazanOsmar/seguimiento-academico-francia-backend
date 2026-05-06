@@ -821,9 +821,10 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                 .filter(v => Number.isFinite(v));
             dimPromedios[dim.key] = _avg(dimVals);
         });
+        const dimVals = Object.values(dimPromedios).filter(v => Number.isFinite(v));
         return {
             ...row,
-            promedio: _avg(values),
+            promedio: dimVals.length ? dimVals.reduce((a, b) => a + b, 0) : null,
             dimPromedios,
         };
     });
@@ -892,7 +893,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
                 <span>${_esc(_shortActivityLabel(col.titulo, index))}</span>
             </th>`),
-        `<th class="cc-success-table__head cc-success-table__head--fixed cc-success-table__avg" style="font-size:.65rem;white-space:nowrap;">Prom.</th>`,
+        `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
     ].join('')).join('');
 
     const tableRows = rowSummaries.map(row => {
@@ -952,7 +953,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             }).join('');
 
             const dimProm = row.dimPromedios[dim.key];
-            const dimPromCell = `<td class="cc-success-table__avg">${_fmt1(dimProm)}</td>`;
+            const dimPromCell = `<td class="cc-success-table__dim-prom">${_fmt1(dimProm)}</td>`;
             return cells + dimPromCell;
         }).join('');
 

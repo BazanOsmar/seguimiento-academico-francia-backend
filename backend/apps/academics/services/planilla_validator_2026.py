@@ -144,7 +144,7 @@ def _extraer_headers_trim(ws):
                     notas.append({
                         'nro':    int(nro),
                         'nombre': re.sub(r'\s+', ' ', str(nombre).strip()),
-                        'nota':   round(float(val), 1),
+                        'nota':   int(round(float(val))),
                     })
 
             if notas:

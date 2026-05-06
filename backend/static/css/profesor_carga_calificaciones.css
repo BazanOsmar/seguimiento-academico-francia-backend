@@ -726,6 +726,8 @@
             padding: 0;
             vertical-align: bottom;
             text-align: center;
+            overflow: hidden;
+            border-right: 1px solid rgba(148,163,184,.14);
         }
 
         .cc-success-table__head--rot span {
@@ -734,6 +736,20 @@
             transform: rotate(180deg);
             padding: 10px 0;
             line-height: 1.1;
+            max-height: 84px;
+            overflow: hidden;
+        }
+
+        .cc-success-table__dim-prom {
+            text-align: center;
+            font-weight: 700;
+            font-size: .72rem;
+            font-variant-numeric: tabular-nums;
+            color: #a5b4fc;
+            white-space: nowrap;
+            border-left: 2px solid rgba(148,163,184,.18);
+            border-right: 2px solid rgba(148,163,184,.18);
+            background: rgba(99,102,241,.06);
         }
 
         .cc-success-table__nro {
@@ -788,6 +804,10 @@
             top: 0;
             z-index: 3;
             background: #0f1829;
+        }
+
+        .cc-success-table-head-wrap thead .cc-success-table__dim-prom {
+            background: rgba(25,30,55,.95);
         }
 
         .cc-success-footer {
