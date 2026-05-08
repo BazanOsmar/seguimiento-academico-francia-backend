@@ -609,6 +609,30 @@
             background: rgba(15,23,42,.28);
         }
 
+        .cc-success-table-scroll {
+            overflow: auto;
+            max-height: 610px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(99,130,190,.35) transparent;
+        }
+        .cc-success-table-scroll::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .cc-success-table-scroll::-webkit-scrollbar-track { background: transparent; }
+        .cc-success-table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(99,130,190,.35);
+            border-radius: 99px;
+        }
+        .cc-success-table-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(99,130,190,.6);
+        }
+        .cc-success-table-scroll thead {
+            position: sticky;
+            top: 0;
+            z-index: 6;
+        }
+
         /* ── Head (sincronizado via scrollLeft, sticky CSS actúa dentro) */
         .cc-success-table-head-wrap {
             overflow: hidden;
@@ -815,13 +839,17 @@
 
         .cc-success-table-head-wrap thead .cc-success-table__nro,
         .cc-success-table-head-wrap thead .cc-success-table__name,
-        .cc-success-table-head-wrap thead .cc-success-table__avg {
+        .cc-success-table-head-wrap thead .cc-success-table__avg,
+        .cc-success-table-scroll thead .cc-success-table__nro,
+        .cc-success-table-scroll thead .cc-success-table__name,
+        .cc-success-table-scroll thead .cc-success-table__avg {
             top: 0;
-            z-index: 3;
+            z-index: 7;
             background: #0f1829;
         }
 
-        .cc-success-table-head-wrap thead .cc-success-table__dim-prom {
+        .cc-success-table-head-wrap thead .cc-success-table__dim-prom,
+        .cc-success-table-scroll thead .cc-success-table__dim-prom {
             background: rgba(25,30,55,.95);
         }
 
@@ -1093,10 +1121,22 @@
         }
 
         /* ── Backgrounds de headers (head-wrap nunca scrollea verticalmente) */
-        .cc-success-table-head-wrap thead .cc-success-table__head         { background: #151e2d; }
-        .cc-success-table-head-wrap thead .cc-success-table__group--saber { background: #152746; }
-        .cc-success-table-head-wrap thead .cc-success-table__group--hacer { background: #2a2724; }
-        .cc-success-table-head-wrap thead .cc-success-table__group--ser   { background: #1e2838; }
+        .cc-success-table-head-wrap thead .cc-success-table__head,
+        .cc-success-table-scroll thead .cc-success-table__head {
+            background: #151e2d;
+        }
+        .cc-success-table-head-wrap thead .cc-success-table__group--saber,
+        .cc-success-table-scroll thead .cc-success-table__group--saber {
+            background: #152746;
+        }
+        .cc-success-table-head-wrap thead .cc-success-table__group--hacer,
+        .cc-success-table-scroll thead .cc-success-table__group--hacer {
+            background: #2a2724;
+        }
+        .cc-success-table-head-wrap thead .cc-success-table__group--ser,
+        .cc-success-table-scroll thead .cc-success-table__group--ser {
+            background: #1e2838;
+        }
 
         /* ── Responsive ──────────────────────────────────────────── */
         @media (max-width: 700px) {

@@ -712,28 +712,45 @@ function _rotHeaderHtml(titulo) {
 }
 
 function _initTableScrollSync() {
+    const tableScroll = document.querySelector('#ccDashboard .cc-success-table-scroll');
+    if (tableScroll) {
+        tableScroll.scrollLeft = 0;
+        return;
+    }
+
     const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
     if (!shell) return;
     const headWrap = shell.querySelector('.cc-success-table-head-wrap');
-    const ghost    = shell.querySelector('.cc-success-ghost-scroll');
+    const ghost = shell.querySelector('.cc-success-ghost-scroll');
     const bodyWrap = shell.querySelector('.cc-success-table-body-wrap');
-    if (!headWrap || !ghost || !bodyWrap) return;
+    const ghostTrack = ghost?.firstElementChild;
+    if (!headWrap || !ghost || !bodyWrap || !ghostTrack) return;
+
+    const updateGhostRange = () => {
+        const verticalGutter = Math.max(0, bodyWrap.offsetWidth - bodyWrap.clientWidth);
+        ghostTrack.style.width = `${bodyWrap.scrollWidth + verticalGutter}px`;
+    };
 
     let syncing = false;
-    ghost.addEventListener('scroll', () => {
+    const syncFromGhost = () => {
         if (syncing) return;
         syncing = true;
-        bodyWrap.scrollLeft = ghost.scrollLeft;
-        headWrap.scrollLeft = ghost.scrollLeft;
+        bodyWrap.scrollLeft = Math.min(ghost.scrollLeft, bodyWrap.scrollWidth - bodyWrap.clientWidth);
+        headWrap.scrollLeft = bodyWrap.scrollLeft;
         syncing = false;
-    });
-    bodyWrap.addEventListener('scroll', () => {
+    };
+    const syncFromBody = () => {
         if (syncing) return;
         syncing = true;
         ghost.scrollLeft = bodyWrap.scrollLeft;
         headWrap.scrollLeft = bodyWrap.scrollLeft;
         syncing = false;
-    });
+    };
+
+    updateGhostRange();
+    ghost.addEventListener('scroll', syncFromGhost);
+    bodyWrap.addEventListener('scroll', syncFromBody);
+    window.addEventListener('resize', updateGhostRange, { once: true });
 }
 
 function _toggleModoAnterior() {
@@ -1104,7 +1121,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             </div>` : ''}
 
             <div class="cc-success-table-shell">
-                <div class="cc-success-table-head-wrap">
+                <div class="cc-success-table-scroll">
                     <table class="cc-success-table" style="table-layout:fixed;width:100%;min-width:${tableWidth}px;">
                         ${colgroup}
                         <thead>
@@ -1116,14 +1133,6 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                             </tr>
                             <tr>${rotatedHeaders}</tr>
                         </thead>
-                    </table>
-                </div>
-                <div class="cc-success-ghost-scroll">
-                    <div style="width:${tableWidth}px;height:1px;pointer-events:none;"></div>
-                </div>
-                <div class="cc-success-table-body-wrap">
-                    <table class="cc-success-table" style="table-layout:fixed;width:100%;min-width:${tableWidth}px;">
-                        ${colgroup}
                         <tbody>${tableRows}</tbody>
                     </table>
                 </div>
