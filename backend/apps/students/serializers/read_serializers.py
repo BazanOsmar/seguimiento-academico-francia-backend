@@ -10,7 +10,7 @@ class EstudianteListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Estudiante
-        fields = ("id", "nombre", "apellidos", "tiene_tutor", "tutor_tiene_fcm")
+        fields = ("id", "nombre", "apellidos", "tiene_tutor", "tutor_id", "tutor_tiene_fcm")
 
     def get_apellidos(self, obj):
         return f"{obj.apellido_paterno} {obj.apellido_materno}".strip()

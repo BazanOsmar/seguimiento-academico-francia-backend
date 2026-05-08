@@ -1592,7 +1592,7 @@
         .planes-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
         .planes-header h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0; flex: 1; }
         .planes-controls {
-            grid-template-columns: minmax(240px, 1fr) 150px minmax(430px, 1.25fr);
+            grid-template-columns: minmax(240px, 1fr) minmax(430px, 1.25fr) 150px;
             margin-bottom: 2px;
         }
         .planes-month-wrap {
@@ -1721,7 +1721,7 @@
         }
         @media (max-width: 1100px) {
             .planes-controls {
-                grid-template-columns: minmax(220px, 1fr) 150px 190px;
+                grid-template-columns: minmax(220px, 1fr) minmax(260px, 1fr) 150px;
             }
             .planes-filter {
                 grid-column: 1 / -1;

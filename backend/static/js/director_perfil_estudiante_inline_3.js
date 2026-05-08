@@ -774,7 +774,7 @@ function _escPE(str) {
     }
 
     // Mostrar y cargar el calendario
-    document.getElementById('perfilCalCard').style.display = '';
+    document.getElementById('perfilCalCard').style.display = 'flex';
     _actualizarBotonesCalendario();
     await loadCalendario();
 })();

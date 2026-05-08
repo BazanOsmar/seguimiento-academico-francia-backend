@@ -108,6 +108,7 @@
                 <span class="page-subtitle" id="pageSubtitle">Docente</span>
             </div>
         </div>
+        <div class="topbar-actions">{% include 'profesor/_notif_bell.html' %}</div>
     </header>
 
     <!-- ── Contenido principal ────────────────────────────────────────── -->
@@ -282,6 +283,7 @@
 
     <script src="{% static 'js/main.js' %}?v=2"></script>
     <script src="{% static 'js/profesor.js' %}?v=4"></script>
+    <script src="{% static 'js/notif_bell.js' %}"></script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

@@ -279,22 +279,35 @@ class ConfirmarPlanillaView(APIView):
 
 
 def _notificar_carga_notas(profesor_curso, mes, gestion):
+    import threading
     from backend.apps.notifications.models import Notificacion
+    from backend.apps.notifications.services import enviar_notificacion
     from backend.apps.users.models import TipoUsuario, User as UserModel
 
     try:
         tipo_director = TipoUsuario.objects.get(nombre='Director')
-        directores = UserModel.objects.filter(tipo_usuario=tipo_director, is_active=True)
+        directores = list(UserModel.objects.filter(tipo_usuario=tipo_director, is_active=True))
         nombre_prof = profesor_curso.profesor.get_full_name() or profesor_curso.profesor.username
+        meses_es = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+        mes_nombre = meses_es[mes] if 1 <= mes <= 12 else str(mes)
         descripcion = (
-            f"{nombre_prof} cargo notas de {profesor_curso.materia.nombre} "
-            f"en {profesor_curso.curso.grado} {profesor_curso.curso.paralelo}, "
-            f"mes {mes} de {gestion}"
+            f"{nombre_prof} cargó notas de {profesor_curso.materia.nombre} "
+            f"en {profesor_curso.curso.grado} {profesor_curso.curso.paralelo} "
+            f"({mes_nombre} {gestion})."
         )
         Notificacion.objects.bulk_create([
             Notificacion(emisor=None, receptor=d, descripcion=descripcion)
             for d in directores
         ])
+        titulo = 'Carga de notas registrada'
+        for director in directores:
+            threading.Thread(
+                target=enviar_notificacion,
+                args=(director,),
+                kwargs={'titulo': titulo, 'cuerpo': descripcion},
+                daemon=True,
+            ).start()
     except Exception:
         pass
 

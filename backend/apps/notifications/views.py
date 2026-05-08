@@ -1,6 +1,7 @@
 import logging
 
 import firebase_admin
+from django.contrib.auth import get_user_model
 from django.db.models import Exists, OuterRef
 from firebase_admin import messaging as fb_messaging
 from rest_framework import status
@@ -8,10 +9,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.apps.academics.models import ProfesorCurso
 from backend.apps.students.models import Estudiante
 from backend.core.permissions import IsDirector, IsDirectorOrProfesor
 
 from .models import FCMDevice, Notificacion
+from .services import enviar_notificacion
 
 logger = logging.getLogger(__name__)
 
@@ -276,3 +279,148 @@ class RegistrarTokenView(APIView):
         if token:
             FCMDevice.objects.filter(user=request.user, token=token).delete()
         return Response({'ok': True})
+
+
+class NotificacionesEnviadasView(APIView):
+    """
+    GET /api/notifications/enviadas/
+
+    Lista todas las notificaciones personales enviadas por el usuario
+    autenticado, ordenadas de más reciente a más antigua.
+    Incluye si el receptor ya la leyó o no.
+
+    Opcional: ?no_leidas=true → solo las que el receptor aún no leyó.
+    """
+    permission_classes = [IsDirectorOrProfesor]
+
+    def get(self, request):
+        qs = (
+            Notificacion.objects
+            .filter(emisor=request.user)
+            .select_related('receptor', 'receptor__tipo_usuario')
+        )
+
+        if request.query_params.get('no_leidas') == 'true':
+            qs = qs.filter(leida=False)
+
+        data = [
+            {
+                'id':              n.pk,
+                'descripcion':     n.descripcion,
+                'leida':           n.leida,
+                'fecha_creacion':  n.fecha_creacion,
+                'receptor_id':     n.receptor_id,
+                'receptor_nombre': (
+                    f"{n.receptor.first_name} {n.receptor.last_name}".strip()
+                    or n.receptor.username
+                ),
+                'receptor_tipo': (
+                    n.receptor.tipo_usuario.nombre if n.receptor.tipo_usuario else None
+                ),
+            }
+            for n in qs
+        ]
+        return Response(data)
+
+
+class EnviarNotificacionView(APIView):
+    """
+    POST /api/notifications/enviar/
+
+    Envía una notificación personal a un usuario específico.
+    Guarda el registro en BD y dispara push FCM si el receptor
+    tiene dispositivo registrado.
+
+    Body:
+        receptor_id  (int)  — id del usuario destinatario
+        descripcion  (str)  — texto del mensaje (máx. 500 chars)
+
+    Restricciones de alcance:
+        Director → puede notificar a Tutores y Profesores.
+        Profesor → solo a Tutores de estudiantes en sus cursos asignados.
+    """
+    permission_classes = [IsDirectorOrProfesor]
+
+    def post(self, request):
+        User = get_user_model()
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+
+        receptor_id = request.data.get('receptor_id')
+        descripcion = str(request.data.get('descripcion', '')).strip()
+
+        if not receptor_id:
+            return Response(
+                {'errores': 'El campo receptor_id es requerido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not descripcion:
+            return Response(
+                {'errores': 'El campo descripcion es requerido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(descripcion) > 500:
+            return Response(
+                {'errores': 'La descripción no puede superar los 500 caracteres.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            receptor = User.objects.select_related('tipo_usuario').get(pk=receptor_id)
+        except User.DoesNotExist:
+            return Response(
+                {'errores': 'Usuario destinatario no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        receptor_tipo = receptor.tipo_usuario.nombre if receptor.tipo_usuario else None
+
+        if tipo == 'Director':
+            if receptor_tipo not in ('Tutor', 'Profesor'):
+                return Response(
+                    {'errores': 'El Director solo puede notificar a Tutores y Profesores.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            # Profesor: solo tutores de estudiantes en sus cursos
+            curso_ids = (
+                ProfesorCurso.objects
+                .filter(profesor=request.user)
+                .values_list('curso_id', flat=True)
+                .distinct()
+            )
+            tutor_ids = set(
+                Estudiante.objects
+                .filter(curso_id__in=curso_ids, activo=True, tutor__isnull=False)
+                .values_list('tutor_id', flat=True)
+                .distinct()
+            )
+            if receptor.pk not in tutor_ids:
+                return Response(
+                    {'errores': 'Solo puedes notificar a tutores de estudiantes en tus cursos asignados.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        notificacion = Notificacion.objects.create(
+            emisor=request.user,
+            receptor=receptor,
+            descripcion=descripcion,
+        )
+
+        emisor_nombre = (
+            f"{request.user.first_name} {request.user.last_name}".strip()
+            or request.user.username
+        )
+        enviar_notificacion(
+            usuario=receptor,
+            titulo=f'Mensaje de {emisor_nombre}',
+            cuerpo=descripcion,
+        )
+
+        return Response(
+            {
+                'ok':              True,
+                'notificacion_id': notificacion.pk,
+                'receptor_nombre': f"{receptor.first_name} {receptor.last_name}".strip() or receptor.username,
+            },
+            status=status.HTTP_201_CREATED,
+        )

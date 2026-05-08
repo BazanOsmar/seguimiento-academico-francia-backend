@@ -486,8 +486,8 @@ function getAlcance() {
 radiosAlcance.forEach(r => {
     r.addEventListener('change', () => {
         const alcance = getAlcance();
-        wrapComGrado.style.display = alcance === 'GRADO' ? '' : 'none';
-        wrapComCurso.style.display = alcance === 'CURSO' ? '' : 'none';
+        wrapComGrado.style.display = alcance === 'GRADO' ? 'block' : 'none';
+        wrapComCurso.style.display = alcance === 'CURSO' ? 'block' : 'none';
         _actualizarCoberturaFCM();
     });
 });
@@ -599,12 +599,12 @@ document.querySelectorAll('input[name="tipoCitacion"]').forEach(r => {
         const cursoId = selectCurso.value;
 
         if (tipo === 'individual') {
-            wrapEstudiante.style.display = '';
+            wrapEstudiante.style.display = 'block';
             wrapGrupo.style.display      = 'none';
             if (cursoId) _cargarEstudiantesIndividual(cursoId);
         } else { // grupo
             wrapEstudiante.style.display = 'none';
-            wrapGrupo.style.display      = '';
+            wrapGrupo.style.display      = 'block';
         }
     });
 });
@@ -894,7 +894,7 @@ function _renderChips() {
     // Badge de conteo junto al botón
     if (badge) {
         if (n > 0) {
-            badge.style.display = '';
+            badge.style.display = 'inline-block';
             badge.textContent   = `${n} seleccionado${n !== 1 ? 's' : ''}`;
         } else {
             badge.style.display = 'none';
@@ -1465,12 +1465,12 @@ function _cambiarSeccion(sec) {
     document.getElementById('secTitleCit').classList.toggle('sec-title--active', esCit);
     document.getElementById('secTitleCom').classList.toggle('sec-title--active', !esCit);
 
-    document.getElementById('statsRow').style.display       = esCit ? '' : 'none';
-    document.getElementById('sectionCitCard').style.display = esCit ? '' : 'none';
-    document.getElementById('sectionComCard').style.display = esCit ? 'none' : '';
+    document.getElementById('statsRow').style.display       = esCit ? 'grid' : 'none';
+    document.getElementById('sectionCitCard').style.display = esCit ? 'block' : 'none';
+    document.getElementById('sectionComCard').style.display = esCit ? 'none' : 'block';
 
-    document.getElementById('btnToggleCit').style.display   = esCit ? '' : 'none';
-    document.getElementById('btnToggleCom').style.display   = esCit ? 'none' : '';
+    document.getElementById('btnToggleCit').style.display   = esCit ? 'inline-flex' : 'none';
+    document.getElementById('btnToggleCom').style.display   = esCit ? 'none' : 'inline-flex';
 
     if (searchInput) {
         searchInput.placeholder = esCit
@@ -1834,7 +1834,7 @@ async function _actualizarCoberturaFCM() {
     // Debounce leve para no disparar en cada keystroke
     clearTimeout(_coberturaTimer);
     _coberturaTimer = setTimeout(async () => {
-        wrap.style.display = '';
+        wrap.style.display = 'block';
         texto.textContent  = 'Calculando…';
         btn.className      = 'fcm-cobertura-pill';
 

@@ -156,7 +156,7 @@
                         <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                         <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                     </svg>
-                    Por Curso
+                    Cursos
                 </button>
                 <button class="acad-pivot" data-pivot="notas">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -229,13 +229,13 @@
                         </div>
                     </div>
 
-                    <!-- Vista: Por Curso -->
+                    <!-- Vista: Cursos -->
                     <div class="acad-vista" id="vistaCursos">
                         <div class="vc-shell">
                             <section class="vc-overview-card">
                                 <div class="mat-header vc-header">
                                     <div class="mat-header__copy">
-                                        <h2 class="mat-header__title">Vista por Curso</h2>
+                                        <h2 class="mat-header__title">Cursos</h2>
                                         <p class="mat-header__sub">Consulta qué materias y profesores están asignados a cada curso y abre el detalle para gestionar su carga académica.</p>
                                     </div>
                                 </div>
@@ -332,6 +332,24 @@
                                     </svg>
                                     <input id="planesBuscarProfesor" type="search" placeholder="Buscar profesor" autocomplete="off">
                                 </label>
+                                <div class="vp-follow-control-field planes-filter">
+                                    <span class="vp-follow-control-label">Planes</span>
+                                    <div class="vp-follow-user-filter" role="group" aria-label="Filtro de planes">
+                                        <button class="vp-follow-user-filter__btn active" type="button" data-planes-filter="todos">Todos</button>
+                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="completos">Completos</button>
+                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="progreso">En progreso</button>
+                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="sin-iniciar">No empezaron</button>
+                                    </div>
+                                    <details class="planes-filter-menu">
+                                        <summary id="planesFilterSummary">Todos</summary>
+                                        <div class="planes-filter-menu__list">
+                                            <button class="planes-filter-menu__item active" type="button" data-planes-filter="todos">Todos</button>
+                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="completos">Completos</button>
+                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="progreso">En progreso</button>
+                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="sin-iniciar">No empezaron</button>
+                                        </div>
+                                    </details>
+                                </div>
                                 <div class="planes-month-wrap">
                                     <div class="cit-mes-nav vp-follow-month-nav">
                                         <button class="cit-mes-nav__btn" id="planesMesPrev" type="button" aria-label="Mes anterior">&#8249;</button>
@@ -352,24 +370,6 @@
                                         <option value="11">Noviembre</option>
                                         <option value="12">Diciembre</option>
                                     </select>
-                                </div>
-                                <div class="vp-follow-control-field planes-filter">
-                                    <span class="vp-follow-control-label">Planes</span>
-                                    <div class="vp-follow-user-filter" role="group" aria-label="Filtro de planes">
-                                        <button class="vp-follow-user-filter__btn active" type="button" data-planes-filter="todos">Todos</button>
-                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="completos">Completos</button>
-                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="progreso">En progreso</button>
-                                        <button class="vp-follow-user-filter__btn" type="button" data-planes-filter="sin-iniciar">No empezaron</button>
-                                    </div>
-                                    <details class="planes-filter-menu">
-                                        <summary id="planesFilterSummary">Todos</summary>
-                                        <div class="planes-filter-menu__list">
-                                            <button class="planes-filter-menu__item active" type="button" data-planes-filter="todos">Todos</button>
-                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="completos">Completos</button>
-                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="progreso">En progreso</button>
-                                            <button class="planes-filter-menu__item" type="button" data-planes-filter="sin-iniciar">No empezaron</button>
-                                        </div>
-                                    </details>
                                 </div>
                             </div>
 
@@ -392,6 +392,13 @@
                             </section>
 
                             <div class="pn-controls">
+                                <label class="pn-search" for="pnBuscarProfesor">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <path d="m21 21-4.35-4.35"/>
+                                    </svg>
+                                    <input id="pnBuscarProfesor" type="search" placeholder="Buscar profesor" autocomplete="off">
+                                </label>
                                 <div class="pn-pills">
                                     <button class="pn-pill active" data-filter="todos">
                                         Todos
@@ -410,13 +417,6 @@
                                         <span class="pn-pill-count" id="pnCountNoIniciado">0</span>
                                     </button>
                                 </div>
-                                <label class="pn-search" for="pnBuscarProfesor">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="11" cy="11" r="8"/>
-                                        <path d="m21 21-4.35-4.35"/>
-                                    </svg>
-                                    <input id="pnBuscarProfesor" type="search" placeholder="Buscar profesor" autocomplete="off">
-                                </label>
                                 <div class="pn-month-nav" aria-label="Selector de mes">
                                     <button class="pn-month-btn" id="pnMesPrev" type="button" aria-label="Mes anterior">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

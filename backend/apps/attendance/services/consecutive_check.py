@@ -74,8 +74,10 @@ def _crear_citacion_automatica(estudiante, motivo, descripcion, emisor):
 
 
 def _notificar_director_sin_tutor(estudiante, curso, racha, tipo, director):
-    """Crea una Notificacion al Director cuando el estudiante no tiene tutor asignado."""
+    """Crea una Notificacion al Director (BD + push FCM) cuando el estudiante no tiene tutor asignado."""
+    import threading
     from backend.apps.notifications.models import Notificacion
+    from backend.apps.notifications.services import enviar_notificacion
 
     nombre = f"{estudiante.apellido_paterno} {estudiante.apellido_materno}, {estudiante.nombre}".strip(', ')
 
@@ -94,6 +96,17 @@ def _notificar_director_sin_tutor(estudiante, curso, racha, tipo, director):
         receptor=director,
         descripcion=descripcion,
     )
+
+    threading.Thread(
+        target=enviar_notificacion,
+        args=(director,),
+        kwargs={
+            'titulo': 'Estudiante sin tutor — alerta de asistencia',
+            'cuerpo': descripcion,
+        },
+        daemon=True,
+    ).start()
+
     logger.warning(
         "Notificación al Director — estudiante %s sin tutor | %s",
         estudiante, detalle,
