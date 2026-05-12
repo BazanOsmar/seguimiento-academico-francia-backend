@@ -12,6 +12,7 @@ Función pública: ejecutar_analisis_kmeans(gestion, trimestre, mes)
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 from datetime import datetime, timezone
@@ -242,6 +243,10 @@ def ejecutar_kmeans(df: pd.DataFrame, gestion: int) -> pd.DataFrame:
     df = df.copy()
     df['cluster_num'] = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(X_scaled)
 
+    pca_coords = PCA(n_components=2).fit_transform(X_scaled)
+    df['pca_x'] = np.round(pca_coords[:, 0], 4)
+    df['pca_y'] = np.round(pca_coords[:, 1], 4)
+
     etiquetas = ETIQUETAS_POR_K[k]
     medias = df.groupby('cluster_num')['nota_mensual_actual'].mean().sort_values(ascending=False)
     label_map = dict(zip(medias.index, etiquetas))
@@ -282,6 +287,8 @@ def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: in
             'features_usadas.tendencia_norm':         float(row['tendencia_norm']),
             'features_usadas.tasa_citaciones':        float(row['tasa_citaciones']),
             'nota_mensual':                           float(row['nota_mensual_actual']),
+            'pca_x':                                  float(row['pca_x']),
+            'pca_y':                                  float(row['pca_y']),
         }}, upsert=True))
 
     if ops:

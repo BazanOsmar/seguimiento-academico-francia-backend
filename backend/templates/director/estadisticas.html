@@ -203,8 +203,17 @@
             </div>
 
             <!-- ═══════════════════════════════════════════════════
-                 2. K-MEANS
+                 2. TAB NAV
             ════════════════════════════════════════════════════ -->
+            <div class="analytics-tab-nav">
+                <button class="tab-btn active" data-tab="kmeans">K-Means</button>
+                <button class="tab-btn" data-tab="arbol">Árboles de Decisión</button>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════
+                 3. K-MEANS PANEL
+            ════════════════════════════════════════════════════ -->
+            <div id="panelKmeans" class="tab-panel active">
             <div class="section-block">
                 <div class="section-header director-estadisticas-inline-style-2">
                     <span class="section-title">Agrupamiento de Estudiantes</span>
@@ -288,8 +297,107 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="pagination-row" id="paginacionKmeans" style="display:none">
+                        <button id="kPrevBtn">&#8592; Anterior</button>
+                        <span id="kPagInfo"></span>
+                        <button id="kNextBtn">Siguiente &#8594;</button>
+                    </div>
                 </div>
-            </div>
+            </div><!-- /.section-block -->
+            </div><!-- /#panelKmeans -->
+
+            <!-- ═══════════════════════════════════════════════════
+                 4. ÁRBOLES DE DECISIÓN PANEL
+            ════════════════════════════════════════════════════ -->
+            <div id="panelArbol" class="tab-panel">
+            <div class="section-block">
+                <div class="section-header director-estadisticas-inline-style-2">
+                    <span class="section-title">Riesgo de Reprobación por Materia</span>
+                    <span class="section-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">Árbol de Decisión</span>
+                    <span class="section-desc director-estadisticas-inline-style-3">Predicción individual por estudiante y materia</span>
+                    <div class="director-estadisticas-inline-style-4">
+                        <select id="arbolMes" class="director-estadisticas-inline-style-5">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p id="arbolEstado" class="director-estadisticas-inline-style-7"></p>
+
+                <!-- KPIs mini riesgo -->
+                <div class="arbol-kpi-row">
+                    <div class="arbol-kpi">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-total">—</div>
+                        <div class="arbol-kpi__lbl">Predicciones</div>
+                    </div>
+                    <div class="arbol-kpi arbol-kpi--alto">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-alto">—</div>
+                        <div class="arbol-kpi__lbl">Riesgo Alto</div>
+                    </div>
+                    <div class="arbol-kpi arbol-kpi--medio">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-medio">—</div>
+                        <div class="arbol-kpi__lbl">Riesgo Medio</div>
+                    </div>
+                    <div class="arbol-kpi arbol-kpi--bajo">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-bajo">—</div>
+                        <div class="arbol-kpi__lbl">Riesgo Bajo</div>
+                    </div>
+                </div>
+
+                <!-- Tabla detalle -->
+                <div class="chart-card">
+                    <div class="director-estadisticas-inline-style-11">
+                        <span class="chart-card__title director-estadisticas-inline-style-12">Detalle por Estudiante y Materia</span>
+                        <select id="filtroArbolCurso" class="director-estadisticas-inline-style-13">
+                            <option value="">Todos los cursos</option>
+                        </select>
+                        <select id="filtroArbolMateria" class="director-estadisticas-inline-style-13">
+                            <option value="">Todas las materias</option>
+                        </select>
+                        <select id="filtroArbolRiesgo" class="director-estadisticas-inline-style-13">
+                            <option value="">Todos los niveles</option>
+                            <option value="Alto">Alto</option>
+                            <option value="Medio">Medio</option>
+                            <option value="Bajo">Bajo</option>
+                        </select>
+                        <span id="arbolConteo" class="director-estadisticas-inline-style-14"></span>
+                    </div>
+                    <div class="director-estadisticas-inline-style-15">
+                        <table class="data-table director-estadisticas-inline-style-16" id="tablaArbol" style="min-width:700px">
+                            <thead>
+                                <tr>
+                                    <th>Estudiante</th>
+                                    <th>Curso</th>
+                                    <th>Materia</th>
+                                    <th>Riesgo</th>
+                                    <th title="Probabilidad de reprobar según el modelo">Prob. Reprobar</th>
+                                    <th title="Modelo 1 = solo T1 | Modelo 2 = T1+T2">Modelo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyArbol">
+                                <tr><td colspan="6" class="director-estadisticas-inline-style-17">Sin datos para este mes.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-row" id="paginacionArbol" style="display:none">
+                        <button id="aPrevBtn">&#8592; Anterior</button>
+                        <span id="aPagInfo"></span>
+                        <button id="aNextBtn">Siguiente &#8594;</button>
+                    </div>
+                </div>
+            </div><!-- /.section-block -->
+            </div><!-- /#panelArbol -->
 
         </div><!-- /.page-inner -->
     </main>

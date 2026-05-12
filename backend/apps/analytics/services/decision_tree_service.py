@@ -52,8 +52,17 @@ _FEATURES_M2 = _FEATURES_M1 + [
     't2_brecha_autoeval_ser',
 ]
 
-# Clases de salida del árbol → etiqueta legible
-_ETIQUETAS_RIESGO = {0: 'Bajo', 1: 'Medio', 2: 'Alto'}
+# Umbrales para derivar nivel de riesgo desde la probabilidad de reprobación (0-100)
+# El modelo es binario: 0=APROBADO, 1=REPROBADO
+_UMBRAL_ALTO  = 66.0   # >= 66% → Alto
+_UMBRAL_MEDIO = 33.0   # >= 33% → Medio, < 33% → Bajo
+
+def _prob_a_riesgo(prob_pct: float) -> str:
+    if prob_pct >= _UMBRAL_ALTO:
+        return 'Alto'
+    if prob_pct >= _UMBRAL_MEDIO:
+        return 'Medio'
+    return 'Bajo'
 
 _MESES_T1 = [1, 2, 3, 4]
 _MESES_T2 = [5, 6, 7, 8]
@@ -218,15 +227,19 @@ def obtener_features_arbol(gestion: int, mes: int) -> tuple:
 def _predecir(df: pd.DataFrame, modelo, feature_cols: list) -> pd.DataFrame:
     X = df[feature_cols].fillna(0).values
 
-    predicciones  = modelo.predict(X)
+    predicciones   = modelo.predict(X)       # 0=APROBADO, 1=REPROBADO
     probabilidades = modelo.predict_proba(X)
 
-    clases        = list(modelo.classes_)
-    idx_positivo  = clases.index(1) if 1 in clases else 0
+    clases       = list(modelo.classes_)
+    idx_reprobado = clases.index(1) if 1 in clases else 0
+
+    # Probabilidad almacenada en escala 0-100
+    prob_pct = (probabilidades[:, idx_reprobado] * 100).round(2)
 
     df = df.copy()
-    df['riesgo']                = [_ETIQUETAS_RIESGO.get(int(p), str(p)) for p in predicciones]
-    df['probabilidad_reprobar'] = probabilidades[:, idx_positivo].round(4)
+    df['prediccion']           = [int(p) for p in predicciones]
+    df['probabilidad_reprobar'] = prob_pct
+    df['riesgo']               = [_prob_a_riesgo(p) for p in prob_pct]
     return df
 
 
@@ -258,8 +271,9 @@ def guardar_predicciones_arbol(df: pd.DataFrame, modelo_num: int,
             **filtro,
             'curso_id':              int(row['curso_id']),
             'modelo':                modelo_num,
-            'riesgo':                row['riesgo'],
-            'probabilidad_reprobar': float(row['probabilidad_reprobar']),
+            'prediccion':            int(row['prediccion']),           # 0=APROBADO, 1=REPROBADO
+            'probabilidad_reprobar': float(row['probabilidad_reprobar']),  # 0-100
+            'riesgo':                row['riesgo'],                    # derivado de umbrales
             'features':              features_doc,
             'fecha_analisis':        fecha,
         }}, upsert=True))
