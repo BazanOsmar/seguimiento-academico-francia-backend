@@ -280,8 +280,9 @@ def guardar_predicciones_arbol(df: pd.DataFrame, modelo_num: int,
             'fecha_analisis':        fecha,
         }}, upsert=True))
 
-    if ops:
-        _get_db()['predicciones_arbol'].bulk_write(ops, ordered=False)
+    col = _get_db()['predicciones_arbol']
+    for i in range(0, len(ops), 300):
+        col.bulk_write(ops[i:i + 300], ordered=False)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
