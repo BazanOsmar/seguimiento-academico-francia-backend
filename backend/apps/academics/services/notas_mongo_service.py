@@ -176,6 +176,8 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
     insertados     = actualizados = sin_cambios = 0
 
     for dimension, columnas in headers_actividades.items():
+        if dimension.startswith('_'):
+            continue
         nota_max = _nota_maxima(dimension)
         for col_data in columnas:
             col_idx     = col_data['col']
@@ -324,6 +326,8 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                 existentes[clave] = doc
 
             for dimension, columnas in dims.items():
+                if dimension.startswith('_'):
+                    continue
                 for col_data in columnas:
                     col_idx = col_data['col']
                     titulo  = col_data['titulo']
@@ -446,6 +450,12 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     profesor_id = profesor_curso.profesor.id
     ahora       = datetime.now(tz=timezone.utc)
 
+    # ── Lookup de autoevaluación por estudiante (trimestre completo) ─────────
+    autoeval_por_nro = {}
+    for col_data in headers_actividades.get('_autoeval', [{}]):
+        for n in col_data.get('notas', []):
+            autoeval_por_nro[n['nro']] = n['nota']
+
     # ── Agrupar notas por (estudiante_id, mes, dimension) ────────────────────
     # student_data[est_id][mes][dim] = [notas]
     student_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -453,6 +463,8 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     cols_por_mes = defaultdict(lambda: defaultdict(int))
 
     for dimension, columnas in headers_actividades.items():
+        if dimension.startswith('_'):
+            continue
         for col_data in columnas:
             fecha_activ = _parsear_fecha(col_data['titulo'])
             if not fecha_activ:
@@ -516,6 +528,7 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
                 'cantidad_examenes_total':    total_saber,
                 'cantidad_tareas_entregadas': sum(1 for n in hacer_notas if n > 0),
                 'cantidad_tareas_total':      total_hacer,
+                'autoeval_ser':               autoeval_por_nro.get(estudiante_id),
                 'fecha_carga':                ahora,
             }}, upsert=True))
 

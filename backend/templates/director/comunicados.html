@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -14,6 +14,7 @@
     <script src="{% static 'js/director_comunicados_inline.js' %}"></script>
 
     <link rel="stylesheet" href="{% static 'css/director_comunicados.css' %}">
+    <link rel="stylesheet" href="{% static 'css/citcom-modal.css' %}?v=1">
 </head>
 <body>
 
@@ -289,139 +290,9 @@
     </main>
 
     <!-- ── Modal: Nueva citación ─────────────────────────────────── -->
-    <div class="modal-backdrop" id="modalNuevaCitacion">
-        <div class="modal modal-form">
-            <button class="modal-form__close" id="btnCerrarModalCit" aria-label="Cerrar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-            <div class="form-card">
-                <div class="form-card__header">
-                    <div class="form-card__icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <line x1="9"  y1="15" x2="15" y2="15"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="form-card__title">Nueva Citación</p>
-                        <p class="form-card__subtitle">Convoca al tutor de un estudiante o a un grupo de estudiantes de un mismo curso.</p>
-                    </div>
-                </div>
-                <div class="form-card__body">
-                    <form id="formNuevaCitacion" onsubmit="return false;">
-                        <div>
-                            <label class="form-label director-comunicados-inline-style-4">Tipo de citación</label>
-                            <div class="radio-group">
-                                <label class="radio-option"><input type="radio" name="tipoCitacion" value="individual" checked> Individual</label>
-                                <label class="radio-option"><input type="radio" name="tipoCitacion" value="grupo"> Grupo de estudiantes</label>
-                            </div>
-                        </div>
-                        <!-- Fila Curso + Estudiante (modos individual/curso) -->
-                        <div class="form-row" id="rowCursoEstud">
-                            <div class="form-group director-comunicados-inline-style-5" id="wrapCurso">
-                                <label class="form-label">Curso <span class="req">*</span></label>
-                                <select id="nuevaCurso" class="form-input form-select"><option value="">Cargando...</option></select>
-                            </div>
-                            <!-- Individual: select único -->
-                            <div class="form-group director-comunicados-inline-style-6" id="wrapEstudiante">
-                                <label class="form-label">Estudiante <span class="req">*</span></label>
-                                <select id="nuevaEstudiante" class="form-input form-select" disabled><option value="">— Selecciona estudiante —</option></select>
-                            </div>
-                        </div>
-                        <!-- Info tutor: solo visible en modo individual al seleccionar estudiante -->
-                        <div id="infTutorIndiv" class="director-comunicados-inline-style-2"></div>
-                        <!-- Grupo: botón selector + lista de seleccionados (ancho completo, separado) -->
-                        <div id="wrapGrupo" class="director-comunicados-inline-style-2">
-                            <div class="director-comunicados-inline-style-7">
-                                <button type="button" id="btnAbrirSelectorEst" class="director-comunicados-inline-style-8" disabled>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                    <span id="btnSelectorLabel">Seleccionar estudiantes…</span>
-                                </button>
-                                <!-- Badge de cuenta -->
-                                <span id="grupoCountBadge" class="director-comunicados-inline-style-9"></span>
-                            </div>
-                            <!-- Lista compacta de seleccionados con scroll -->
-                            <div id="grupoChips" class="director-comunicados-inline-style-10"></div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group director-comunicados-inline-style-5">
-                                <label class="form-label">Motivo <span class="req">*</span></label>
-                                <select id="nuevaMotivo" class="form-input form-select">
-                                    <option value="">— Selecciona motivo —</option>
-                                    <option value="FALTAS">Faltas</option>
-                                    <option value="CONDUCTA">Conducta</option>
-                                    <option value="RENDIMIENTO">Rendimiento</option>
-                                    <option value="DOCUMENTOS">Documentos</option>
-                                    <option value="REUNION">Reunión</option>
-                                    <option value="OTRO">Otro</option>
-                                </select>
-                            </div>
-                            <div class="form-group director-comunicados-inline-style-5">
-                                <label class="form-label">Fecha límite <span class="req">*</span></label>
-                                <input id="nuevaFechaLimite" type="text" class="form-input" placeholder="Selecciona una fecha..." readonly>
-                            </div>
-                        </div>
-                        <div class="form-group director-comunicados-inline-style-5">
-                            <label class="form-label">Descripción <span class="req">*</span></label>
-                            <textarea id="nuevaDescripcion" class="form-input form-textarea" rows="3" maxlength="500" placeholder="Describe el motivo de la citación..."></textarea>
-                        </div>
-                    </form>
-                    <div id="progressMsg" class="progress-msg director-comunicados-inline-style-2"></div>
-                    <p id="errorNueva" class="form-error director-comunicados-inline-style-11"></p>
-                    <div class="director-comunicados-inline-style-12">
-                        <button id="btnLimpiarForm" class="btn-secondary director-comunicados-inline-style-2">Limpiar formulario</button>
-                        <button id="btnEnviarNueva" class="btn-primary director-comunicados-inline-style-13">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                            </svg>
-                            <span id="btnEnviarTexto">Enviar citación</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    {% include 'components/_citacion_modal.html' with citacion_modal_role='director' %}
 
     {% include 'components/_comunicado_modal.html' with comunicado_modal_role='director' %}
-
-    <!-- ── Panel flotante: Selector de estudiantes (modo Grupo) ───── -->
-    <div id="panelSelectorEst" class="director-comunicados-inline-style-18">
-        <!-- Header -->
-        <div class="director-comunicados-inline-style-19">
-            <div>
-                <p class="director-comunicados-inline-style-20">Seleccionar estudiantes</p>
-                <p id="selectorCursoLabel" class="director-comunicados-inline-style-21"></p>
-            </div>
-            <button id="btnCerrarSelectorEst" class="director-comunicados-inline-style-22" aria-label="Cerrar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>
-        <!-- Barra seleccionar todos + búsqueda rápida -->
-        <div class="director-comunicados-inline-style-23">
-            <input id="selectorBuscar" type="text" placeholder="Buscar estudiante…" class="director-comunicados-inline-style-24">
-            <button id="btnSelectorToggleAll" type="button" class="director-comunicados-inline-style-25">
-                Seleccionar todos
-            </button>
-        </div>
-        <!-- Lista de checkboxes -->
-        <div id="selectorEstList" class="director-comunicados-inline-style-26">
-            <p class="director-comunicados-inline-style-27">Cargando…</p>
-        </div>
-        <!-- Footer contador + confirmar -->
-        <div class="director-comunicados-inline-style-28">
-            <p id="selectorContador" class="director-comunicados-inline-style-29">0 seleccionados</p>
-            <button id="btnConfirmarSelectorEst" type="button" class="director-comunicados-inline-style-30">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Confirmar
-            </button>
-        </div>
-    </div>
-    <!-- Backdrop del selector flotante -->
-    <div id="backdropSelectorEst" class="director-comunicados-inline-style-31"></div>
 
     <!-- ── Modal: Detalle citación ───────────────────────────────── -->
     <div class="modal-backdrop" id="modalDetalleCitacion">

@@ -788,3 +788,25 @@
 .profesor-citaciones-inline-style-34 { overflow-y:auto;max-height:380px;padding:8px 12px; }
 .profesor-citaciones-inline-style-35 { padding:10px 20px;border-top:1px solid var(--border); }
 .profesor-citaciones-inline-style-36 { display:none;position:fixed;inset:0;z-index:2099;background:rgba(0,0,0,.45);backdrop-filter:blur(3px); }
+.profesor-citaciones-inline-style-37 { margin-bottom:8px;display:block; }
+.profesor-citaciones-inline-style-38 { display:none; }
+.profesor-citaciones-inline-style-39 { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+.profesor-citaciones-inline-style-40 { display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.08);color:#93c5fd;font-weight:700;font-size:.86rem;cursor:pointer;transition:background .15s,border-color .15s,color .15s; }
+.profesor-citaciones-inline-style-40:hover:not(:disabled) { background:rgba(59,130,246,.16);border-color:rgba(59,130,246,.6);color:#bfdbfe; }
+.profesor-citaciones-inline-style-40:disabled { opacity:.48;cursor:not-allowed; }
+.profesor-citaciones-inline-style-41 { display:none;font-size:.74rem;font-weight:800;padding:4px 9px;border-radius:999px;background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25); }
+.profesor-citaciones-inline-style-42 { display:none;flex-direction:column;gap:2px;max-height:112px;overflow-y:auto;margin-top:8px;border:1px solid rgba(148,163,184,.12);border-radius:10px;padding:6px;background:rgba(15,27,48,.35); }
+.profesor-citaciones-inline-style-43 { display:none;flex-direction:column;position:fixed;z-index:2300;top:50%;left:50%;transform:translate(-50%,-50%);width:min(500px,92vw);max-height:640px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden; }
+.profesor-citaciones-inline-style-44 { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border); }
+.profesor-citaciones-inline-style-45 { font-size:.98rem;font-weight:800;color:var(--text-primary);margin:0; }
+.profesor-citaciones-inline-style-46 { font-size:.75rem;color:var(--text-muted);margin:2px 0 0; }
+.profesor-citaciones-inline-style-47 { background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px;border-radius:6px; }
+.profesor-citaciones-inline-style-47:hover { background:rgba(255,255,255,.08);color:#fff; }
+.profesor-citaciones-inline-style-48 { display:flex;gap:8px;padding:10px 16px 6px; }
+.profesor-citaciones-inline-style-49 { flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:.83rem;padding:8px 11px;outline:none; }
+.profesor-citaciones-inline-style-49:focus { border-color:var(--accent); }
+.profesor-citaciones-inline-style-50 { border:1px solid rgba(59,130,246,.35);border-radius:8px;background:rgba(59,130,246,.1);color:#93c5fd;font-weight:700;font-size:.78rem;padding:8px 10px;cursor:pointer;white-space:nowrap; }
+.profesor-citaciones-inline-style-51 { overflow-y:auto;max-height:380px;padding:8px 12px; }
+.profesor-citaciones-inline-style-52 { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 20px;border-top:1px solid var(--border); }
+.profesor-citaciones-inline-style-53 { display:inline-flex;align-items:center;gap:6px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;font-size:.82rem;padding:9px 13px;cursor:pointer; }
+.profesor-citaciones-inline-style-54 { display:none;position:fixed;inset:0;z-index:2299;background:rgba(0,0,0,.45);backdrop-filter:blur(3px); }

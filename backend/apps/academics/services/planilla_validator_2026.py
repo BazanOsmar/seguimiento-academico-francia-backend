@@ -98,6 +98,9 @@ _DIMS = {
 }
 _MAX_COLS = {'ser': 4, 'saber': 10, 'hacer': 10}
 
+# Col AP (42 en 1-indexed) — "AUTOEVALUACIÓN (5 PUNTOS)", valor único por trimestre
+_AUTOEVAL_COL = 42
+
 
 def _extraer_headers_trim(ws):
     """
@@ -152,6 +155,26 @@ def _extraer_headers_trim(ws):
 
         if cols:
             headers[dim] = cols[:_MAX_COLS[dim]]
+
+    # Extrae autoevaluación (col AP): un solo valor por estudiante, sin fecha
+    idx_ap = _AUTOEVAL_COL - 1
+    autoeval_notas = []
+    for fila in filas_students:
+        if len(fila) <= idx_ap:
+            continue
+        nro    = fila[0]
+        nombre = fila[1]
+        if not nro or not nombre:
+            continue
+        val = fila[idx_ap]
+        if _es_numero(val):
+            autoeval_notas.append({
+                'nro':    int(nro),
+                'nombre': re.sub(r'\s+', ' ', str(nombre).strip()),
+                'nota':   int(round(float(val))),
+            })
+    if autoeval_notas:
+        headers['_autoeval'] = [{'col': _AUTOEVAL_COL, 'titulo': 'Autoevaluación', 'notas': autoeval_notas}]
 
     return headers
 

@@ -4,7 +4,7 @@
 
 {% block page_css %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/profesor_citaciones.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/profesor_citaciones.css' %}?v=5">
 {% endblock %}
 
 {% block main %}
@@ -128,82 +128,9 @@
 {% endblock %}
 
 {% block page_modals %}
-    <!-- ── Modal: Nueva Citación ─────────────────────────────────── -->
-    <div class="modal-backdrop" id="modalNuevaCitacionProf">
-        <div class="modal modal-form">
-            <button class="modal-form__close" id="btnCerrarModalCitProf" aria-label="Cerrar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-            <div class="form-card">
-                <div class="form-card__header">
-                    <div class="form-card__icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <line x1="9"  y1="15" x2="15" y2="15"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="form-card__title">Nueva Citación</p>
-                        <p class="form-card__subtitle">Convoca al tutor de un estudiante de tus cursos.</p>
-                    </div>
-                </div>
-                <div class="form-card__body">
-                    <form id="formCitacion" class="profesor-citaciones-inline-style-2" onsubmit="return false;">
-                        <div class="form-row">
-                            <div class="form-group profesor-citaciones-inline-style-3">
-                                <label class="form-label" for="citCurso">Curso <span class="req">*</span></label>
-                                <select id="citCurso" class="form-input form-select" disabled>
-                                    <option value="">— Cargando cursos… —</option>
-                                </select>
-                            </div>
-                            <div class="form-group profesor-citaciones-inline-style-3">
-                                <label class="form-label" for="citEstudiante">Estudiante <span class="req">*</span></label>
-                                <select id="citEstudiante" class="form-input form-select" disabled>
-                                    <option value="">— Selecciona un estudiante —</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group profesor-citaciones-inline-style-3">
-                                <label class="form-label" for="citMotivo">Motivo <span class="req">*</span></label>
-                                <select id="citMotivo" class="form-input form-select" required>
-                                    <option value="">— Selecciona un motivo —</option>
-                                    <option value="FALTAS">Faltas</option>
-                                    <option value="COMPORTAMIENTO">Comportamiento</option>
-                                    <option value="BAJO_RENDIMIENTO">Bajo rendimiento</option>
-                                    <option value="OTRO">Otro</option>
-                                </select>
-                            </div>
-                            <div class="form-group profesor-citaciones-inline-style-3">
-                                <label class="form-label" for="citFechaLimite">Fecha límite <span class="req">*</span></label>
-                                <input id="citFechaLimite" class="form-input" type="date" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="citDescripcion">Descripción</label>
-                            <textarea id="citDescripcion" class="form-input form-textarea profesor-citaciones-inline-style-4" rows="4" placeholder="Describe el motivo de la citación…" maxlength="500"></textarea>
-                        </div>
-                        <p id="citError" class="form-error profesor-citaciones-inline-style-5"></p>
-                        <div class="profesor-citaciones-inline-style-6">
-                            <button type="button" class="btn-secondary" id="btnCancelarCitProf">Cancelar</button>
-                            <button type="submit" class="btn-primary" id="btnEnviarCitacion">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                                </svg>
-                                Enviar Citación
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    {% include 'components/_citacion_modal.html' with citacion_modal_role='profesor' %}
 
-    <!-- ── Modal: Detalle Citación ────────────────────────────────── -->
+
     <div class="modal-backdrop" id="modalDetalleCitProf">
         <div class="modal modal-detalle">
             <button class="modal-detalle__close" id="btnCerrarDetalleCitProf" aria-label="Cerrar">
@@ -269,7 +196,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Marcar Asistencia ───────────────────────────────── -->
+    <!-- Modal: Marcar Asistencia -->
     <div class="modal-backdrop" id="modalMarcarCitProf">
         <div class="modal modal-form profesor-citaciones-inline-style-11">
             <button class="modal-form__close" id="btnCerrarMarcarCitProf" aria-label="Cerrar">
@@ -303,7 +230,7 @@
 
     {% include 'components/_comunicado_modal.html' with comunicado_modal_role='profesor' %}
 
-    <!-- ── Modal: Detalle Comunicado (dos paneles) ───────────────── -->
+    <!-- Modal: Detalle Comunicado (dos paneles) -->
     <div class="modal-backdrop" id="modalDetalleComProf">
         <div class="modal-com-wrap" id="modalComWrap">
 
@@ -365,10 +292,10 @@
                     </button>
                 </div>
                 <div class="com-dest__search">
-                    <input id="comDestBuscar" type="text" placeholder="Buscar padre o estudiante…" class="form-input profesor-citaciones-inline-style-24">
+                    <input id="comDestBuscar" type="text" placeholder="Buscar padre o estudiante..." class="form-input profesor-citaciones-inline-style-24">
                 </div>
                 <div class="com-dest__list" id="comDestList">
-                    <p class="profesor-citaciones-inline-style-25">Cargando…</p>
+                    <p class="profesor-citaciones-inline-style-25">Cargando...</p>
                 </div>
                 <div class="com-dest__foot">
                     <p id="comDestFooter" class="profesor-citaciones-inline-style-26"></p>
@@ -378,7 +305,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Confirmar anulación de Citación ────────────────── -->
+    <!-- Modal: Confirmar anulación de Citación -->
     <div class="modal-backdrop" id="modalAnularCitProf">
         <div class="modal modal-form profesor-citaciones-inline-style-27">
             <div class="form-card">
@@ -393,6 +320,10 @@
                 </div>
                 <div class="form-card__body profesor-citaciones-inline-style-2">
                     <p class="profesor-citaciones-inline-style-13">¿Confirmas la anulación de la citación de <strong id="anularCitNombre"></strong>?</p>
+                    <div class="form-group">
+                        <label class="form-label" for="anularCitPassword">Contraseña actual</label>
+                        <input class="form-input" id="anularCitPassword" type="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" maxlength="64">
+                    </div>
                     <p id="anularCitError" class="form-error profesor-citaciones-inline-style-1"></p>
                     <div class="profesor-citaciones-inline-style-6">
                         <button class="btn-secondary" id="btnCancelarAnularCit">Cancelar</button>
@@ -406,7 +337,7 @@
         </div>
     </div>
 
-    <!-- ── Modal: Confirmar anulación de Comunicado ───────────────── -->
+    <!-- Modal: Confirmar anulación de Comunicado -->
     <div class="modal-backdrop" id="modalAnularComProf">
         <div class="modal modal-form profesor-citaciones-inline-style-27">
             <div class="form-card">

@@ -1,0 +1,467 @@
+/* Shared create modals for citaciones and comunicados. */
+.modal-form--citcom-create {
+    width: min(520px, calc(100vw - 32px));
+    max-width: 520px;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #1e293b, #0f172a);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+    isolation: isolate;
+}
+
+.modal-form--citcom-create .form-card {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    margin: 0;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+.modal-form--citcom-create .form-card__header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, .14);
+    background: #1e293b;
+}
+
+.modal-form--citcom-create .form-card__icon {
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(96, 165, 250, .35);
+    border-radius: 12px;
+    background: rgba(96, 165, 250, .14);
+    color: #93c5fd;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.modal-form--citcom-create .form-card__title {
+    color: #e2e8f0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.modal-form--citcom-create .form-card__subtitle {
+    color: #94a3b8;
+    font-size: .78rem;
+    line-height: 1.35;
+    margin: 4px 0 0;
+}
+
+.modal-form--citcom-create .form-card__body {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    background: #0f172a;
+}
+
+.modal-form--citcom-create form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.modal-form--citcom-create .form-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    margin: 0;
+}
+
+.modal-form--citcom-create .form-group {
+    min-width: 0;
+    gap: 7px;
+    margin: 0;
+}
+
+.modal-form--citcom-create .form-label {
+    color: #94a3b8;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.modal-form--citcom-create .form-input {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 11px;
+    background: rgba(2, 6, 23, .28);
+    color: #e2e8f0;
+    font-family: inherit;
+    font-size: .86rem;
+    outline: none;
+    padding: 10px 12px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+}
+
+.modal-form--citcom-create .form-input:focus {
+    border-color: rgba(96, 165, 250, .52);
+    background: rgba(2, 6, 23, .38);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, .1);
+}
+
+.modal-form--citcom-create .form-input:disabled {
+    cursor: not-allowed;
+    opacity: .62;
+}
+
+.modal-form--citcom-create .form-select option {
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.modal-form--citcom-create .flatpickr-input[readonly],
+.modal-form--citcom-create .form-input[readonly] {
+    cursor: pointer;
+}
+
+.modal-form--citcom-create .form-textarea {
+    min-height: 112px;
+    resize: none;
+    line-height: 1.45;
+}
+
+.modal-form--citcom-create .radio-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.modal-form--comunicado.modal-form--director-create .radio-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.modal-form--citcom-create .radio-option {
+    min-height: 36px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 11px;
+    background: rgba(2, 6, 23, .28);
+    color: #94a3b8;
+    padding: 8px 12px;
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.modal-form--citcom-create .radio-option:has(input:checked) {
+    border-color: rgba(96, 165, 250, .42);
+    background: rgba(96, 165, 250, .16);
+    color: #bfdbfe;
+}
+
+.modal-form--citcom-create .btn-secondary,
+.modal-form--citcom-create .btn-primary {
+    min-height: 40px;
+    border-radius: 11px;
+    font-size: .84rem;
+    font-weight: 800;
+    padding: 0 16px;
+}
+
+.modal-form--citcom-create .btn-secondary {
+    border: 1px solid rgba(148, 163, 184, .16);
+    background: rgba(2, 6, 23, .28);
+    color: #94a3b8;
+}
+
+.modal-form--citcom-create .btn-secondary:hover {
+    border-color: rgba(96, 165, 250, .35);
+    color: #e2e8f0;
+    background: rgba(30, 41, 59, .72);
+}
+
+.modal-form--citcom-create .btn-primary {
+    border: 1px solid rgba(96, 165, 250, .45);
+    background: rgba(96, 165, 250, .18);
+    color: #dbeafe;
+    box-shadow: none;
+}
+
+.modal-form--citcom-create .btn-primary:hover {
+    background: rgba(96, 165, 250, .25);
+}
+
+.modal-form--citcom-create .modal-form__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 10;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, .62);
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+.modal-form--citcom-create .modal-form__close:hover {
+    background: rgba(239, 68, 68, .12);
+    border-color: rgba(239, 68, 68, .38);
+    color: #fca5a5;
+}
+
+.modal-form--citcom-create .form-error {
+    color: #f87171;
+    font-size: .8rem;
+    margin: 0;
+}
+
+.modal-form--citcom-create .progress-msg {
+    margin-top: 12px;
+    border-color: rgba(96, 165, 250, .22);
+    border-left-color: #60a5fa;
+    background: rgba(2, 6, 23, .28);
+    color: #bfdbfe;
+}
+
+.modal-form--citcom-create .fcm-cobertura-pill {
+    width: 100%;
+    min-height: 36px;
+    border-radius: 11px;
+    background: rgba(2, 6, 23, .28);
+}
+
+.modal-form--prof-com {
+    width: min(520px, calc(100vw - 32px));
+    max-width: 520px;
+}
+
+.modal-form--prof-com form.com-prof-form {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.modal-form--prof-com .com-prof-field {
+    width: 100%;
+    min-width: 0;
+}
+
+.modal-form--prof-com .form-input,
+.modal-form--prof-com .fcm-cobertura-pill {
+    width: 100%;
+}
+
+.modal-form--prof-com .com-prof-field--title,
+.modal-form--prof-com .com-prof-field--content,
+.modal-form--prof-com .com-prof-field--conditional,
+.modal-form--prof-com .com-prof-field--coverage,
+.modal-form--prof-com .com-prof-field--error,
+.modal-form--prof-com .com-prof-field--actions {
+    grid-column: 1 / -1;
+}
+
+.modal-form--prof-com #comProfContenido {
+    min-height: 122px;
+}
+
+.modal-form--prof-com .com-actions {
+    margin-top: 4px;
+}
+
+.modal-form--prof-com #comProfError {
+    opacity: 1;
+    transition: opacity .28s ease;
+}
+
+.modal-form--prof-com #comProfError.is-fading {
+    opacity: 0;
+}
+
+#panelSelectorEst,
+#panelSelectorEstProf {
+    width: min(420px, calc(100vw - 32px));
+    max-height: calc(100dvh - 40px);
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #1e293b, #0f172a);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+    overflow: hidden;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-19,
+#panelSelectorEstProf .director-comunicados-inline-style-19 {
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, .14);
+    background: #1e293b;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-20,
+#panelSelectorEstProf .director-comunicados-inline-style-20 {
+    color: #e2e8f0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-21,
+#panelSelectorEstProf .director-comunicados-inline-style-21 {
+    color: #94a3b8;
+    font-size: .78rem;
+    margin: 4px 0 0;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-22,
+#panelSelectorEstProf .director-comunicados-inline-style-22 {
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, .62);
+    color: #94a3b8;
+    justify-content: center;
+    padding: 0;
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-22:hover,
+#panelSelectorEstProf .director-comunicados-inline-style-22:hover {
+    background: rgba(239, 68, 68, .12);
+    border-color: rgba(239, 68, 68, .38);
+    color: #fca5a5;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-23,
+#panelSelectorEstProf .director-comunicados-inline-style-23 {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, .12);
+    background: #111c2f;
+    gap: 10px;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-24,
+#panelSelectorEstProf .director-comunicados-inline-style-24 {
+    min-height: 34px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 10px;
+    background: rgba(2, 6, 23, .28);
+    color: #e2e8f0;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-24:focus,
+#panelSelectorEstProf .director-comunicados-inline-style-24:focus {
+    border-color: rgba(96, 165, 250, .52);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, .1);
+}
+
+#panelSelectorEst .director-comunicados-inline-style-25,
+#panelSelectorEstProf .director-comunicados-inline-style-25 {
+    color: #93c5fd;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-26,
+#panelSelectorEstProf .director-comunicados-inline-style-26 {
+    max-height: min(380px, calc(100dvh - 246px));
+    padding: 8px;
+    background: #0f172a;
+    gap: 4px;
+}
+
+#panelSelectorEst ._sel-item,
+#panelSelectorEst ._cit-sel-item,
+#panelSelectorEstProf ._sel-item,
+#panelSelectorEstProf ._cit-sel-item {
+    border: 1px solid transparent;
+    background: rgba(15, 23, 42, .42) !important;
+    color: #e2e8f0 !important;
+}
+
+#panelSelectorEst ._sel-item:hover,
+#panelSelectorEst ._cit-sel-item:hover,
+#panelSelectorEstProf ._sel-item:hover,
+#panelSelectorEstProf ._cit-sel-item:hover {
+    background: rgba(30, 41, 59, .72) !important;
+    border-color: rgba(148, 163, 184, .18);
+}
+
+#panelSelectorEst ._sel-item:has(input:checked),
+#panelSelectorEst ._cit-sel-item:has(input:checked),
+#panelSelectorEstProf ._sel-item:has(input:checked),
+#panelSelectorEstProf ._cit-sel-item:has(input:checked) {
+    background: rgba(59, 130, 246, .18) !important;
+    border-color: rgba(96, 165, 250, .24);
+    color: #bfdbfe !important;
+}
+
+#panelSelectorEst ._sel-item input[type="checkbox"],
+#panelSelectorEst ._cit-sel-item input[type="checkbox"],
+#panelSelectorEstProf ._sel-item input[type="checkbox"],
+#panelSelectorEstProf ._cit-sel-item input[type="checkbox"] {
+    accent-color: #60a5fa;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-28,
+#panelSelectorEstProf .director-comunicados-inline-style-28 {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(148, 163, 184, .12);
+    background: #111c2f;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-29,
+#panelSelectorEstProf .director-comunicados-inline-style-29 {
+    color: #94a3b8;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-30,
+#panelSelectorEstProf .director-comunicados-inline-style-30 {
+    min-height: 36px;
+    border: 1px solid rgba(96, 165, 250, .45);
+    border-radius: 11px;
+    background: rgba(96, 165, 250, .18);
+    color: #dbeafe;
+    font-weight: 800;
+}
+
+#panelSelectorEst .director-comunicados-inline-style-30:hover,
+#panelSelectorEstProf .director-comunicados-inline-style-30:hover {
+    background: rgba(96, 165, 250, .25);
+}
+
+#backdropSelectorEst,
+#backdropSelectorEstProf {
+    background: rgba(2, 6, 23, .34);
+    backdrop-filter: blur(4px) saturate(.86);
+}
+
+@media (max-width: 620px) {
+    .modal-form--citcom-create .form-row,
+    .modal-form--citcom-create .radio-group,
+    .modal-form--comunicado.modal-form--director-create .radio-group {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-form--citcom-create {
+        width: min(94vw, 520px);
+    }
+}
+
+@media (max-width: 460px) {
+    .modal-form--prof-com form.com-prof-form {
+        grid-template-columns: 1fr;
+    }
+}

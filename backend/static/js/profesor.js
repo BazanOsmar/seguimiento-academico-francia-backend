@@ -41,6 +41,7 @@ let _todosComunicados = [];
 let _citMesObj        = null;   // { year, month } — se inicializa en _initCitaciones
 let _comMesObj        = null;
 let _citFiltroAnulado = 'ACTIVO';
+let _citFiltroEstado  = 'PENDIENTE';
 let _comFiltroAnulado = 'ACTIVO';
 let _citPage          = 0;
 const _CIT_PER_PAGE   = 10;
@@ -49,6 +50,10 @@ const _COM_PER_PAGE   = 10;
 let _marcarCitId      = null;
 let _anularCitId      = null;
 let _anularComId      = null;
+let _citGrupoSeleccionados = [];
+let _citTodosEstudiantesCurso = [];
+let _citCacheCursos = {};
+let _citEstudiantesCursoActual = [];
 
 // ── Inicialización ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -164,6 +169,7 @@ function _initCitaciones() {
         if (_citMesObj.month === 0) { _citMesObj.year--; _citMesObj.month = 11; }
         else { _citMesObj.month--; }
         _paintCitMes();
+        _citPage = 0;
         _aplicarFiltroCit();
     });
     nextCit.addEventListener('click', () => {
@@ -171,6 +177,7 @@ function _initCitaciones() {
         if (_citMesObj.month === 11) { _citMesObj.year++; _citMesObj.month = 0; }
         else { _citMesObj.month++; }
         _paintCitMes();
+        _citPage = 0;
         _aplicarFiltroCit();
     });
     _paintCitMes();
@@ -206,6 +213,21 @@ function _initCitaciones() {
         document.getElementById('estadoChipsCitProf').querySelectorAll('.rol-chip').forEach(c => c.classList.remove('rol-chip--active'));
         chip.classList.add('rol-chip--active');
         _citFiltroAnulado = chip.dataset.estado;
+        _citPage = 0;
+        _aplicarFiltroCit();
+    });
+
+    // Tarjetas de estado - citaciones
+    stats?.addEventListener('click', e => {
+        const card = e.target.closest('.cit-stat-card');
+        if (!card) return;
+        stats.querySelectorAll('.cit-stat-card').forEach(c => c.classList.remove('cit-stat-card--active'));
+        card.classList.add('cit-stat-card--active');
+        document.getElementById('estadoChipsCitProf')?.querySelectorAll('.rol-chip').forEach(chip => {
+            chip.classList.toggle('rol-chip--active', chip.dataset.estado === 'ACTIVO');
+        });
+        _citFiltroAnulado = 'ACTIVO';
+        _citFiltroEstado = card.dataset.filter || '';
         _citPage = 0;
         _aplicarFiltroCit();
     });
@@ -699,8 +721,12 @@ function _cerrarModalNuevaCitProf() {
     const modal = document.getElementById('modalNuevaCitacionProf');
     modal.classList.remove('visible');
     document.getElementById('formCitacion').reset();
+    document.getElementById('citFechaLimite')?._flatpickr?.clear();
     document.getElementById('citEstudiante').disabled = true;
     document.getElementById('citError').style.display = 'none';
+    _resetCitGrupoProf();
+    _cerrarSelectorEstProf();
+    _toggleTipoCitacionProf();
 }
 
 // ── Formulario de nueva citación ──────────────────────────────────
@@ -708,16 +734,64 @@ function _initCitacionForm() {
     const selectCurso = document.getElementById('citCurso');
     if (!selectCurso) return;
     const selectEst   = document.getElementById('citEstudiante');
+    const btnSelector = document.getElementById('btnAbrirSelectorEstProf');
 
     // No permitir fechas pasadas en la fecha límite de citación
     const inputFechaLimite = document.getElementById('citFechaLimite');
-    inputFechaLimite.min = new Date().toISOString().split('T')[0];
+    if (inputFechaLimite && typeof flatpickr !== 'undefined') {
+        const hoy = new Date();
+        const maxFecha = new Date();
+        maxFecha.setFullYear(maxFecha.getFullYear() + 1);
+        flatpickr(inputFechaLimite, {
+            locale: {
+                firstDayOfWeek: 1,
+                weekdays: {
+                    shorthand: ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+                    longhand: ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'],
+                },
+                months: {
+                    shorthand: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    longhand: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                },
+                rangeSeparator: ' a ',
+                time_24hr: true,
+            },
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
+            minDate: hoy,
+            maxDate: maxFecha,
+            disableMobile: true,
+        });
+    } else if (inputFechaLimite) {
+        inputFechaLimite.type = 'date';
+        inputFechaLimite.min = new Date().toISOString().split('T')[0];
+    }
 
-    selectCurso.addEventListener('change', () => {
+    selectCurso.addEventListener('change', async () => {
         const cursoId = selectCurso.value;
         _resetSelect(selectEst, 'Selecciona un estudiante');
+        if (btnSelector) btnSelector.disabled = !cursoId;
         if (!cursoId) return;
-        cargarEstudiantes(cursoId);
+        if (_getTipoCitacionProf() === 'individual') cargarEstudiantes(cursoId);
+        else {
+            const buscar = document.getElementById('selectorBuscarProf');
+            if (buscar) buscar.value = '';
+            _renderCitGrupoChipsProf();
+        }
+    });
+
+    document.querySelectorAll('input[name="tipoCitacionProf"]').forEach(radio => {
+        radio.addEventListener('change', _toggleTipoCitacionProf);
+    });
+    btnSelector?.addEventListener('click', _abrirSelectorEstProf);
+    document.getElementById('btnCerrarSelectorEstProf')?.addEventListener('click', _cerrarSelectorEstProf);
+    document.getElementById('backdropSelectorEstProf')?.addEventListener('click', _cerrarSelectorEstProf);
+    document.getElementById('selectorBuscarProf')?.addEventListener('input', e => _renderSelectorEstProf(e.target.value));
+    document.getElementById('btnSelectorToggleAllProf')?.addEventListener('click', _toggleAllSelectorEstProf);
+    document.getElementById('btnConfirmarSelectorEstProf')?.addEventListener('click', () => {
+        _renderCitGrupoChipsProf();
+        _cerrarSelectorEstProf();
     });
 
     document.getElementById('formCitacion').addEventListener('submit', async e => {
@@ -731,11 +805,190 @@ function _initCitacionForm() {
     document.getElementById('modalNuevaCitacionProf').addEventListener('click', e => {
         if (e.target === e.currentTarget) _cerrarModalNuevaCitProf();
     });
+    _toggleTipoCitacionProf();
 }
 
 function _resetSelect(el, placeholder) {
     el.innerHTML = `<option value="">— ${placeholder} —</option>`;
     el.disabled = true;
+}
+
+function _getTipoCitacionProf() {
+    return document.querySelector('input[name="tipoCitacionProf"]:checked')?.value || 'individual';
+}
+
+function _toggleTipoCitacionProf() {
+    const tipo = _getTipoCitacionProf();
+    const cursoId = document.getElementById('citCurso')?.value;
+    const wrapEst = document.getElementById('citWrapEstudiante');
+    const wrapGrupo = document.getElementById('citWrapGrupo');
+    const btnSelector = document.getElementById('btnAbrirSelectorEstProf');
+    if (wrapEst) {
+        wrapEst.style.display = tipo === 'individual' ? '' : 'none';
+        wrapEst.style.opacity = tipo === 'individual' ? '1' : '0.45';
+    }
+    if (wrapGrupo) wrapGrupo.style.display = tipo === 'grupo' ? 'block' : 'none';
+    if (btnSelector) btnSelector.disabled = !cursoId;
+    if (tipo === 'individual' && cursoId) cargarEstudiantes(cursoId);
+}
+
+function _resetCitGrupoProf() {
+    _citGrupoSeleccionados = [];
+    _citTodosEstudiantesCurso = [];
+    const buscar = document.getElementById('selectorBuscarProf');
+    if (buscar) buscar.value = '';
+    _renderCitGrupoChipsProf();
+    _actualizarContadorSelectorProf();
+}
+
+function _cerrarSelectorEstProf() {
+    const panel = document.getElementById('panelSelectorEstProf');
+    const backdrop = document.getElementById('backdropSelectorEstProf');
+    if (panel) panel.style.display = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+}
+
+async function _abrirSelectorEstProf() {
+    const cursoSel = document.getElementById('citCurso');
+    const cursoId = cursoSel?.value;
+    if (!cursoId) return;
+
+    const panel = document.getElementById('panelSelectorEstProf');
+    const backdrop = document.getElementById('backdropSelectorEstProf');
+    const list = document.getElementById('selectorEstListProf');
+    const label = document.getElementById('selectorCursoLabelProf');
+    const buscar = document.getElementById('selectorBuscarProf');
+    if (label) label.textContent = cursoSel.options[cursoSel.selectedIndex]?.textContent?.trim() || '';
+    if (buscar) buscar.value = '';
+    if (panel) panel.style.display = 'flex';
+    if (backdrop) backdrop.style.display = 'block';
+
+    if (_citCacheCursos[cursoId]) {
+        _citTodosEstudiantesCurso = _citCacheCursos[cursoId];
+    } else {
+        if (list) list.innerHTML = '<p class="director-comunicados-inline-style-27">Cargando...</p>';
+        const { ok, data } = await fetchAPI(`/api/students/curso/${cursoId}/estudiantes/`);
+        _citTodosEstudiantesCurso = ok ? (data || []).filter(e => e.activo !== false) : [];
+        _citCacheCursos[cursoId] = _citTodosEstudiantesCurso;
+    }
+    _renderSelectorEstProf('');
+    _actualizarContadorSelectorProf();
+}
+
+function _nombreEstudianteCit(e) {
+    return `${e.apellidos || `${e.apellido_paterno || ''} ${e.apellido_materno || ''}`.trim()}, ${e.nombre || ''}`.trim();
+}
+
+function _renderSelectorEstProf(q = '') {
+    const list = document.getElementById('selectorEstListProf');
+    const toggle = document.getElementById('btnSelectorToggleAllProf');
+    if (!list) return;
+
+    const ql = q.toLowerCase().trim();
+    const filtrados = _citTodosEstudiantesCurso.filter(e => !ql || _nombreEstudianteCit(e).toLowerCase().includes(ql));
+    if (!filtrados.length) {
+        list.innerHTML = '<p class="director-comunicados-inline-style-27">Sin resultados.</p>';
+        if (toggle) toggle.textContent = 'Seleccionar todos';
+        return;
+    }
+
+    list.innerHTML = filtrados.map(e => {
+        const nombre = _escapeHtml(_nombreEstudianteCit(e));
+        const checked = _citGrupoSeleccionados.some(s => s.id === e.id);
+        const sinTutor = !e.tiene_tutor;
+        const badge = sinTutor
+            ? '<span style="font-size:.67rem;font-weight:800;padding:2px 7px;border-radius:999px;background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25);">Sin tutor</span>'
+            : (e.tutor_tiene_fcm
+                ? '<span title="Tutor con app" style="color:#22c55e;display:flex;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>'
+                : '<span title="Tutor sin app" style="color:var(--text-muted);opacity:.55;display:flex;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>');
+        return `<label class="_cit-sel-item" data-id="${e.id}" data-disabled="${sinTutor}" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:.84rem;user-select:none;transition:background .12s;${checked ? 'background:rgba(59,130,246,.13);color:#93c5fd;' : ''}${sinTutor ? 'opacity:.5;cursor:not-allowed;' : 'cursor:pointer;'}">
+            <input type="checkbox" value="${e.id}" ${checked ? 'checked' : ''} ${sinTutor ? 'disabled' : ''} style="width:15px;height:15px;accent-color:var(--accent);">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nombre}</span>
+            <span style="display:flex;align-items:center;gap:5px;">${badge}</span>
+        </label>`;
+    }).join('');
+
+    list.querySelectorAll('._cit-sel-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (item.dataset.disabled === 'true') return;
+            setTimeout(() => {
+                const id = parseInt(item.dataset.id, 10);
+                const est = _citTodosEstudiantesCurso.find(e => e.id === id);
+                const checked = item.querySelector('input')?.checked;
+                if (checked && est && !_citGrupoSeleccionados.some(s => s.id === id)) {
+                    _citGrupoSeleccionados.push({ id, nombre: _nombreEstudianteCit(est) });
+                } else if (!checked) {
+                    _citGrupoSeleccionados = _citGrupoSeleccionados.filter(s => s.id !== id);
+                }
+                _renderSelectorEstProf(document.getElementById('selectorBuscarProf')?.value || '');
+                _actualizarContadorSelectorProf();
+            }, 0);
+        });
+    });
+
+    const disponibles = filtrados.filter(e => e.tiene_tutor).map(e => e.id);
+    const todosMarcados = disponibles.length > 0 && disponibles.every(id => _citGrupoSeleccionados.some(s => s.id === id));
+    if (toggle) toggle.textContent = todosMarcados ? 'Deseleccionar todos' : 'Seleccionar todos';
+}
+
+function _toggleAllSelectorEstProf() {
+    const q = (document.getElementById('selectorBuscarProf')?.value || '').toLowerCase().trim();
+    const filtrados = _citTodosEstudiantesCurso.filter(e =>
+        e.tiene_tutor && (!q || _nombreEstudianteCit(e).toLowerCase().includes(q))
+    );
+    const ids = filtrados.map(e => e.id);
+    const todosMarcados = ids.length > 0 && ids.every(id => _citGrupoSeleccionados.some(s => s.id === id));
+    if (todosMarcados) {
+        _citGrupoSeleccionados = _citGrupoSeleccionados.filter(s => !ids.includes(s.id));
+    } else {
+        filtrados.forEach(e => {
+            if (!_citGrupoSeleccionados.some(s => s.id === e.id)) {
+                _citGrupoSeleccionados.push({ id: e.id, nombre: _nombreEstudianteCit(e) });
+            }
+        });
+    }
+    _renderSelectorEstProf(document.getElementById('selectorBuscarProf')?.value || '');
+    _actualizarContadorSelectorProf();
+}
+
+function _actualizarContadorSelectorProf() {
+    const n = _citGrupoSeleccionados.length;
+    const contador = document.getElementById('selectorContadorProf');
+    if (contador) contador.textContent = `${n} seleccionado${n !== 1 ? 's' : ''}`;
+}
+
+function _renderCitGrupoChipsProf() {
+    const chips = document.getElementById('grupoChipsProf');
+    const badge = document.getElementById('grupoCountBadgeProf');
+    const label = document.getElementById('btnSelectorLabelProf');
+    const n = _citGrupoSeleccionados.length;
+    if (badge) {
+        badge.style.display = n ? 'inline-block' : 'none';
+        badge.textContent = `${n} seleccionado${n !== 1 ? 's' : ''}`;
+    }
+    if (label) label.textContent = n ? 'Editar selección' : 'Seleccionar estudiantes...';
+    if (!chips) return;
+    if (!n) {
+        chips.style.display = 'none';
+        chips.innerHTML = '';
+        return;
+    }
+    chips.style.display = 'flex';
+    chips.innerHTML = _citGrupoSeleccionados.map(s => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border-radius:7px;">
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);font-size:.82rem;">${_escapeHtml(s.nombre)}</span>
+            <button type="button" data-id="${s.id}" title="Quitar" style="background:none;border:0;color:var(--text-muted);cursor:pointer;padding:2px;display:flex;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+    `).join('');
+    chips.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = parseInt(btn.dataset.id, 10);
+            _citGrupoSeleccionados = _citGrupoSeleccionados.filter(s => s.id !== id);
+            _renderCitGrupoChipsProf();
+        });
+    });
 }
 
 // ── Cargar cursos del profesor ────────────────────────────────────
@@ -766,6 +1019,8 @@ async function cargarEstudiantes(cursoId) {
     }
     sel.innerHTML = '<option value="">— Selecciona un estudiante —</option>';
     const activos = data.filter(e => e.activo !== false);
+    _citEstudiantesCursoActual = activos;
+    _citCacheCursos[cursoId] = activos;
     activos.forEach(e => {
         const opt = document.createElement('option');
         opt.value = e.id;
@@ -785,6 +1040,7 @@ async function cargarEstudiantes(cursoId) {
 // ── Enviar citación ───────────────────────────────────────────────
 async function enviarCitacion() {
     const btn = document.getElementById('btnEnviarCitacion');
+    const tipo          = _getTipoCitacionProf();
     const estudianteId  = document.getElementById('citEstudiante').value;
     const motivo        = document.getElementById('citMotivo').value;
     const descripcion   = document.getElementById('citDescripcion').value.trim();
@@ -793,15 +1049,56 @@ async function enviarCitacion() {
 
     errorEl.style.display = 'none';
 
-    if (!estudianteId || !motivo || !fechaLimite) {
+    if (!motivo || !fechaLimite) {
         errorEl.textContent = 'Completa todos los campos obligatorios.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (tipo === 'individual' && !estudianteId) {
+        errorEl.textContent = 'Selecciona un estudiante.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (tipo === 'grupo' && !_citGrupoSeleccionados.length) {
+        errorEl.textContent = 'Selecciona al menos un estudiante en el grupo.';
         errorEl.style.display = 'block';
         return;
     }
 
     const btnHtml = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = 'Enviando...';
+    btn.textContent = tipo === 'grupo' ? `Enviando ${_citGrupoSeleccionados.length}...` : 'Enviando...';
+
+    if (tipo === 'grupo') {
+        const { ok, data } = await fetchAPI('/api/discipline/citaciones/crear-grupo/', {
+            method: 'POST',
+            body: JSON.stringify({
+                estudiantes: _citGrupoSeleccionados.map(item => item.id),
+                motivo,
+                descripcion,
+                estado: 'ENVIADA',
+                fecha_limite_asistencia: fechaLimite,
+            }),
+        });
+
+        btn.disabled = false;
+        btn.innerHTML = btnHtml;
+
+        const exitosas = data?.total_creadas ?? data?.creadas?.length ?? 0;
+        const fallidas = data?.total_fallidas ?? data?.fallidas?.length ?? 0;
+
+        if (!ok) {
+            errorEl.textContent = 'No se pudo crear ninguna citación del grupo.';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        const msg = `${exitosas} citación${exitosas !== 1 ? 'es' : ''} enviada${exitosas !== 1 ? 's' : ''}${fallidas ? ` (${fallidas} con error)` : ''}.`;
+        showAppToast(fallidas ? 'warning' : 'success', 'Citaciones enviadas', msg);
+        _cerrarModalNuevaCitProf();
+        cargarCitaciones();
+        return;
+    }
 
     const { ok, data, status } = await fetchAPI('/api/discipline/citaciones/crear/', {
         method: 'POST',
@@ -1271,6 +1568,10 @@ function _aplicarFiltroCit() {
         ? porMes.filter(c => c.asistencia === 'ANULADA')
         : porMes.filter(c => c.asistencia !== 'ANULADA');
 
+    if (_citFiltroAnulado !== 'ANULADA' && _citFiltroEstado) {
+        filtradas = filtradas.filter(c => c.asistencia === _citFiltroEstado);
+    }
+
     // 4. Filtrar por búsqueda
     if (q) {
         filtradas = filtradas.filter(c =>
@@ -1502,6 +1803,9 @@ function _initDetalleCitModals() {
     // Anular citación
     document.getElementById('btnCancelarAnularCit')?.addEventListener('click', _cerrarModalAnularCit);
     document.getElementById('btnConfirmarAnularCit')?.addEventListener('click', _confirmarAnularCit);
+    document.getElementById('anularCitPassword')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') _confirmarAnularCit();
+    });
     document.getElementById('modalAnularCitProf')?.addEventListener('click', e => {
         if (e.target === e.currentTarget) _cerrarModalAnularCit();
     });
@@ -1820,11 +2124,18 @@ function _abrirModalAnularCit(id, nombre) {
     _anularCitId = id;
     document.getElementById('anularCitNombre').textContent  = nombre || '—';
     document.getElementById('anularCitError').style.display = 'none';
+    const passInput = document.getElementById('anularCitPassword');
+    if (passInput) {
+        passInput.value = '';
+        setTimeout(() => passInput.focus(), 100);
+    }
     document.getElementById('modalAnularCitProf').classList.add('visible');
 }
 
 function _cerrarModalAnularCit() {
     document.getElementById('modalAnularCitProf').classList.remove('visible');
+    const passInput = document.getElementById('anularCitPassword');
+    if (passInput) passInput.value = '';
     _anularCitId = null;
 }
 
@@ -1832,13 +2143,25 @@ async function _confirmarAnularCit() {
     if (!_anularCitId) return;
     const btn = document.getElementById('btnConfirmarAnularCit');
     const err = document.getElementById('anularCitError');
+    const passInput = document.getElementById('anularCitPassword');
+    const contrasena = passInput?.value || '';
+
+    if (!contrasena.trim()) {
+        err.textContent = 'Ingresa tu contraseña.';
+        err.style.display = 'block';
+        passInput?.focus();
+        return;
+    }
 
     const btnHtml = btn.innerHTML;
     btn.disabled    = true;
-    btn.textContent = 'Anulando…';
+    btn.textContent = 'Anulando...';
     err.style.display = 'none';
 
-    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_anularCitId}/anular/`, { method: 'PATCH' });
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${_anularCitId}/anular/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ contrasena }),
+    });
 
     btn.disabled  = false;
     btn.innerHTML = btnHtml;
@@ -1846,6 +2169,7 @@ async function _confirmarAnularCit() {
     if (!ok) {
         err.textContent   = data?.errores || 'Error al anular la citación.';
         err.style.display = 'block';
+        passInput?.focus();
         return;
     }
 
@@ -2086,6 +2410,35 @@ function _initComunicadoForm() {
     const modal = document.getElementById('modalNuevoComunicadoProf');
     if (!modal) return;
 
+    const inputFechaExp = document.getElementById('comProfFechaExpiracion');
+    if (inputFechaExp && typeof flatpickr !== 'undefined') {
+        const manana = new Date();
+        manana.setDate(manana.getDate() + 1);
+        const maxFecha = new Date();
+        maxFecha.setFullYear(maxFecha.getFullYear() + 1);
+        flatpickr(inputFechaExp, {
+            locale: {
+                firstDayOfWeek: 1,
+                weekdays: {
+                    shorthand: ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+                    longhand: ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'],
+                },
+                months: {
+                    shorthand: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    longhand: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                },
+                rangeSeparator: ' a ',
+                time_24hr: true,
+            },
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
+            minDate: manana,
+            maxDate: maxFecha,
+            disableMobile: true,
+        });
+    }
+
     document.getElementById('comProfAlcance').addEventListener('change', function () {
         document.getElementById('comProfCursoWrap').style.display = this.value === 'CURSO' ? 'block' : 'none';
         document.getElementById('comProfGrupoWrap').style.display = this.value === 'GRUPO' ? 'block' : 'none';
@@ -2131,6 +2484,7 @@ function _abrirModalNuevoComunicadoProf() {
     _coberturaCacheProf = null;
     _renderGrupoPills();
     document.getElementById('formComunicadoProf').reset();
+    document.getElementById('comProfFechaExpiracion')?._flatpickr?.clear();
     document.getElementById('comProfCursoWrap').style.display    = 'none';
     document.getElementById('comProfGrupoWrap').style.display    = 'none';
     document.getElementById('comProfError').style.display        = 'none';
@@ -2149,18 +2503,18 @@ async function _enviarComunicadoProf() {
     const contenido = document.getElementById('comProfContenido').value.trim();
     const alcance   = document.getElementById('comProfAlcance').value;
     const cursoId   = document.getElementById('comProfCurso').value;
+    const fechaExp  = document.getElementById('comProfFechaExpiracion')?.value || '';
     const btn       = document.getElementById('btnEnviarComProf');
     const errEl     = document.getElementById('comProfError');
-
-    errEl.style.display = 'none';
+    _ocultarErrorComProf();
     if (!titulo || !contenido) {
-        errEl.textContent = 'Completa todos los campos obligatorios.';
-        errEl.style.display = 'block';
+        _mostrarErrorComProf('Completa todos los campos obligatorios.');
         return;
     }
     if (alcance === 'CURSO' && !cursoId) {
         errEl.textContent = 'Selecciona un curso específico.';
         errEl.style.display = 'block';
+        _programarOcultarErrorComProf();
         return;
     }
 
@@ -2168,10 +2522,12 @@ async function _enviarComunicadoProf() {
     if (alcance === 'GRUPO' && cursosGrupo.length < 2) {
         errEl.textContent = 'Selecciona al menos 2 cursos.';
         errEl.style.display = 'block';
+        _programarOcultarErrorComProf();
         return;
     }
 
     const payload = { titulo, descripcion: contenido, alcance };
+    if (fechaExp) payload.fecha_expiracion = fechaExp;
     if (alcance === 'CURSO') payload.curso = parseInt(cursoId);
     if (alcance === 'GRUPO') payload.cursos_grupo_ids = cursosGrupo;
 
@@ -2190,6 +2546,7 @@ async function _enviarComunicadoProf() {
     if (!ok) {
         errEl.textContent   = data?.errores || data?.titulo?.[0] || data?.descripcion?.[0] || 'Error al enviar el comunicado.';
         errEl.style.display = 'block';
+        _programarOcultarErrorComProf();
         return;
     }
 
@@ -2199,6 +2556,44 @@ async function _enviarComunicadoProf() {
 }
 
 // ── Checklist de contraseña en tiempo real ────────────────────────
+let _comProfErrorTimer = null;
+
+function _mostrarErrorComProf(message) {
+    const errEl = document.getElementById('comProfError');
+    if (!errEl) return;
+    errEl.textContent = message;
+    errEl.classList.remove('is-fading');
+    errEl.style.display = 'block';
+    _programarOcultarErrorComProf();
+}
+
+function _programarOcultarErrorComProf() {
+    const errEl = document.getElementById('comProfError');
+    if (!errEl) return;
+    if (_comProfErrorTimer) clearTimeout(_comProfErrorTimer);
+    errEl.classList.remove('is-fading');
+    _comProfErrorTimer = setTimeout(() => {
+        errEl.classList.add('is-fading');
+        setTimeout(() => {
+            if (errEl.classList.contains('is-fading')) {
+                errEl.style.display = 'none';
+                errEl.classList.remove('is-fading');
+            }
+        }, 300);
+    }, 4000);
+}
+
+function _ocultarErrorComProf() {
+    const errEl = document.getElementById('comProfError');
+    if (_comProfErrorTimer) {
+        clearTimeout(_comProfErrorTimer);
+        _comProfErrorTimer = null;
+    }
+    if (!errEl) return;
+    errEl.style.display = 'none';
+    errEl.classList.remove('is-fading');
+}
+
 function _actualizarChecks(password, prefix) {
     const wrap = document.getElementById(`${prefix}PassChecks`);
     if (!wrap) return;

@@ -32,8 +32,27 @@
 /* Mes y año */
 .flatpickr-current-month    { color: #f1f5f9; font-size: .95rem; font-weight: 700; padding-top: 10px; }
 .flatpickr-current-month input.cur-year { color: #f1f5f9; font-weight: 700; }
-.flatpickr-current-month .flatpickr-monthDropdown-months        { color: #f1f5f9; background: transparent; font-weight: 700; }
-.flatpickr-current-month .flatpickr-monthDropdown-months option { background: #132034; }
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    color: #f1f5f9 !important;
+    background: #132034 !important;
+    border: 1px solid rgba(148, 163, 184, .18) !important;
+    border-radius: 8px;
+    font-weight: 700;
+    color-scheme: dark;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month .flatpickr-monthDropdown-months:focus {
+    background: #1e293b !important;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months option {
+    background: #132034 !important;
+    color: #e2e8f0 !important;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months option:checked,
+.flatpickr-current-month .flatpickr-monthDropdown-months option:hover {
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
 
 /* Spinner numérico (año) */
 .numInputWrapper            { background: transparent; }

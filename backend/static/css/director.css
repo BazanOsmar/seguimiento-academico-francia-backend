@@ -1117,6 +1117,30 @@ body {
     display: flex;
 }
 
+.modal-backdrop,
+.modal-overlay,
+.pm-overlay,
+.warn-modal-overlay,
+.cred-modal-overlay,
+.confirm-cred-overlay,
+.confirm-modal-backdrop,
+.modal-mat-overlay,
+.modal-nuevo-overlay,
+.pm-plan-det-overlay,
+.plan-det-overlay,
+.export-warn-overlay,
+.pn-picker-overlay,
+.cc-validation-modal,
+.director-comunicados-inline-style-31,
+.director-comunicados-inline-style-51,
+.profesor-citaciones-inline-style-36,
+.profesor-citaciones-inline-style-54,
+dialog::backdrop {
+    background: rgba(2, 6, 23, .72) !important;
+    backdrop-filter: blur(10px) saturate(.86) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(.86) !important;
+}
+
 .modal {
     background: var(--bg-card);
     border: 1px solid var(--border);

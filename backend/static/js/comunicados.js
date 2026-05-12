@@ -344,12 +344,16 @@ document.querySelectorAll('.chip-filtro:not(.chip-emisor)').forEach(chip => {
 });
 
 // ── Stats cards como filtros ──────────────────────────────────────
-document.getElementById('statsRow').addEventListener('click', e => {
+document.getElementById('statsRow')?.addEventListener('click', e => {
     const card = e.target.closest('.cit-stat-card[data-filter]');
     if (!card) return;
     // data-filter="" → TODOS (null interno); resto → valor de estado
     const filter = card.dataset.filter || null;
     filtroActivo = filter;
+    filtroEstadoCit = 'ACTIVO';
+    document.getElementById('estadoChipsCit')?.querySelectorAll('.rol-chip').forEach(chip => {
+        chip.classList.toggle('rol-chip--active', chip.dataset.estado === 'ACTIVO');
+    });
     document.querySelectorAll('.cit-stat-card').forEach(c => c.classList.remove('cit-stat-card--active'));
     card.classList.add('cit-stat-card--active');
     aplicarFiltro();
@@ -1038,23 +1042,33 @@ btnEnviarNueva.addEventListener('click', async () => {
         btnEnviarNueva.disabled    = true;
         btnEnviarTexto.textContent = `Enviando ${ids.length} citaciones…`;
 
-        let exitosos = 0, fallidos = 0;
-        for (const estId of ids) {
-            const { ok } = await fetchAPI('/api/discipline/citaciones/crear/', {
-                method: 'POST',
-                body:   JSON.stringify({ estudiante: estId, motivo, descripcion, estado: 'ENVIADA', fecha_limite_asistencia: fechaLimite }),
-            });
-            ok ? exitosos++ : fallidos++;
-        }
+        const { ok, data } = await fetchAPI('/api/discipline/citaciones/crear-grupo/', {
+            method: 'POST',
+            body: JSON.stringify({
+                estudiantes: ids,
+                motivo,
+                descripcion,
+                estado: 'ENVIADA',
+                fecha_limite_asistencia: fechaLimite,
+            }),
+        });
 
         btnEnviarNueva.disabled    = false;
         btnEnviarTexto.textContent = 'Enviar citación';
 
-        if (exitosos === 0) {
+        const exitosos = data?.total_creadas ?? data?.creadas?.length ?? 0;
+        const fallidos = data?.total_fallidas ?? data?.fallidas?.length ?? 0;
+
+        if (!ok) {
+            const msg = data?.errores || data?.detail || null;
+            if (msg) {
+                mostrarError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+                return;
+            }
             mostrarError('No se pudo crear ninguna citación.');
         } else {
             const msg = `${exitosos} citación${exitosos !== 1 ? 'es' : ''} enviada${exitosos !== 1 ? 's' : ''} correctamente${fallidos > 0 ? ` (${fallidos} con error)` : ''}.`;
-            showAppToast('success', 'Citaciones creadas', msg);
+            showAppToast(fallidos > 0 ? 'warning' : 'success', 'Citaciones creadas', msg);
             resetForm();
             colapsarForm();
             await cargarCitaciones();

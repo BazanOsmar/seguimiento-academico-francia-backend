@@ -1,5 +1,35 @@
 'use strict';
 
+(function initPrivatePageGuard() {
+    const privatePath = /^\/(director|profesor)(\/|$)/.test(window.location.pathname);
+    if (!privatePath) return;
+
+    const redirectToLogin = () => {
+        document.documentElement.style.visibility = 'hidden';
+        window.location.replace('/login/');
+    };
+    const getUser = () => {
+        try { return JSON.parse(localStorage.getItem('user') || 'null'); }
+        catch (_) { return null; }
+    };
+    const hasValidSession = () => {
+        const token = localStorage.getItem('access_token');
+        const user = getUser();
+        if (!token || !user) return false;
+        if (window.location.pathname.startsWith('/profesor/')) return user.tipo_usuario === 'Profesor';
+        return ['Director', 'Regente'].includes(user.tipo_usuario);
+    };
+
+    if (!hasValidSession()) redirectToLogin();
+
+    window.addEventListener('pageshow', () => {
+        if (!hasValidSession()) redirectToLogin();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && !hasValidSession()) redirectToLogin();
+    });
+})();
+
 /* ================================================================
    api.js — Wrapper global de fetch con manejo de respuestas
    ================================================================
@@ -76,11 +106,19 @@ function _apiToast(message, type = 'error', onAccept = null) {
     document.body.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('app-toast--visible'));
 
-    document.getElementById('_toastAccept').addEventListener('click', () => {
+    let toastTimer = null;
+    const closeToast = () => {
+        if (toastTimer) {
+            clearTimeout(toastTimer);
+            toastTimer = null;
+        }
         toast.classList.remove('app-toast--visible');
         setTimeout(() => { if (toast.parentNode) toast.remove(); }, 300);
         if (onAccept) onAccept();
-    });
+    };
+
+    document.getElementById('_toastAccept').addEventListener('click', closeToast);
+    toastTimer = setTimeout(closeToast, 4000);
 }
 
 /* ----------------------------------------------------------------

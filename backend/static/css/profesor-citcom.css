@@ -77,6 +77,34 @@
             font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;
         }
         .form-card__body { padding: 20px 24px 22px; }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-label {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .form-input {
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-input, rgba(255,255,255,.05));
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-size: .9rem;
+            font-family: inherit;
+            transition: border-color .15s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
 
         /* â”€â”€ Fila 2 columnas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         .form-row {
@@ -106,6 +134,35 @@
             height: auto; resize: vertical;
             padding-top: 10px; padding-bottom: 10px; line-height: 1.5;
         }
+
+        /* Modal reutilizable de citaciones */
+        .director-comunicados-inline-style-2 { display:none; }
+        .director-comunicados-inline-style-4 { margin-bottom:8px;display:block; }
+        .director-comunicados-inline-style-5 { margin-bottom:0; }
+        .director-comunicados-inline-style-6 { margin-bottom:0;opacity:.45;transition:opacity .2s; }
+        .director-comunicados-inline-style-7 { display:flex;align-items:center;gap:10px; }
+        .director-comunicados-inline-style-8 { display:flex;align-items:center;gap:7px;flex:1;padding:9px 14px;background:var(--bg-input,var(--bg-card));border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:.84rem;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s; }
+        .director-comunicados-inline-style-8:hover:not(:disabled) { border-color:var(--accent);color:var(--accent-text); }
+        .director-comunicados-inline-style-8:disabled { opacity:.55;cursor:not-allowed; }
+        .director-comunicados-inline-style-9 { display:none;background:var(--accent-dim,rgba(59,130,246,.12));color:var(--accent-text,#60a5fa);border:1px solid rgba(59,130,246,.2);border-radius:50px;padding:3px 11px;font-size:.74rem;font-weight:700;white-space:nowrap; }
+        .director-comunicados-inline-style-10 { margin-top:8px;max-height:110px;overflow-y:auto;display:none;flex-direction:column;gap:3px;border:1px solid var(--border);border-radius:8px;padding:4px 6px;background:var(--bg-input,var(--bg-card)); }
+        .director-comunicados-inline-style-11 { display:none;margin-top:10px; }
+        .director-comunicados-inline-style-12 { display:flex;justify-content:flex-end;gap:10px;margin-top:16px; }
+        .director-comunicados-inline-style-13 { height:42px;padding:0 24px; }
+        .director-comunicados-inline-style-18 { display:none;position:fixed;z-index:2000;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,94vw);background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.55);overflow:hidden;flex-direction:column;animation:fadeScaleIn .18s ease; }
+        .director-comunicados-inline-style-19 { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border); }
+        .director-comunicados-inline-style-20 { font-size:.95rem;font-weight:700;color:var(--text-primary);margin:0; }
+        .director-comunicados-inline-style-21 { font-size:.75rem;color:var(--text-muted);margin:2px 0 0; }
+        .director-comunicados-inline-style-22 { background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;padding:4px; }
+        .director-comunicados-inline-style-23 { padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px; }
+        .director-comunicados-inline-style-24 { flex:1;background:var(--bg-input,var(--bg-card));border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:.82rem;color:var(--text-primary);font-family:inherit;outline:none;transition:border-color .15s; }
+        .director-comunicados-inline-style-25 { white-space:nowrap;font-size:.75rem;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;padding:0; }
+        .director-comunicados-inline-style-26 { overflow-y:auto;max-height:280px;padding:6px 8px;display:flex;flex-direction:column;gap:2px; }
+        .director-comunicados-inline-style-27 { padding:12px;font-size:.83rem;color:var(--text-muted); }
+        .director-comunicados-inline-style-28 { padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px; }
+        .director-comunicados-inline-style-29 { font-size:.78rem;color:var(--text-muted);margin:0; }
+        .director-comunicados-inline-style-30 { display:flex;align-items:center;gap:6px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s; }
+        .director-comunicados-inline-style-31 { display:none;position:fixed;inset:0;z-index:1999;background:rgba(0,0,0,.45);backdrop-filter:blur(3px); }
 
         /* â”€â”€ Progreso â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         .progress-msg {
@@ -984,6 +1041,387 @@
         .modal-form .form-card {
             box-shadow: none; border: none; margin: 0; border-radius: 0;
         }
+        #modalNuevaCitacionProf .modal-form--prof-create,
+        #modalNuevoComunicadoProf .modal-form--prof-create {
+            width: min(520px, calc(100vw - 32px));
+            max-width: 520px;
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 18px;
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+            isolation: isolate;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-card,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-card {
+            width: 100%;
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            margin: 0;
+            border-radius: inherit;
+            overflow: hidden;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-card__header,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-card__header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 18px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, .14);
+            background: #1e293b;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-card__icon,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-card__icon {
+            width: 42px;
+            height: 42px;
+            border: 1px solid rgba(96, 165, 250, .35);
+            border-radius: 12px;
+            background: rgba(96, 165, 250, .14);
+            color: #93c5fd;
+            box-shadow: none;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-card__title,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-card__title {
+            color: #e2e8f0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin: 0;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-card__subtitle,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-card__subtitle {
+            color: #94a3b8;
+            font-size: .78rem;
+            line-height: 1.35;
+            margin: 4px 0 0;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-card__body,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-card__body {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 16px;
+            background: #0f172a;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create form,
+        #modalNuevoComunicadoProf .modal-form--prof-create form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 100%;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 12px;
+            margin: 0;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-group,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-group {
+            min-width: 0;
+            gap: 7px;
+            margin: 0;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-label,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-label {
+            color: #94a3b8;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-input,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-input {
+            width: 100%;
+            min-height: 42px;
+            box-sizing: border-box;
+            border: 1px solid rgba(148, 163, 184, .16);
+            border-radius: 11px;
+            background: rgba(2, 6, 23, .28);
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: .86rem;
+            outline: none;
+            padding: 10px 12px;
+            transition: border-color .15s, background .15s, box-shadow .15s;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-input:focus,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-input:focus {
+            border-color: rgba(96, 165, 250, .52);
+            background: rgba(2, 6, 23, .38);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, .1);
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-input:disabled,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-input:disabled {
+            cursor: not-allowed;
+            opacity: .62;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-select option,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-select option {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .flatpickr-input[readonly],
+        #modalNuevaCitacionProf .modal-form--prof-create .form-input.input {
+            cursor: pointer;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-textarea,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-textarea {
+            min-height: 112px;
+            resize: none;
+            line-height: 1.45;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .radio-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 0;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .radio-option {
+            min-height: 36px;
+            border: 1px solid rgba(148, 163, 184, .16);
+            border-radius: 11px;
+            background: rgba(2, 6, 23, .28);
+            color: #94a3b8;
+            padding: 8px 12px;
+            font-size: .82rem;
+            font-weight: 700;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .radio-option:has(input:checked) {
+            border-color: rgba(96, 165, 250, .42);
+            background: rgba(96, 165, 250, .16);
+            color: #bfdbfe;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .btn-secondary,
+        #modalNuevoComunicadoProf .modal-form--prof-create .btn-secondary,
+        #modalNuevaCitacionProf .modal-form--prof-create .btn-primary,
+        #modalNuevoComunicadoProf .modal-form--prof-create .btn-primary {
+            min-height: 40px;
+            border-radius: 11px;
+            font-size: .84rem;
+            font-weight: 800;
+            padding: 0 16px;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .btn-secondary,
+        #modalNuevoComunicadoProf .modal-form--prof-create .btn-secondary {
+            border: 1px solid rgba(148, 163, 184, .16);
+            background: rgba(2, 6, 23, .28);
+            color: #94a3b8;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .btn-secondary:hover,
+        #modalNuevoComunicadoProf .modal-form--prof-create .btn-secondary:hover {
+            border-color: rgba(96, 165, 250, .35);
+            color: #e2e8f0;
+            background: rgba(30, 41, 59, .72);
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .btn-primary,
+        #modalNuevoComunicadoProf .modal-form--prof-create .btn-primary {
+            border: 1px solid rgba(96, 165, 250, .45);
+            background: rgba(96, 165, 250, .18);
+            color: #dbeafe;
+            box-shadow: none;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .btn-primary:hover,
+        #modalNuevoComunicadoProf .modal-form--prof-create .btn-primary:hover {
+            background: rgba(96, 165, 250, .25);
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .modal-form__close,
+        #modalNuevoComunicadoProf .modal-form--prof-create .modal-form__close {
+            top: 14px;
+            right: 14px;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, .62);
+            color: #94a3b8;
+            justify-content: center;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .modal-form__close:hover,
+        #modalNuevoComunicadoProf .modal-form--prof-create .modal-form__close:hover {
+            background: rgba(239, 68, 68, .12);
+            border-color: rgba(239, 68, 68, .38);
+            color: #fca5a5;
+        }
+        #modalNuevaCitacionProf .modal-form--prof-create .form-error,
+        #modalNuevoComunicadoProf .modal-form--prof-create .form-error {
+            color: #f87171;
+            font-size: .8rem;
+            margin: 0;
+        }
+        @media (max-width: 620px) {
+            #modalNuevaCitacionProf .modal-form--prof-create .form-row,
+            #modalNuevaCitacionProf .modal-form--prof-create .radio-group {
+                grid-template-columns: 1fr;
+            }
+            #modalNuevaCitacionProf .modal-form--prof-create,
+            #modalNuevoComunicadoProf .modal-form--prof-create {
+                width: min(94vw, 520px);
+            }
+        }
+        #panelSelectorEstProf {
+            width: min(420px, calc(100vw - 32px));
+            max-height: calc(100dvh - 40px);
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 18px;
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+            overflow: hidden;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-19 {
+            padding: 18px 18px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, .14);
+            background: #1e293b;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-20 {
+            color: #e2e8f0;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin: 0;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-21 {
+            color: #94a3b8;
+            font-size: .78rem;
+            margin: 4px 0 0;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-22 {
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, .62);
+            color: #94a3b8;
+            justify-content: center;
+            padding: 0;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-22:hover {
+            background: rgba(239, 68, 68, .12);
+            border-color: rgba(239, 68, 68, .38);
+            color: #fca5a5;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-23 {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, .12);
+            background: #111c2f;
+            gap: 10px;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-24 {
+            min-height: 34px;
+            border: 1px solid rgba(148, 163, 184, .16);
+            border-radius: 10px;
+            background: rgba(2, 6, 23, .28);
+            color: #e2e8f0;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-24:focus {
+            border-color: rgba(96, 165, 250, .52);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, .1);
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-25 {
+            color: #93c5fd;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-26 {
+            max-height: min(380px, calc(100dvh - 246px));
+            padding: 8px;
+            background: #0f172a;
+            gap: 4px;
+        }
+        #panelSelectorEstProf ._cit-sel-item {
+            border: 1px solid transparent;
+            background: rgba(15, 23, 42, .42) !important;
+            color: #e2e8f0 !important;
+        }
+        #panelSelectorEstProf ._cit-sel-item:hover {
+            background: rgba(30, 41, 59, .72) !important;
+            border-color: rgba(148, 163, 184, .18);
+        }
+        #panelSelectorEstProf ._cit-sel-item:has(input:checked) {
+            background: rgba(59, 130, 246, .18) !important;
+            border-color: rgba(96, 165, 250, .24);
+            color: #bfdbfe !important;
+        }
+        #panelSelectorEstProf ._cit-sel-item input[type="checkbox"] {
+            accent-color: #60a5fa;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-28 {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(148, 163, 184, .12);
+            background: #111c2f;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-29 {
+            color: #94a3b8;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-30 {
+            min-height: 36px;
+            border: 1px solid rgba(96, 165, 250, .45);
+            border-radius: 11px;
+            background: rgba(96, 165, 250, .18);
+            color: #dbeafe;
+            font-weight: 800;
+        }
+        #panelSelectorEstProf .director-comunicados-inline-style-30:hover {
+            background: rgba(96, 165, 250, .25);
+        }
+        #backdropSelectorEstProf {
+            background: rgba(2, 6, 23, .34);
+            backdrop-filter: blur(4px) saturate(.86);
+        }
+        #modalNuevoComunicadoProf .modal-form--prof-com {
+            width: min(520px, calc(100vw - 32px));
+            max-width: 520px;
+        }
+        #modalNuevoComunicadoProf .form-card {
+            width: 100%;
+        }
+        #modalNuevoComunicadoProf .form-card__header,
+        #modalNuevoComunicadoProf .form-card__body {
+            width: 100%;
+            box-sizing: border-box;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+        #modalNuevoComunicadoProf .com-prof-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+        #modalNuevoComunicadoProf .com-prof-field {
+            width: 100%;
+            min-width: 0;
+        }
+        #modalNuevoComunicadoProf .form-input,
+        #modalNuevoComunicadoProf .fcm-cobertura-pill {
+            width: 100%;
+        }
+        #modalNuevoComunicadoProf .com-prof-field--title,
+        #modalNuevoComunicadoProf .com-prof-field--content,
+        #modalNuevoComunicadoProf .com-prof-field--conditional,
+        #modalNuevoComunicadoProf .com-prof-field--coverage,
+        #modalNuevoComunicadoProf .com-prof-field--error,
+        #modalNuevoComunicadoProf .com-prof-field--actions {
+            grid-column: 1 / -1;
+        }
+        #modalNuevoComunicadoProf #comProfContenido {
+            min-height: 122px;
+        }
+        #modalNuevoComunicadoProf .com-actions {
+            margin-top: 4px;
+        }
+        #modalNuevoComunicadoProf #comProfError {
+            opacity: 1;
+            transition: opacity .28s ease;
+        }
+        #modalNuevoComunicadoProf #comProfError.is-fading {
+            opacity: 0;
+        }
+        @media (max-width: 460px) {
+            #modalNuevoComunicadoProf .com-prof-form {
+                grid-template-columns: 1fr;
+            }
+        }
         .modal-form__close {
             position: absolute; top: 12px; right: 12px; z-index: 10;
             background: rgba(0,0,0,.28); border: none; cursor: pointer;
@@ -1084,7 +1522,56 @@
 .com-muted { color: var(--text-muted); font-weight: 400; }
 .com-chevron { margin-left: 2px; opacity: .7; }
 .com-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-.com-prof-grupo-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.com-prof-grupo-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+.curso-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    min-height: 30px;
+    padding: 5px 6px 5px 10px;
+    border: 1px solid rgba(96, 165, 250, .28);
+    border-radius: 999px;
+    background: rgba(59, 130, 246, .12);
+    color: #bfdbfe;
+    font-size: .82rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.curso-pill__remove {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(248, 113, 113, .3);
+    border-radius: 50%;
+    background: rgba(239, 68, 68, .12);
+    color: #fca5a5;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1;
+    transition: background .15s, border-color .15s, color .15s, transform .12s;
+}
+.curso-pill__remove:hover {
+    background: rgba(239, 68, 68, .22);
+    border-color: rgba(248, 113, 113, .55);
+    color: #fee2e2;
+}
+.curso-pill__remove:active {
+    transform: scale(.92);
+}
+.curso-pill__remove:focus-visible {
+    outline: 2px solid rgba(96, 165, 250, .75);
+    outline-offset: 2px;
+}
 .modal-form .form-textarea { resize: none; }
 
 .fcm-cobertura-pill {

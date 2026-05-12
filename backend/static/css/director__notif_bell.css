@@ -304,6 +304,7 @@ body.notif-open { overflow: hidden; }
 .notif-panel__list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 10px 12px 14px;
     background: #0f172a;
     scrollbar-width: thin;
@@ -356,6 +357,9 @@ body.notif-open { overflow: hidden; }
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 12px 13px;
     margin-bottom: 8px;
     border: 1px solid rgba(148, 163, 184, .12);
@@ -392,6 +396,8 @@ body.notif-open { overflow: hidden; }
     font-size: .83rem;
     color: var(--text-primary, #e2e8f0);
     line-height: 1.5;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -409,6 +415,8 @@ body.notif-open { overflow: hidden; }
     color: var(--text-muted, #94a3b8);
     margin-top: 7px;
     display: block;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 /* Paginación */
 .notif-compose-form {

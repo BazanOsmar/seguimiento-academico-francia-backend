@@ -8,7 +8,9 @@
     <title>{% block title %}Panel Profesor{% endblock %} — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
-    <link rel="stylesheet" href="{% static 'css/profesor-citcom.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{% static 'css/flatpickr-dark.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profesor-citcom.css' %}?v=3">
     <script src="{% static 'js/api.js' %}"></script>
 
     <script src="{% static 'js/profesor__base_profesor_inline.js' %}"></script>
@@ -16,6 +18,7 @@
 <link rel="stylesheet" href="{% static 'css/profesor_base_profesor.css' %}">
 <link rel="stylesheet" href="{% static 'css/profesor__base_profesor.css' %}">
     {% block page_css %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/citcom-modal.css' %}?v=1">
 </head>
 <body>
 
@@ -282,7 +285,8 @@
     {% block page_modals %}{% endblock %}
 
     <script src="{% static 'js/main.js' %}?v=2"></script>
-    <script src="{% static 'js/profesor.js' %}?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="{% static 'js/profesor.js' %}?v=5"></script>
     <script src="{% static 'js/notif_bell.js' %}"></script>
     {% block page_scripts %}{% endblock %}
 </body>

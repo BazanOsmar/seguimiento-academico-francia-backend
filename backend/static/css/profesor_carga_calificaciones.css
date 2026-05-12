@@ -632,7 +632,6 @@
             top: 0;
             z-index: 6;
         }
-
         /* ── Head (sincronizado via scrollLeft, sticky CSS actúa dentro) */
         .cc-success-table-head-wrap {
             overflow: hidden;
@@ -688,6 +687,7 @@
 
         .cc-success-table th,
         .cc-success-table td {
+            box-sizing: border-box;
             padding: 10px 10px;
             border-right: 1px solid rgba(148,163,184,.06);
         }
@@ -796,6 +796,8 @@
             left: 0;
             z-index: 1;
             width: 54px;
+            min-width: 54px;
+            max-width: 54px;
             text-align: center;
             color: #7ea0d9;
             font-variant-numeric: tabular-nums;
@@ -804,9 +806,11 @@
 
         .cc-success-table__name {
             position: sticky;
-            left: 54px;
+            left: 53px;
             z-index: 1;
-            min-width: 240px;
+            width: 261px;
+            min-width: 261px;
+            max-width: 261px;
             color: #eff6ff;
             font-weight: 700;
             line-height: 1.45;

@@ -39,7 +39,7 @@ if (typeof showAppToast === 'undefined') {
         toast.classList.add('app-toast--visible');
 
         if (_toastTimer) clearTimeout(_toastTimer);
-        const delay = (type === 'error' || type === 'warning') ? 6000 : 4000;
+        const delay = 4000;
         _toastTimer = setTimeout(_hideToast, delay);
     };
 

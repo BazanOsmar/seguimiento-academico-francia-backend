@@ -4,8 +4,19 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 
 
+def _no_store_response(response):
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+def private_render(request, template_name, context=None, *args, **kwargs):
+    return _no_store_response(render(request, template_name, context, *args, **kwargs))
+
+
 def login_view(request):
-    return render(request, 'auth/login.html')
+    return _no_store_response(render(request, 'auth/login.html'))
 
 
 def page_not_found_view(request, exception=None):
@@ -13,39 +24,39 @@ def page_not_found_view(request, exception=None):
 
 
 def director_view(request):
-    return render(request, 'director/dashboard.html')
+    return private_render(request, 'director/dashboard.html')
 
 
 def director_estudiantes_view(request):
-    return render(request, 'director/estudiantes.html')
+    return private_render(request, 'director/estudiantes.html')
 
 
 def director_curso_estudiantes_view(request, curso_id):
     from backend.apps.academics.models import Curso
     curso = get_object_or_404(Curso, pk=curso_id)
-    return render(request, 'director/curso_estudiantes.html', {
+    return private_render(request, 'director/curso_estudiantes.html', {
         'curso_id': curso_id,
         'curso_nombre': f"{curso.grado} {curso.paralelo}",
     })
 
 
 def director_perfil_estudiante_view(request, curso_id, estudiante_id):
-    return render(request, 'director/perfil_estudiante.html', {
+    return private_render(request, 'director/perfil_estudiante.html', {
         'curso_id': curso_id,
         'estudiante_id': estudiante_id,
     })
 
 
 def director_usuarios_view(request):
-    return render(request, 'director/usuarios.html')
+    return private_render(request, 'director/usuarios.html')
 
 
 def director_perfil_usuario_view(request, user_id):
-    return render(request, 'director/perfil_usuario.html', {'user_id': user_id})
+    return private_render(request, 'director/perfil_usuario.html', {'user_id': user_id})
 
 
 def director_asistencia_view(request):
-    return render(request, 'director/asistencia.html')
+    return private_render(request, 'director/asistencia.html')
 
 
 def _autenticar_por_token(request):
@@ -428,58 +439,58 @@ def director_asistencia_exportar_excel_view(request):
 
 
 def director_estadisticas_view(request):
-    return render(request, 'director/estadisticas.html')
+    return private_render(request, 'director/estadisticas.html')
 
 
 def director_actividad_view(request):
-    return render(request, 'director/actividad.html')
+    return private_render(request, 'director/actividad.html')
 
 
 def director_control_diario_view(request):
-    return render(request, 'director/control_diario.html')
+    return private_render(request, 'director/control_diario.html')
 
 
 def director_comunicados_view(request):
-    return render(request, 'director/comunicados.html')
+    return private_render(request, 'director/comunicados.html')
 
 def director_citaciones_view(request):
-    return render(request, 'director/comunicados.html')
+    return private_render(request, 'director/comunicados.html')
 
 
 def director_academico_view(request):
-    return render(request, 'director/academico.html')
+    return private_render(request, 'director/academico.html')
 
 
 def director_mi_perfil_view(request):
-    return render(request, 'director/mi_perfil.html')
+    return private_render(request, 'director/mi_perfil.html')
 
 
 def profesor_view(request):
-    return render(request, 'profesor/notas.html', {'active_nav': 'notas'})
+    return private_render(request, 'profesor/notas.html', {'active_nav': 'notas'})
 
 
 def profesor_citaciones_view(request):
-    return render(request, 'profesor/citaciones.html', {'active_nav': 'citaciones'})
+    return private_render(request, 'profesor/citaciones.html', {'active_nav': 'citaciones'})
 
 
 def profesor_plan_view(request):
-    return render(request, 'profesor/plan_trabajo.html', {'active_nav': 'plan'})
+    return private_render(request, 'profesor/plan_trabajo.html', {'active_nav': 'plan'})
 
 
 def profesor_cuenta_view(request):
-    return render(request, 'profesor/cuenta.html', {'active_nav': 'cuenta'})
+    return private_render(request, 'profesor/cuenta.html', {'active_nav': 'cuenta'})
 
 
 def director_comparar_nombres_view(request):
-    return render(request, 'director/comparar_nombres.html')
+    return private_render(request, 'director/comparar_nombres.html')
 
 
 def profesor_carga_calificaciones_view(request):
-    return render(request, 'profesor/carga_calificaciones.html')
+    return private_render(request, 'profesor/carga_calificaciones.html')
 
 
 def director_notas_curso_mes_view(request):
-    return render(request, 'director/notas_curso_mes.html')
+    return private_render(request, 'director/notas_curso_mes.html')
 
 
 def privacidad_view(request):
