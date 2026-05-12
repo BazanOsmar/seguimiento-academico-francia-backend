@@ -265,12 +265,19 @@ class ConfirmarPlanillaView(APIView):
         # ── Notificar al director que el profesor confirmó su planilla ────────
         _notificar_carga_notas(profesor_curso, mes, gestion)
 
-        # ── Trigger automático de K-Means si todos los profesores ya cargaron ─
+        # ── Trigger automático de K-Means y árbol de decisión ───────────────
         if mes and todos_cargaron_mes(mes, gestion):
             import threading
             from backend.apps.analytics.services.kmeans_service import ejecutar_analisis_kmeans
+            from backend.apps.analytics.services.decision_tree_service import ejecutar_analisis_arbol
+
             threading.Thread(
                 target=ejecutar_analisis_kmeans,
+                kwargs={'gestion': gestion, 'mes': mes},
+                daemon=True,
+            ).start()
+            threading.Thread(
+                target=ejecutar_analisis_arbol,
                 kwargs={'gestion': gestion, 'mes': mes},
                 daemon=True,
             ).start()

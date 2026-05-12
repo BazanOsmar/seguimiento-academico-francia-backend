@@ -106,6 +106,23 @@ def ensure_indexes():
             ('materia_id',    ASCENDING),
         ], name='consulta_historial_estudiante')
 
+        # predicciones_arbol — clave única de upsert
+        db['predicciones_arbol'].create_index([
+            ('estudiante_id', ASCENDING),
+            ('materia_id',    ASCENDING),
+            ('gestion',       ASCENDING),
+            ('trimestre',     ASCENDING),
+            ('mes',           ASCENDING),
+        ], unique=True, name='upsert_key')
+
+        # predicciones_arbol — consultas por curso/mes para el director
+        db['predicciones_arbol'].create_index([
+            ('curso_id',  ASCENDING),
+            ('gestion',   ASCENDING),
+            ('mes',       ASCENDING),
+            ('riesgo',    ASCENDING),
+        ], name='consulta_curso_mes')
+
         _indexes_ensured = True
     except Exception:
         pass
