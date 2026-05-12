@@ -77,7 +77,9 @@ def _cargar_modelo(path: Path):
         logger.warning('Modelo no disponible: %s', path)
         return None
     import joblib
-    return joblib.load(path)
+    obj = joblib.load(path)
+    # El archivo puede ser un dict {'modelo': clf, ...} o directamente el clf
+    return obj['modelo'] if isinstance(obj, dict) and 'modelo' in obj else obj
 
 
 # ─────────────────────────────────────────────────────────────────────────────
