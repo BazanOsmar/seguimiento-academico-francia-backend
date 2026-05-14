@@ -12,6 +12,9 @@ scrips de python/
 *.xlsx
 *.xls
 
+# Modelos ML
+*.joblib
+
 # Byte-compiled / optimized
 __pycache__/
 *.py[cod]
