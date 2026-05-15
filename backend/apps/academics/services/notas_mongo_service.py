@@ -269,14 +269,13 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
         except Exception:
             pass  # El historial no bloquea el guardado principal
 
-    # Marcar todos los docs del trimestre con el mes de carga actual,
-    # para que pc_ids_con_notas_mes detecte la entrega aunque no haya notas nuevas.
+    # Marcar todos los docs del trimestre con el mes de confirmación actual.
+    # mes_confirmado se actualiza en cada entrega; mes (creación) permanece inmutable.
     if mes and errores == 0:
         try:
             col.update_many(
-                {'materia_id': materia_id, 'curso_id': curso_id,
-                 'trimestre': trimestre, 'mes': {'$ne': mes}},
-                {'$set': {'mes': mes}},
+                {'materia_id': materia_id, 'curso_id': curso_id, 'trimestre': trimestre},
+                {'$set': {'mes_confirmado': mes}},
             )
         except Exception:
             pass
@@ -667,15 +666,17 @@ def pc_ids_con_notas_mes(asignaciones, profesor_id, mes, gestion):
     try:
         col = _get_db()['detalle_notas']
         pipeline = [
-            {'$match': {
-                'profesor_id': profesor_id,
-                'mes':         mes,
-                'gestion':     gestion,
-                '$or': [
+            {'$match': {'$and': [
+                {'profesor_id': profesor_id, 'gestion': gestion},
+                {'$or': [
                     {'materia_id': a['materia_id'], 'curso_id': a['curso_id']}
                     for a in asignaciones
-                ],
-            }},
+                ]},
+                {'$or': [
+                    {'mes_confirmado': mes},
+                    {'mes_confirmado': {'$exists': False}, 'mes': mes},
+                ]},
+            ]}},
             {'$group': {'_id': {'materia_id': '$materia_id', 'curso_id': '$curso_id'}}},
         ]
         pares = {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}
