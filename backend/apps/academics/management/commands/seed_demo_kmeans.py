@@ -64,7 +64,7 @@ def _dias_habiles_mes(mes: int) -> list[date]:
 # ─── Limpiar MongoDB ──────────────────────────────────────────────────────────
 def _limpiar_mongo(stdout):
     db = _get_db()
-    colecciones = ['detalle_notas', 'notas_mensuales', 'predicciones', 'config', 'historial_notas']
+    colecciones = ['detalle_notas', 'notas_mensuales', 'resultados_kmeans', 'config', 'historial_notas']
     for col in colecciones:
         result = db[col].delete_many({})
         stdout.write(f'  MongoDB {col}: {result.deleted_count} docs eliminados')

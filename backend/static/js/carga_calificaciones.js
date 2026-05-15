@@ -28,7 +28,7 @@ let _hayModHistorial   = false;
 let _mostrandoOriginal = true;
 
 // ── Filtros de vista ──────────────────────────────────────────────
-let _dimFilter   = null;   // null = todas | 'saber'|'hacer'|'ser' = solo esa
+let _dimFilter   = null;   // null = todas | dimension key = solo esa
 let _currentTrim = null;   // trimestre activo para preservarlo al cambiar filtro
 
 // ── Bootstrap ─────────────────────────────────────────────────────
@@ -122,6 +122,7 @@ async function _cargarNotasHistorico() {
 
 function _mostrarVistaLecturaHistorial(headersPorTrim) {
     _soloLectura = true;
+    document.querySelector('.cc-body')?.classList.add('cc-body--readonly');
     document.getElementById('ccInitLoader').style.display = 'none';
     document.getElementById('ccCard').style.display       = 'none';
     document.querySelector('.cc-title').style.display     = 'none';
@@ -143,6 +144,7 @@ function _mostrarVistaLecturaHistorial(headersPorTrim) {
 
 function _mostrarVistaLectura(headersPorTrim) {
     _soloLectura = true;
+    document.querySelector('.cc-body')?.classList.add('cc-body--readonly');
     document.getElementById('ccInitLoader').style.display  = 'none';
     document.getElementById('ccCard').style.display        = 'none';
     // En modo lectura ocultamos solo el título y meta de "Carga de Calificaciones"
@@ -164,6 +166,7 @@ function _mostrarVistaLectura(headersPorTrim) {
 
 function _mostrarVistaUpload() {
     _soloLectura = false;
+    document.querySelector('.cc-body')?.classList.remove('cc-body--readonly');
     document.getElementById('ccInitLoader').style.display = 'none';
     document.getElementById('ccCard').style.display       = 'block';
     document.getElementById('ccDashboard').style.display  = 'none';
@@ -753,12 +756,67 @@ function _initTableScrollSync() {
     window.addEventListener('resize', updateGhostRange, { once: true });
 }
 
+function _captureTableScrollState() {
+    const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
+    const bodyWrap = shell?.querySelector('.cc-success-table-body-wrap');
+    const ghost = shell?.querySelector('.cc-success-ghost-scroll');
+    const tableScroll = document.querySelector('#ccDashboard .cc-success-table-scroll');
+
+    if (bodyWrap) {
+        return {
+            type: 'split',
+            left: bodyWrap.scrollLeft,
+            top: bodyWrap.scrollTop,
+            ghostLeft: ghost?.scrollLeft || bodyWrap.scrollLeft,
+        };
+    }
+    if (tableScroll) {
+        return {
+            type: 'single',
+            left: tableScroll.scrollLeft,
+            top: tableScroll.scrollTop,
+        };
+    }
+    return null;
+}
+
+function _restoreTableScrollState(state) {
+    if (!state) return;
+    requestAnimationFrame(() => {
+        if (state.type === 'split') {
+            const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
+            const headWrap = shell?.querySelector('.cc-success-table-head-wrap');
+            const bodyWrap = shell?.querySelector('.cc-success-table-body-wrap');
+            const ghost = shell?.querySelector('.cc-success-ghost-scroll');
+            if (!bodyWrap) return;
+
+            const maxLeft = Math.max(0, bodyWrap.scrollWidth - bodyWrap.clientWidth);
+            const maxTop = Math.max(0, bodyWrap.scrollHeight - bodyWrap.clientHeight);
+            const left = Math.min(state.left, maxLeft);
+            const top = Math.min(state.top, maxTop);
+
+            bodyWrap.scrollLeft = left;
+            bodyWrap.scrollTop = top;
+            if (headWrap) headWrap.scrollLeft = left;
+            if (ghost) ghost.scrollLeft = Math.min(state.ghostLeft, maxLeft);
+            return;
+        }
+
+        const tableScroll = document.querySelector('#ccDashboard .cc-success-table-scroll');
+        if (!tableScroll) return;
+        tableScroll.scrollLeft = Math.min(state.left, Math.max(0, tableScroll.scrollWidth - tableScroll.clientWidth));
+        tableScroll.scrollTop = Math.min(state.top, Math.max(0, tableScroll.scrollHeight - tableScroll.clientHeight));
+    });
+}
+
 function _toggleModoAnterior() {
+    const scrollState = _captureTableScrollState();
     _modoAnterior = !_modoAnterior;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
-    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, _soloLectura);
+    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, _currentTrim, _soloLectura);
     _initTableScrollSync();
+    _restoreTableScrollState(scrollState);
 }
 
 function _verValorActualHistorial() {
@@ -792,7 +850,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _modMap = new Map();
     _modForTrim.forEach(m => {
         const dimCols = trimData[m.dimension] || [];
-        const pos = dimCols.findIndex(c => c.titulo === m.titulo);
+        const pos = m.col_idx != null
+            ? dimCols.findIndex(c => c.col === m.col_idx)
+            : dimCols.findIndex(c => c.titulo === m.titulo);
         if (pos >= 0) _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
     });
 
@@ -807,9 +867,10 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _hayModificadas = _modForTrim.length > 0;
 
     const dimensionDefs = [
-        { key: 'saber', label: 'HACER',  css: 'saber', short: 'Hacer' },
-        { key: 'hacer', label: 'SABER',  css: 'hacer', short: 'Saber' },
+        { key: 'saber', label: 'SABER',  css: 'saber', short: 'Saber' },
+        { key: 'hacer', label: 'HACER',  css: 'hacer', short: 'Hacer' },
         { key: 'ser',   label: 'SER',    css: 'ser',   short: 'Ser'   },
+        { key: '_autoeval', label: 'AUTOEVALUACION', css: 'autoeval', short: 'Autoevaluacion', noProm: true, noGroupLabel: true },
     ];
 
     const allDimensions = dimensionDefs
@@ -818,8 +879,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
 
     if (!allDimensions.length) return '';
 
-    const displayDimensions = _dimFilter
-        ? allDimensions.filter(d => d.key === _dimFilter)
+    const effectiveDimFilter = allDimensions.some(d => d.key === _dimFilter) ? _dimFilter : null;
+    const displayDimensions = effectiveDimFilter
+        ? allDimensions.filter(d => d.key === effectiveDimFilter)
         : allDimensions;
 
     const rowMap = new Map();
@@ -894,13 +956,14 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const gestion = meta.gestion || new Date().getFullYear();
 
     const totalScoreCols = displayDimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
-    const tableWidth = 54 + 260 + totalScoreCols * 52 + displayDimensions.length * 60 + 80;
+    const totalDimPromCols = displayDimensions.filter(dim => !dim.noProm).length;
+    const tableWidth = 54 + 260 + totalScoreCols * 52 + totalDimPromCols * 60 + 80;
     const colgroup = `<colgroup>
         <col style="width:54px">
         <col style="width:260px">
         ${displayDimensions.map(dim => [
             ...dim.columns.map(() => '<col style="width:52px">'),
-            '<col style="width:60px">',
+            dim.noProm ? '' : '<col style="width:60px">',
         ].join('')).join('')}
         <col>
     </colgroup>`;
@@ -919,23 +982,25 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         }).join('')}
     </select>`;
     const dimSelectHtml = `<select onchange="_ccSwitchDim(this.value)" style="${_selectStyle}">
-        <option value="" ${!_dimFilter ? 'selected' : ''}>Todas las dimensiones</option>
-        ${allDimensions.map(d => `<option value="${d.key}" ${_dimFilter === d.key ? 'selected' : ''}>${d.label}</option>`).join('')}
+        <option value="" ${!effectiveDimFilter ? 'selected' : ''}>Todas las dimensiones</option>
+        ${allDimensions.map(d => `<option value="${d.key}" ${effectiveDimFilter === d.key ? 'selected' : ''}>${d.label}</option>`).join('')}
     </select>`;
     const trimTabsHtml = `${trimSelectHtml}${dimSelectHtml}`;
 
-    const groupedHeaders = displayDimensions.map(dim => `
-        <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${dim.columns.length + 1}">
-            ${_esc(dim.label)}
-        </th>
-    `).join('');
+    const groupedHeaders = displayDimensions.map(dim => {
+        const colspan = dim.columns.length + (dim.noProm ? 0 : 1);
+        return `
+        <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${colspan}">
+            ${dim.noGroupLabel ? '' : _esc(dim.label)}
+        </th>`;
+    }).join('');
 
     const rotatedHeaders = displayDimensions.map(dim => [
         ...dim.columns.map(col => `
             <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
                 <span>${_rotHeaderHtml(col.titulo)}</span>
             </th>`),
-        `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
+        dim.noProm ? '' : `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
     ].join('')).join('');
 
     const tableRows = rowSummaries.map(row => {
@@ -995,7 +1060,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             }).join('');
 
             const dimProm = row.dimPromedios[dim.key];
-            const dimPromCell = `<td class="cc-success-table__dim-prom">${_fmt1(dimProm)}</td>`;
+            const dimPromCell = dim.noProm ? '' : `<td class="cc-success-table__dim-prom">${_fmt1(dimProm)}</td>`;
             return cells + dimPromCell;
         }).join('');
 
@@ -1020,29 +1085,28 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         ? `<span style="font-size:2rem;font-weight:800;letter-spacing:-.02em;">Calificaciones - ${_esc(_mesLabel)}</span>`
         : `Registro de Notas - ${_esc(_materia)} - ${_esc(_curso)}`;
 
-    // Barra de acciones: ancho completo, botones a la izquierda, tabs a la derecha
+    const readonlyBadgeHtml = `
+        <span class="cc-readonly-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Notas subidas
+        </span>`;
+
+    const readonlyHistoryButtonHtml = _modoHistorial && _hayModHistorial && _mostrandoOriginal ? `
+        <button class="cc-success-tool" type="button" onclick="_verValorActualHistorial()"
+            style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Ver notas con valor actual
+        </button>` : '';
+
+    // Barra de acciones: en lectura los controles viven en el encabezado para ahorrar espacio.
     const actionBarHtml = soloLectura
-        ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
-               <span class="cc-readonly-badge">
-                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                       <polyline points="20 6 9 17 4 12"/>
-                   </svg>
-                   Notas subidas
-               </span>
-               ${_modoHistorial && _hayModHistorial && _mostrandoOriginal ? `
-               <button class="cc-success-tool" type="button" onclick="_verValorActualHistorial()"
-                   style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
-                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                       <circle cx="12" cy="12" r="3"/>
-                   </svg>
-                   Ver notas con valor actual
-               </button>` : ''}
-               <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
-                   ${trimTabsHtml}
-               </div>
-           </div>`
+        ? ''
         : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
                <button class="cc-success-tool" type="button" onclick="_resetUpload()">
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1064,9 +1128,10 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     return `
         <div class="cc-success-report" data-scroll-anchor>
             <div class="cc-success-head">
-                <div>
+                <div class="cc-success-head-main">
                     <h2 class="cc-success-title">${headTitle}</h2>
                     ${soloLectura ? `
+                    <div class="cc-readonly-subrow">
                     <p class="cc-success-sub">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -1075,8 +1140,17 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
                         <span style="font-size:1.05rem;">${_esc(_curso)} · ${_esc(_materia)}</span>
-                    </p>` : ''}
+                    </p>
+                    </div>` : ''}
                 </div>
+                ${soloLectura ? `
+                <div class="cc-readonly-side">
+                    <div class="cc-readonly-status">${readonlyBadgeHtml}</div>
+                    <div class="cc-readonly-filters">
+                        ${trimTabsHtml}
+                        ${readonlyHistoryButtonHtml}
+                    </div>
+                </div>` : ''}
             </div>
 
             ${actionBarHtml}

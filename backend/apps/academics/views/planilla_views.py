@@ -251,8 +251,8 @@ class ConfirmarPlanillaView(APIView):
 
         for hoja, dims in draft['headers_por_trim'].items():
             t  = _TRIM_MAP.get(hoja, 1)
-            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'])
-            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'])
+            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'], mes_carga=draft.get('mes'))
+            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes_carga=draft.get('mes'))
             resultado['insertados']            += r['insertados']
             resultado['actualizados']          += r['actualizados']
             resultado['sin_cambios']           += r['sin_cambios']
@@ -264,6 +264,10 @@ class ConfirmarPlanillaView(APIView):
 
         # ── Notificar al director que el profesor confirmó su planilla ────────
         _notificar_carga_notas(profesor_curso, mes, gestion)
+
+        # ── Notificar al director si hubo notas modificadas ───────────────────
+        if resultado['actualizados'] > 0:
+            _notificar_notas_modificadas(profesor_curso, mes, gestion, resultado['actualizados'])
 
         # ── Trigger automático de K-Means si todos los profesores ya cargaron ─
         if mes and todos_cargaron_mes(mes, gestion):
@@ -308,6 +312,31 @@ def _notificar_carga_notas(profesor_curso, mes, gestion):
                 kwargs={'titulo': titulo, 'cuerpo': descripcion},
                 daemon=True,
             ).start()
+    except Exception:
+        pass
+
+
+def _notificar_notas_modificadas(profesor_curso, mes, gestion, cantidad):
+    from backend.apps.notifications.models import Notificacion
+    from backend.apps.users.models import TipoUsuario, User as UserModel
+
+    try:
+        tipo_director = TipoUsuario.objects.get(nombre='Director')
+        directores = list(UserModel.objects.filter(tipo_usuario=tipo_director, is_active=True))
+        nombre_prof = profesor_curso.profesor.get_full_name() or profesor_curso.profesor.username
+        meses_es = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+        mes_nombre = meses_es[mes] if 1 <= mes <= 12 else str(mes)
+        descripcion = (
+            f"{nombre_prof} modificó {cantidad} nota{'s' if cantidad != 1 else ''} "
+            f"de {profesor_curso.materia.nombre} en "
+            f"{profesor_curso.curso.grado} {profesor_curso.curso.paralelo} "
+            f"({mes_nombre} {gestion})."
+        )
+        Notificacion.objects.bulk_create([
+            Notificacion(emisor=None, receptor=d, descripcion=descripcion)
+            for d in directores
+        ])
     except Exception:
         pass
 

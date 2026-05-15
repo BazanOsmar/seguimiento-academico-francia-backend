@@ -100,9 +100,16 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
     """
     db = _get_db()
 
-    # ── Mongo: promedio de todas las materias del mes por estudiante ──────────
+    # ── Mongo: snapshot más reciente por (estudiante, materia) donde mes <= mes ─
+    # Si un curso no cargó notas este mes, se usa su último snapshot disponible.
     pipeline = [
-        {'$match': {'gestion': gestion, 'mes': mes}},
+        {'$match': {'gestion': gestion, 'mes': {'$lte': mes}}},
+        {'$sort': {'mes': -1}},
+        {'$group': {
+            '_id': {'estudiante_id': '$estudiante_id', 'materia_id': '$materia_id'},
+            'doc': {'$first': '$$ROOT'},
+        }},
+        {'$replaceRoot': {'newRoot': '$doc'}},
         {'$group': {
             '_id':                '$estudiante_id',
             'curso_id':           {'$first': '$curso_id'},
@@ -133,19 +140,29 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
             'saber_pct':           r['saber_sum'] / (45 * n),
             'hacer_pct':           r['hacer_sum'] / (40 * n),
             'tasa_entrega_tareas': r['tareas_entregadas'] / tareas_total if tareas_total > 0 else 0.0,
-            'promedio_examenes':   r['examenes_sum'] / n,
+            'promedio_examenes':   r['examenes_sum'] / (45 * n),
             'nota_mensual_actual': r['nota_mensual_sum'] / n,
         })
 
     df = pd.DataFrame(registros)
 
-    # ── SQL: asistencia del mes ───────────────────────────────────────────────
+    # ── Rango de fechas: desde el último análisis KMeans hasta hoy ───────────
+    from datetime import date
     from django.db.models import Count, Q
     from backend.apps.attendance.models import Asistencia, AsistenciaSesion
 
+    hoy = date.today()
+    ultimo = db['resultados_kmeans'].find_one(
+        {'gestion': gestion},
+        sort=[('fecha_analisis', -1)],
+        projection={'fecha_analisis': 1, '_id': 0},
+    )
+    fecha_desde = ultimo['fecha_analisis'].date() if ultimo else date(gestion, 1, 1)
+
+    # ── SQL: asistencia desde último análisis hasta hoy ───────────────────────
     sesiones_por_curso = dict(
         AsistenciaSesion.objects
-        .filter(fecha__year=gestion, fecha__month=mes)
+        .filter(fecha__gte=fecha_desde, fecha__lte=hoy)
         .values('curso_id')
         .annotate(total=Count('id'))
         .values_list('curso_id', 'total')
@@ -153,7 +170,7 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
 
     asistencias_raw = list(
         Asistencia.objects
-        .filter(sesion__fecha__year=gestion, sesion__fecha__month=mes)
+        .filter(sesion__fecha__gte=fecha_desde, sesion__fecha__lte=hoy)
         .values('estudiante_id', 'sesion__curso_id')
         .annotate(
             presentes=Count('id', filter=Q(estado__in=['PRESENTE', 'ATRASO', 'LICENCIA'])),
@@ -181,27 +198,34 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
 
     df[['pct_asistencia', 'pct_atrasos']] = df[['pct_asistencia', 'pct_atrasos']].fillna(0.0)
 
-    # ── SQL: citaciones del mes ───────────────────────────────────────────────
+    # ── SQL: citaciones desde último análisis hasta hoy ───────────────────────
     from backend.apps.discipline.models import Citacion
 
     citaciones_raw = list(
         Citacion.objects
-        .filter(fecha_envio__year=gestion, fecha_envio__month=mes)
+        .filter(fecha_envio__date__gte=fecha_desde, fecha_envio__date__lte=hoy)
         .exclude(asistencia='ANULADA')
         .values('estudiante_id')
         .annotate(total=Count('id'))
     )
 
-    max_citaciones = max((r['total'] for r in citaciones_raw), default=1) or 1
-    citaciones_map = {r['estudiante_id']: r['total'] / max_citaciones for r in citaciones_raw}
+    _MAX_CITACIONES = 3
+    citaciones_map = {r['estudiante_id']: min(r['total'] / _MAX_CITACIONES, 1.0) for r in citaciones_raw}
 
     df['tasa_citaciones'] = df['estudiante_id'].map(citaciones_map).fillna(0.0)
 
     # ── Tendencia normalizada con tanh ────────────────────────────────────────
-    mes_anterior = mes - 1 if mes > 1 else None
-    if mes_anterior:
+    # Usa el snapshot más reciente ANTERIOR al mes actual por (estudiante, materia).
+    # Si una materia no tiene datos en el mes previo exacto, toma el último disponible.
+    # Si no hay ningún snapshot anterior (primera carga), tendencia = 0.
+    if mes > 1:
         pipeline_ant = [
-            {'$match': {'gestion': gestion, 'mes': mes_anterior}},
+            {'$match': {'gestion': gestion, 'mes': {'$lte': mes - 1}}},
+            {'$sort': {'mes': -1}},
+            {'$group': {
+                '_id':           {'estudiante_id': '$estudiante_id', 'materia_id': '$materia_id'},
+                'nota_mensual':  {'$first': '$nota_mensual'},
+            }},
             {'$group': {
                 '_id':              '$estudiante_id',
                 'nota_mensual_sum': {'$sum': '$nota_mensual'},
@@ -251,11 +275,11 @@ def ejecutar_kmeans(df: pd.DataFrame, gestion: int) -> pd.DataFrame:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PASO 3: Guardar en colección predicciones
+# PASO 3: Guardar en colección resultados_kmeans
 # ─────────────────────────────────────────────────────────────────────────────
 
-def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: int):
-    """UPSERT en MongoDB colección predicciones. Clave: (estudiante_id, gestion, trimestre, mes)."""
+def guardar_resultados_kmeans(df: pd.DataFrame, gestion: int, trimestre: int, mes: int):
+    """UPSERT en MongoDB colección resultados_kmeans. Clave: (estudiante_id, gestion, trimestre, mes)."""
     from pymongo import UpdateOne
 
     fecha_analisis = datetime.now(tz=timezone.utc)
@@ -285,7 +309,7 @@ def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: in
         }}, upsert=True))
 
     if ops:
-        _get_db()['predicciones'].bulk_write(ops, ordered=False)
+        _get_db()['resultados_kmeans'].bulk_write(ops, ordered=False)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -316,7 +340,7 @@ def ejecutar_analisis_kmeans(gestion: int, mes: int) -> dict:
         return {'estado': 'sin_datos', 'estudiantes': 0 if df is None else len(df)}
 
     df = ejecutar_kmeans(df, gestion=gestion)
-    guardar_predicciones(df, gestion=gestion, trimestre=trimestre, mes=mes)
+    guardar_resultados_kmeans(df, gestion=gestion, trimestre=trimestre, mes=mes)
 
     resultado = {
         'estado':      'ok',

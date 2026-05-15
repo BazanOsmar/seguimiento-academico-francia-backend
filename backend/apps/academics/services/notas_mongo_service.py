@@ -132,7 +132,7 @@ def _parsear_fecha(titulo):
         return None
 
 
-_NOTA_MAXIMA = {'ser': 10.0, 'saber': 45.0, 'hacer': 40.0}
+_NOTA_MAXIMA = {'ser': 10.0, 'saber': 45.0, 'hacer': 40.0, '_autoeval': 5.0}
 
 def _nota_maxima(dimension):
     return _NOTA_MAXIMA.get(dimension, 10.0)
@@ -140,7 +140,7 @@ def _nota_maxima(dimension):
 
 # ── API pública ───────────────────────────────────────────────────────────────
 
-def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
+def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, mes_carga=None):
     """
     Guarda las notas del Excel en detalle_notas con lógica de comparación:
       - Documento nuevo      → INSERT  (fecha_carga = ahora)
@@ -176,14 +176,16 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
     insertados     = actualizados = sin_cambios = 0
 
     for dimension, columnas in headers_actividades.items():
-        if dimension.startswith('_'):
+        if dimension.startswith('_') and dimension != '_autoeval':
             continue
         nota_max = _nota_maxima(dimension)
         for col_data in columnas:
             col_idx     = col_data['col']
             titulo      = col_data['titulo']
             fecha_activ = _parsear_fecha(titulo)
-            mes         = fecha_activ.month if fecha_activ else None
+            if not fecha_activ:
+                continue
+            mes         = mes_carga  # mes de carga, no de la actividad — inmodificable
 
             for n in col_data.get('notas', []):
                 clave = (n['nro'], dimension, col_idx)
@@ -219,7 +221,6 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
                             'fecha_actividad':     fecha_activ,
                             'nota':                n['nota'],
                             'nota_maxima':         nota_max,
-                            'mes':                 mes,
                             'fecha_actualizacion': ahora,
                         }},
                     ))
@@ -326,7 +327,7 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                 existentes[clave] = doc
 
             for dimension, columnas in dims.items():
-                if dimension.startswith('_'):
+                if dimension.startswith('_') and dimension != '_autoeval':
                     continue
                 for col_data in columnas:
                     col_idx = col_data['col']
@@ -356,6 +357,7 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                                 'nombre':          n.get('nombre') or prev.get('nombre_estudiante', ''),
                                 'trimestre':       trimestre,
                                 'dimension':       dimension,
+                                'col_idx':         col_idx,
                                 'titulo':          titulo,
                                 'nota_anterior':   prev['nota'],
                                 'nota_nueva':      n['nota'],
@@ -432,15 +434,14 @@ def obtener_notas(materia_id, curso_id, trimestre):
     return list(actividades.values())
 
 
-def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, gestion=2026):
+def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, gestion=2026, mes_carga=None):
     """
-    Calcula y guarda notas_mensuales a partir de headers_actividades (ya en memoria).
-    Se llama inmediatamente después de guardar_notas.
+    Calcula y guarda notas_mensuales leyendo desde detalle_notas (fuente de verdad).
 
-    Lógica:
-      - SER/SABER/HACER = promedio de TODAS las notas del mes (incluye 0, que = no presentó)
-      - promedio_examenes/tareas = promedio solo de notas > 0 (rendimiento real, útil para ML)
-      - cantidad_rendidos/entregados = cuántas notas > 0 tuvo el estudiante
+    Solo se ejecuta si hay documentos nuevos con mes = mes_carga en detalle_notas.
+    Cuando sí ejecuta, genera un resumen ACUMULADO por estudiante con todas las
+    notas del trimestre hasta ese mes (no solo las nuevas), para que KMeans tenga
+    el perfil completo del estudiante en cada snapshot mensual.
 
     Returns:
         { procesados: int }
@@ -449,88 +450,99 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     curso_id    = profesor_curso.curso.id
     profesor_id = profesor_curso.profesor.id
     ahora       = datetime.now(tz=timezone.utc)
+    mes         = mes_carga or ahora.month
 
-    # ── Lookup de autoevaluación por estudiante (trimestre completo) ─────────
+    col_detalle = _get_db()['detalle_notas']
+
+    # ── Solo procesar si hay docs nuevos con este mes de carga ───────────────
+    hay_nuevos = col_detalle.count_documents({
+        'materia_id': materia_id, 'curso_id': curso_id,
+        'trimestre':  trimestre,  'gestion':  gestion,
+        'mes':        mes,
+    }, limit=1)
+    if not hay_nuevos:
+        return {'procesados': 0}
+
+    # ── Leer todos los docs del trimestre (acumulado para KMeans) ────────────
+    docs = list(col_detalle.find(
+        {'materia_id': materia_id, 'curso_id': curso_id,
+         'trimestre':  trimestre,  'gestion':  gestion},
+        {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1, 'nota': 1, '_id': 0},
+    ))
+    if not docs:
+        return {'procesados': 0}
+
+    # ── Lookup de autoevaluación desde headers_actividades ───────────────────
     autoeval_por_nro = {}
     for col_data in headers_actividades.get('_autoeval', [{}]):
         for n in col_data.get('notas', []):
             autoeval_por_nro[n['nro']] = n['nota']
 
-    # ── Agrupar notas por (estudiante_id, mes, dimension) ────────────────────
-    # student_data[est_id][mes][dim] = [notas]
-    student_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-    # Contar columnas por (mes, dimension) — para los totales
-    cols_por_mes = defaultdict(lambda: defaultdict(int))
+    # ── Agrupar notas del mes por (estudiante_id, dimension) ─────────────────
+    student_data = defaultdict(lambda: defaultdict(list))
+    cols_por_dim = defaultdict(set)  # col_idx únicos por dimension
 
-    for dimension, columnas in headers_actividades.items():
-        if dimension.startswith('_'):
-            continue
-        for col_data in columnas:
-            fecha_activ = _parsear_fecha(col_data['titulo'])
-            if not fecha_activ:
-                continue
-            mes = fecha_activ.month
-            cols_por_mes[mes][dimension] += 1
+    for doc in docs:
+        dim = doc['dimension']
+        student_data[doc['estudiante_id']][dim].append(doc['nota'])
+        cols_por_dim[dim].add(doc['columna_idx'])
 
-            for n in col_data.get('notas', []):
-                student_data[n['nro']][mes][dimension].append(n['nota'])
-
-    if not student_data:
-        return {'procesados': 0}
+    cols_count = {dim: len(idxs) for dim, idxs in cols_por_dim.items()}
 
     # ── Construir operaciones bulk ────────────────────────────────────────────
     operaciones = []
 
-    for estudiante_id, meses in student_data.items():
-        for mes, dims in meses.items():
-            ser_notas   = dims.get('ser',   [])
-            saber_notas = dims.get('saber', [])
-            hacer_notas = dims.get('hacer', [])
+    def _promedio_todos(notas, total_cols):
+        if not total_cols:
+            return 0.0
+        return round(sum(notas) / total_cols, 2)
 
-            total_saber = cols_por_mes[mes].get('saber', 0)
-            total_hacer = cols_por_mes[mes].get('hacer', 0)
+    def _promedio_rendidos(notas):
+        rendidos = [n for n in notas if n > 0]
+        return round(sum(rendidos) / len(rendidos), 2) if rendidos else 0.0
 
-            def _promedio_todos(notas, total_cols):
-                """Promedio incluyendo 0s — usa total_cols como denominador."""
-                if not total_cols:
-                    return 0.0
-                return round(sum(notas) / total_cols, 2)
+    for estudiante_id, dims in student_data.items():
+        ser_notas   = dims.get('ser',   [])
+        saber_notas = dims.get('saber', [])
+        hacer_notas = dims.get('hacer', [])
 
-            def _promedio_rendidos(notas):
-                """Promedio solo de notas > 0."""
-                rendidos = [n for n in notas if n > 0]
-                return round(sum(rendidos) / len(rendidos), 2) if rendidos else 0.0
+        # None indica que no hubo actividades nuevas en esa dimensión este mes
+        ser_val   = _promedio_todos(ser_notas,   cols_count.get('ser',   0)) if ser_notas   else None
+        saber_val = _promedio_todos(saber_notas, cols_count.get('saber', 0)) if saber_notas else None
+        hacer_val = _promedio_todos(hacer_notas, cols_count.get('hacer', 0)) if hacer_notas else None
 
-            ser_total   = cols_por_mes[mes].get('ser', 0)
-            ser_val     = _promedio_todos(ser_notas, ser_total)
-            saber_val   = _promedio_todos(saber_notas, total_saber)
-            hacer_val   = _promedio_todos(hacer_notas, total_hacer)
+        nota_mensual = round(
+            (ser_val   or 0) +
+            (saber_val or 0) +
+            (hacer_val or 0),
+            2,
+        )
 
-            filtro = {
-                'estudiante_id': estudiante_id,
-                'materia_id':    materia_id,
-                'gestion':       gestion,
-                'trimestre':     trimestre,
-                'mes':           mes,
-            }
+        filtro = {
+            'estudiante_id': estudiante_id,
+            'materia_id':    materia_id,
+            'gestion':       gestion,
+            'trimestre':     trimestre,
+            'mes':           mes,
+        }
 
-            operaciones.append(UpdateOne(filtro, {'$set': {
-                **filtro,
-                'curso_id':                   curso_id,
-                'profesor_id':                profesor_id,
-                'ser':                        ser_val,
-                'saber':                      saber_val,
-                'hacer':                      hacer_val,
-                'nota_mensual':               round(ser_val + saber_val + hacer_val, 2),
-                'promedio_examenes':          _promedio_rendidos(saber_notas),
-                'promedio_tareas':            _promedio_rendidos(hacer_notas),
-                'cantidad_examenes_rendidos': sum(1 for n in saber_notas if n > 0),
-                'cantidad_examenes_total':    total_saber,
-                'cantidad_tareas_entregadas': sum(1 for n in hacer_notas if n > 0),
-                'cantidad_tareas_total':      total_hacer,
-                'autoeval_ser':               autoeval_por_nro.get(estudiante_id),
-                'fecha_carga':                ahora,
-            }}, upsert=True))
+        operaciones.append(UpdateOne(filtro, {'$set': {
+            **filtro,
+            'curso_id':                   curso_id,
+            'profesor_id':                profesor_id,
+            'ser':                        ser_val,
+            'saber':                      saber_val,
+            'hacer':                      hacer_val,
+            'nota_mensual':               nota_mensual,
+            'promedio_examenes':          _promedio_rendidos(saber_notas),
+            'promedio_tareas':            _promedio_rendidos(hacer_notas),
+            'cantidad_examenes_rendidos': sum(1 for n in saber_notas if n > 0),
+            'cantidad_examenes_total':    cols_count.get('saber', 0),
+            'cantidad_tareas_entregadas': sum(1 for n in hacer_notas if n > 0),
+            'cantidad_tareas_total':      cols_count.get('hacer', 0),
+            'autoeval_ser':               autoeval_por_nro.get(estudiante_id),
+            'fecha_carga':                ahora,
+        }}, upsert=True))
 
     procesados = len(operaciones)
     if operaciones:
@@ -845,43 +857,47 @@ def obtener_cambios_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
 
 def promedios_saber_hacer_por_materia(estudiante_id, materia_ids, trimestre=None):
     """
-    Devuelve el promedio de (saber + hacer) por materia para un estudiante,
-    calculado sobre los meses de notas_mensuales.
+    Devuelve (saber + hacer) por materia para un estudiante usando el snapshot
+    más reciente de notas_mensuales. Como cada snapshot es acumulado, el último
+    mes ya contiene el perfil completo — promediar todos los meses solaparía datos.
 
     Args:
         estudiante_id: int
         materia_ids:   lista de ints
         trimestre:     int (1, 2 o 3) — si se pasa, filtra solo ese trimestre;
-                       si es None, promedia todos los meses disponibles.
+                       si es None, usa el snapshot más reciente disponible.
 
     Returns:
         dict { materia_id: float | None }
-        None si la materia no tiene ningún registro para ese trimestre.
+        None si la materia no tiene ningún registro.
     """
     if not materia_ids:
         return {}
 
     try:
         col = _get_db()['notas_mensuales']
-        filtro = {
+        match = {
             'estudiante_id': estudiante_id,
             'materia_id':    {'$in': list(materia_ids)},
         }
         if trimestre is not None:
-            filtro['trimestre'] = trimestre
+            match['trimestre'] = trimestre
 
-        docs = col.find(filtro, {'materia_id': 1, 'saber': 1, 'hacer': 1, '_id': 0})
-
-        acumulado = {}   # materia_id → [saber+hacer por mes]
-        for doc in docs:
-            mid = doc['materia_id']
-            acumulado.setdefault(mid, []).append(
-                (doc.get('saber') or 0) + (doc.get('hacer') or 0)
-            )
+        pipeline = [
+            {'$match': match},
+            {'$sort': {'mes': -1}},
+            {'$group': {
+                '_id':   '$materia_id',
+                'saber': {'$first': '$saber'},
+                'hacer': {'$first': '$hacer'},
+            }},
+        ]
 
         resultado = {mid: None for mid in materia_ids}
-        for mid, valores in acumulado.items():
-            resultado[mid] = round(sum(valores) / len(valores), 1)
+        for doc in col.aggregate(pipeline):
+            resultado[doc['_id']] = round(
+                (doc.get('saber') or 0) + (doc.get('hacer') or 0), 1
+            )
 
         return resultado
 
@@ -964,8 +980,8 @@ def historial_meses_profesor(profesor_id: int, gestion: int, total_asignaciones:
     for mes in range(3, 12):  # Marzo (3) a Noviembre (11)
         con = por_mes.get(mes, 0)
         if con == 0:
-            estado = 'sin_datos'
-        elif con >= total_asignaciones:
+            continue
+        if con >= total_asignaciones:
             estado = 'completo'
         else:
             estado = 'parcial'

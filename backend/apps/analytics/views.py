@@ -88,7 +88,7 @@ class ResultadosKMeansView(APIView):
             return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
         docs = list(
-            _get_db()['predicciones'].find(
+            _get_db()['resultados_kmeans'].find(
                 {'gestion': gestion, 'mes': mes},
                 {'_id': 0},
             )

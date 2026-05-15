@@ -84,7 +84,8 @@ class LoginView(APIView):
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'primer_ingreso': user.primer_ingreso,
-                'tipo_usuario': user.tipo_usuario.nombre if user.tipo_usuario else None
+                'tipo_usuario': user.tipo_usuario.nombre if user.tipo_usuario else None,
+                'last_login': user.last_login.isoformat() if user.last_login else None,
             }
         })
 
@@ -462,6 +463,26 @@ class VincularEstudianteView(APIView):
                 'curso':            str(estudiante.curso),
             },
         }, status=status.HTTP_200_OK)
+
+
+class MeView(APIView):
+    """
+    GET /api/auth/me/
+    Devuelve datos básicos del usuario autenticado, incluyendo last_login.
+    Disponible para todos los roles.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        u = request.user
+        return Response({
+            'id':           u.id,
+            'username':     u.username,
+            'first_name':   u.first_name,
+            'last_name':    u.last_name,
+            'tipo_usuario': u.tipo_usuario.nombre if u.tipo_usuario else None,
+            'last_login':   u.last_login.isoformat() if u.last_login else None,
+        })
 
 
 class SugerenciasView(APIView):
