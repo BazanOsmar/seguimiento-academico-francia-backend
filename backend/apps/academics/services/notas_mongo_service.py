@@ -463,10 +463,11 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     if not hay_nuevos:
         return {'procesados': 0}
 
-    # ── Leer TODOS los docs del trimestre (snapshot acumulado) ───────────────
+    # ── Leer solo los docs de este mes ───────────────────────────────────────
     docs = list(col_detalle.find(
         {'materia_id': materia_id, 'curso_id': curso_id,
-         'trimestre':  trimestre,  'gestion':  gestion},
+         'trimestre':  trimestre,  'gestion':  gestion,
+         'mes':        mes},
         {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1, 'nota': 1, '_id': 0},
     ))
     if not docs:
@@ -506,9 +507,17 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
         saber_notas = dims.get('saber', [])
         hacer_notas = dims.get('hacer', [])
 
-        ser_val   = _promedio_todos(ser_notas,   cols_count.get('ser',   0))
-        saber_val = _promedio_todos(saber_notas, cols_count.get('saber', 0))
-        hacer_val = _promedio_todos(hacer_notas, cols_count.get('hacer', 0))
+        # None indica que no hubo actividades nuevas en esa dimensión este mes
+        ser_val   = _promedio_todos(ser_notas,   cols_count.get('ser',   0)) if ser_notas   else None
+        saber_val = _promedio_todos(saber_notas, cols_count.get('saber', 0)) if saber_notas else None
+        hacer_val = _promedio_todos(hacer_notas, cols_count.get('hacer', 0)) if hacer_notas else None
+
+        nota_mensual = round(
+            (ser_val   or 0) +
+            (saber_val or 0) +
+            (hacer_val or 0),
+            2,
+        )
 
         filtro = {
             'estudiante_id': estudiante_id,
@@ -525,7 +534,7 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
             'ser':                        ser_val,
             'saber':                      saber_val,
             'hacer':                      hacer_val,
-            'nota_mensual':               round(ser_val + saber_val + hacer_val, 2),
+            'nota_mensual':               nota_mensual,
             'promedio_examenes':          _promedio_rendidos(saber_notas),
             'promedio_tareas':            _promedio_rendidos(hacer_notas),
             'cantidad_examenes_rendidos': sum(1 for n in saber_notas if n > 0),
