@@ -371,6 +371,7 @@ async function cargarAsignacionesNotas() {
     const countEl   = document.getElementById('notasMateriasCount');
     const periodLbl = document.getElementById('notasPeriodLabel');
     const mesPill   = document.getElementById('notasMesPill');
+    _setHistorialActivo(false);
 
     const mes  = _mesBolivia();
     const anio = _anioBolivia();
@@ -494,6 +495,11 @@ function _initHistorialBtn() {
 
     btn.addEventListener('click', async (e) => {
         e.stopPropagation();
+        if (btn.dataset.historialActivo === '1') {
+            panel.hidden = true;
+            await cargarAsignacionesNotas();
+            return;
+        }
         const abierto = !panel.hidden;
         if (abierto) { panel.hidden = true; return; }
 
@@ -533,20 +539,18 @@ const _MESES_NOMBRE = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'
                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 function _renderHistorialMeses(meses, inner) {
-    if (!meses || !meses.length) {
+    const mesesConNotas = (meses || []).filter(m => (m.con_notas || 0) > 0 && m.estado !== 'sin_datos');
+    if (!mesesConNotas.length) {
         inner.innerHTML = `<p style="padding:14px 18px;color:var(--text-muted);font-size:.82rem;">No hay cargas registradas aún.</p>`;
         return;
     }
 
-    inner.innerHTML = meses.map(m => {
-        const esSinDatos = m.estado === 'sin_datos';
-        const claseItem  = esSinDatos ? 'notas-hist-mes notas-hist-mes--sin_datos' : 'notas-hist-mes';
+    inner.innerHTML = mesesConNotas.map(m => {
+        const claseItem  = 'notas-hist-mes';
         const claseDot   = `notas-hist-mes__dot notas-hist-mes__dot--${m.estado}`;
-        const sub        = esSinDatos
-            ? 'Sin datos'
-            : `${m.con_notas} de ${m.total} cursos`;
+        const sub        = `${m.con_notas} de ${m.total} cursos`;
         return `
-        <button class="${claseItem}" data-mes="${m.mes}" data-estado="${m.estado}" ${esSinDatos ? 'disabled' : ''}>
+        <button class="${claseItem}" data-mes="${m.mes}" data-estado="${m.estado}">
             <span class="${claseDot}"></span>
             <span class="notas-hist-mes__nombre">${_MESES_NOMBRE[m.mes]}</span>
             <span class="notas-hist-mes__sub">${sub}</span>
@@ -566,6 +570,7 @@ async function _cargarVistaHistorialMes(mes) {
     const countEl   = document.getElementById('notasMateriasCount');
     const periodLbl = document.getElementById('notasPeriodLabel');
     const mesPill   = document.getElementById('notasMesPill');
+    _setHistorialActivo(true);
 
     if (mesPill)   mesPill.textContent  = `${_MESES_NOMBRE[mes]} ${_anioBolivia()} — Historial`.toUpperCase();
     if (periodLbl) periodLbl.textContent = _MESES_NOMBRE[mes];
@@ -676,6 +681,14 @@ function _renderGridHistorial(data, mes, countEl, grid) {
 }
 
 // ── Cargar fecha de última subida de notas ────────────────────────
+function _setHistorialActivo(activo) {
+    const btn = document.getElementById('btnVerHistorial');
+    if (!btn) return;
+    btn.dataset.historialActivo = activo ? '1' : '0';
+    btn.textContent = activo ? 'Volver al mes actual' : 'Ver historial de cargas';
+    if (activo) btn.disabled = false;
+}
+
 async function _cargarUltimaCarga() {
     const fechaEl = document.getElementById('notasUltimaCargaFecha');
     const btnEl   = document.getElementById('btnVerHistorial');
@@ -1277,7 +1290,6 @@ function _renderPlanCards(mes) {
                 <div class="ptw-subject">${_escapeHtml(asig.materia_nombre)}</div>
             </div>
             <div>
-                <div class="ptw-progress-label">Progreso semanal</div>
                 <div class="ptw-weeks">${weeksHtml}</div>
             </div>
             <button class="ptw-btn ${complete ? 'ptw-btn--primary' : 'ptw-btn--ghost'}">
@@ -2838,6 +2850,7 @@ async function _cargarPerfilStats() {
         document.getElementById('perfilAvatar').textContent   = iniciales;
         document.getElementById('perfilNombre').textContent   = nombre;
         document.getElementById('perfilUsername').textContent = `@${user.username}`;
+
     }
 
     // Asignaciones — reusar cache si ya se cargaron en el tab Plan
@@ -2878,5 +2891,20 @@ async function _cargarPerfilStats() {
         };
         document.getElementById('statCitMes').textContent   = citData.filter(esMesActual).length;
         document.getElementById('statCitTotal').textContent = citData.length;
+    }
+
+    // Último acceso — siempre desde la API para tener el valor actualizado
+    const elAcceso = document.getElementById('perfilUltimoAcceso');
+    if (elAcceso) {
+        const { ok: okMe, data: meData } = await fetchAPI('/api/auth/me/');
+        if (okMe && meData?.last_login) {
+            const d = new Date(meData.last_login);
+            const fmt = d.toLocaleString('es-BO', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+            });
+            elAcceso.textContent = `Último acceso: ${fmt}`;
+            elAcceso.style.display = '';
+        }
     }
 }

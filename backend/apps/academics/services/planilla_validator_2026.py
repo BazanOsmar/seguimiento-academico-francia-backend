@@ -363,6 +363,8 @@ def validar_formato_headers(headers_por_trim):
     for hoja, dims in headers_por_trim.items():
         trim_label = _TRIM_LABEL.get(hoja, hoja)
         for dimension, columnas in dims.items():
+            if dimension.startswith('_'):
+                continue
             dim_label = _DIM_LABEL.get(dimension, dimension.upper())
             for col_data in columnas:
                 titulo = str(col_data.get('titulo', '')).strip()
