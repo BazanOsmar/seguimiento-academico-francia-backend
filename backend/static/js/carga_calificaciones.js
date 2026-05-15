@@ -850,7 +850,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _modMap = new Map();
     _modForTrim.forEach(m => {
         const dimCols = trimData[m.dimension] || [];
-        const pos = dimCols.findIndex(c => c.titulo === m.titulo);
+        const pos = m.col_idx != null
+            ? dimCols.findIndex(c => c.col === m.col_idx)
+            : dimCols.findIndex(c => c.titulo === m.titulo);
         if (pos >= 0) _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
     });
 

@@ -357,6 +357,7 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                                 'nombre':          n.get('nombre') or prev.get('nombre_estudiante', ''),
                                 'trimestre':       trimestre,
                                 'dimension':       dimension,
+                                'col_idx':         col_idx,
                                 'titulo':          titulo,
                                 'nota_anterior':   prev['nota'],
                                 'nota_nueva':      n['nota'],
