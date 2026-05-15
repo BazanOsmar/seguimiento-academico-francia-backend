@@ -269,17 +269,6 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
         except Exception:
             pass  # El historial no bloquea el guardado principal
 
-    # Marcar todos los docs del trimestre con el mes de confirmación actual.
-    # mes_confirmado se actualiza en cada entrega; mes (creación) permanece inmutable.
-    if mes and errores == 0:
-        try:
-            col.update_many(
-                {'materia_id': materia_id, 'curso_id': curso_id, 'trimestre': trimestre},
-                {'$set': {'mes_confirmado': mes}},
-            )
-        except Exception:
-            pass
-
     return {'insertados': insertados, 'actualizados': actualizados,
             'sin_cambios': sin_cambios, 'errores': errores}
 
@@ -465,13 +454,13 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
 
     col_detalle = _get_db()['detalle_notas']
 
-    # ── Solo procesar si el profesor confirmó notas este mes ─────────────────
-    hay_confirmados = col_detalle.count_documents({
+    # ── Solo procesar si hay docs nuevos con este mes de carga ───────────────
+    hay_nuevos = col_detalle.count_documents({
         'materia_id': materia_id, 'curso_id': curso_id,
         'trimestre':  trimestre,  'gestion':  gestion,
-        '$or': [{'mes': mes}, {'mes_confirmado': mes}],
+        'mes':        mes,
     }, limit=1)
-    if not hay_confirmados:
+    if not hay_nuevos:
         return {'procesados': 0}
 
     # ── Leer TODOS los docs del trimestre (snapshot acumulado) ───────────────
@@ -665,17 +654,15 @@ def pc_ids_con_notas_mes(asignaciones, profesor_id, mes, gestion):
     try:
         col = _get_db()['detalle_notas']
         pipeline = [
-            {'$match': {'$and': [
-                {'profesor_id': profesor_id, 'gestion': gestion},
-                {'$or': [
+            {'$match': {
+                'profesor_id': profesor_id,
+                'mes':         mes,
+                'gestion':     gestion,
+                '$or': [
                     {'materia_id': a['materia_id'], 'curso_id': a['curso_id']}
                     for a in asignaciones
-                ]},
-                {'$or': [
-                    {'mes_confirmado': mes},
-                    {'mes_confirmado': {'$exists': False}, 'mes': mes},
-                ]},
-            ]}},
+                ],
+            }},
             {'$group': {'_id': {'materia_id': '$materia_id', 'curso_id': '$curso_id'}}},
         ]
         pares = {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}
