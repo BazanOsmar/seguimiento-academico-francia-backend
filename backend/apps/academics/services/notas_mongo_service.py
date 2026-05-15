@@ -269,6 +269,18 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
         except Exception:
             pass  # El historial no bloquea el guardado principal
 
+    # Marcar todos los docs del trimestre con el mes de carga actual,
+    # para que pc_ids_con_notas_mes detecte la entrega aunque no haya notas nuevas.
+    if mes and errores == 0:
+        try:
+            col.update_many(
+                {'materia_id': materia_id, 'curso_id': curso_id,
+                 'trimestre': trimestre, 'mes': {'$ne': mes}},
+                {'$set': {'mes': mes}},
+            )
+        except Exception:
+            pass
+
     return {'insertados': insertados, 'actualizados': actualizados,
             'sin_cambios': sin_cambios, 'errores': errores}
 
