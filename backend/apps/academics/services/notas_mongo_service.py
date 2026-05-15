@@ -465,20 +465,19 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
 
     col_detalle = _get_db()['detalle_notas']
 
-    # ── Solo procesar si hay docs nuevos con este mes de carga ───────────────
-    hay_nuevos = col_detalle.count_documents({
+    # ── Solo procesar si el profesor confirmó notas este mes ─────────────────
+    hay_confirmados = col_detalle.count_documents({
         'materia_id': materia_id, 'curso_id': curso_id,
         'trimestre':  trimestre,  'gestion':  gestion,
-        'mes':        mes,
+        '$or': [{'mes': mes}, {'mes_confirmado': mes}],
     }, limit=1)
-    if not hay_nuevos:
+    if not hay_confirmados:
         return {'procesados': 0}
 
-    # ── Leer solo los docs de este mes (snapshot incremental) ────────────────
+    # ── Leer TODOS los docs del trimestre (snapshot acumulado) ───────────────
     docs = list(col_detalle.find(
         {'materia_id': materia_id, 'curso_id': curso_id,
-         'trimestre':  trimestre,  'gestion':  gestion,
-         'mes':        mes},
+         'trimestre':  trimestre,  'gestion':  gestion},
         {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1, 'nota': 1, '_id': 0},
     ))
     if not docs:
