@@ -16,7 +16,13 @@
         const token = localStorage.getItem('access_token');
         const user = getUser();
         if (!token || !user) return false;
-        if (window.location.pathname.startsWith('/profesor/')) return user.tipo_usuario === 'Profesor';
+        if (window.location.pathname.startsWith('/profesor/')) {
+            // /profesor/calificaciones/ es reutilizado por el Director (modo historial).
+            if (window.location.pathname.startsWith('/profesor/calificaciones/')) {
+                return ['Profesor', 'Director'].includes(user.tipo_usuario);
+            }
+            return user.tipo_usuario === 'Profesor';
+        }
         return ['Director', 'Regente'].includes(user.tipo_usuario);
     };
 

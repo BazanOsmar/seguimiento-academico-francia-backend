@@ -406,6 +406,73 @@
         }
         @keyframes shimmer { to { background-position: -200% 0; } }
 
+        /* ── Tabla resumen mensual de cursos ─────────────────────── */
+        .rc-tbl-wrap {
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+        .rc-tbl { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        .rc-tbl thead th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+        .rc-tbl thead th:not(:first-child) { text-align: center; }
+        .rc-tbl tbody td {
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+        .rc-tbl tbody tr:last-child td { border-bottom: none; }
+        .rc-tbl tbody tr:hover { background: var(--bg-card-hover); }
+        .rc-tbl__curso { font-weight: 600; color: var(--text-primary); }
+        .rc-tbl__num {
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            font-size: .92rem;
+        }
+        .rc-tbl__num--ok   { color: #22c55e; }
+        .rc-tbl__num--warn { color: #fbbf24; }
+        .rc-tbl__num--bad  { color: #ef4444; }
+
+        /* ── Selector de mes (estilo cit-mes-nav) ────────────────── */
+        .cit-mes-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .cit-mes-nav__btn {
+            background: none; border: none;
+            color: var(--text-muted); cursor: pointer;
+            font-size: 1rem; font-weight: 700;
+            width: 26px; height: 26px;
+            border-radius: 4px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s, color .15s;
+        }
+        .cit-mes-nav__btn:hover:not(:disabled) {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+        .cit-mes-nav__btn:disabled { opacity: .3; cursor: default; }
+        .cit-mes-nav__label {
+            font-size: .8rem; font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 130px; text-align: center;
+            text-transform: capitalize;
+        }
+
         /* ── Nav mes (prev/next) ─────────────────────────────────── */
         .btn-cal-nav {
             background: var(--bg-input);

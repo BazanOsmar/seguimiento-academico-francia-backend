@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from backend.core.permissions import IsProfesor
+from backend.core.permissions import IsProfesor, IsDirectorOrProfesor
 from ..models import ProfesorCurso
 from ..services.planilla_validator import validar_estructura, validar_pertenencia, extraer_notas, validar_estudiantes
 from ..services.planilla_validator_2026 import (
@@ -252,7 +252,7 @@ class ConfirmarPlanillaView(APIView):
         for hoja, dims in draft['headers_por_trim'].items():
             t  = _TRIM_MAP.get(hoja, 1)
             r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'])
-            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'])
+            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
             resultado['insertados']            += r['insertados']
             resultado['actualizados']          += r['actualizados']
             resultado['sin_cambios']           += r['sin_cambios']
@@ -462,10 +462,15 @@ class ResumenGrupoProfesorView(APIView):
     """
     GET /api/academics/profesor/notas/resumen-grupo/?pc_id=X
 
-    Devuelve la lista de estudiantes del curso con su nota acumulada
-    del trimestre más reciente con datos (calculado desde MongoDB).
+    Devuelve la lista de estudiantes del curso con sus notas por trimestre
+    (calculado desde MongoDB). Permite al front cambiar de trimestre sin
+    nuevas peticiones.
 
-    Nota máxima dinámica: SABER(45) + HACER(40) + SER(10) según dimensiones presentes.
+    Por trimestre con datos:
+        nota_total = promedio_ser + promedio_saber + promedio_hacer
+                     (solo dimensiones con actividades en ese trimestre).
+        nota_sobre = suma de máximos (SER=10, SABER=45, HACER=40) de las
+                     dimensiones presentes.
     """
     permission_classes = [IsAuthenticated, IsProfesor]
 
@@ -506,9 +511,7 @@ class ResumenGrupoProfesorView(APIView):
                 'apellidos':       f"{e.apellido_paterno} {e.apellido_materno}".strip(),
                 'tiene_tutor':     e.tutor_id is not None,
                 'tutor_tiene_fcm': getattr(e, 'tutor_tiene_fcm', False),
-                'nota_total':      prom.get('nota_total'),
-                'nota_sobre':      prom.get('nota_sobre'),
-                'trimestre':       prom.get('trimestre'),
+                'trimestres':      prom.get('trimestres', {}),
             })
 
         return Response(data)
@@ -592,9 +595,9 @@ class NotasHistoricoView(APIView):
 
     Devuelve notas acumuladas hasta mes_hasta con detección de valores
     modificados post-carga (valor original desde historial_notas).
-    Permiso: Profesor dueño de la asignación.
+    Permiso: Profesor dueño de la asignación, o Director (cualquier asignación).
     """
-    permission_classes = [IsAuthenticated, IsProfesor]
+    permission_classes = [IsAuthenticated, IsDirectorOrProfesor]
 
     def get(self, request):
         try:
@@ -605,15 +608,15 @@ class NotasHistoricoView(APIView):
         except (ValueError, TypeError):
             return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        es_director = getattr(request.user.tipo_usuario, 'nombre', '') == 'Director'
         try:
-            pc = ProfesorCurso.objects.select_related('materia', 'curso').get(
-                pk=pc_id, profesor=request.user
-            )
+            qs = ProfesorCurso.objects.select_related('materia', 'curso', 'profesor')
+            pc = qs.get(pk=pc_id) if es_director else qs.get(pk=pc_id, profesor=request.user)
         except ProfesorCurso.DoesNotExist:
             return Response({'errores': 'Asignación no válida.'}, status=status.HTTP_400_BAD_REQUEST)
 
         gestion = timezone.localtime(timezone.now()).year
-        resultado = notas_historico(pc.materia.id, pc.curso.id, request.user.id, mes_hasta, gestion)
+        resultado = notas_historico(pc.materia.id, pc.curso.id, pc.profesor.id, mes_hasta, gestion)
         return Response({
             'ya_subidas':        True,
             'headers_por_trim':  resultado['headers_por_trim'],

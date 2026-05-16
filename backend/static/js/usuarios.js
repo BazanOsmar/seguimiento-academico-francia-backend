@@ -196,7 +196,7 @@ function renderTabla(lista) {
             <td class="td-name">${escHtml(u.first_name)}</td>
             <td>${escHtml(u.last_name)}</td>
             <td>${badgeHtml(u.rol)}</td>
-            <td>${fcmBadgeHtml(u.tiene_fcm)}</td>
+            <td class="td-muted">${u.total_ingresos ?? 0}</td>
             <td class="td-muted">${formatLastLogin(u.last_login)}</td>
         </tr>
     `).join('');
@@ -400,6 +400,8 @@ const pmCredOk         = document.getElementById('pmCredOk');
 
 let _pmUserId = null;
 let _pmData   = null;
+let _pmCitacionesPendientes = [];
+let _pmCitacionIndex = 0;
 
 const ESTADO_MAP = {
     'PENDIENTE':  { cls: 'estado--pendiente',  label: 'Pendiente'  },
@@ -410,6 +412,36 @@ const ESTADO_MAP = {
 function estadoBadgeHtml(estado) {
     const b = ESTADO_MAP[estado] || { cls: '', label: estado || '—' };
     return `<span class="estado-badge ${b.cls}">${b.label}</span>`;
+}
+
+const PM_MOTIVO_LABELS = {
+    FALTAS:      'Faltas',
+    ATRASOS:     'Atrasos',
+    CONDUCTA:    'Conducta',
+    RENDIMIENTO: 'Rendimiento',
+    DOCUMENTOS:  'Documentos',
+    REUNION:     'ReuniÃ³n',
+    OTRO:        'Otro',
+};
+
+function pmFormatFecha(iso) {
+    if (!iso) return 'â€”';
+    const raw = String(iso);
+    const d = new Date(raw + (raw.length === 10 ? 'T12:00:00' : ''));
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function pmEstadoBadgeDetalle(asistencia) {
+    const map = {
+        PENDIENTE:  { cls: 'estado-badge--pendiente',  txt: 'Pendiente' },
+        ASISTIO:    { cls: 'estado-badge--asistio',    txt: 'AsistiÃ³' },
+        NO_ASISTIO: { cls: 'estado-badge--no_asistio', txt: 'No asistiÃ³' },
+        ATRASO:     { cls: 'estado-badge--atraso',     txt: 'Atraso' },
+        ANULADA:    { cls: 'estado-badge--anulada',    txt: 'Anulada' },
+    };
+    const cfg = map[asistencia] || { cls: '', txt: asistencia || 'â€”' };
+    return `<span class="estado-badge ${cfg.cls}">${cfg.txt}</span>`;
 }
 
 function _activarEdicion() {
@@ -488,6 +520,8 @@ function _cerrarPerfil() {
     pmBox.classList.remove('pm-box--wide');
     _pmUserId = null;
     _pmData   = null;
+    _pmCitacionesPendientes = [];
+    _pmCitacionIndex = 0;
 }
 
 pmClose.addEventListener('click', _cerrarPerfil);
@@ -511,8 +545,6 @@ async function abrirPerfil(userId) {
     }
     _pmData = data;
 
-    if (data.rol === 'Profesor') pmBox.classList.add('pm-box--wide');
-
     pmContent.innerHTML = _buildPerfilHtml(data);
 
     // Botón resetear
@@ -527,6 +559,10 @@ async function abrirPerfil(userId) {
     // Botón editar
     pmContent.querySelector('.pm-btn-edit')?.addEventListener('click', _activarEdicion);
 
+    pmContent.querySelector('.pm-cit-summary-btn')?.addEventListener('click', () => {
+        _abrirPerfilCitacion(0);
+    });
+
     // Copiar credenciales en pmCredOverlay
     document.querySelectorAll('#pmCredOverlay .cred-copy').forEach(btn => {
         btn.onclick = () => {
@@ -538,10 +574,6 @@ async function abrirPerfil(userId) {
         };
     });
 
-    // Planes del profesor
-    if (data.rol === 'Profesor') {
-        _initPlanesSelectors(data.cursos || [], userId);
-    }
 }
 
 function _buildPerfilHtml(data) {
@@ -653,7 +685,21 @@ function _buildPerfilHtml(data) {
         const citTitulo = rol === 'Tutor' ? 'Últimas citaciones' : 'Últimas citaciones emitidas';
         const citHeader = rol === 'Tutor' ? 'Fecha límite' : 'Fecha envío';
 
-        if (rol !== 'Regente' && citData && citData.length > 0) {
+        if (rol === 'Tutor') {
+            _pmCitacionesPendientes = Array.isArray(citData) ? citData : [];
+            const totalPendientes = _pmCitacionesPendientes.length;
+            if (totalPendientes > 0) {
+                const label = totalPendientes === 1 ? 'citaciÃ³n pendiente' : 'citaciones pendientes';
+                sectionsHtml += `
+            <div class="pm-section">
+                <p class="pm-section-title">Citaciones pendientes</p>
+                <button class="pm-cit-summary-btn" type="button">
+                    <span>Con <strong>${totalPendientes}</strong> ${label}</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+            </div>`;
+            }
+        } else if (rol !== 'Regente' && citData && citData.length > 0) {
             sectionsHtml += `
             <div class="pm-section">
                 <p class="pm-section-title">${citTitulo}</p>
@@ -688,7 +734,7 @@ function _buildPerfilHtml(data) {
         </div>`;
     }
 
-    // ── Profesor — layout dos columnas ───────────────────────────
+    // ── Profesor — layout simple (mismo que Tutor) ───────────────
     const cursosHtml = data.cursos && data.cursos.length > 0
         ? `<div class="pm-cursos-chips">${data.cursos.map(c =>
             `<span class="pm-curso-chip">
@@ -698,29 +744,98 @@ function _buildPerfilHtml(data) {
             </span>`).join('')}</div>`
         : '<p style="color:var(--text-muted);font-size:.82rem;">Sin cursos asignados.</p>';
 
-    const mesesOpts = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-        .map((m, i) => `<option value="${i+1}">${m}</option>`).join('');
+    const profesorSections = `
+        <div class="pm-section">
+            <p class="pm-section-title">Cursos asignados</p>
+            ${cursosHtml}
+        </div>`;
 
-    return `<div class="pm-wide-layout">
-        <div class="pm-card-col">${cardHtml}</div>
-        <div class="pm-col-right">
-            <div class="pm-section">
-                <p class="pm-section-title">Cursos asignados</p>
-                ${cursosHtml}
-            </div>
-            <div class="pm-section">
-                <p class="pm-section-title">Planes de Trabajo</p>
-                <div class="pm-planes-filters">
-                    <select class="pm-mes-sel" id="pmPlanesSelect">${mesesOpts}</select>
-                    <select class="pm-mes-sel" id="pmCursoSelect"></select>
-                    <div id="pmMateriaWrap"></div>
+    return `<div class="pm-simple-layout">
+        ${cardHtml}
+        <div class="pm-sections">${profesorSections}</div>
+    </div>`;
+}
+
+const pmCitDetalleOverlay = document.getElementById('pmCitDetalleOverlay');
+const pmCitDetalleContenido = document.getElementById('pmCitDetalleContenido');
+const pmCitDetalleClose = document.getElementById('pmCitDetalleClose');
+const pmCitDetalleNext = document.getElementById('pmCitDetalleNext');
+
+function _cerrarPerfilCitacion() {
+    pmCitDetalleOverlay?.classList.remove('visible');
+}
+
+pmCitDetalleClose?.addEventListener('click', _cerrarPerfilCitacion);
+pmCitDetalleOverlay?.addEventListener('click', e => {
+    if (e.target === pmCitDetalleOverlay) _cerrarPerfilCitacion();
+});
+pmCitDetalleNext?.addEventListener('click', () => {
+    if (_pmCitacionesPendientes.length < 2) return;
+    _abrirPerfilCitacion((_pmCitacionIndex + 1) % _pmCitacionesPendientes.length);
+});
+
+async function _abrirPerfilCitacion(index) {
+    if (!pmCitDetalleOverlay || !pmCitDetalleContenido || !_pmCitacionesPendientes.length) return;
+
+    _pmCitacionIndex = Math.max(0, Math.min(index, _pmCitacionesPendientes.length - 1));
+    const citacion = _pmCitacionesPendientes[_pmCitacionIndex];
+    pmCitDetalleContenido.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:32px 0;">Cargando...</p>';
+    pmCitDetalleNext?.classList.toggle('hidden', _pmCitacionesPendientes.length < 2);
+    pmCitDetalleOverlay.classList.add('visible');
+
+    const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${citacion.id}/`);
+    if (!ok) {
+        pmCitDetalleContenido.innerHTML = '<p style="text-align:center;color:var(--danger);padding:24px 0;">Error al cargar la citaciÃ³n.</p>';
+        return;
+    }
+
+    const estadoEnvioBadge = data.estado === 'VISTO'
+        ? `<span class="pm-cit-seen">&#10003; Visto</span>`
+        : `<span class="pm-cit-sent">Enviada</span>`;
+
+    pmCitDetalleContenido.innerHTML = `
+        <div>
+            <div class="modal-det__hero modal-det__hero--${escHtml(data.asistencia)}">
+                <p class="modal-det__nombre">${escHtml(data.estudiante_nombre)}</p>
+                <div class="modal-det__sub">
+                    <span class="badge-curso">${escHtml(data.curso)}</span>
+                    <span class="citacion-card__motivo citacion-card__motivo--${escHtml(data.motivo)}">${escHtml(PM_MOTIVO_LABELS[data.motivo] || data.motivo)}</span>
+                    ${pmEstadoBadgeDetalle(data.asistencia)}
+                    ${estadoEnvioBadge}
                 </div>
-                <div id="pmPlanesGrid">
-                    <div style="padding:10px 0;color:var(--text-muted);font-size:.76rem;">Cargando…</div>
+            </div>
+
+            <div class="modal-det__body">
+                <div class="modal-det__info-grid">
+                    <div class="modal-det__info-item">
+                        <p class="modal-det__info-label">Emitido por</p>
+                        <p class="modal-det__info-val">${escHtml(data.emitido_por_nombre || 'â€”')}</p>
+                        ${data.emitido_por_cargo ? `<p style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">${escHtml(data.emitido_por_cargo)}</p>` : ''}
+                    </div>
+                    <div class="modal-det__info-item">
+                        <p class="modal-det__info-label">Tutor registrado</p>
+                        <p class="modal-det__info-val">${data.tutor_nombre ? escHtml(data.tutor_nombre) : '<em style="color:var(--text-muted);font-weight:400;">Sin tutor</em>'}</p>
+                    </div>
+                </div>
+
+                <div class="modal-det__desc">
+                    <p class="modal-det__desc-label">DescripciÃ³n</p>
+                    <p class="modal-det__desc-text">${escHtml(data.motivo_descripcion || 'â€”')}</p>
+                </div>
+
+                <div class="modal-det__dates">
+                    <div class="modal-det__date-item">
+                        <span class="modal-det__date-label">Fecha de envÃ­o</span>
+                        <span class="modal-det__date-val">${pmFormatFecha(data.fecha_envio)}</span>
+                    </div>
+                    <div class="modal-det__date-item">
+                        <span class="modal-det__date-label">Fecha lÃ­mite</span>
+                        <span class="modal-det__date-val">${pmFormatFecha(data.fecha_limite_asistencia)}</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>`;
+    `;
 }
 
 // Detalle de plan

@@ -25,7 +25,10 @@ let _modoAnterior = false; // toggle: false = Excel actual, true = datos anterio
 let _modoHistorial     = false;
 let _modHistorialMap   = new Map();
 let _hayModHistorial   = false;
-let _mostrandoOriginal = true;
+let _mostrandoOriginal = true;    // true = nota original del mes (default), false = nota actual
+
+// ── Rol del usuario actual ────────────────────────────────────────
+let _esDirector = false;
 
 // ── Filtros de vista ──────────────────────────────────────────────
 let _dimFilter   = null;   // null = todas | 'saber'|'hacer'|'ser' = solo esa
@@ -35,10 +38,11 @@ let _currentTrim = null;   // trimestre activo para preservarlo al cambiar filtr
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('access_token');
     const user  = JSON.parse(localStorage.getItem('user') || 'null');
-    if (!token || !user || user.tipo_usuario !== 'Profesor') {
+    if (!token || !user || !['Profesor', 'Director'].includes(user.tipo_usuario)) {
         window.location.replace('/login/');
         return;
     }
+    _esDirector = user.tipo_usuario === 'Director';
 
     // Poblar metadatos
     document.getElementById('ccCurso').textContent   = _curso;
@@ -57,7 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     _initDragDrop();
     _initButtons();
 
-    if (_modoParam === 'historial' && _pcId && _mesHasta) {
+    // Director: siempre modo historial (solo lectura, sin upload).
+    if (_esDirector) {
+        _modoHistorial = true;
+        const loaderLabel = document.querySelector('#ccInitLoader .cc-init-loader__label');
+        if (loaderLabel) loaderLabel.textContent = 'Cargando notas...';
+        _cargarNotasHistorico();
+    } else if (_modoParam === 'historial' && _pcId && _mesHasta) {
         _modoHistorial = true;
         _cargarNotasHistorico();
     } else if (_pcId && _mes) {
@@ -92,14 +102,20 @@ async function _verificarEstadoNotas() {
 
 // ── Modo historial: carga notas acumuladas hasta mes_hasta ────────
 async function _cargarNotasHistorico() {
+    const _fallback = () => _esDirector ? _mostrarVistaSinNotasDirector() : _mostrarVistaUpload();
     try {
         const token = localStorage.getItem('access_token');
         const res   = await fetch(
             `/api/academics/profesor/notas-historico/?pc_id=${encodeURIComponent(_pcId)}&mes_hasta=${encodeURIComponent(_mesHasta)}`,
             { headers: { 'Authorization': `Bearer ${token}` } },
         );
-        if (!res.ok) { _mostrarVistaUpload(); return; }
+        if (!res.ok) { _fallback(); return; }
         const data = await res.json();
+
+        if (!data.headers_por_trim || !Object.keys(data.headers_por_trim).length) {
+            _fallback();
+            return;
+        }
 
         // Construir mapa de notas modificadas
         _hayModHistorial = data.hay_modificadas || false;
@@ -116,8 +132,32 @@ async function _cargarNotasHistorico() {
 
         _mostrarVistaLecturaHistorial(data.headers_por_trim);
     } catch {
-        _mostrarVistaUpload();
+        _fallback();
     }
+}
+
+function _mostrarVistaSinNotasDirector() {
+    document.getElementById('ccInitLoader').style.display = 'none';
+    document.getElementById('ccCard').style.display       = 'none';
+    document.querySelector('.cc-title').style.display     = 'none';
+    document.querySelector('.cc-meta').style.display      = 'none';
+
+    const dashboard = document.getElementById('ccDashboard');
+    dashboard.innerHTML = `
+        <div style="padding:80px 20px;text-align:center;color:var(--text-muted);">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4;margin-bottom:14px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p style="font-size:1rem;font-weight:600;color:var(--text-secondary);margin:0 0 6px;">
+                Sin notas registradas
+            </p>
+            <p style="font-size:.85rem;margin:0;">
+                Este profesor aún no ha cargado notas para el período seleccionado.
+            </p>
+        </div>`;
+    dashboard.style.display = 'block';
 }
 
 function _mostrarVistaLecturaHistorial(headersPorTrim) {
@@ -139,6 +179,7 @@ function _mostrarVistaLecturaHistorial(headersPorTrim) {
     dashboard.innerHTML     = _renderSuccessDashboard(r, null, true);
     dashboard.style.display = 'block';
     _initTableScrollSync();
+    _renderBotonEliminarSiDirector(parseInt(_mesHasta || _mes, 10));
 }
 
 function _mostrarVistaLectura(headersPorTrim) {
@@ -167,6 +208,9 @@ function _mostrarVistaUpload() {
     document.getElementById('ccInitLoader').style.display = 'none';
     document.getElementById('ccCard').style.display       = 'block';
     document.getElementById('ccDashboard').style.display  = 'none';
+    document.querySelector('.cc-back-row').style.display = '';
+    document.querySelector('.cc-title').style.display    = '';
+    document.querySelector('.cc-meta').style.display     = '';
 }
 
 // ── Drag & Drop ───────────────────────────────────────────────────
@@ -761,12 +805,13 @@ function _toggleModoAnterior() {
     _initTableScrollSync();
 }
 
-function _verValorActualHistorial() {
-    _mostrandoOriginal = false;
+function _toggleVistaHistorial() {
+    _mostrandoOriginal = !_mostrandoOriginal;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
     dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, true);
     _initTableScrollSync();
+    _renderBotonEliminarSiDirector(parseInt(_mesHasta || _mes, 10));
 }
 
 function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
@@ -1029,16 +1074,29 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                    </svg>
                    Notas subidas
                </span>
-               ${_modoHistorial && _hayModHistorial && _mostrandoOriginal ? `
-               <button class="cc-success-tool" type="button" onclick="_verValorActualHistorial()"
+               ${_modoHistorial && _hayModHistorial ? (() => {
+                   const mesesNombre = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                   const mesNum = parseInt(_mesHasta || _mes, 10);
+                   const mesLbl = (mesNum >= 1 && mesNum <= 12) ? mesesNombre[mesNum] : 'el mes';
+                   const textoBtn  = _mostrandoOriginal
+                       ? 'Ver nota actual'
+                       : `Ver nota de ${mesLbl}`;
+                   // ↑ Si _mostrandoOriginal=true (default → nota original del mes con rojo),
+                   //   el botón ofrece pasar a la nota actual.
+                   //   Si _mostrandoOriginal=false (estás viendo la nota actual), el botón
+                   //   ofrece volver a la nota original del mes.
+                   return `
+               <button class="cc-success-tool" type="button" onclick="_toggleVistaHistorial()"
                    style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                         stroke-linecap="round" stroke-linejoin="round">
                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                        <circle cx="12" cy="12" r="3"/>
                    </svg>
-                   Ver notas con valor actual
-               </button>` : ''}
+                   ${textoBtn}
+               </button>`;
+               })() : ''}
                <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
                    ${trimTabsHtml}
                </div>
@@ -1339,5 +1397,120 @@ async function _confirmarPlanilla() {
         showToast('Error de conexión al subir las notas.', 'error');
     } finally {
         _confirmandoEnCurso = false;
+    }
+}
+
+
+// ── Director: botón "Eliminar notas del mes" ─────────────────────────
+function _renderBotonEliminarSiDirector(mesObjetivo) {
+    if (!_esDirector) return;
+    if (!_pcId)        return;
+
+    // Solo aparece si el mes mostrado es el mes actual.
+    const mesActual = new Date().getMonth() + 1;
+    if (Number(mesObjetivo) !== mesActual) return;
+
+    const head = document.querySelector('#ccDashboard .cc-success-head');
+    if (!head) return;
+
+    // Re-render: quitar botón previo si existe
+    head.querySelector('#btnDnEliminar')?.remove();
+
+    // Layout: título a la izquierda, botón a la derecha
+    head.style.display        = 'flex';
+    head.style.alignItems     = 'center';
+    head.style.justifyContent = 'space-between';
+    head.style.gap            = '16px';
+    head.style.flexWrap       = 'wrap';
+
+    const btn = document.createElement('button');
+    btn.id    = 'btnDnEliminar';
+    btn.title = 'Eliminar la carga de notas de este mes.';
+    btn.style.cssText = `
+        background:#ef4444;
+        color:#fff;
+        border:none;
+        border-radius:8px;
+        padding:10px 18px;
+        font-size:.88rem;
+        font-weight:600;
+        cursor:pointer;
+        display:inline-flex;align-items:center;gap:8px;
+        transition:filter .15s, box-shadow .15s;
+        box-shadow:0 2px 10px rgba(239,68,68,.35);
+        flex-shrink:0;
+    `;
+    btn.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+        Eliminar notas del mes`;
+    btn.addEventListener('mouseenter', () => { btn.style.filter = 'brightness(1.07)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.filter = 'none'; });
+    btn.addEventListener('click',      () => _confirmarEliminarNotasMes(mesObjetivo));
+
+    head.appendChild(btn);
+}
+
+function _confirmarEliminarNotasMes(mes) {
+    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const mesNombre = meses[mes] || mes;
+    const msg =
+        `¿Eliminar las notas que el profesor cargó en ${mesNombre}?\n\n` +
+        `• Las notas NUEVAS de este mes se borrarán.\n` +
+        `• Las correcciones se revertirán al valor anterior.\n` +
+        `• Esta acción no se puede deshacer.`;
+    if (!window.confirm(msg)) return;
+    _ejecutarEliminarNotasMes(mes);
+}
+
+async function _ejecutarEliminarNotasMes(mes) {
+    const btn = document.getElementById('btnDnEliminar');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Eliminando…'; }
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/academics/director/eliminar-notas-mes/', {
+            method:  'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type':  'application/json',
+            },
+            body: JSON.stringify({
+                profesor_id: undefined, // se resuelve en backend a partir del pc_id
+                mes:         mes,
+                curso_id:    undefined,
+                materia_id:  undefined,
+                pc_id:       _pcId,
+            }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            alert(data.errores || `No se pudo eliminar (HTTP ${res.status}).`);
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = 'Eliminar notas del mes'; }
+            return;
+        }
+
+        const data = await res.json();
+        const resumen =
+            `Eliminación completada:\n` +
+            `• Notas nuevas borradas: ${data.detalle_notas_borrados ?? 0}\n` +
+            `• Notas revertidas: ${data.detalle_notas_revertidos ?? 0}\n` +
+            `• Historiales borrados: ${data.historial_borrados ?? 0}\n` +
+            `• Snapshots mensuales: ${data.notas_mensuales ?? 0}\n` +
+            `• Predicciones (KMeans): ${data.predicciones ?? 0}\n` +
+            `• Predicciones (árbol): ${data.predicciones_arbol ?? 0}`;
+        alert(resumen);
+        window.location.reload();
+    } catch (err) {
+        console.error(err);
+        alert('Error de conexión al eliminar.');
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = 'Eliminar notas del mes'; }
     }
 }

@@ -1561,6 +1561,46 @@
         .spinner-inline { display: flex; align-items: center; justify-content: center; padding: 40px; }
         .spinner-inline::after { content: ''; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .ac-loading-spinner {
+            width: 44px; height: 44px;
+            border: 3.5px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            margin: 0 auto;
+            animation: spin .75s linear infinite;
+        }
+
+        /* Selects del modal "Descargar notas" + scrollbar fino */
+        .dn-select {
+            width: 100%;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: .88rem;
+            outline: none;
+            cursor: pointer;
+            transition: border-color .15s, box-shadow .15s;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .dn-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+        .dn-select option { background: var(--bg-card); color: var(--text-primary); }
+        .dn-select::-webkit-scrollbar { width: 6px; }
+        .dn-select::-webkit-scrollbar-track { background: transparent; }
+        .dn-select::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .dn-select::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* Scrollbar fino para el modal-box si el contenido excede */
+        .modal-overlay .modal-box {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .modal-overlay .modal-box::-webkit-scrollbar { width: 6px; }
+        .modal-overlay .modal-box::-webkit-scrollbar-track { background: transparent; }
+        .modal-overlay .modal-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .modal-overlay .modal-box::-webkit-scrollbar-thumb:hover { background: var(--accent); }
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); font-size: 0.875rem; gap: 8px; }
         .empty-state svg { opacity: .35; margin-bottom: 6px; }
 

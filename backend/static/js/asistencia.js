@@ -20,6 +20,7 @@ let _globalData        = null;  // datos globales cargados al inicio/reset
 let _cursosData        = [];    // lista de cursos (para resumen día)
 let _resumenDiaAbierto = false;
 let _resumenFecha      = null;  // fecha activa en resumen día (YYYY-MM-DD)
+let _resumenCursosMes  = null;  // 'YYYY-MM' — mes activo en la tabla "Asistencia por Curso"
 
 // ── Referencias DOM ───────────────────────────────────────────────
 const selectCurso    = document.getElementById('selectCurso');
@@ -654,23 +655,107 @@ function _cardsHTML(items, keyNombre) {
     return items.map(i => _renderCard(i[keyNombre], i.porcentaje, i, i._tier)).join('');
 }
 
-async function loadCursosCards() {
-    const mes = _getMes();
-    tableContainer.innerHTML = '<div style="padding:8px 0"><span class="resumen-cards-title">Cargando...</span></div>';
-    const { ok, data } = await fetchAPI(`/api/attendance/resumen-cursos/?mes=${mes}`);
-    if (!ok || !data?.cursos?.length) {
-        _showNoData('No hay registros de asistencia.');
-        return;
+function _hoyMes() {
+    const h = new Date();
+    return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function _mesPrev(mesStr) {
+    const [y, m] = mesStr.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function _mesNext(mesStr) {
+    const [y, m] = mesStr.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function _renderResumenCursosMesNav(mes) {
+    const [y, m] = mes.split('-').map(Number);
+    const label = `${_MESES_JS[m - 1].toLowerCase()} de ${y}`;
+    const esActual = mes >= _hoyMes();
+    return `
+        <div class="cit-mes-nav" id="resumenCursosMesNav">
+            <button class="cit-mes-nav__btn" id="resumenCursosMesPrev" aria-label="Mes anterior">&#8249;</button>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span class="cit-mes-nav__label">${label}</span>
+            <button class="cit-mes-nav__btn" id="resumenCursosMesNext" aria-label="Mes siguiente" ${esActual ? 'disabled' : ''}>&#8250;</button>
+        </div>`;
+}
+
+function _tablaResumenCursosHTML(cursos) {
+    if (!cursos.length) {
+        return '<div class="empty-state" style="padding:24px 0"><div class="empty-state__title">Sin registros</div><div class="empty-state__sub">No hay datos en el mes seleccionado.</div></div>';
     }
-    const sufijo = data.es_mes_anterior ? ' <span style="color:var(--text-muted);font-weight:400">· mes anterior</span>' : '';
+    const filas = cursos.map(c => `
+        <tr>
+            <td class="rc-tbl__curso">${c.nombre}</td>
+            <td class="rc-tbl__num rc-tbl__num--ok">${c.presente}</td>
+            <td class="rc-tbl__num rc-tbl__num--warn">${c.atraso}</td>
+            <td class="rc-tbl__num rc-tbl__num--bad">${c.falta}</td>
+        </tr>`).join('');
+    return `
+        <div class="rc-tbl-wrap">
+            <table class="rc-tbl">
+                <thead>
+                    <tr>
+                        <th>Curso</th>
+                        <th>Nro Asistencias</th>
+                        <th>Nro Atrasos</th>
+                        <th>Nro Faltas</th>
+                    </tr>
+                </thead>
+                <tbody>${filas}</tbody>
+            </table>
+        </div>`;
+}
+
+async function loadCursosCards() {
+    if (!_resumenCursosMes) _resumenCursosMes = _hoyMes();
+    const mes = _resumenCursosMes;
+
     tableContainer.innerHTML = `
         <div class="resumen-cards-header">
-            <span class="resumen-cards-title">Asistencia por Curso${sufijo}</span>
-            <span class="resumen-cards-meta">${_periodoLabel(data.mes)}</span>
+            <span class="resumen-cards-title">Asistencia por Curso</span>
+            ${_renderResumenCursosMesNav(mes)}
         </div>
-        <div class="resumen-cards-grid">${_cardsHTML(data.cursos, 'nombre')}</div>`;
+        <div style="padding:8px 0;color:var(--text-muted);font-size:.85rem;">Cargando…</div>`;
+    _wireResumenCursosMesNav();
+
+    const { ok, data } = await fetchAPI(`/api/attendance/resumen-cursos/?mes=${mes}`);
+    if (!ok) {
+        _showNoData('Error al cargar los datos.');
+        return;
+    }
+    const cursos = (data?.cursos || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    tableContainer.innerHTML = `
+        <div class="resumen-cards-header">
+            <span class="resumen-cards-title">Asistencia por Curso</span>
+            ${_renderResumenCursosMesNav(mes)}
+        </div>
+        ${_tablaResumenCursosHTML(cursos)}`;
+    _wireResumenCursosMesNav();
     recordHeader.style.display = 'none';
     _allRows = [];
+}
+
+function _wireResumenCursosMesNav() {
+    const prev = document.getElementById('resumenCursosMesPrev');
+    const next = document.getElementById('resumenCursosMesNext');
+    if (prev) prev.onclick = () => { _resumenCursosMes = _mesPrev(_resumenCursosMes); loadCursosCards(); };
+    if (next) next.onclick = () => {
+        if (_resumenCursosMes >= _hoyMes()) return;
+        _resumenCursosMes = _mesNext(_resumenCursosMes);
+        loadCursosCards();
+    };
 }
 
 async function loadEstudiantesCards() {

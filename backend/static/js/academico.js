@@ -2796,7 +2796,15 @@ function _pnChipClick(profIdx, cursoIdx) {
 }
 
 function _pnNavegar(pcId, profesor, curso, materia) {
-    window.location.href = `/director/notas-curso/?pc_id=${pcId}&mes=${_pnMes}`;
+    const params = new URLSearchParams({
+        pc_id: pcId,
+        label: `${materia} — ${curso}`,
+        materia: materia,
+        curso: curso,
+        mes_hasta: String(_pnMes),
+        modo: 'historial',
+    });
+    window.location.href = `/profesor/calificaciones/?${params.toString()}`;
 }
 
 // ── Modal picker de materia ───────────────────────────────────────
@@ -2828,3 +2836,293 @@ function _pnAbrirPicker(pcIds, profNombre, cursoNombre) {
 function _pnCerrarPicker() {
     document.getElementById('pnPickerOverlay').classList.remove('visible');
 }
+
+// ── Descargas: Notas (modal) / Centralizador (directo) ──────────
+(function _initDescargasNotasCentralizador() {
+    const modalNotas       = document.getElementById('modalDescargarNotas');
+    const btnNotas         = document.getElementById('btnDescargarNotas');
+    const btnCloseNotas    = document.getElementById('btnCloseDescargarNotas');
+    const btnCentralizador = document.getElementById('btnDescargarCentralizador');
+
+    const selDnMes        = document.getElementById('selDnMes');
+    const selDnCurso      = document.getElementById('selDnCurso');
+    const selDnProfesor   = document.getElementById('selDnProfesor');
+    const errDnMsg        = document.getElementById('errorDnMsg');
+    const btnConfirmarDn  = document.getElementById('btnConfirmarDescargarNotas');
+
+    let _dnMesesCargados      = false;
+    let _dnProfesoresCargados = false;
+
+    async function _cargarMesesDescargaNotas() {
+        if (_dnMesesCargados) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch('/api/academics/director/meses-con-notas/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data  = await res.json();
+            const meses = data.meses || [];
+            const opcionActualizadas = '<option value="actualizadas">Notas actualizadas</option>';
+            if (!meses.length) {
+                selDnMes.innerHTML = opcionActualizadas;
+            } else {
+                selDnMes.innerHTML =
+                    meses.map(m => `<option value="${m.mes}">${m.nombre}</option>`).join('') +
+                    opcionActualizadas;
+            }
+            _dnMesesCargados = true;
+            btnConfirmarDn.disabled = false;
+        } catch (err) {
+            console.error(err);
+            selDnMes.innerHTML = '<option value="">Error al cargar meses</option>';
+            btnConfirmarDn.disabled = true;
+        }
+    }
+
+    async function _cargarProfesoresDescargaNotas() {
+        if (_dnProfesoresCargados) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch('/api/academics/director/profesores-con-notas/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data  = await res.json();
+            const lista = data.profesores || [];
+            if (!lista.length) {
+                selDnProfesor.innerHTML = '<option value="">Sin profesores con notas</option>';
+                btnConfirmarDn.disabled = true;
+                return;
+            }
+            selDnProfesor.innerHTML = lista
+                .map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            _dnProfesoresCargados = true;
+            // cargar cursos del primer profesor automáticamente
+            await _cargarCursosDelProfesor(selDnProfesor.value);
+        } catch (err) {
+            console.error(err);
+            selDnProfesor.innerHTML = '<option value="">Error al cargar</option>';
+        }
+    }
+
+    async function _cargarCursosDelProfesor(profesorId) {
+        selDnCurso.innerHTML = '<option value="">Cargando…</option>';
+        if (!profesorId) {
+            selDnCurso.innerHTML = '<option value="">Todos sus cursos</option>';
+            return;
+        }
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch(`/api/academics/director/profesores/${profesorId}/asignaciones/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const asigs = data.asignaciones || [];
+            const vistos = new Set();
+            const cursos = [];
+            asigs.forEach(a => {
+                if (!vistos.has(a.curso_id)) {
+                    vistos.add(a.curso_id);
+                    cursos.push({ id: a.curso_id, nombre: a.curso_nombre });
+                }
+            });
+            cursos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            selDnCurso.innerHTML =
+                '<option value="">Todos sus cursos</option>' +
+                cursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        } catch (err) {
+            console.error(err);
+            selDnCurso.innerHTML = '<option value="">Todos sus cursos</option>';
+        }
+    }
+
+    selDnProfesor?.addEventListener('change', () => {
+        _cargarCursosDelProfesor(selDnProfesor.value);
+    });
+
+    btnNotas?.addEventListener('click', () => {
+        errDnMsg.style.display = 'none';
+        modalNotas?.classList.add('visible');
+        _cargarMesesDescargaNotas();
+        _cargarProfesoresDescargaNotas();
+    });
+    btnCloseNotas?.addEventListener('click', () => modalNotas?.classList.remove('visible'));
+    modalNotas?.addEventListener('click', e => {
+        if (e.target === modalNotas) modalNotas.classList.remove('visible');
+    });
+
+    btnConfirmarDn?.addEventListener('click', async () => {
+        const mes         = selDnMes.value;          // número 1-12 ó "actualizadas"
+        const cursoId     = selDnCurso.value;
+        const profesorId  = selDnProfesor.value;
+        const cursoLabel  = cursoId
+            ? (selDnCurso.options[selDnCurso.selectedIndex]?.text || cursoId)
+            : 'todos los cursos';
+        const profesorLabel = profesorId
+            ? (selDnProfesor.options[selDnProfesor.selectedIndex]?.text || profesorId)
+            : 'todos los profesores';
+        const mesLabel = selDnMes.options[selDnMes.selectedIndex]?.text || mes;
+
+        if (!mes) {
+            errDnMsg.textContent  = 'Selecciona un mes.';
+            errDnMsg.style.display = '';
+            return;
+        }
+        if (!profesorId) {
+            errDnMsg.textContent  = 'Selecciona un profesor.';
+            errDnMsg.style.display = '';
+            return;
+        }
+        errDnMsg.style.display = 'none';
+
+        modalNotas?.classList.remove('visible');
+        _mostrarLoading(
+            'Preparando descarga…',
+            `Generando ${mesLabel.toLowerCase()} · ${profesorLabel} · ${cursoLabel}.`,
+        );
+
+        try {
+            // TODO: endpoint real. mes="actualizadas" => última nota registrada por profesor.
+            const params = new URLSearchParams({ mes });
+            if (cursoId)    params.set('curso_id',    cursoId);
+            if (profesorId) params.set('profesor_id', profesorId);
+            const token = localStorage.getItem('access_token');
+            const res = await fetch(
+                `/api/academics/director/notas-export/?${params.toString()}`,
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+
+            _ocultarLoading();
+
+            const reabrirSeleccion = () => modalNotas?.classList.add('visible');
+
+            if (res.status === 404 || res.status === 204) {
+                _mostrarInfo(
+                    'Sin notas para los filtros seleccionados',
+                    `No hay notas registradas para ${mesLabel.toLowerCase()} · ${profesorLabel} · ${cursoLabel}.`,
+                    'warning',
+                    reabrirSeleccion,
+                );
+                return;
+            }
+            if (!res.ok) {
+                _mostrarInfo(
+                    'No se pudo descargar',
+                    'Ocurrió un error al generar el archivo. Intenta nuevamente.',
+                    'error',
+                    reabrirSeleccion,
+                );
+                return;
+            }
+
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            const sufijo = [
+                mes,
+                profesorId ? `prof${profesorId}` : null,
+                cursoId    ? `curso${cursoId}`   : null,
+            ].filter(Boolean).join('_');
+            a.download = `notas_${sufijo}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            _ocultarLoading();
+            _mostrarInfo(
+                'No se pudo descargar',
+                'Ocurrió un error al generar el archivo. Intenta nuevamente.',
+                'error',
+                () => modalNotas?.classList.add('visible'),
+            );
+        }
+    });
+
+    const modalLoading = document.getElementById('modalLoadingGeneric');
+    const loadingTitle = document.getElementById('modalLoadingTitle');
+    const loadingSub   = document.getElementById('modalLoadingSub');
+
+    function _mostrarLoading(titulo, subtitulo) {
+        if (loadingTitle) loadingTitle.textContent = titulo;
+        if (loadingSub)   loadingSub.textContent   = subtitulo;
+        modalLoading?.classList.add('visible');
+    }
+    function _ocultarLoading() {
+        modalLoading?.classList.remove('visible');
+    }
+
+    // ── Modal Info (avisos / sin datos / errores) ─────────────────────
+    const modalInfo      = document.getElementById('modalInfoGeneric');
+    const modalInfoTitle = document.getElementById('modalInfoTitle');
+    const modalInfoMsg   = document.getElementById('modalInfoMsg');
+    const modalInfoIcon  = document.getElementById('modalInfoIcon');
+    const btnCloseInfo   = document.getElementById('btnCloseInfo');
+
+    const _INFO_STYLES = {
+        info:    { bg: 'rgba(96,165,250,.15)', color: '#60a5fa' },
+        warning: { bg: 'rgba(251,191,36,.15)', color: '#fbbf24' },
+        success: { bg: 'rgba(34,197,94,.15)',  color: '#22c55e' },
+        error:   { bg: 'rgba(239,68,68,.15)',  color: '#ef4444' },
+    };
+
+    let _modalInfoOnClose = null;
+
+    function _mostrarInfo(titulo, mensaje, tipo = 'info', onClose = null) {
+        if (modalInfoTitle) modalInfoTitle.textContent = titulo;
+        if (modalInfoMsg)   modalInfoMsg.textContent   = mensaje;
+        const style = _INFO_STYLES[tipo] || _INFO_STYLES.info;
+        if (modalInfoIcon) {
+            modalInfoIcon.style.background = style.bg;
+            modalInfoIcon.style.color      = style.color;
+        }
+        _modalInfoOnClose = onClose;
+        modalInfo?.classList.add('visible');
+    }
+    function _cerrarInfo() {
+        modalInfo?.classList.remove('visible');
+        const cb = _modalInfoOnClose;
+        _modalInfoOnClose = null;
+        if (typeof cb === 'function') cb();
+    }
+    btnCloseInfo?.addEventListener('click', _cerrarInfo);
+    modalInfo?.addEventListener('click', e => {
+        if (e.target === modalInfo) _cerrarInfo();
+    });
+
+    btnCentralizador?.addEventListener('click', async () => {
+        if (btnCentralizador.disabled) return;
+        btnCentralizador.disabled = true;
+        _mostrarLoading(
+            'Generando centralizador…',
+            'Estamos consolidando las notas de todos los cursos. Esto puede tomar unos segundos.'
+        );
+        try {
+            const token = localStorage.getItem('access_token');
+            const res = await fetch('/api/academics/director/centralizador/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = `centralizador_${new Date().getFullYear()}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            alert('No se pudo generar el centralizador. Intenta nuevamente.');
+            console.error(err);
+        } finally {
+            _ocultarLoading();
+            btnCentralizador.disabled = false;
+        }
+    });
+})();
+

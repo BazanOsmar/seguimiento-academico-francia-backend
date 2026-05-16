@@ -6,7 +6,7 @@ Flujo:
   2. Ejecuciones siguientes: usa el k guardado directamente.
   3. Se dispara automáticamente cuando todos los profesores cargan su planilla del mes.
 
-Función pública: ejecutar_analisis_kmeans(gestion, trimestre, mes)
+Función pública: ejecutar_analisis_kmeans(gestion, mes)
 """
 
 import numpy as np
@@ -27,6 +27,9 @@ K_DEFAULT = 4
 K_MIN, K_MAX = 2, 5
 MIN_MATERIAS_CON_NOTAS = 5
 
+# Citaciones: más de este número = tasa = 1.0 (riesgo máximo)
+_MAX_CITACIONES_FIJO = 5
+
 ETIQUETAS_POR_K = {
     2: ["Rendimiento Adecuado", "Riesgo Académico"],
     3: ["Excelente", "Requiere Apoyo", "Riesgo Crítico"],
@@ -39,12 +42,25 @@ _FEATURE_COLS = [
     "saber_pct",
     "hacer_pct",
     "tasa_entrega_tareas",
-    "promedio_examenes",
+    "promedio_examenes_pct",
     "pct_asistencia",
     "pct_atrasos",
     "tendencia_norm",
     "tasa_citaciones",
 ]
+
+# Valor neutro para features sin datos (no penaliza ni premia)
+_FILLNA_NEUTRAL = {
+    "ser_pct":              0.5,
+    "saber_pct":            0.5,
+    "hacer_pct":            0.5,
+    "tasa_entrega_tareas":  0.5,
+    "promedio_examenes_pct":0.5,
+    "pct_asistencia":       0.0,
+    "pct_atrasos":          0.0,
+    "tendencia_norm":       0.0,
+    "tasa_citaciones":      0.0,
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -89,6 +105,14 @@ def _seleccionar_k_optimo(X_scaled: np.ndarray) -> int:
     return mejor_k
 
 
+def _mes_a_trimestre(mes: int) -> int:
+    if mes <= 4:
+        return 1
+    if mes <= 8:
+        return 2
+    return 3
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PASO 1: Armar el DataFrame de features
 # ─────────────────────────────────────────────────────────────────────────────
@@ -97,24 +121,44 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
     """
     Agrega datos de notas (MongoDB), asistencia y citaciones (SQL) para todos
     los estudiantes con datos en el mes indicado.
-    Excluye estudiantes con menos de MIN_MATERIAS_CON_NOTAS materias cargadas.
+
+    Fixes vs versión anterior:
+    - ser/saber/hacer usan conteo de materias con datos reales (no total),
+      imputan 0.5 cuando la dimensión es null en todas las materias.
+    - promedio_examenes normalizado a [0,1], imputa 0.5 cuando sin datos.
+    - tasa_entrega_tareas imputa 0.5 cuando no hay tareas (hacer null).
+    - tasa_citaciones usa cap fijo (_MAX_CITACIONES_FIJO) en vez de max relativo.
+    - tendencia_norm no cruza fronteras de trimestre (vale 0 en el primer mes).
     """
     db = _get_db()
 
-    # ── Mongo: promedio de todas las materias del mes por estudiante ──────────
+    # ── Mongo: promedios del mes por estudiante ───────────────────────────────
+    _null_count = lambda campo: {
+        '$sum': {'$cond': {'if': {'$gt': [f'${campo}', None]}, 'then': 1, 'else': 0}}
+    }
+
     pipeline = [
         {'$match': {'gestion': gestion, 'mes': mes}},
         {'$group': {
-            '_id':                '$estudiante_id',
-            'curso_id':           {'$first': '$curso_id'},
-            'ser_sum':            {'$sum': '$ser'},
-            'saber_sum':          {'$sum': '$saber'},
-            'hacer_sum':          {'$sum': '$hacer'},
-            'nota_mensual_sum':   {'$sum': '$nota_mensual'},
-            'tareas_entregadas':  {'$sum': '$cantidad_tareas_entregadas'},
-            'tareas_total':       {'$sum': '$cantidad_tareas_total'},
-            'examenes_sum':       {'$sum': '$promedio_examenes'},
-            'count_materias':     {'$sum': 1},
+            '_id':      '$estudiante_id',
+            'curso_id': {'$first': '$curso_id'},
+
+            'ser_sum':   {'$sum': '$ser'},
+            'saber_sum': {'$sum': '$saber'},
+            'hacer_sum': {'$sum': '$hacer'},
+
+            'ser_count':   _null_count('ser'),
+            'saber_count': _null_count('saber'),
+            'hacer_count': _null_count('hacer'),
+
+            'nota_mensual_sum':  {'$sum': '$nota_mensual'},
+            'tareas_entregadas': {'$sum': '$cantidad_tareas_entregadas'},
+            'tareas_total':      {'$sum': '$cantidad_tareas_total'},
+
+            'examenes_sum':   {'$sum': '$promedio_examenes'},
+            'examenes_count': _null_count('promedio_examenes'),
+
+            'count_materias': {'$sum': 1},
         }},
         {'$match': {'count_materias': {'$gte': MIN_MATERIAS_CON_NOTAS}}},
     ]
@@ -125,17 +169,33 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
 
     registros = []
     for r in resultados:
-        n = r['count_materias']
-        tareas_total = r['tareas_total'] or 0
+        n           = r['count_materias']
+        sc          = r['ser_count']
+        sabc        = r['saber_count']
+        hc          = r['hacer_count']
+        ec          = r['examenes_count']
+        tareas_tot  = r['tareas_total'] or 0
+
+        # Dimensiones: porcentaje sobre el máximo, solo materias con datos reales
+        ser_pct   = r['ser_sum']   / (10 * sc)   if sc   > 0 else 0.5
+        saber_pct = r['saber_sum'] / (45 * sabc) if sabc > 0 else 0.5
+        hacer_pct = r['hacer_sum'] / (40 * hc)   if hc   > 0 else 0.5
+
+        # Tasa de entrega: 0.5 neutral cuando no hay datos de hacer
+        tasa_entrega = r['tareas_entregadas'] / tareas_tot if tareas_tot > 0 else 0.5
+
+        # Promedio exámenes normalizado a [0,1]; 0.5 cuando sin datos de saber
+        prom_examenes_pct = (r['examenes_sum'] / ec) / 45 if ec > 0 else 0.5
+
         registros.append({
-            'estudiante_id':       r['_id'],
-            'curso_id':            r['curso_id'],
-            'ser_pct':             r['ser_sum'] / (10 * n),
-            'saber_pct':           r['saber_sum'] / (45 * n),
-            'hacer_pct':           r['hacer_sum'] / (40 * n),
-            'tasa_entrega_tareas': r['tareas_entregadas'] / tareas_total if tareas_total > 0 else 0.0,
-            'promedio_examenes':   r['examenes_sum'] / n,
-            'nota_mensual_actual': r['nota_mensual_sum'] / n,
+            'estudiante_id':        r['_id'],
+            'curso_id':             r['curso_id'],
+            'ser_pct':              round(ser_pct,           4),
+            'saber_pct':            round(saber_pct,         4),
+            'hacer_pct':            round(hacer_pct,         4),
+            'tasa_entrega_tareas':  round(tasa_entrega,      4),
+            'promedio_examenes_pct':round(prom_examenes_pct, 4),
+            'nota_mensual_actual':  r['nota_mensual_sum'] / n,
         })
 
     df = pd.DataFrame(registros)
@@ -178,11 +238,11 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
         df = df.merge(df_asist, on='estudiante_id', how='left')
     else:
         df['pct_asistencia'] = 0.0
-        df['pct_atrasos'] = 0.0
+        df['pct_atrasos']    = 0.0
 
     df[['pct_asistencia', 'pct_atrasos']] = df[['pct_asistencia', 'pct_atrasos']].fillna(0.0)
 
-    # ── SQL: citaciones del mes ───────────────────────────────────────────────
+    # ── SQL: citaciones del mes — cap fijo para comparabilidad entre meses ────
     from backend.apps.discipline.models import Citacion
 
     citaciones_raw = list(
@@ -193,13 +253,20 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
         .annotate(total=Count('id'))
     )
 
-    max_citaciones = max((r['total'] for r in citaciones_raw), default=1) or 1
-    citaciones_map = {r['estudiante_id']: r['total'] / max_citaciones for r in citaciones_raw}
-
+    citaciones_map = {
+        r['estudiante_id']: min(r['total'] / _MAX_CITACIONES_FIJO, 1.0)
+        for r in citaciones_raw
+    }
     df['tasa_citaciones'] = df['estudiante_id'].map(citaciones_map).fillna(0.0)
 
-    # ── Tendencia normalizada con tanh ────────────────────────────────────────
-    mes_anterior = mes - 1 if mes > 1 else None
+    # ── Tendencia normalizada — sin cruzar fronteras de trimestre ─────────────
+    trimestre_actual  = _mes_a_trimestre(mes)
+    mes_anterior      = mes - 1 if mes > 1 else None
+
+    # No comparar contra mes de otro trimestre
+    if mes_anterior and _mes_a_trimestre(mes_anterior) != trimestre_actual:
+        mes_anterior = None
+
     if mes_anterior:
         pipeline_ant = [
             {'$match': {'gestion': gestion, 'mes': mes_anterior}},
@@ -213,7 +280,7 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
             r['_id']: r['nota_mensual_sum'] / r['count_materias']
             for r in db['notas_mensuales'].aggregate(pipeline_ant)
         }
-        anterior = df['estudiante_id'].map(ant_map).fillna(df['nota_mensual_actual'])
+        anterior      = df['estudiante_id'].map(ant_map).fillna(df['nota_mensual_actual'])
         raw_tendencia = df['nota_mensual_actual'] - anterior
     else:
         raw_tendencia = pd.Series(0.0, index=df.index)
@@ -229,11 +296,14 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
 
 def ejecutar_kmeans(df: pd.DataFrame, gestion: int) -> pd.DataFrame:
     """
-    Normaliza las features, determina k (calibra en primera ejecución del año
-    o usa el k guardado), corre K-Means y asigna etiqueta semántica a cada cluster.
+    Normaliza las features, determina k, corre K-Means y asigna etiqueta semántica.
+    Imputación por feature: 0.5 para dimensiones/examenes/tareas sin datos, 0 para el resto.
     """
-    X = df[_FEATURE_COLS].fillna(0).values
-    X_scaled = StandardScaler().fit_transform(X)
+    X = df[_FEATURE_COLS].copy()
+    for col, val in _FILLNA_NEUTRAL.items():
+        if col in X.columns:
+            X[col] = X[col].fillna(val)
+    X_scaled = StandardScaler().fit_transform(X.values)
 
     k = _obtener_k_configurado(gestion)
     if k is None:
@@ -248,7 +318,7 @@ def ejecutar_kmeans(df: pd.DataFrame, gestion: int) -> pd.DataFrame:
     df['pca_y'] = np.round(pca_coords[:, 1], 4)
 
     etiquetas = ETIQUETAS_POR_K[k]
-    medias = df.groupby('cluster_num')['nota_mensual_actual'].mean().sort_values(ascending=False)
+    medias    = df.groupby('cluster_num')['nota_mensual_actual'].mean().sort_values(ascending=False)
     label_map = dict(zip(medias.index, etiquetas))
     df['cluster'] = df['cluster_num'].map(label_map)
 
@@ -274,21 +344,21 @@ def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: in
             'mes':           mes,
         }
         ops.append(UpdateOne(filtro, {'$set': {
-            'curso_id':                               int(row['curso_id']),
-            'fecha_analisis':                         fecha_analisis,
-            'cluster':                                row['cluster'],
-            'features_usadas.ser_pct':                float(row['ser_pct']),
-            'features_usadas.saber_pct':              float(row['saber_pct']),
-            'features_usadas.hacer_pct':              float(row['hacer_pct']),
-            'features_usadas.tasa_entrega_tareas':    float(row['tasa_entrega_tareas']),
-            'features_usadas.promedio_examenes':      float(row['promedio_examenes']),
-            'features_usadas.pct_asistencia':         float(row['pct_asistencia']),
-            'features_usadas.pct_atrasos':            float(row['pct_atrasos']),
-            'features_usadas.tendencia_norm':         float(row['tendencia_norm']),
-            'features_usadas.tasa_citaciones':        float(row['tasa_citaciones']),
-            'nota_mensual':                           float(row['nota_mensual_actual']),
-            'pca_x':                                  float(row['pca_x']),
-            'pca_y':                                  float(row['pca_y']),
+            'curso_id':                                  int(row['curso_id']),
+            'fecha_analisis':                            fecha_analisis,
+            'cluster':                                   row['cluster'],
+            'features_usadas.ser_pct':                   float(row['ser_pct']),
+            'features_usadas.saber_pct':                 float(row['saber_pct']),
+            'features_usadas.hacer_pct':                 float(row['hacer_pct']),
+            'features_usadas.tasa_entrega_tareas':       float(row['tasa_entrega_tareas']),
+            'features_usadas.promedio_examenes_pct':     float(row['promedio_examenes_pct']),
+            'features_usadas.pct_asistencia':            float(row['pct_asistencia']),
+            'features_usadas.pct_atrasos':               float(row['pct_atrasos']),
+            'features_usadas.tendencia_norm':            float(row['tendencia_norm']),
+            'features_usadas.tasa_citaciones':           float(row['tasa_citaciones']),
+            'nota_mensual':                              float(row['nota_mensual_actual']),
+            'pca_x':                                     float(row['pca_x']),
+            'pca_y':                                     float(row['pca_y']),
         }}, upsert=True))
 
     if ops:
@@ -298,14 +368,6 @@ def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: in
 # ─────────────────────────────────────────────────────────────────────────────
 # FUNCIÓN PRINCIPAL
 # ─────────────────────────────────────────────────────────────────────────────
-
-def _mes_a_trimestre(mes: int) -> int:
-    if mes <= 4:
-        return 1
-    if mes <= 8:
-        return 2
-    return 3
-
 
 def ejecutar_analisis_kmeans(gestion: int, mes: int) -> dict:
     """
@@ -345,11 +407,9 @@ def _notificar_director_kmeans(resultado: dict, gestion: int, mes: int):
         from backend.apps.users.models import TipoUsuario, User
 
         tipo_director = TipoUsuario.objects.get(nombre='Director')
-        directores = list(User.objects.filter(tipo_usuario=tipo_director, is_active=True))
-        clusters_str = ', '.join(
-            f'{k}: {v}' for k, v in resultado['clusters'].items()
-        )
-        descripcion = (
+        directores    = list(User.objects.filter(tipo_usuario=tipo_director, is_active=True))
+        clusters_str  = ', '.join(f'{k}: {v}' for k, v in resultado['clusters'].items())
+        descripcion   = (
             f"Analisis K-Means completado para el mes {mes} de {gestion}. "
             f"{resultado['estudiantes']} estudiantes analizados en {resultado['k']} grupos. "
             f"{clusters_str}"

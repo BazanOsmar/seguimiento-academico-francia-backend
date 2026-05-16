@@ -130,7 +130,7 @@ class ResultadosKMeansView(APIView):
                     'saber_pct':           round(features.get('saber_pct', 0) * 100, 1),
                     'hacer_pct':           round(features.get('hacer_pct', 0) * 100, 1),
                     'tasa_entrega_tareas': round(features.get('tasa_entrega_tareas', 0) * 100, 1),
-                    'promedio_examenes':   round(features.get('promedio_examenes', 0), 1),
+                    'promedio_examenes':   round(features.get('promedio_examenes_pct', 0) * 100, 1),
                     'pct_asistencia':      round(features.get('pct_asistencia', 0) * 100, 1),
                     'pct_atrasos':         round(features.get('pct_atrasos', 0) * 100, 1),
                     'tendencia_norm':      round(features.get('tendencia_norm', 0), 3),
