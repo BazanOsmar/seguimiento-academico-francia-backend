@@ -71,8 +71,8 @@ class ResumenGlobalView(APIView):
         agg = _agg_mes_global(year, month)
         es_mes_anterior = False
 
-        # Si no hay datos en el mes solicitado, retroceder al mes anterior
-        if not agg['total']:
+        # Si no se solicitó un mes explícito y no hay datos, retroceder al mes anterior.
+        if not mes_str and not agg['total']:
             prev_month = month - 1 if month > 1 else 12
             prev_year = year if month > 1 else year - 1
             agg_prev = _agg_mes_global(prev_year, prev_month)

@@ -79,17 +79,6 @@ class ResumenMensualCursoView(APIView):
         agg_actual = _agg_mes(curso_id, year, month)
         es_mes_anterior = False
 
-        # Si no hay datos este mes, retroceder al mes anterior
-        if not agg_actual['total']:
-            prev_m = month - 1 if month > 1 else 12
-            prev_y = year if month > 1 else year - 1
-            agg_prev = _agg_mes(curso_id, prev_y, prev_m)
-            if agg_prev['total']:
-                agg_actual = agg_prev
-                year, month = prev_y, prev_m
-                mes_str = f'{year}-{month:02d}'
-                es_mes_anterior = True
-
         pct_actual = _porcentaje(agg_actual)
 
         # Diferencia vs el mes anterior al que se está mostrando
