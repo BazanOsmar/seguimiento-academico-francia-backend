@@ -173,14 +173,15 @@ async function _renovarToken() {
 ----------------------------------------------------------------- */
 async function fetchAPI(url, options = {}) {
     const token = localStorage.getItem('access_token');
+    const { suppressToast = false, ...fetchOptions } = options;
 
-    const headers = options.body instanceof FormData
-        ? { ...options.headers }
-        : { 'Content-Type': 'application/json', ...options.headers };
+    const headers = fetchOptions.body instanceof FormData
+        ? { ...fetchOptions.headers }
+        : { 'Content-Type': 'application/json', ...fetchOptions.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
-        const res = await fetch(url, { ...options, headers });
+        const res = await fetch(url, { ...fetchOptions, headers });
 
         // Leer JSON si aplica
         let data = null;
@@ -195,7 +196,7 @@ async function fetchAPI(url, options = {}) {
             if (nuevoToken) {
                 // Reintentar la petición original con el nuevo token
                 const reintento = await fetch(url, {
-                    ...options,
+                    ...fetchOptions,
                     headers: { ...headers, 'Authorization': `Bearer ${nuevoToken}` },
                 });
                 let dataReintento = null;
@@ -204,7 +205,7 @@ async function fetchAPI(url, options = {}) {
                 if (reintento.ok) return { ok: true, status: reintento.status, data: dataReintento };
             }
             // Renovación fallida → logout
-            _apiToast(
+            if (!suppressToast) _apiToast(
                 'Tu sesión ha expirado. Serás redirigido al inicio de sesión.',
                 'error',
                 () => _logout()
@@ -213,13 +214,13 @@ async function fetchAPI(url, options = {}) {
         }
 
         if (res.status === 403) {
-            _apiToast('No tienes permisos para realizar esta acción.', 'warning');
+            if (!suppressToast) _apiToast('No tienes permisos para realizar esta acción.', 'warning');
             return { ok: false, status: 403, data };
         }
 
         if (res.status === 404) {
             const msg = data?.errores || data?.detail || 'El recurso solicitado no fue encontrado.';
-            _apiToast(msg, 'info');
+            if (!suppressToast) _apiToast(msg, 'info');
             return { ok: false, status: 404, data };
         }
 
@@ -227,12 +228,12 @@ async function fetchAPI(url, options = {}) {
             const msg = data?.errores || data?.detail
                 || Object.values(data || {}).flat().join(' ')
                 || 'Los datos enviados no son válidos.';
-            _apiToast(msg, 'warning');
+            if (!suppressToast) _apiToast(msg, 'warning');
             return { ok: false, status: 400, data };
         }
 
         if (res.status >= 500) {
-            _apiToast('Error interno del servidor. Por favor intenta nuevamente.', 'error');
+            if (!suppressToast) _apiToast('Error interno del servidor. Por favor intenta nuevamente.', 'error');
             return { ok: false, status: res.status, data };
         }
 
@@ -240,7 +241,7 @@ async function fetchAPI(url, options = {}) {
         if (res.status >= 400) {
             const msg = data?.errores || data?.detail
                 || 'No se pudo completar la acción. Por favor intenta nuevamente.';
-            _apiToast(msg, 'warning');
+            if (!suppressToast) _apiToast(msg, 'warning');
             return { ok: false, status: res.status, data };
         }
 
@@ -248,7 +249,7 @@ async function fetchAPI(url, options = {}) {
         return { ok: res.ok, status: res.status, data };
 
     } catch (_err) {
-        _apiToast('No se pudo conectar con el servidor. Verifica tu conexión a internet.', 'error');
+        if (!suppressToast) _apiToast('No se pudo conectar con el servidor. Verifica tu conexión a internet.', 'error');
         return { ok: false, status: 0, data: null };
     }
 }

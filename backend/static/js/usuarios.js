@@ -659,6 +659,7 @@ function _buildPerfilHtml(data) {
             sectionsHtml += `
             <div class="pm-section">
                 <p class="pm-section-title">Estudiante vinculado</p>
+                <div class="pm-est-list">
                 ${data.estudiantes.map(e => {
                     const ini  = ((e.nombre?.[0] || '') + (e.apellido_paterno?.[0] || '')).toUpperCase();
                     const curso = `${e.curso__grado} ${e.curso__paralelo}`;
@@ -678,6 +679,7 @@ function _buildPerfilHtml(data) {
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
                     </a>`;
                 }).join('')}
+                </div>
             </div>`;
         }
 
@@ -689,7 +691,7 @@ function _buildPerfilHtml(data) {
             _pmCitacionesPendientes = Array.isArray(citData) ? citData : [];
             const totalPendientes = _pmCitacionesPendientes.length;
             if (totalPendientes > 0) {
-                const label = totalPendientes === 1 ? 'citaciÃ³n pendiente' : 'citaciones pendientes';
+                const label = totalPendientes === 1 ? 'citaci\u00f3n pendiente' : 'citaciones pendientes';
                 sectionsHtml += `
             <div class="pm-section">
                 <p class="pm-section-title">Citaciones pendientes</p>
@@ -785,7 +787,7 @@ async function _abrirPerfilCitacion(index) {
 
     const { ok, data } = await fetchAPI(`/api/discipline/citaciones/${citacion.id}/`);
     if (!ok) {
-        pmCitDetalleContenido.innerHTML = '<p style="text-align:center;color:var(--danger);padding:24px 0;">Error al cargar la citaciÃ³n.</p>';
+        pmCitDetalleContenido.innerHTML = '<p style="text-align:center;color:var(--danger);padding:24px 0;">Error al cargar la citaci\u00f3n.</p>';
         return;
     }
 

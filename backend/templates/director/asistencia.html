@@ -127,12 +127,6 @@
             <h1 class="page-title">Asistencia</h1>
         </div>
         <div class="topbar-actions">
-            <button class="btn-icon" id="btnBroadcast" aria-label="Enviar comunicado">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </button>
             {% include 'director/_notif_bell.html' %}
         </div>
     </header>
@@ -141,112 +135,21 @@
     <main class="main-content">
     <div class="page-inner">
 
-        <!-- Filtros -->
-        <div class="filter-card">
-            <div class="filter-card__title">Consulta de Asistencias</div>
-            <div class="filter-bar">
-
-                <!-- Inputs -->
-                <div class="filter-bar__inputs">
-                    <div class="filter-group filter-group--lg">
-                        <label for="selectCurso">Curso</label>
-                        <select id="selectCurso" class="filter-input filter-input--lg">
-                            <option value="">— Seleccionar —</option>
-                        </select>
-                    </div>
-                    <div class="filter-group filter-group--lg" id="fechaFilterGroup">
-                        <label for="inputFecha">Fecha</label>
-                        <div class="date-field-wrap">
-                            <input type="date" id="inputFecha" class="filter-input filter-input--lg" placeholder="Fecha asistencia">
-                            <svg class="date-cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8"  y1="2" x2="8"  y2="6"/>
-                                <line x1="3"  y1="10" x2="21" y2="10"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Divisor -->
-                <div class="filter-bar__divider"></div>
-
-                <!-- Acciones -->
-                <div class="filter-bar__actions">
-                    <button class="btn-reset" id="btnReset" title="Limpiar filtros">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
-                        </svg>
-                        Limpiar
-                    </button>
-                    <button class="btn-calendario" id="btnCalendario">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/>
-                            <line x1="8"  y1="2" x2="8"  y2="6"/>
-                            <line x1="3"  y1="10" x2="21" y2="10"/>
-                        </svg>
-                        Calendario
-                    </button>
-                    <button class="btn-exportar" id="btnExportar">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="11" x2="12" y2="17"/>
-                            <polyline points="9 14 12 17 15 14"/>
-                        </svg>
-                        Exportar
-                    </button>
-                </div>
-
+        <section class="asistencia-hero">
+            <div>
+                <h2 class="asistencia-hero__title">Asistencias</h2>
+                <p class="asistencia-hero__sub">Consulta el resumen mensual, revisa registros diarios y exporta planillas por curso.</p>
+                <p class="asistencia-hero__hint">Selecciona un mes para revisar el avance general o filtra por curso y fecha para ver el detalle.</p>
             </div>
-        </div>
-
-        <!-- Tarjeta calendario (oculta por defecto) -->
-        <div class="calendario-card director-asistencia-inline-style-2" id="calendarioCard">
-            <div class="calendario-card__header">
-                <div class="director-asistencia-inline-style-3">
-                    <button class="btn-cal-nav" id="btnCalPrev" title="Mes anterior">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"/>
-                        </svg>
-                    </button>
-                    <span class="calendario-mes-label" id="calendarioMesLabel">—</span>
-                    <button class="btn-cal-nav" id="btnCalNext" title="Mes siguiente">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </button>
-                </div>
-                <button class="btn-cal-close" id="btnCalClose" title="Cerrar">✕</button>
-            </div>
-            <div class="cal-weekdays">
-                <div class="cal-weekday">Lun</div>
-                <div class="cal-weekday">Mar</div>
-                <div class="cal-weekday">Mié</div>
-                <div class="cal-weekday">Jue</div>
-                <div class="cal-weekday">Vie</div>
-                <div class="cal-weekday">Sáb</div>
-                <div class="cal-weekday">Dom</div>
-            </div>
-            <div class="cal-grid" id="calGrid"></div>
-            <div class="cal-legend">
-                <div class="cal-legend-item">
-                    <span class="cal-dot cal-dot--completo"></span>
-                    Todos los cursos registraron
-                </div>
-                <div class="cal-legend-item director-asistencia-inline-style-4">
-                    <span class="cal-dot cal-dot--parcial"></span>
-                    Registro parcial
-                </div>
-                <div class="cal-legend-item director-asistencia-inline-style-4">
-                    <span class="cal-dot cal-dot--sin-asistencia"></span>
-                    Sin asistencia
-                </div>
-            </div>
-        </div>
+            <button class="btn-exportar asistencia-hero__export" id="btnExportar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Descargar asistencias
+            </button>
+        </section>
 
         <!-- Stats row — siempre visible, inicia con guiones -->
         <div class="stats-row" id="statsRow">
@@ -312,7 +215,7 @@
                         <line x1="3"  y1="10" x2="21" y2="10"/>
                     </svg>
                     <div class="empty-state__title">Selecciona un curso y fecha</div>
-                    <div class="empty-state__sub">Se mostrará el registro de asistencia del día</div>
+                    <div class="empty-state__sub">Selecciona un curso desde la tabla de asistencia por curso</div>
                 </div>
             </div>
         </div>
@@ -360,38 +263,47 @@
         </div>
     </div>
 
-    <!-- ── Modal Broadcast ──────────────────────────────────────── -->
-    <div class="modal-backdrop" id="broadcastBackdrop">
-        <div class="modal modal--wide">
-            <div class="modal-icon director-asistencia-inline-style-10">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </div>
-            <p class="modal-title">Enviar comunicado</p>
-            <p class="modal-subtitle">El mensaje llegará a todos los dispositivos registrados.</p>
+    <div class="modal-backdrop asistencia-modal-backdrop" id="dailyPickerBackdrop">
+        <div class="modal modal--wide asistencia-modal">
+            <p class="modal-title">Ver asistencia diaria</p>
+            <p class="modal-subtitle">Selecciona el curso y el día que quieres revisar.</p>
+
             <div class="form-group director-asistencia-inline-style-7">
-                <label class="form-label">Título</label>
-                <input id="broadcastTitulo" class="form-input" type="text" placeholder="Ej: Reunión de padres" maxlength="80">
+                <label class="form-label">Curso</label>
+                <select id="dailyCurso" class="form-input"></select>
             </div>
+
             <div class="form-group director-asistencia-inline-style-7">
-                <label class="form-label">Mensaje</label>
-                <textarea id="broadcastCuerpo" class="form-input form-textarea" placeholder="Escribe el mensaje aquí..." maxlength="300" rows="4"></textarea>
+                <label class="form-label">Día</label>
+                <input id="dailyFecha" class="form-input" type="text" placeholder="Seleccionar día" readonly>
             </div>
-            <p id="broadcastError" class="form-error director-asistencia-inline-style-2"></p>
-            <div class="director-asistencia-inline-style-11">
-                <button id="broadcastCancelar" class="btn-secondary director-asistencia-inline-style-12">Cancelar</button>
-                <button id="broadcastEnviar" class="btn-primary director-asistencia-inline-style-12" >Enviar</button>
+
+            <p id="dailyError" class="form-error daily-error"></p>
+
+            <div class="daily-modal-actions">
+                <button id="dailyCancelar" class="btn-secondary daily-action-btn">Cancelar</button>
+                <button id="dailyAceptar" class="btn-primary daily-action-btn">Aceptar</button>
             </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop asistencia-modal-backdrop" id="dailyResultsBackdrop">
+        <div class="modal modal--wide asistencia-modal asistencia-modal--results">
+            <div class="daily-results-head">
+                <div>
+                    <p class="modal-title" id="dailyResultsTitle">Asistencia diaria</p>
+                    <p class="modal-subtitle" id="dailyResultsSub"></p>
+                </div>
+                <button id="dailyResultsCerrar" class="daily-close-btn" aria-label="Cerrar">×</button>
+            </div>
+            <div id="dailyResultsBody" class="daily-results-body"></div>
         </div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="{% static 'js/director_asistencia_inline_2.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
 <script src="{% static 'js/asistencia.js' %}"></script>
-
-<script src="{% static 'js/director_asistencia_inline_3.js' %}"></script>
 
 <!-- Firebase Cloud Messaging -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>

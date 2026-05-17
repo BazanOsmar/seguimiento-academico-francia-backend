@@ -450,16 +450,10 @@
                                 </div>
                             </div>
 
-                            <div class="pn-grid-wrap">
-                                <div class="pn-grid-head">
-                                    <div>
-                                        <h3 class="pn-grid-title">Estado de carga por docente</h3>
-                                        <p class="pn-grid-subtitle">Cada tarjeta resume el avance mensual por profesor y los cursos que ya tienen notas disponibles.</p>
-                                    </div>
+                            <div class="vp-follow-card">
+                                <div class="vp-follow-table-wrap" id="pnTableWrap">
+                                    <div class="vp-follow-loading"><div class="spinner-inline"></div></div>
                                 </div>
-
-                                <!-- Grid de tarjetas -->
-                                <div id="pnGrid" class="pn-grid"></div>
                             </div>
                         </div>
                     </div>
@@ -483,17 +477,25 @@
         </div>
     </div>
 
-    <!-- -- Modal: Selector de materia -------------------------------- -->
+    <!-- -- Modal: Detalle del profesor (cursos + materias con notas) -- -->
     <div class="pn-picker-overlay" id="pnPickerOverlay">
-        <div class="pn-picker-box">
-            <div class="pn-picker-head">
-                <div class="pn-picker-title">Selecciona una materia</div>
-                <div class="pn-picker-sub" id="pnPickerSub">Este curso tiene varias materias con notas subidas.</div>
+        <div class="pn-picker-box pn-picker-box--wide">
+            <div class="pn-picker-head pn-picker-head--rich">
+                <div class="pn-picker-prof">
+                    <div class="pn-picker-avatar" id="pnPickerAvatar">—</div>
+                    <div class="pn-picker-prof-copy">
+                        <div class="pn-picker-title" id="pnPickerProfNombre">Profesor</div>
+                        <div class="pn-picker-sub" id="pnPickerSub">Selecciona un curso/materia para ver las notas cargadas.</div>
+                    </div>
+                </div>
+                <button class="pn-picker-close" id="pnPickerCancel" type="button" aria-label="Cerrar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
             <div class="pn-picker-list" id="pnPickerList"></div>
-            <div class="pn-picker-footer">
-                <button class="btn-ghost" id="pnPickerCancel">Cancelar</button>
-            </div>
         </div>
     </div>
 

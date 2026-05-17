@@ -120,14 +120,6 @@
             <h1 class="page-title">Estadísticas</h1>
         </div>
         <div class="topbar-actions">
-            <button class="btn-icon" id="btnBroadcast" aria-label="Enviar comunicado">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </button>
             {% include 'director/_notif_bell.html' %}
         </div>
     </header>
@@ -402,40 +394,7 @@
         </div><!-- /.page-inner -->
     </main>
 
-    <!-- ── Modal Broadcast ──────────────────────────────────────── -->
-    <div class="modal-backdrop" id="broadcastBackdrop">
-        <div class="modal modal--wide">
-            <div class="modal-icon director-estadisticas-inline-style-18">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </div>
-            <p class="modal-title">Enviar comunicado</p>
-            <p class="modal-subtitle">El mensaje llegará a todos los dispositivos registrados.</p>
-            <div class="form-group director-estadisticas-inline-style-19">
-                <label class="form-label">Título</label>
-                <input id="broadcastTitulo" class="form-input" type="text"
-                       placeholder="Ej: Reunión de padres" maxlength="80">
-            </div>
-            <div class="form-group director-estadisticas-inline-style-19">
-                <label class="form-label">Mensaje</label>
-                <textarea id="broadcastCuerpo" class="form-input form-textarea"
-                          placeholder="Escribe el mensaje aquí..." maxlength="300" rows="4"></textarea>
-            </div>
-            <p id="broadcastError" class="form-error director-estadisticas-inline-style-20"></p>
-            <div class="director-estadisticas-inline-style-21">
-                <button id="broadcastCancelar" class="btn-secondary director-estadisticas-inline-style-3">Cancelar</button>
-                <button id="broadcastEnviar" class="btn-primary director-estadisticas-inline-style-3" >Enviar</button>
-            </div>
-        </div>
-    </div>
-
 <script src="{% static 'js/estadisticas.js' %}"></script>
-
-<script src="{% static 'js/director_estadisticas_inline_2.js' %}"></script>
 
 <!-- Firebase Cloud Messaging -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
