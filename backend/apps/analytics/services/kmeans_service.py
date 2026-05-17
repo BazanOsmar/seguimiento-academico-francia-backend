@@ -167,6 +167,11 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
     if not resultados:
         return None
 
+    # Si algún estudiante no tiene SER en TODAS sus materias del mes, se
+    # excluye la dimensión SER del entrenamiento (regla del director: SER
+    # solo participa cuando está completa para el 100% de los estudiantes).
+    ser_excluido = any(r['ser_count'] < r['count_materias'] for r in resultados)
+
     registros = []
     for r in resultados:
         n           = r['count_materias']
@@ -287,6 +292,8 @@ def obtener_features_colegio(gestion: int, mes: int) -> pd.DataFrame | None:
 
     df['tendencia_norm'] = np.tanh(raw_tendencia / 20)
 
+    # Propagar el flag (pandas conserva df.attrs entre operaciones simples).
+    df.attrs['ser_excluido'] = ser_excluido
     return df
 
 
@@ -298,8 +305,15 @@ def ejecutar_kmeans(df: pd.DataFrame, gestion: int) -> pd.DataFrame:
     """
     Normaliza las features, determina k, corre K-Means y asigna etiqueta semántica.
     Imputación por feature: 0.5 para dimensiones/examenes/tareas sin datos, 0 para el resto.
+
+    Si df.attrs['ser_excluido'] es True, ser_pct NO se usa como feature
+    (regla: la dimensión SER solo participa si está completa para TODOS los
+    estudiantes ese mes).
     """
-    X = df[_FEATURE_COLS].copy()
+    ser_excluido = bool(df.attrs.get('ser_excluido', False))
+    feature_cols = [c for c in _FEATURE_COLS if not (ser_excluido and c == 'ser_pct')]
+
+    X = df[feature_cols].copy()
     for col, val in _FILLNA_NEUTRAL.items():
         if col in X.columns:
             X[col] = X[col].fillna(val)
@@ -334,6 +348,7 @@ def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: in
     from pymongo import UpdateOne
 
     fecha_analisis = datetime.now(tz=timezone.utc)
+    ser_excluido   = bool(df.attrs.get('ser_excluido', False))
     ops = []
 
     for _, row in df.iterrows():
@@ -347,7 +362,8 @@ def guardar_predicciones(df: pd.DataFrame, gestion: int, trimestre: int, mes: in
             'curso_id':                                  int(row['curso_id']),
             'fecha_analisis':                            fecha_analisis,
             'cluster':                                   row['cluster'],
-            'features_usadas.ser_pct':                   float(row['ser_pct']),
+            'ser_excluido':                              ser_excluido,
+            'features_usadas.ser_pct':                   None if ser_excluido else float(row['ser_pct']),
             'features_usadas.saber_pct':                 float(row['saber_pct']),
             'features_usadas.hacer_pct':                 float(row['hacer_pct']),
             'features_usadas.tasa_entrega_tareas':       float(row['tasa_entrega_tareas']),
