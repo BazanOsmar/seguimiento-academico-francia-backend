@@ -1743,9 +1743,74 @@ function _comunicadoCursosHTML(c) {
     return cursos.map(curso => `<span class="modal-det__course-chip">${_escapeHtml(curso)}</span>`).join('');
 }
 
+let _ultimoDetalleComunicadoId = null;
+
+function _agruparLectoresPorCurso(tutores) {
+    const grupos = {};
+    (tutores || []).forEach(t => {
+        (t.cursos || []).forEach(c => {
+            if (!grupos[c.curso]) grupos[c.curso] = [];
+            (c.estudiantes || []).forEach(estudiante => grupos[c.curso].push(estudiante));
+        });
+    });
+    return grupos;
+}
+
+function _renderLectoresCom(data) {
+    const resumen = document.getElementById('lectoresComResumen');
+    const barra   = document.getElementById('lectoresComBarra');
+    const stats   = document.getElementById('lectoresComStats');
+    const lista   = document.getElementById('lectoresComLista');
+    const leidos = data.tutores_que_leyeron || 0;
+    const total = data.total_tutores || 0;
+    const pendientes = data.tutores_pendientes || 0;
+    const porcentaje = total ? Math.round((leidos / total) * 100) : 0;
+    resumen.textContent = `${leidos} de ${total} tutor${total !== 1 ? 'es' : ''} han leído`;
+    barra.style.width = `${porcentaje}%`;
+    stats.innerHTML = `<span class="lectores-stat--ok">${leidos} leyeron</span><span class="lectores-stat--pending">${pendientes} pendientes</span>`;
+
+    const grupos = _agruparLectoresPorCurso(data.tutores);
+    const cursos = Object.keys(grupos).sort();
+    if (!cursos.length) {
+        lista.innerHTML = '<p class="lectores-empty">Aún ningún tutor leyó este comunicado.</p>';
+        return;
+    }
+    lista.innerHTML = cursos.map((curso, i) => `
+        <div class="lectores-course ${i === 0 ? 'is-open' : ''}">
+            <button type="button" class="lectores-course__head">
+                <span><span class="lectores-course__name">${_escapeHtml(curso)}</span><span class="lectores-course__count">${grupos[curso].length} estudiante${grupos[curso].length !== 1 ? 's' : ''}</span></span>
+                <span class="lectores-course__chevron">⌄</span>
+            </button>
+            <div class="lectores-course__body">
+                ${grupos[curso].map(e => `<p class="lectores-student">• ${_escapeHtml(e)}</p>`).join('')}
+            </div>
+        </div>`).join('');
+    lista.querySelectorAll('.lectores-course__head').forEach(btn => btn.addEventListener('click', () => btn.parentElement.classList.toggle('is-open')));
+}
+
+async function abrirModalLectoresComunicado(id) {
+    _ultimoDetalleComunicadoId = id;
+    modalDetalle.classList.remove('visible');
+    const modal = document.getElementById('modalLectoresComunicado');
+    document.getElementById('lectoresComLista').innerHTML = '<p class="lectores-empty">Cargando...</p>';
+    modal.classList.add('visible');
+    const { ok, data } = await fetchAPI(`/api/comunicados/${id}/lectores/`);
+    if (!ok) {
+        document.getElementById('lectoresComLista').innerHTML = `<p class="lectores-empty">${_escapeHtml(data?.errores || 'No se pudo cargar la lectura.')}</p>`;
+        return;
+    }
+    _renderLectoresCom(data);
+}
+
+function cerrarModalLectoresComunicado() {
+    document.getElementById('modalLectoresComunicado').classList.remove('visible');
+    if (_ultimoDetalleComunicadoId) modalDetalle.classList.add('visible');
+}
+
 function abrirModalDetalleComunicado(id) {
     const data = todasComunicados.find(c => String(c.id) === String(id));
     if (!data) return;
+    _ultimoDetalleComunicadoId = id;
 
     const alcance    = data.alcance || (Array.isArray(data.cursos) && data.cursos.length ? 'CURSO' : 'TODOS');
     const esAnulado  = data.estado === 'ANULADO';
@@ -1764,8 +1829,14 @@ function abrirModalDetalleComunicado(id) {
         (tipoUser === 'Profesor' && esEmisor)
     );
     const tituloEsc = (data.titulo || '').replace(/'/g, "\\'");
+    const btnLectoresCom = `
+        <button onclick="abrirModalLectoresComunicado('${data.id}')"
+                style="width:100%;height:40px;border-radius:var(--radius-sm);font-size:.82rem;
+                       background:rgba(59,130,246,.1);color:#93c5fd;
+                       border:1px solid rgba(59,130,246,.25);cursor:pointer;font-weight:600;">
+            Quiénes lo leyeron
+        </button>`;
     const btnAnularCom = puedeAnular ? `
-        <div class="modal-det__footer">
             <button onclick="cerrarModalDetalle();abrirModalAnularComunicado('${data.id}','${tituloEsc}')"
                     style="width:100%;height:40px;border-radius:var(--radius-sm);font-size:.82rem;
                            background:rgba(239,68,68,.1);color:#ef4444;
@@ -1775,8 +1846,7 @@ function abrirModalDetalleComunicado(id) {
                     <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
                 </svg>
                 Anular comunicado
-            </button>
-        </div>` : '';
+            </button>` : '';
 
     // Banner + filtro visual cuando está anulado
     const bannerAnulado = esAnulado ? `
@@ -1835,11 +1905,20 @@ function abrirModalDetalleComunicado(id) {
                 </div>
             </div>
 
-            ${btnAnularCom}
+            <div class="modal-det__footer" style="display:grid;gap:8px;">
+                ${btnLectoresCom}
+                ${btnAnularCom}
+            </div>
         </div>`;
 
     modalDetalle.classList.add('visible');
 }
+
+document.getElementById('btnCerrarLectoresCom')?.addEventListener('click', cerrarModalLectoresComunicado);
+document.getElementById('btnVolverDetalleCom')?.addEventListener('click', cerrarModalLectoresComunicado);
+document.getElementById('modalLectoresComunicado')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) cerrarModalLectoresComunicado();
+});
 
 // ── Modal "Anular comunicado" ─────────────────────────────────────
 const modalAnularCom      = document.getElementById('modalAnularComunicado');

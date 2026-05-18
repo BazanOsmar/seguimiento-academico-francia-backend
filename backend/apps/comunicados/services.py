@@ -73,6 +73,42 @@ def crear_comunicado(titulo, descripcion, fecha_expiracion, emisor, alcance, dat
     return comunicado
 
 
+def asignar_comunicados_pendientes(estudiante):
+    """
+    Asigna al estudiante las entregas de comunicados activos que sus compañeros
+    de curso ya tienen pero él aún no tiene.
+    Se llama cuando un tutor se registra o vincula a un estudiante nuevo.
+    """
+    from django.db.models import Q
+    from django.utils import timezone
+    from .models import Comunicado, ComunicadoEstudiante
+
+    hoy = timezone.now().date()
+
+    comunicados_pendientes = (
+        Comunicado.objects
+        .filter(
+            estado=Comunicado.ESTADO_ACTIVO,
+            entregas__estudiante__curso=estudiante.curso,
+        )
+        .filter(Q(fecha_expiracion__isnull=True) | Q(fecha_expiracion__gte=hoy))
+        .exclude(entregas__estudiante=estudiante)
+        .exclude(entregas__estudiante__tutor=estudiante.tutor)
+        .distinct()
+    )
+
+    filas = [
+        ComunicadoEstudiante(comunicado=c, estudiante=estudiante)
+        for c in comunicados_pendientes
+    ]
+    if filas:
+        ComunicadoEstudiante.objects.bulk_create(filas, ignore_conflicts=True)
+        logger.info(
+            "comunicados pendientes asignados: %d al estudiante id=%s",
+            len(filas), estudiante.id,
+        )
+
+
 def notificar_tutores(comunicado):
     """Envía notificaciones FCM a los tutores de los estudiantes destinatarios."""
     from django.conf import settings as django_settings

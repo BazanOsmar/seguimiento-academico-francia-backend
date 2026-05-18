@@ -8,6 +8,7 @@ class EstudianteAsistenciaReadSerializer(serializers.Serializer):
     Representa un estudiante con su asistencia registrada.
     Solo lectura.
     """
+    id = serializers.IntegerField()
     estudiante_id = serializers.IntegerField(source='estudiante.id')
     nombre_completo = serializers.SerializerMethodField()
     estado = serializers.CharField()

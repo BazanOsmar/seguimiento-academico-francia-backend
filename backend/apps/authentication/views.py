@@ -306,6 +306,8 @@ class RegistroTutorView(APIView):
 
         tipo_tutor = TipoUsuario.objects.get(nombre='Tutor')
 
+        from backend.apps.comunicados.services import asignar_comunicados_pendientes
+
         with transaction.atomic():
             user = User.objects.create_user(
                 username=data['username'],
@@ -318,6 +320,7 @@ class RegistroTutorView(APIView):
             for estudiante in estudiantes:
                 estudiante.tutor = user
                 estudiante.save(update_fields=['tutor'])
+                asignar_comunicados_pendientes(estudiante)
 
         from backend.apps.auditoria.services import registrar
         nombre_tutor = f"{user.first_name} {user.last_name}".strip() or user.username
@@ -441,8 +444,11 @@ class VincularEstudianteView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from backend.apps.comunicados.services import asignar_comunicados_pendientes
+
         estudiante.tutor = request.user
         estudiante.save(update_fields=['tutor'])
+        asignar_comunicados_pendientes(estudiante)
 
         nombre_tutor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
         nombre_est   = f"{estudiante.nombre} {estudiante.apellido_paterno}".strip()

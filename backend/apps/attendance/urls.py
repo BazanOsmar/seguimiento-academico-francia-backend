@@ -1,6 +1,7 @@
 from django.urls import path
 
 from backend.apps.attendance.views.attendance_combined_views import AsistenciaCursoView
+from backend.apps.attendance.views.attendance_update_views import ActualizarAsistenciaIndividualView
 from backend.apps.attendance.views.resumen_mensual_views import ResumenMensualCursoView
 from backend.apps.attendance.views.resumen_global_views import ResumenGlobalView
 from backend.apps.attendance.views.resumen_cursos_views import ResumenCursosTodosView, ResumenEstudiantesCursoView
@@ -69,5 +70,10 @@ urlpatterns = [
         "sin-uniforme/",
         SinUniformeView.as_view(),
         name="sin-uniforme",
+    ),
+    path(
+        "asistencias/<int:asistencia_id>/",
+        ActualizarAsistenciaIndividualView.as_view(),
+        name="actualizar-asistencia-individual",
     ),
 ]

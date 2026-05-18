@@ -278,6 +278,69 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
                 </div>`;
         }
 
+        const ESTADO_DOT    = { PRESENTE: 'dot-P', FALTA: 'dot-F', ATRASO: 'dot-A', LICENCIA: 'dot-L' };
+        const ESTADO_LABEL  = { PRESENTE: 'Presente', FALTA: 'Falta', ATRASO: 'Atraso', LICENCIA: 'Licencia' };
+        const ESTADO_OPCIONES = [
+            { v: 'PRESENTE', l: 'Presente' },
+            { v: 'FALTA',    l: 'Falta'    },
+            { v: 'ATRASO',   l: 'Atraso'   },
+            { v: 'LICENCIA', l: 'Licencia'  },
+        ];
+
+        // ── Modal de confirmación de cambio de asistencia ──────────────
+        const _confirmModal  = document.getElementById('modalConfirmAsistencia');
+        const _confirmMsg    = document.getElementById('confirmAsistMsg');
+        const _btnConfirmOk  = document.getElementById('btnConfirmAsistOk');
+        const _btnConfirmCan = document.getElementById('btnConfirmAsistCancel');
+        let   _pendingChange = null; // { sel, row, id, estadoAnterior, nuevoEstado }
+
+        function _cerrarConfirmModal() {
+            _confirmModal.classList.remove('visible');
+            _pendingChange = null;
+        }
+
+        _btnConfirmCan.addEventListener('click', () => {
+            if (_pendingChange) _pendingChange.sel.value = _pendingChange.estadoAnterior;
+            _cerrarConfirmModal();
+        });
+        _confirmModal.addEventListener('click', e => {
+            if (e.target === _confirmModal) {
+                if (_pendingChange) _pendingChange.sel.value = _pendingChange.estadoAnterior;
+                _cerrarConfirmModal();
+            }
+        });
+
+        _btnConfirmOk.addEventListener('click', async () => {
+            if (!_pendingChange) return;
+            const { sel, row, id, estadoAnterior, nuevoEstado } = _pendingChange;
+            _cerrarConfirmModal();
+            sel.disabled = true;
+
+            const { ok, data } = await fetchAPI(`/api/attendance/asistencias/${id}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({ estado: nuevoEstado }),
+            });
+
+            sel.disabled = false;
+            if (ok) {
+                sel.dataset.estadoActual = nuevoEstado;
+                row.querySelector('[data-dot]').className = `est-estado-dot ${ESTADO_DOT[nuevoEstado] || 'dot-P'}`;
+                sel.className = `est-select est-select--${nuevoEstado}`;
+                _apiToast('Asistencia actualizada', 'success');
+            } else {
+                sel.value = estadoAnterior;
+                _apiToast(data?.errores || 'No se pudo actualizar', 'error');
+            }
+        });
+        // ──────────────────────────────────────────────────────────────
+
+        function buildEstadoSelect(asistenciaId, estadoActual) {
+            const opts = ESTADO_OPCIONES.map(o =>
+                `<option value="${o.v}"${o.v === estadoActual ? ' selected' : ''}>${o.l}</option>`
+            ).join('');
+            return `<select class="est-select est-select--${estadoActual}" data-id="${asistenciaId}" aria-label="Estado">${opts}</select>`;
+        }
+
         async function abrirPanel(cursoId, fecha, sinSesion) {
             if (sinSesion) return;
             const res = await fetchAPI(`/api/attendance/cursos/${cursoId}/asistencia/?fecha=${fecha}`);
@@ -285,13 +348,40 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
             const curso = _cursosCache.find(x => x.id == cursoId);
             document.getElementById('panelTitulo').textContent = `${curso.grado}° "${curso.paralelo}"`;
             document.getElementById('panelSubtitulo').textContent = fechaHeroTexto(fecha);
-            const cfg = { PRESENTE: 'dot-P', FALTA: 'dot-F', ATRASO: 'dot-A', LICENCIA: 'dot-L' };
-            document.getElementById('panelBody').innerHTML = res.data.asistencias.map((a, i) => `
-                <div class="est-row">
-                    <span class="est-num">${i+1}</span>
-                    <div class="est-estado-dot ${cfg[a.estado] || 'dot-P'}"></div>
-                    <span class="est-nombre">${a.nombre_completo}</span>
+            const body = document.getElementById('panelBody');
+            body.innerHTML = res.data.asistencias.map((a, i) => `
+                <div class="est-row" data-asistencia-id="${a.id}">
+                    <span class="est-num">${i + 1}</span>
+                    <div class="est-estado-dot ${ESTADO_DOT[a.estado] || 'dot-P'}" data-dot></div>
+                    <span class="est-nombre">${escapeHtml(a.nombre_completo)}</span>
+                    ${buildEstadoSelect(a.id, a.estado)}
                 </div>`).join('');
+
+            body.querySelectorAll('.est-select').forEach(sel => {
+                sel.dataset.estadoActual = sel.value;
+                sel.addEventListener('change', function () {
+                    const estadoAnterior = this.dataset.estadoActual;
+                    const nuevoEstado    = this.value;
+                    const nombreEst      = this.closest('.est-row').querySelector('.est-nombre').textContent;
+
+                    // Revertir visualmente hasta que el usuario confirme
+                    this.value = estadoAnterior;
+
+                    _pendingChange = {
+                        sel: this,
+                        row: this.closest('.est-row'),
+                        id: this.dataset.id,
+                        estadoAnterior,
+                        nuevoEstado,
+                    };
+                    _confirmMsg.innerHTML =
+                        `¿Cambiar asistencia de <strong>${escapeHtml(nombreEst)}</strong> ` +
+                        `de <strong>${escapeHtml(ESTADO_LABEL[estadoAnterior] || estadoAnterior)}</strong> ` +
+                        `a <strong>${escapeHtml(ESTADO_LABEL[nuevoEstado] || nuevoEstado)}</strong>?`;
+                    _confirmModal.classList.add('visible');
+                });
+            });
+
             document.getElementById('panelOverlay').classList.add('open');
         }
 

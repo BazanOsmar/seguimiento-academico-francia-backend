@@ -1227,6 +1227,37 @@
     animation: fadeScaleIn .18s ease;
 }
 
+.modal-lectores {
+    width: min(460px, 94vw);
+    padding: 0;
+    overflow: hidden;
+}
+.lectores-head { padding: 20px 22px 10px; }
+.lectores-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--text-primary); }
+.lectores-subtitle { margin: 4px 0 0; font-size: .8rem; color: var(--text-muted); }
+.lectores-progress { height: 5px; margin: 10px 22px 8px; border-radius: 999px; background: rgba(148,163,184,.14); overflow: hidden; }
+.lectores-progress span { display: block; height: 100%; width: 0; border-radius: inherit; background: #22c55e; transition: width .2s ease; }
+.lectores-stats { display: flex; justify-content: space-between; gap: 10px; padding: 0 22px 14px; font-size: .78rem; }
+.lectores-stat--ok { color: #22c55e; }
+.lectores-stat--pending { color: var(--text-muted); }
+.lectores-list { max-height: 360px; overflow-y: auto; border-top: 1px solid var(--border-subtle); }
+.lectores-course { border-bottom: 1px solid var(--border-subtle); }
+.lectores-course__head {
+    width: 100%; border: 0; background: transparent; color: inherit;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; cursor: pointer; text-align: left;
+}
+.lectores-course__name { font-size: .9rem; font-weight: 700; color: var(--text-primary); }
+.lectores-course__count { display: block; margin-top: 2px; font-size: .75rem; color: var(--text-muted); }
+.lectores-course__chevron { color: var(--text-muted); transition: transform .18s; }
+.lectores-course.is-open .lectores-course__chevron { transform: rotate(180deg); }
+.lectores-course__body { display: none; padding: 0 18px 14px 38px; }
+.lectores-course.is-open .lectores-course__body { display: block; }
+.lectores-student { margin: 0 0 8px; font-size: .82rem; color: var(--text-secondary); }
+.lectores-student:last-child { margin-bottom: 0; }
+.lectores-empty { padding: 28px 22px; text-align: center; color: var(--text-muted); font-size: .84rem; }
+.lectores-footer { display: flex; justify-content: flex-end; padding: 14px 18px; border-top: 1px solid var(--border-subtle); }
+
 .com-cobertura-head {
     display: flex;
     align-items: center;

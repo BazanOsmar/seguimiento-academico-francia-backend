@@ -1831,7 +1831,6 @@ function _initDetalleCitModals() {
 
     // Detalle comunicado
     document.getElementById('btnCerrarDetalleComProf')?.addEventListener('click', _cerrarModalDetalleCom);
-    document.getElementById('btnCerrarDetalleComBtn')?.addEventListener('click', _cerrarModalDetalleCom);
     document.getElementById('modalDetalleComProf')?.addEventListener('click', e => {
         if (e.target === e.currentTarget) _cerrarModalDetalleCom();
     });
@@ -1840,9 +1839,12 @@ function _initDetalleCitModals() {
         _cerrarModalDetalleCom();
         _abrirModalAnularCom(_detalleComData.id, _detalleComData.titulo);
     });
-    document.getElementById('btnVerDestinatariosComProf')?.addEventListener('click', _toggleDestinatariosComProf);
-    document.getElementById('btnCerrarDestinatariosComProf')?.addEventListener('click', _colapsarDestinatariosComProf);
-    document.getElementById('comDestBuscar')?.addEventListener('input', _filtrarDestinatariosComProf);
+    document.getElementById('btnVerLectoresComProf')?.addEventListener('click', _abrirLectoresComProf);
+    document.getElementById('btnCerrarLectoresComProf')?.addEventListener('click', _cerrarLectoresComProf);
+    document.getElementById('btnVolverDetalleComProf')?.addEventListener('click', _cerrarLectoresComProf);
+    document.getElementById('modalLectoresComProf')?.addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarLectoresComProf();
+    });
 }
 
 // ── Modal: Detalle comunicado ─────────────────────────────────────
@@ -1856,163 +1858,118 @@ const _ALCANCE_DESC = {
     GRUPO:     'Grupo de cursos seleccionados',
 };
 
+
+function _comunicadoCursosHTMLProf(c) {
+    const cursos = Array.isArray(c.cursos) && c.cursos.length
+        ? c.cursos
+        : c.curso_nombre
+            ? [c.curso_nombre]
+            : ['Todos mis cursos'];
+    return cursos.map(curso => `<span class="modal-det__course-chip">${_escapeHtml(curso)}</span>`).join('');
+}
+
 function _abrirModalDetalleCom(c, currentUser) {
     _detalleComData = c;
     const modal = document.getElementById('modalDetalleComProf');
     if (!modal) return;
 
     const anulado     = c.estado === 'ANULADO';
-    const esDirector  = currentUser?.tipo_usuario === 'Director';
     const puedeAnular = !anulado && currentUser && currentUser.id === c.emisor_id;
-    const fecha = c.fecha_envio
-        ? new Date(c.fecha_envio).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' })
-        : '—';
+    const fechaBase   = c.fecha_creacion || c.fecha_envio;
+    const fecha       = fechaBase
+        ? new Date(fechaBase).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '\u2014';
+    const fechaExp    = c.fecha_expiracion
+        ? new Date(`${c.fecha_expiracion}T00:00:00`).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '\u2014';
 
-    let alcanceTexto = _ALCANCE_DESC[c.alcance] || c.alcance_display || c.alcance;
-    if (c.alcance === 'CURSO' && c.curso_nombre) alcanceTexto = `Padres del curso ${c.curso_nombre}`;
-    if (c.alcance === 'GRADO' && c.grado)        alcanceTexto = `Padres del grado ${c.grado}`;
-
-    document.getElementById('detalleComTitulo').textContent    = c.titulo || '—';
-    document.getElementById('detalleComContenido').textContent = c.descripcion || '—';
-    document.getElementById('detalleComAlcance').textContent   = alcanceTexto;
-    document.getElementById('detalleComFecha').textContent     = fecha;
-
-    const emisorWrap = document.getElementById('detalleComEmisorWrap');
-    if (emisorWrap) {
-        emisorWrap.style.display = esDirector && c.emisor_nombre ? 'block' : 'none';
-        const emisorEl = document.getElementById('detalleComEmisor');
-        if (emisorEl) emisorEl.textContent = `${c.emisor_nombre || '—'} (${c.emisor_tipo || '—'})`;
-    }
+    document.getElementById('detalleComTitulo').textContent          = c.titulo || '\u2014';
+    document.getElementById('detalleComContenido').textContent       = c.descripcion || '\u2014';
+    document.getElementById('detalleComFecha').textContent           = fecha;
+    document.getElementById('detalleComFechaExpiracion').textContent = fechaExp;
+    document.getElementById('detalleComTipoUsuario').textContent     = c.emisor_tipo || 'Profesor';
+    document.getElementById('detalleComNombreUsuario').textContent   = c.emisor_nombre || '\u2014';
+    document.getElementById('detalleComCursos').innerHTML            = _comunicadoCursosHTMLProf(c);
 
     const badgeEl = document.getElementById('detalleComBadge');
     if (badgeEl) {
         badgeEl.innerHTML = anulado
             ? `<span class="estado-badge estado-badge--anulada">Anulado</span>`
-            : `<span class="estado-badge" style="background:rgba(34,197,94,.15);color:#22c55e;">Activo</span>`;
+            : `<span class="estado-badge estado-badge--pendiente">Enviado</span>`;
     }
 
     const btnAnular = document.getElementById('btnAnularComDesdeDetalle');
     if (btnAnular) btnAnular.style.display = puedeAnular ? 'inline-flex' : 'none';
 
-    // Colapsar panel derecho al abrir
-    _colapsarDestinatariosComProf();
-
     modal.classList.add('visible');
 }
 
 function _cerrarModalDetalleCom() {
-    _colapsarDestinatariosComProf();
     document.getElementById('modalDetalleComProf')?.classList.remove('visible');
     _detalleComData = null;
 }
 
-// ── Panel derecho: destinatarios del comunicado ───────────────────
-let _destinatariosCache = null;
-
-function _colapsarDestinatariosComProf() {
-    document.getElementById('modalComWrap')?.classList.remove('modal-com-wrap--expanded');
-    _destinatariosCache = null;
-}
-
-async function _toggleDestinatariosComProf() {
-    const wrap = document.getElementById('modalComWrap');
-    if (!wrap) return;
-    if (wrap.classList.contains('modal-com-wrap--expanded')) {
-        _colapsarDestinatariosComProf();
-        return;
-    }
-    wrap.classList.add('modal-com-wrap--expanded');
-    if (_detalleComData) await _cargarDestinatariosComProf(_detalleComData.id);
-}
-
-async function _cargarDestinatariosComProf(comId) {
-    const listEl    = document.getElementById('comDestList');
-    const subEl     = document.getElementById('comDestSubtitulo');
-    const footerEl  = document.getElementById('comDestFooter');
-    const buscarEl  = document.getElementById('comDestBuscar');
-    if (!listEl) return;
-
-    listEl.innerHTML = '<p style="padding:12px;font-size:.83rem;color:var(--text-muted);">Cargando…</p>';
-    if (buscarEl) buscarEl.value = '';
-
-    const { ok, data } = await fetchAPI(`/api/comunicados/${comId}/cobertura/`);
-    if (!ok) {
-        listEl.innerHTML = `<p style="padding:12px;font-size:.83rem;color:var(--danger);">${data?.errores || 'Error al cargar.'}</p>`;
-        return;
-    }
-
-    _destinatariosCache = data.tutores || [];
-    if (subEl) subEl.textContent = `${data.total} padre${data.total !== 1 ? 's' : ''} destinatarios`;
-    if (footerEl) footerEl.textContent = `Con notificación: ${data.con_fcm} | Sin notificación: ${data.sin_fcm}`;
-
-    _renderDestinatariosComProf(_destinatariosCache);
-}
-
-function _renderDestinatariosComProf(tutores) {
-    const listEl = document.getElementById('comDestList');
-    if (!listEl) return;
-    if (!tutores.length) {
-        listEl.innerHTML = '<p class="cobertura-empty">Sin destinatarios.</p>';
-        return;
-    }
-
+function _agruparLectoresPorCursoProf(tutores) {
     const grupos = {};
-    tutores.forEach(t => {
-        const hijos = t.estudiantes || [];
-        const cursosDelPadre = hijos.length ? [...new Set(hijos.map(e => e.curso))] : ['Sin curso'];
-        cursosDelPadre.forEach(curso => {
-            if (!grupos[curso]) grupos[curso] = [];
-            if (!grupos[curso].find(x => x.id === t.id)) grupos[curso].push(t);
+    (tutores || []).forEach(t => {
+        (t.cursos || []).forEach(c => {
+            if (!grupos[c.curso]) grupos[c.curso] = [];
+            (c.estudiantes || []).forEach(est => grupos[c.curso].push(est));
         });
     });
+    return grupos;
+}
 
-    listEl.innerHTML = Object.keys(grupos).sort().map(curso => {
-        const items    = grupos[curso];
-        const conFcm   = items.filter(t => t.tiene_fcm).length;
-        const total    = items.length;
-        const badgeCls = conFcm === 0 ? 'none' : conFcm < total ? 'warn' : 'ok';
-
-        const itemsHtml = items.map(t => {
-            const hijosHtml = (t.estudiantes || [])
-                .filter(e => e.curso === curso || curso === 'Sin curso')
-                .map(e => `<span class="cobertura-item__hijo">${_escapeHtml(e.nombre)} <span class="cobertura-item__curso">${_escapeHtml(e.curso)}</span></span>`)
-                .join('');
-            return `<div class="cobertura-item">
-                <span class="cobertura-item__dot cobertura-item__dot--${t.tiene_fcm ? 'si' : 'no'}"></span>
-                <span class="cobertura-item__info">
-                    <span class="cobertura-item__nombre">${_escapeHtml(t.nombre)}</span>
-                    ${hijosHtml ? `<span class="cobertura-item__hijos">${hijosHtml}</span>` : ''}
-                </span>
-                <span class="cobertura-item__badge cobertura-item__badge--${t.tiene_fcm ? 'si' : 'no'}">${t.tiene_fcm ? 'Activo' : 'Sin app'}</span>
-            </div>`;
-        }).join('');
-
-        return `<div class="cobertura-grupo cobertura-grupo--collapsed">
-            <div class="cobertura-grupo__header">
-                <svg class="cobertura-grupo__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                <span class="cobertura-grupo__nombre">${_escapeHtml(curso)}</span>
-                <span class="cobertura-grupo__badge cobertura-grupo__badge--${badgeCls}">${conFcm}/${total} activos</span>
+function _renderLectoresComProf(data) {
+    const resumen = document.getElementById('lectoresComResumenProf');
+    const barra   = document.getElementById('lectoresComBarraProf');
+    const stats   = document.getElementById('lectoresComStatsProf');
+    const lista   = document.getElementById('lectoresComListaProf');
+    const leidos = data.tutores_que_leyeron || 0;
+    const total = data.total_tutores || 0;
+    const pendientes = data.tutores_pendientes || 0;
+    resumen.textContent = `${leidos} de ${total} tutor${total !== 1 ? 'es' : ''} han leído`;
+    barra.style.width = `${total ? Math.round((leidos / total) * 100) : 0}%`;
+    stats.innerHTML = `<span class="lectores-stat--ok">${leidos} leyeron</span><span class="lectores-stat--pending">${pendientes} pendientes</span>`;
+    const grupos = _agruparLectoresPorCursoProf(data.tutores);
+    const cursos = Object.keys(grupos).sort();
+    if (!cursos.length) {
+        lista.innerHTML = '<p class="lectores-empty">Aún ningún tutor leyó este comunicado.</p>';
+        return;
+    }
+    lista.innerHTML = cursos.map((curso, i) => `
+        <div class="lectores-course ${i === 0 ? 'is-open' : ''}">
+            <button type="button" class="lectores-course__head">
+                <span><span class="lectores-course__name">${_escapeHtml(curso)}</span><span class="lectores-course__count">${grupos[curso].length} estudiante${grupos[curso].length !== 1 ? 's' : ''}</span></span>
+                <span class="lectores-course__chevron">⌄</span>
+            </button>
+            <div class="lectores-course__body">
+                ${grupos[curso].map(e => `<p class="lectores-student">• ${_escapeHtml(e)}</p>`).join('')}
             </div>
-            <div class="cobertura-grupo__items">${itemsHtml}</div>
-        </div>`;
-    }).join('');
-
-    listEl.querySelectorAll('.cobertura-grupo__header').forEach(hdr => {
-        hdr.addEventListener('click', () => hdr.closest('.cobertura-grupo').classList.toggle('cobertura-grupo--collapsed'));
-    });
+        </div>`).join('');
+    lista.querySelectorAll('.lectores-course__head').forEach(btn => btn.addEventListener('click', () => btn.parentElement.classList.toggle('is-open')));
 }
 
-function _filtrarDestinatariosComProf() {
-    if (!_destinatariosCache) return;
-    const q = (document.getElementById('comDestBuscar')?.value || '').toLowerCase().trim();
-    if (!q) { _renderDestinatariosComProf(_destinatariosCache); return; }
-    const filtrados = _destinatariosCache.filter(t =>
-        t.nombre.toLowerCase().includes(q) ||
-        (t.estudiantes || []).some(e => e.nombre.toLowerCase().includes(q))
-    );
-    _renderDestinatariosComProf(filtrados);
+async function _abrirLectoresComProf() {
+    if (!_detalleComData) return;
+    document.getElementById('modalDetalleComProf')?.classList.remove('visible');
+    const modal = document.getElementById('modalLectoresComProf');
+    document.getElementById('lectoresComListaProf').innerHTML = '<p class="lectores-empty">Cargando...</p>';
+    modal.classList.add('visible');
+    const { ok, data } = await fetchAPI(`/api/comunicados/${_detalleComData.id}/lectores/`);
+    if (!ok) {
+        document.getElementById('lectoresComListaProf').innerHTML = `<p class="lectores-empty">${_escapeHtml(data?.errores || 'No se pudo cargar la lectura.')}</p>`;
+        return;
+    }
+    _renderLectoresComProf(data);
 }
 
+function _cerrarLectoresComProf() {
+    document.getElementById('modalLectoresComProf')?.classList.remove('visible');
+    if (_detalleComData) document.getElementById('modalDetalleComProf')?.classList.add('visible');
+}
+
+// ── Modal: Nuevo Comunicado (Profesor) ───────────────────────────
 async function _abrirModalDetalleCit(id) {
     const modal   = document.getElementById('modalDetalleCitProf');
     const spinner = document.getElementById('detalleCitSpinner');

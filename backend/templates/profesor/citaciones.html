@@ -230,7 +230,7 @@
 
     {% include 'components/_comunicado_modal.html' with comunicado_modal_role='profesor' %}
 
-    <!-- Modal: Detalle Comunicado (dos paneles) -->
+    <!-- Modal: Detalle Comunicado -->
     <div class="modal-backdrop" id="modalDetalleComProf">
         <div class="modal-com-wrap" id="modalComWrap">
 
@@ -246,62 +246,67 @@
                     </div>
                 </div>
                 <div class="modal-det__body">
+                    <div class="modal-det__info-grid">
+                        <div class="modal-det__info-item">
+                            <div class="modal-det__info-label">Tipo usuario</div>
+                            <div class="modal-det__info-val" id="detalleComTipoUsuario"></div>
+                        </div>
+                        <div class="modal-det__info-item">
+                            <div class="modal-det__info-label">Nombre usuario</div>
+                            <div class="modal-det__info-val" id="detalleComNombreUsuario"></div>
+                        </div>
+                    </div>
                     <div class="modal-det__desc">
                         <div class="modal-det__desc-label">Contenido</div>
                         <p class="modal-det__desc-text" id="detalleComContenido"></p>
                     </div>
-                    <div class="modal-det__info-grid">
-                        <div class="modal-det__info-item">
-                            <div class="modal-det__info-label">Alcance</div>
-                            <div class="modal-det__info-val" id="detalleComAlcance"></div>
+                    <div class="modal-det__dates">
+                        <div class="modal-det__date-item">
+                            <div class="modal-det__date-label">Fecha de creaci&oacute;n</div>
+                            <div class="modal-det__date-val" id="detalleComFecha"></div>
                         </div>
-                        <div class="modal-det__info-item">
-                            <div class="modal-det__info-label">Fecha de envío</div>
-                            <div class="modal-det__info-val" id="detalleComFecha"></div>
+                        <div class="modal-det__date-item">
+                            <div class="modal-det__date-label">Fecha expiraci&oacute;n</div>
+                            <div class="modal-det__date-val" id="detalleComFechaExpiracion"></div>
                         </div>
-                        <div class="modal-det__info-item modal-det__info-item--full profesor-citaciones-inline-style-1" id="detalleComEmisorWrap">
-                            <div class="modal-det__info-label">Enviado por</div>
-                            <div class="modal-det__info-val" id="detalleComEmisor"></div>
-                        </div>
+                    </div>
+                    <div class="modal-det__courses">
+                        <div class="modal-det__desc-label">Cursos enviados</div>
+                        <div class="modal-det__course-list" id="detalleComCursos"></div>
                     </div>
                 </div>
                 <div class="modal-det__footer profesor-citaciones-inline-style-9">
-                    <button class="btn-danger profesor-citaciones-inline-style-1" id="btnAnularComDesdeDetalle">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        Anular
-                    </button>
-                    <div class="profesor-citaciones-inline-style-21">
-                        <button class="btn-secondary" id="btnCerrarDetalleComBtn">Cerrar</button>
-                        <button class="btn-secondary profesor-citaciones-inline-style-22" id="btnVerDestinatariosComProf">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            Ver destinatarios
+                    <div class="profesor-com-detail-actions profesor-com-detail-actions--stacked">
+                        <button class="btn-secondary profesor-citaciones-inline-style-22" id="btnVerLectoresComProf">
+                            Qui&eacute;nes lo leyeron
+                        </button>
+                        <button class="btn-danger profesor-citaciones-inline-style-1" id="btnAnularComDesdeDetalle">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            Anular comunicado
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Panel derecho: destinatarios -->
-            <div class="modal-com-wrap__right" id="panelDestinatariosComProf">
-                <div class="com-dest__head">
-                    <div>
-                        <p class="com-dest__titulo">Destinatarios</p>
-                        <p class="com-dest__sub" id="comDestSubtitulo"></p>
-                    </div>
-                    <button id="btnCerrarDestinatariosComProf" class="profesor-citaciones-inline-style-23" aria-label="Cerrar panel">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                </div>
-                <div class="com-dest__search">
-                    <input id="comDestBuscar" type="text" placeholder="Buscar padre o estudiante..." class="form-input profesor-citaciones-inline-style-24">
-                </div>
-                <div class="com-dest__list" id="comDestList">
-                    <p class="profesor-citaciones-inline-style-25">Cargando...</p>
-                </div>
-                <div class="com-dest__foot">
-                    <p id="comDestFooter" class="profesor-citaciones-inline-style-26"></p>
-                </div>
-            </div>
 
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="modalLectoresComProf">
+        <div class="modal modal-lectores">
+            <button class="modal-detalle__close" id="btnCerrarLectoresComProf" aria-label="Cerrar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="lectores-head">
+                <p class="lectores-title">Quiénes lo leyeron</p>
+                <p class="lectores-subtitle" id="lectoresComResumenProf"></p>
+            </div>
+            <div class="lectores-progress"><span id="lectoresComBarraProf"></span></div>
+            <div class="lectores-stats" id="lectoresComStatsProf"></div>
+            <div class="lectores-list" id="lectoresComListaProf"></div>
+            <div class="lectores-footer">
+                <button class="btn-secondary" id="btnVolverDetalleComProf">Volver</button>
+            </div>
         </div>
     </div>
 

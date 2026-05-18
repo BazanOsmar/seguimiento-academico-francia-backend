@@ -318,6 +318,25 @@
         .dot-F { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
         .dot-A { background: #fb923c; box-shadow: 0 0 8px #fb923c; }
         .dot-L { background: #60a5fa; box-shadow: 0 0 8px #60a5fa; }
+        .est-select { flex-shrink: 0; appearance: none; border: 1.5px solid var(--border-subtle); border-radius: 8px; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; outline: none; transition: border-color .15s, background .15s; background: var(--bg-card); color: var(--text-primary); }
+        .est-select:focus { border-color: var(--accent); }
+        .est-select:disabled { opacity: .5; cursor: not-allowed; }
+        .est-select--PRESENTE { color: var(--success); border-color: var(--success); }
+        .est-select--FALTA    { color: var(--danger);  border-color: var(--danger);  }
+        .est-select--ATRASO   { color: #fb923c;         border-color: #fb923c;         }
+        .est-select--LICENCIA { color: #60a5fa;         border-color: #60a5fa;         }
+
+        /* ── Modal confirmación cambio asistencia ── */
+        .modal-confirm-asist { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px 20px; max-width: 340px; width: 90%; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+        .modal-confirm-asist__icon { width: 52px; height: 52px; border-radius: 50%; background: rgba(251,146,60,.12); color: #fb923c; display: flex; align-items: center; justify-content: center; }
+        .modal-confirm-asist__title { font-size: 1rem; font-weight: 800; color: var(--text-primary); margin: 0; }
+        .modal-confirm-asist__msg { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; margin: 0; }
+        .modal-confirm-asist__msg strong { color: var(--text-primary); }
+        .modal-confirm-asist__actions { display: flex; gap: 10px; width: 100%; margin-top: 4px; }
+        .modal-confirm-asist__btn { flex: 1; height: 40px; border: none; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity .15s; }
+        .modal-confirm-asist__btn:hover { opacity: .85; }
+        .modal-confirm-asist__btn--cancel { background: var(--bg-app); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+        .modal-confirm-asist__btn--ok { background: var(--accent); color: #fff; }
 
 .director-control-diario-inline-style-1 { display:flex;align-items:center;gap:12px; }
 .director-control-diario-inline-style-2 { display:none; }
