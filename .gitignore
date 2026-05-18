@@ -12,6 +12,9 @@ scrips de python/
 *.xlsx
 *.xls
 
+# Modelos ML
+*.joblib
+
 # Byte-compiled / optimized
 __pycache__/
 *.py[cod]
@@ -72,4 +75,4 @@ analisis_nombres_estudiantes.md
 .claude/
 
 
-seed_asignaciones_2026.sql
+seed_asignaciones_2026.sqlstaging_dump.json

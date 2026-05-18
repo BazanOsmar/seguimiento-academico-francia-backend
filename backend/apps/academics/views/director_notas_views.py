@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -10,16 +11,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count
 
 from ..models import ProfesorCurso, ProfesorPlan
+from ..services.centralizador_service import generar_centralizador_xlsx
 from ..services.notas_mongo_service import (
+    _get_db,
     cursos_con_notas_mes,
-    hay_notas_mes,
-    obtener_cambios_notas_mes,
-    obtener_notas_mes,
     todos_pc_con_notas_mes,
 )
-
-_MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 
 class DirectorResumenNotasMesView(APIView):
@@ -136,73 +133,6 @@ class DirectorResumenNotasMesView(APIView):
         return Response({'mes': mes, 'gestion': gestion, 'profesores': resultado})
 
 
-class DirectorNotasMesDetalleView(APIView):
-    """
-    GET /api/academics/director/notas-mes-detalle/?pc_id=X&mes=Y
-
-    Devuelve las notas cargadas de un ProfesorCurso para el mes indicado.
-    Requiere permiso Director. No restringe al profesor dueño.
-
-    Respuesta (notas presentes):
-    {
-        "ya_subidas": true,
-        "headers_por_trim": { "1TRIM": { "saber": [...], "hacer": [...] } },
-        "metadata": {
-            "materia": "Matemáticas",
-            "curso": "3ro \"A\"",
-            "profesor": "Juan Pérez",
-            "mes": 4,
-            "mes_nombre": "Abril",
-            "gestion": 2026
-        }
-    }
-    """
-    permission_classes = [IsAuthenticated, IsDirector]
-
-    def get(self, request):
-        try:
-            pc_id = int(request.query_params.get('pc_id', 0))
-            mes   = int(request.query_params.get('mes', 0))
-        except (ValueError, TypeError):
-            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not pc_id or not 1 <= mes <= 12:
-            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            pc = ProfesorCurso.objects.select_related('profesor', 'materia', 'curso').get(pk=pc_id)
-        except ProfesorCurso.DoesNotExist:
-            return Response({'errores': 'Asignación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-
-        gestion = timezone.now().year
-
-        if not hay_notas_mes(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion):
-            return Response({'ya_subidas': False})
-
-        headers_por_trim = obtener_notas_mes(
-            pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion
-        )
-        cambios_notas = obtener_cambios_notas_mes(
-            pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion
-        )
-
-        nombre_prof = f"{pc.profesor.first_name} {pc.profesor.last_name}".strip() or pc.profesor.username
-
-        return Response({
-            'ya_subidas':      True,
-            'headers_por_trim': headers_por_trim,
-            'cambios_notas':    cambios_notas,
-            'metadata': {
-                'materia':    pc.materia.nombre,
-                'curso':      f"{pc.curso.grado} \"{pc.curso.paralelo}\"",
-                'profesor':   nombre_prof,
-                'mes':        mes,
-                'mes_nombre': _MESES[mes] if 1 <= mes <= 12 else str(mes),
-                'gestion':    gestion,
-            },
-        })
-
-
 class DirectorSeguimientoProfesoresView(APIView):
     """
     GET /api/academics/director/seguimiento-profesores/?mes=X
@@ -276,3 +206,195 @@ class DirectorSeguimientoProfesoresView(APIView):
             'gestion':    gestion,
             'profesores': list(profesores.values()),
         })
+
+
+class DirectorCentralizadorView(APIView):
+    """
+    GET /api/academics/director/centralizador/
+
+    Genera y devuelve el centralizador de notas (.xlsx) de la gestión actual.
+    Solo Director.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        gestion = timezone.localtime(timezone.now()).year
+        try:
+            buffer = generar_centralizador_xlsx(gestion)
+        except Exception as exc:  # pragma: no cover
+            return Response(
+                {'errores': f'No se pudo generar el centralizador: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = (
+            f'attachment; filename="centralizador_{gestion}.xlsx"'
+        )
+        return response
+
+
+class DirectorMesesConNotasView(APIView):
+    """
+    GET /api/academics/director/meses-con-notas/
+
+    Devuelve la lista de meses (1-12) que tienen al menos una nota registrada
+    en la gestión actual. Solo Director.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        gestion = timezone.localtime(timezone.now()).year
+        col = _get_db()['detalle_notas']
+        meses = sorted({
+            int(m) for m in col.distinct('mes', {'gestion': gestion})
+            if isinstance(m, int) or (isinstance(m, str) and m.isdigit())
+        })
+        nombres = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+        return Response({
+            'gestion': gestion,
+            'meses':   [{'mes': m, 'nombre': nombres[m] if 1 <= m <= 12 else str(m)} for m in meses],
+        })
+
+
+class DirectorProfesoresConNotasView(APIView):
+    """
+    GET /api/academics/director/profesores-con-notas/
+
+    Lista de profesores que tienen al menos una nota en la gestión actual.
+    Solo Director.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        gestion  = timezone.localtime(timezone.now()).year
+        prof_ids = list(_get_db()['detalle_notas'].distinct('profesor_id', {'gestion': gestion}))
+        if not prof_ids:
+            return Response({'gestion': gestion, 'profesores': []})
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        profs = (
+            User.objects
+            .filter(id__in=prof_ids)
+            .order_by('last_name', 'first_name')
+        )
+        data = []
+        for u in profs:
+            nombre = f"{u.first_name} {u.last_name}".strip() or u.username
+            data.append({'id': u.id, 'nombre': nombre, 'username': u.username})
+        return Response({'gestion': gestion, 'profesores': data})
+
+
+class DirectorNotasExportView(APIView):
+    """
+    GET /api/academics/director/notas-export/?mes=&profesor_id=&curso_id=
+
+    Genera un .xlsx con las notas del profesor indicado, opcionalmente filtrado
+    por curso. `mes` puede ser 1..12 o "actualizadas" (último mes con notas por
+    cada (curso, materia)).
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        mes_param   = (request.query_params.get('mes') or '').strip()
+        profesor_id = request.query_params.get('profesor_id')
+        curso_id    = request.query_params.get('curso_id')
+
+        if not profesor_id:
+            return Response({'errores': 'profesor_id es requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            profesor_id = int(profesor_id)
+            curso_id    = int(curso_id) if curso_id else None
+        except (TypeError, ValueError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if mes_param != 'actualizadas':
+            try:
+                m = int(mes_param)
+                if not (1 <= m <= 12):
+                    raise ValueError
+            except (TypeError, ValueError):
+                return Response({'errores': 'Mes inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        gestion = timezone.localtime(timezone.now()).year
+
+        from ..services.notas_export_service import generar_excel_notas
+        buf = generar_excel_notas(profesor_id, curso_id, mes_param, gestion)
+        if buf is None:
+            return Response(
+                {'errores': 'Sin notas para los filtros seleccionados.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        sufijo = mes_param if mes_param == 'actualizadas' else f'mes{mes_param}'
+        response['Content-Disposition'] = f'attachment; filename="notas_{sufijo}_prof{profesor_id}.xlsx"'
+        return response
+
+
+class DirectorEliminarNotasMesView(APIView):
+    """
+    POST /api/academics/director/eliminar-notas-mes/
+
+    Body JSON (cualquiera de las dos formas):
+        { "pc_id": int, "mes": int }                          ← simple
+        { "profesor_id", "mes", "curso_id"?, "materia_id"? }  ← detallado
+
+    Reglas:
+      - Solo Director.
+      - Solo se puede borrar la carga del MES ACTUAL (gestión actual).
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def post(self, request):
+        try:
+            mes = int(request.data.get('mes'))
+        except (TypeError, ValueError):
+            return Response({'errores': 'mes inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not (1 <= mes <= 12):
+            return Response({'errores': 'Mes inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ahora = timezone.localtime(timezone.now())
+        if mes != ahora.month:
+            return Response(
+                {'errores': 'Solo se pueden eliminar notas del mes en curso.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pc_id = request.data.get('pc_id')
+        if pc_id:
+            try:
+                pc = ProfesorCurso.objects.select_related('profesor', 'curso', 'materia').get(pk=int(pc_id))
+            except (ProfesorCurso.DoesNotExist, ValueError, TypeError):
+                return Response({'errores': 'Asignación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            profesor_id = pc.profesor_id
+            curso_id    = pc.curso_id
+            materia_id  = pc.materia_id
+        else:
+            try:
+                profesor_id = int(request.data.get('profesor_id'))
+            except (TypeError, ValueError):
+                return Response({'errores': 'profesor_id requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                curso_id   = int(request.data['curso_id'])   if request.data.get('curso_id')   not in (None, '') else None
+                materia_id = int(request.data['materia_id']) if request.data.get('materia_id') not in (None, '') else None
+            except (TypeError, ValueError):
+                return Response({'errores': 'curso_id / materia_id inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from ..services.notas_mongo_service import eliminar_notas_mes
+        resumen = eliminar_notas_mes(
+            profesor_id=profesor_id,
+            mes=mes,
+            gestion=ahora.year,
+            curso_id=curso_id,
+            materia_id=materia_id,
+        )
+        return Response(resumen, status=status.HTTP_200_OK)

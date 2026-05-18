@@ -16,13 +16,22 @@ const CLUSTER_COLORES = {
     'Muy Bien':             '#3b82f6',
 };
 
-// Estado K-Means (datos cargados)
-let _kmeansData = null;
+const RIESGO_COLORES = {
+    'Alto':  '#ef4444',
+    'Medio': '#f59e0b',
+    'Bajo':  '#22c55e',
+};
 
-// ── Estado de los gráficos ───────────────────────────────────────
-let _charts = {};
+let _kmeansData     = null;
+let _charts         = {};
+let _kmeansFiltrados = [];
+let _kmeansPagina   = 1;
+const _KMEANS_PAGE  = 20;
 
-// ── Colores Chart.js (fijos, usando valores de paleta) ────────────
+let _arbolPage      = 1;
+let _arbolFiltros   = {};
+
+const _baseFont = { family: 'inherit', size: 12 };
 const C = {
     verde:    '#22c55e',
     rojo:     '#ef4444',
@@ -32,16 +41,25 @@ const C = {
     morado:   '#a855f7',
 };
 
-// ── Opciones comunes Chart.js ─────────────────────────────────────
-const _baseFont = { family: 'inherit', size: 12 };
+// ════════════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════════════
+function _inicializarTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
+        });
+    });
+}
 
 // ════════════════════════════════════════════════════════════════
-// 1. KPI CARDS — datos reales
+// 1. KPI CARDS
 // ════════════════════════════════════════════════════════════════
 async function _cargarKPIs() {
     const hoy = new Date().toISOString().split('T')[0];
 
-    // Paralelo: estudiantes, cursos, citaciones pendientes, asistencia hoy
     const [resEstudiantes, resCursos, resCitaciones, resAsistencia] = await Promise.all([
         fetchAPI('/api/students/'),
         fetchAPI('/api/academics/cursos/'),
@@ -49,36 +67,25 @@ async function _cargarKPIs() {
         fetchAPI(`/api/attendance/estado-diario/?fecha=${hoy}`),
     ]);
 
-    // Total estudiantes
-    if (resEstudiantes.ok && Array.isArray(resEstudiantes.data)) {
+    if (resEstudiantes.ok && Array.isArray(resEstudiantes.data))
         document.getElementById('kpi-estudiantes').textContent = resEstudiantes.data.length;
-    }
 
-    // Total cursos
-    if (resCursos.ok && Array.isArray(resCursos.data)) {
+    if (resCursos.ok && Array.isArray(resCursos.data))
         document.getElementById('kpi-cursos').textContent = resCursos.data.length;
-    }
 
-    // Citaciones pendientes
-    if (resCitaciones.ok && Array.isArray(resCitaciones.data)) {
+    if (resCitaciones.ok && Array.isArray(resCitaciones.data))
         document.getElementById('kpi-citaciones').textContent = resCitaciones.data.length;
-    }
 
-    // Asistencia hoy: % sesiones registradas vs total cursos
     if (resAsistencia.ok && resAsistencia.data) {
         const totalCursos = resCursos.ok && Array.isArray(resCursos.data) ? resCursos.data.length : 0;
         const sesionesHoy = Array.isArray(resAsistencia.data.sesiones) ? resAsistencia.data.sesiones.length : 0;
-        if (totalCursos > 0) {
-            const pct = Math.round((sesionesHoy / totalCursos) * 100);
-            document.getElementById('kpi-asistencia').textContent = `${pct}%`;
-        } else {
-            document.getElementById('kpi-asistencia').textContent = '—';
-        }
+        document.getElementById('kpi-asistencia').textContent =
+            totalCursos > 0 ? `${Math.round((sesionesHoy / totalCursos) * 100)}%` : '—';
     }
 }
 
 // ════════════════════════════════════════════════════════════════
-// 2. K-MEANS — datos reales
+// 2. K-MEANS
 // ════════════════════════════════════════════════════════════════
 async function _cargarKMeans(mes, gestion) {
     const estadoEl = document.getElementById('kmeansEstado');
@@ -93,21 +100,22 @@ async function _cargarKMeans(mes, gestion) {
             `<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos para este mes.</td></tr>`;
         document.getElementById('clusterCards').innerHTML =
             `<div style="color:var(--text-muted);font-size:0.8rem;padding:20px 0">Sin datos disponibles.</div>`;
-        if (_charts.burbuja)    _charts.burbuja.destroy();
-        if (_charts.distCurso)  _charts.distCurso.destroy();
+        document.getElementById('paginacionKmeans').style.display = 'none';
+        if (_charts.burbuja)   _charts.burbuja.destroy();
+        if (_charts.distCurso) _charts.distCurso.destroy();
         return;
     }
 
     _kmeansData = data;
+    _kmeansPagina = 1;
 
     const mesesNombres = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const fechaStr = data.fecha_analisis ? new Date(data.fecha_analisis).toLocaleString('es-BO') : '—';
     estadoEl.textContent = `Último análisis: ${mesesNombres[mes]} ${gestion} · ${data.estudiantes.length} estudiantes · ${data.k} grupos · Generado: ${fechaStr}`;
 
-    _renderBubbleChart(data.estudiantes);
+    _renderScatterKmeans(data.estudiantes);
     _renderClusterCards(data.estudiantes);
     _renderDistribucionPorCurso(data.estudiantes);
-    _renderTablaKmeans(data.estudiantes);
     _inicializarFiltrosKmeans(data.estudiantes);
 }
 
@@ -138,9 +146,12 @@ async function _ejecutarKMeans() {
     await _cargarKMeans(mes, gestion);
 }
 
-function _renderBubbleChart(estudiantes) {
+// Scatter PCA (usa pca_x/pca_y si están disponibles, si no cae en asistencia vs nota)
+function _renderScatterKmeans(estudiantes) {
     const ctx = document.getElementById('chartBurbuja').getContext('2d');
     if (_charts.burbuja) _charts.burbuja.destroy();
+
+    const usaPCA = estudiantes.some(e => e.pca_x !== undefined && e.pca_x !== 0 || e.pca_y !== 0);
 
     const porCluster = {};
     estudiantes.forEach(e => {
@@ -153,16 +164,23 @@ function _renderBubbleChart(estudiantes) {
         return {
             label,
             data: lista.map(e => ({
-                x: e.features.pct_asistencia,
-                y: e.nota_mensual,
+                x: usaPCA ? e.pca_x : e.features.pct_asistencia,
+                y: usaPCA ? e.pca_y : e.nota_mensual,
                 r: 7,
                 nombre: e.nombre,
+                nota: e.nota_mensual,
             })),
             backgroundColor: color + 'bb',
             borderColor: color,
             borderWidth: 1.5,
         };
     });
+
+    const xLabel = usaPCA ? 'Componente Principal 1' : '% Asistencia';
+    const yLabel = usaPCA ? 'Componente Principal 2' : 'Nota mensual /95';
+    const chartTitle = usaPCA ? 'Scatter PCA — Componente 1 vs 2' : 'Scatter — Asistencia vs Nota Mensual';
+
+    document.querySelector('#chartBurbuja').closest('.chart-card').querySelector('.chart-card__title').textContent = chartTitle;
 
     _charts.burbuja = new Chart(ctx, {
         type: 'bubble',
@@ -176,6 +194,8 @@ function _renderBubbleChart(estudiantes) {
                     callbacks: {
                         label: ctx => {
                             const d = ctx.raw;
+                            if (usaPCA)
+                                return ` ${d.nombre} | Nota: ${d.nota}/95`;
                             return ` ${d.nombre} | Asist: ${d.x}% | Nota: ${d.y}/95`;
                         },
                     },
@@ -183,14 +203,12 @@ function _renderBubbleChart(estudiantes) {
             },
             scales: {
                 x: {
-                    title: { display: true, text: '% Asistencia', color: '#64748b', font: _baseFont },
-                    min: 0, max: 105,
-                    ticks: { color: '#64748b', font: _baseFont, callback: v => `${v}%` },
+                    title: { display: true, text: xLabel, color: '#64748b', font: _baseFont },
+                    ticks: { color: '#64748b', font: _baseFont },
                     grid: { color: 'rgba(255,255,255,0.04)' },
                 },
                 y: {
-                    title: { display: true, text: 'Nota mensual /95', color: '#64748b', font: _baseFont },
-                    min: 0, max: 100,
+                    title: { display: true, text: yLabel, color: '#64748b', font: _baseFont },
                     ticks: { color: '#64748b', font: _baseFont },
                     grid: { color: 'rgba(255,255,255,0.06)' },
                 },
@@ -252,14 +270,24 @@ function _tendenciaIcon(val) {
     return '<span style="color:#64748b">→</span>';
 }
 
-function _renderTablaKmeans(estudiantes) {
+function _renderTablaKmeans(lista) {
     const tbody = document.getElementById('tbodyKmeans');
-    if (!estudiantes.length) {
+    const pagRow = document.getElementById('paginacionKmeans');
+
+    const totalPags = Math.ceil(lista.length / _KMEANS_PAGE) || 1;
+    if (_kmeansPagina > totalPags) _kmeansPagina = totalPags;
+
+    const inicio = (_kmeansPagina - 1) * _KMEANS_PAGE;
+    const pagina = lista.slice(inicio, inicio + _KMEANS_PAGE);
+
+    if (!pagina.length) {
         tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos.</td></tr>`;
+        pagRow.style.display = 'none';
+        document.getElementById('kmeansConteo').textContent = '0 estudiantes';
         return;
     }
 
-    tbody.innerHTML = estudiantes.map(e => {
+    tbody.innerHTML = pagina.map(e => {
         const color = CLUSTER_COLORES[e.cluster] || '#94a3b8';
         const f = e.features;
         return `
@@ -283,17 +311,25 @@ function _renderTablaKmeans(estudiantes) {
         `;
     }).join('');
 
-    document.getElementById('kmeansConteo').textContent = `${estudiantes.length} estudiantes`;
+    document.getElementById('kmeansConteo').textContent = `${lista.length} estudiantes`;
+
+    if (lista.length > _KMEANS_PAGE) {
+        pagRow.style.display = 'flex';
+        document.getElementById('kPagInfo').textContent = `Pág. ${_kmeansPagina} de ${totalPags}`;
+        document.getElementById('kPrevBtn').disabled = _kmeansPagina <= 1;
+        document.getElementById('kNextBtn').disabled = _kmeansPagina >= totalPags;
+    } else {
+        pagRow.style.display = 'none';
+    }
 }
 
-// Orden canónico de clusters de mejor a peor rendimiento
 const _ORDEN_CLUSTERS = [
     'Excelente', 'Rendimiento Adecuado', 'Satisfactorio', 'Muy Bien',
     'En Desarrollo', 'Requiere Apoyo', 'Riesgo Académico', 'Riesgo Crítico',
 ];
 
 function _renderDistribucionPorCurso(estudiantes) {
-    const cursos = [...new Set(estudiantes.map(e => e.curso))].sort();
+    const cursos   = [...new Set(estudiantes.map(e => e.curso))].sort();
     const clusters = [...new Set(estudiantes.map(e => e.cluster))]
         .sort((a, b) => {
             const ia = _ORDEN_CLUSTERS.indexOf(a);
@@ -315,7 +351,6 @@ function _renderDistribucionPorCurso(estudiantes) {
         };
     });
 
-    // Altura dinámica según cantidad de cursos
     const wrap = document.getElementById('distCursoWrap');
     wrap.style.height = `${Math.max(140, cursos.length * 38)}px`;
 
@@ -357,12 +392,10 @@ function _inicializarFiltrosKmeans(estudiantes) {
     const selCurso   = document.getElementById('filtroKmeansCurso');
     const selCluster = document.getElementById('filtroKmeansCluster');
 
-    // Poblar cursos únicos
     const cursos = [...new Set(estudiantes.map(e => e.curso))].sort();
     selCurso.innerHTML = '<option value="">Todos los cursos</option>';
     cursos.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCurso.appendChild(o); });
 
-    // Poblar clusters únicos
     const clusters = [...new Set(estudiantes.map(e => e.cluster))];
     selCluster.innerHTML = '<option value="">Todos los grupos</option>';
     clusters.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCluster.appendChild(o); });
@@ -370,32 +403,192 @@ function _inicializarFiltrosKmeans(estudiantes) {
     const filtrar = () => {
         const curso   = selCurso.value;
         const cluster = selCluster.value;
-        const filtrados = estudiantes.filter(e =>
+        _kmeansFiltrados = estudiantes.filter(e =>
             (!curso   || e.curso   === curso) &&
             (!cluster || e.cluster === cluster)
         );
-        _renderTablaKmeans(filtrados);
+        _kmeansPagina = 1;
+        _renderTablaKmeans(_kmeansFiltrados);
     };
 
+    _kmeansFiltrados = [...estudiantes];
+    _renderTablaKmeans(_kmeansFiltrados);
+
+    selCurso.removeEventListener('change', filtrar);
+    selCluster.removeEventListener('change', filtrar);
     selCurso.addEventListener('change', filtrar);
     selCluster.addEventListener('change', filtrar);
+
+    // Paginación K-Means
+    document.getElementById('kPrevBtn').onclick = () => { _kmeansPagina--; _renderTablaKmeans(_kmeansFiltrados); };
+    document.getElementById('kNextBtn').onclick = () => { _kmeansPagina++; _renderTablaKmeans(_kmeansFiltrados); };
+}
+
+// ════════════════════════════════════════════════════════════════
+// 3. ÁRBOLES DE DECISIÓN
+// ════════════════════════════════════════════════════════════════
+async function _cargarArbol(mes, gestion, page) {
+    const estadoEl = document.getElementById('arbolEstado');
+    estadoEl.style.display = 'block';
+    estadoEl.textContent = 'Cargando predicciones…';
+
+    _arbolPage = page || 1;
+
+    const params = new URLSearchParams({
+        gestion, mes, page: _arbolPage, page_size: 20,
+        ..._arbolFiltros,
+    });
+
+    const { ok, data } = await fetchAPI(`/api/analytics/arbol/resultados/?${params}`);
+
+    if (!ok) {
+        estadoEl.textContent = data?.errores || 'Error al cargar los resultados.';
+        return;
+    }
+
+    const mesesNombres = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const fechaStr = data.fecha_analisis ? new Date(data.fecha_analisis).toLocaleString('es-BO') : '—';
+
+    if (!data.total) {
+        estadoEl.textContent = `Sin predicciones para ${mesesNombres[mes]} ${gestion}. El análisis se ejecuta automáticamente cuando todos los profesores cargan su planilla.`;
+        document.getElementById('tbodyArbol').innerHTML =
+            `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos para este mes.</td></tr>`;
+        document.getElementById('paginacionArbol').style.display = 'none';
+        _actualizarKpisArbol({});
+        return;
+    }
+
+    estadoEl.textContent = `Último análisis: ${mesesNombres[mes]} ${gestion} · ${data.total} predicciones · Generado: ${fechaStr}`;
+
+    _actualizarKpisArbol(data.resumen_riesgo || {}, data.total);
+    _poblarFiltrosArbol(data.opciones || {});
+    _renderTablaArbol(data.resultados || [], data.total, data.pages);
+}
+
+function _actualizarKpisArbol(resumen, total) {
+    document.getElementById('arbol-kpi-total').textContent = total || (Object.values(resumen).reduce((s, v) => s + v, 0)) || '—';
+    document.getElementById('arbol-kpi-alto').textContent  = resumen['Alto']  ?? '—';
+    document.getElementById('arbol-kpi-medio').textContent = resumen['Medio'] ?? '—';
+    document.getElementById('arbol-kpi-bajo').textContent  = resumen['Bajo']  ?? '—';
+
+    ['arbol-kpi-total','arbol-kpi-alto','arbol-kpi-medio','arbol-kpi-bajo']
+        .forEach(id => document.getElementById(id).classList.remove('loading'));
+}
+
+function _poblarFiltrosArbol(opciones) {
+    const selCurso   = document.getElementById('filtroArbolCurso');
+    const selMateria = document.getElementById('filtroArbolMateria');
+
+    const curActual = selCurso.value;
+    const matActual = selMateria.value;
+
+    if (opciones.cursos && opciones.cursos.length) {
+        selCurso.innerHTML = '<option value="">Todos los cursos</option>';
+        opciones.cursos.forEach(c => {
+            const o = document.createElement('option');
+            o.value = c.id; o.textContent = c.label;
+            if (String(c.id) === curActual) o.selected = true;
+            selCurso.appendChild(o);
+        });
+    }
+
+    if (opciones.materias && opciones.materias.length) {
+        selMateria.innerHTML = '<option value="">Todas las materias</option>';
+        opciones.materias.forEach(m => {
+            const o = document.createElement('option');
+            o.value = m.id; o.textContent = m.label;
+            if (String(m.id) === matActual) o.selected = true;
+            selMateria.appendChild(o);
+        });
+    }
+}
+
+function _renderTablaArbol(resultados, total, pages) {
+    const tbody   = document.getElementById('tbodyArbol');
+    const pagRow  = document.getElementById('paginacionArbol');
+
+    if (!resultados.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Sin resultados con los filtros actuales.</td></tr>`;
+        pagRow.style.display = 'none';
+        document.getElementById('arbolConteo').textContent = '0 resultados';
+        return;
+    }
+
+    tbody.innerHTML = resultados.map(r => {
+        const badgeClass = `risk-badge risk-badge--${r.riesgo}`;
+        const probColor  = r.riesgo === 'Alto' ? '#ef4444' : r.riesgo === 'Medio' ? '#f59e0b' : '#22c55e';
+        const modeloLabel = r.modelo === 1 ? 'T1' : 'T1+T2';
+        return `
+            <tr>
+                <td style="font-weight:500">${r.nombre}</td>
+                <td style="color:var(--text-muted)">${r.curso}</td>
+                <td>${r.materia}</td>
+                <td><span class="${badgeClass}">${r.riesgo}</span></td>
+                <td style="font-weight:600;color:${probColor}">${r.probabilidad_reprobar}%</td>
+                <td style="color:var(--text-muted);font-size:0.72rem">${modeloLabel}</td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('arbolConteo').textContent = `${total} resultado${total !== 1 ? 's' : ''}`;
+
+    if (pages > 1) {
+        pagRow.style.display = 'flex';
+        document.getElementById('aPagInfo').textContent = `Pág. ${_arbolPage} de ${pages}`;
+        document.getElementById('aPrevBtn').disabled = _arbolPage <= 1;
+        document.getElementById('aNextBtn').disabled = _arbolPage >= pages;
+    } else {
+        pagRow.style.display = 'none';
+    }
+}
+
+function _inicializarFiltrosArbol() {
+    const selMes     = document.getElementById('arbolMes');
+    const selCurso   = document.getElementById('filtroArbolCurso');
+    const selMateria = document.getElementById('filtroArbolMateria');
+    const selRiesgo  = document.getElementById('filtroArbolRiesgo');
+
+    const recargar = () => {
+        _arbolFiltros = {};
+        if (selCurso.value)   _arbolFiltros.curso_id   = selCurso.value;
+        if (selMateria.value) _arbolFiltros.materia_id = selMateria.value;
+        if (selRiesgo.value)  _arbolFiltros.riesgo     = selRiesgo.value;
+        _cargarArbol(parseInt(selMes.value), new Date().getFullYear(), 1);
+    };
+
+    selMes.addEventListener('change', recargar);
+    selCurso.addEventListener('change', recargar);
+    selMateria.addEventListener('change', recargar);
+    selRiesgo.addEventListener('change', recargar);
+
+    document.getElementById('aPrevBtn').onclick = () =>
+        _cargarArbol(parseInt(selMes.value), new Date().getFullYear(), _arbolPage - 1);
+    document.getElementById('aNextBtn').onclick = () =>
+        _cargarArbol(parseInt(selMes.value), new Date().getFullYear(), _arbolPage + 1);
 }
 
 // ════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
-    // KPIs (async, real data)
+    _inicializarTabs();
     _cargarKPIs();
 
-    // K-Means — seleccionar mes actual por defecto y cargar resultados
     const mesActual = new Date().getMonth() + 1;
-    const selMes = document.getElementById('kmeansMes');
-    selMes.value = mesActual;
-    _cargarKMeans(mesActual, new Date().getFullYear());
+    const gestion   = new Date().getFullYear();
 
-    selMes.addEventListener('change', () =>
-        _cargarKMeans(parseInt(selMes.value), new Date().getFullYear())
+    // K-Means
+    const selMesKmeans = document.getElementById('kmeansMes');
+    selMesKmeans.value = mesActual;
+    _cargarKMeans(mesActual, gestion);
+    selMesKmeans.addEventListener('change', () =>
+        _cargarKMeans(parseInt(selMesKmeans.value), gestion)
     );
     document.getElementById('btnEjecutarKmeans').addEventListener('click', _ejecutarKMeans);
+
+    // Árboles
+    const selMesArbol = document.getElementById('arbolMes');
+    selMesArbol.value = mesActual;
+    _inicializarFiltrosArbol();
+    _cargarArbol(mesActual, gestion, 1);
 });

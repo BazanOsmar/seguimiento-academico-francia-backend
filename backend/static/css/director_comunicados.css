@@ -1149,6 +1149,65 @@
 .com-chevron { margin-left: 2px; opacity: .7; }
 .com-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .com-prof-grupo-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.com-course-picker { position: relative; }
+.com-course-picker__button {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+.com-course-picker__menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    box-shadow: 0 14px 30px rgba(0,0,0,.3);
+}
+.com-course-picker__menu.visible { display: block; }
+.com-course-picker__option {
+    width: 100%;
+    padding: 8px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+.com-course-picker__option:hover {
+    background: rgba(255,255,255,.08);
+}
+.com-course-picker__empty {
+    margin: 0;
+    padding: 10px 14px;
+    color: var(--text-muted);
+    font-size: .82rem;
+}
+.com-prof-grupo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: .78rem;
+}
+.com-prof-grupo-pill button {
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font: inherit;
+    line-height: 1;
+}
 .modal-form .form-textarea { resize: none; }
 
 .com-cobertura-panel {

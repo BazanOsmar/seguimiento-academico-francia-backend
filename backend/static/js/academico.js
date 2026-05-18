@@ -2603,12 +2603,12 @@ function _pnActualizarBadge() {
 // ── Carga de datos ────────────────────────────────────────────────
 async function _pnCargar() {
     _pnActualizarBadge();
-    const grid = document.getElementById('pnGrid');
-    grid.innerHTML = '<div class="spinner-inline"></div>';
+    const wrap = document.getElementById('pnTableWrap');
+    if (wrap) wrap.innerHTML = '<div class="vp-follow-loading"><div class="spinner-inline"></div></div>';
 
     const { ok, data } = await fetchAPI(`/api/academics/director/resumen-notas-mes/?mes=${_pnMes}`);
     if (!ok) {
-        grid.innerHTML = `<div class="empty-state">
+        if (wrap) wrap.innerHTML = `<div class="empty-state vp-follow-empty">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
@@ -2656,25 +2656,36 @@ function _pnActualizarContadores() {
     }
 }
 
-// ── Render completo del grid (una sola vez tras la carga) ─────────
+// ── Render como tabla (reemplaza el grid de cards) ───────────────
 function _pnRenderGrid() {
-    const grid = document.getElementById('pnGrid');
+    const wrap = document.getElementById('pnTableWrap');
+    if (!wrap) return;
 
     if (!_pnDatos.length) {
-        grid.innerHTML = `<div class="empty-state pn-grid-empty">
+        wrap.innerHTML = `<div class="empty-state vp-follow-empty">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
             </svg>
             No hay profesores registrados.
         </div>`;
         return;
     }
 
-    // Render TODOS los cards con data-estado para el filtro por CSS
-    grid.innerHTML = _pnDatos.map((p, i) => _pnHtmlCard(p, i)).join('') +
-        `<div class="empty-state pn-empty-filtered">
+    wrap.innerHTML = `
+        <table class="vp-follow-table">
+            <thead>
+                <tr>
+                    <th>Profesor</th>
+                    <th>Cursos asignados</th>
+                    <th>Notas cargadas</th>
+                </tr>
+            </thead>
+            <tbody id="pnTableBody">
+                ${_pnDatos.map((p, i) => _pnHtmlRow(p, i)).join('')}
+            </tbody>
+        </table>
+        <div class="empty-state pn-empty-filtered" style="display:none;">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
@@ -2683,38 +2694,38 @@ function _pnRenderGrid() {
             <span id="pnEmptyFilteredMsg">Sin resultados para este filtro.</span>
         </div>`;
 
-    // Attach chip handlers
-    grid.querySelectorAll('.pn-chip--ok').forEach(chip => {
-        const profIdx  = parseInt(chip.dataset.profIdx,  10);
-        const cursoIdx = parseInt(chip.dataset.cursoIdx, 10);
-        chip.addEventListener('click', () => _pnChipClick(profIdx, cursoIdx));
+    // Clicks en filas con notas cargadas → abrir picker / navegar
+    wrap.querySelectorAll('tr[data-clickable="1"]').forEach(tr => {
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', () => {
+            const profIdx = parseInt(tr.dataset.profIdx, 10);
+            _pnAbrirProfesor(profIdx);
+        });
     });
 
-    // Aplicar filtro inicial (Todos por defecto)
     _pnAplicarFiltro();
 }
 
-// ── Filtro por CSS — sin re-fetch, sin re-render ──────────────────
+// ── Filtro: oculta filas <tr> por estado y query ─────────────────
 function _pnAplicarFiltro() {
-    const cards  = document.querySelectorAll('.pn-card[data-estado]');
+    const rows = document.querySelectorAll('#pnTableBody tr[data-estado]');
     const query = (document.getElementById('pnBuscarProfesor')?.value || '').trim().toLowerCase();
-    let   visible = 0;
+    let visible = 0;
 
-    cards.forEach(card => {
-        const estado = card.dataset.estado;
-        const search = card.dataset.search || '';
+    rows.forEach(row => {
+        const estado = row.dataset.estado;
+        const search = row.dataset.search || '';
         let mostrar = true;
         if (_pnFiltro === 'completados') mostrar = estado === 'completo';
         if (_pnFiltro === 'progreso') mostrar = estado === 'progreso';
         if (_pnFiltro === 'no-iniciado') mostrar = estado === 'no-iniciado';
         if (query && !search.includes(query)) mostrar = false;
-        card.style.display = mostrar ? '' : 'none';
+        row.style.display = mostrar ? '' : 'none';
         if (mostrar) visible++;
     });
 
-    // Mensaje vacío si ninguna tarjeta visible
-    const emptyEl  = document.querySelector('.pn-empty-filtered');
-    const msgEl    = document.getElementById('pnEmptyFilteredMsg');
+    const emptyEl = document.querySelector('.pn-empty-filtered');
+    const msgEl   = document.getElementById('pnEmptyFilteredMsg');
     if (emptyEl) {
         emptyEl.style.display = visible === 0 ? '' : 'none';
         if (msgEl && visible === 0) {
@@ -2728,51 +2739,122 @@ function _pnAplicarFiltro() {
     }
 }
 
-// ── HTML de una tarjeta de profesor ──────────────────────────────
-function _pnHtmlCard(p, profIdx) {
-    const estaCompleto = p.total_cursos > 0 && p.cursos_con_notas === p.total_cursos;
-    const estaEnProgreso = !estaCompleto && (p.cursos_con_notas || 0) > 0;
-    const estadoAttr = estaCompleto ? 'completo' : estaEnProgreso ? 'progreso' : 'no-iniciado';
-    const statusText = estaCompleto ? 'Completo' : estaEnProgreso ? 'En progreso' : 'No iniciado';
-    const statusCls = estaCompleto ? 'pn-status--ok' : estaEnProgreso ? 'pn-status--warn' : 'pn-status--empty';
-    const searchText = `${p.nombre || ''} ${p.username || ''}`.toLowerCase();
-    const chips = p.cursos.map((c, cursoIdx) => {
-        if (c.tiene_notas) {
-            return `<button
-                class="pn-chip pn-chip--ok"
-                data-prof-idx="${profIdx}"
-                data-curso-idx="${cursoIdx}"
-                title="Ver notas de ${_escapeHtml(c.curso_nombre)}">
-                ${_escapeHtml(c.curso_nombre)}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                </svg>
-            </button>`;
-        }
-        return `<span class="pn-chip pn-chip--pending" title="Sin notas para ${_escapeHtml(c.curso_nombre)}">
-            ${_escapeHtml(c.curso_nombre)}
-        </span>`;
-    }).join('');
+// ── HTML de una fila ─────────────────────────────────────────────
+function _pnHtmlRow(p, profIdx) {
+    const total       = Number(p.total_cursos) || 0;
+    const conNotas    = Number(p.cursos_con_notas) || 0;
+    const estaCompleto   = total > 0 && conNotas === total;
+    const estaEnProgreso = !estaCompleto && conNotas > 0;
+    const estadoAttr  = estaCompleto ? 'completo' : estaEnProgreso ? 'progreso' : 'no-iniciado';
+    const searchText  = `${p.nombre || ''} ${p.username || ''}`.toLowerCase();
 
-    return `<article class="pn-card${estaCompleto ? ' pn-card--ok' : ''}" data-estado="${estadoAttr}" data-search="${_escapeHtml(searchText)}">
-        <div class="pn-card-accent"></div>
-        <div class="pn-card-top">
-            <div class="pn-card-head">
-                <div class="pn-avatar-shell">
-                    <div class="pn-avatar${estaCompleto ? ' pn-avatar--ok' : ''}">${_escapeHtml(p.iniciales)}</div>
+    return `
+        <tr class="vp-follow-row"
+            data-prof-idx="${profIdx}"
+            data-estado="${estadoAttr}"
+            data-search="${_escapeHtml(searchText)}"
+            data-clickable="1">
+            <td>
+                <div class="vp-follow-prof">
+                    <div class="vp-follow-avatar">${_escapeHtml(p.iniciales || _iniciales(p.nombre || p.username || ''))}</div>
+                    <div class="vp-follow-prof-copy">
+                        <span class="vp-follow-name">${_escapeHtml(p.nombre || p.username || 'Profesor')}</span>
+                        <span class="vp-follow-user">@${_escapeHtml(p.username || '')}</span>
+                    </div>
                 </div>
-                <div class="pn-card-meta">
-                    <div class="pn-card-name">${_escapeHtml(p.nombre)}</div>
-                    <div class="pn-card-username">@${_escapeHtml(p.username)}</div>
-                </div>
-            </div>
-            <span class="pn-status ${statusCls}">${statusText}</span>
-        </div>
-        <div class="pn-card-body">
-            ${p.cursos.length ? `<div class="pn-chips-label">Cursos asignados</div>
-            <div class="pn-chips">${chips}</div>` : `<div class="pn-no-courses">Sin asignaciones en este periodo.</div>`}
-        </div>
-    </article>`;
+            </td>
+            <td><span class="vp-follow-courses">${total}</span></td>
+            <td>${_vpSeguimientoBadge(conNotas, total)}</td>
+        </tr>`;
+}
+
+// ── Click en una fila: abrir modal con TODAS las asignaciones ─────
+async function _pnAbrirProfesor(profIdx) {
+    const prof = _pnDatos[profIdx];
+    if (!prof) return;
+
+    // pc_ids que sí tienen notas este mes (set para lookup rápido).
+    const pcIdsConNotas = new Set();
+    (prof.cursos || []).forEach(c => {
+        (c.pc_ids_con_notas || []).forEach(pc => pcIdsConNotas.add(pc.pc_id));
+    });
+
+    _pnAbrirModalProfesor(prof, null, /*cargando=*/true);
+
+    // Traer TODAS las asignaciones del profesor (con o sin notas).
+    const { ok, data } = await fetchAPI(`/api/academics/director/profesores/${prof.id}/asignaciones/`);
+    if (!ok) {
+        _pnAbrirModalProfesor(prof, null, /*cargando=*/false, /*error=*/true);
+        return;
+    }
+    const tarjetas = (data.asignaciones || []).map(a => ({
+        pc_id:      a.id,
+        curso:      a.curso_nombre,
+        materia:    a.materia_nombre,
+        tiene_notas: pcIdsConNotas.has(a.id),
+    }));
+    // Orden: curso asc, luego materia asc
+    tarjetas.sort((a, b) => a.curso.localeCompare(b.curso) || a.materia.localeCompare(b.materia));
+
+    _pnAbrirModalProfesor(prof, tarjetas, /*cargando=*/false);
+}
+
+function _pnAbrirModalProfesor(prof, tarjetas, cargando = false, error = false) {
+    const overlay  = document.getElementById('pnPickerOverlay');
+    const avatar   = document.getElementById('pnPickerAvatar');
+    const nombreEl = document.getElementById('pnPickerProfNombre');
+    const subEl    = document.getElementById('pnPickerSub');
+    const list     = document.getElementById('pnPickerList');
+    if (!overlay) return;
+
+    const mes = _MESES_NOMBRE[_pnMes] || '';
+
+    if (avatar)   avatar.textContent   = prof.iniciales || _iniciales(prof.nombre || prof.username || '');
+    if (nombreEl) nombreEl.textContent = prof.nombre || prof.username || 'Profesor';
+    if (subEl) {
+        if (cargando) {
+            subEl.textContent = 'Cargando asignaciones…';
+        } else if (error) {
+            subEl.textContent = 'No se pudieron cargar las asignaciones.';
+        } else {
+            const conNotas = (tarjetas || []).filter(t => t.tiene_notas).length;
+            subEl.textContent = conNotas > 0
+                ? `${conNotas} curso${conNotas !== 1 ? 's' : ''} con notas cargadas en ${mes}. Toca un curso para ver el detalle.`
+                : `Sin notas cargadas en ${mes}.`;
+        }
+    }
+
+    if (cargando) {
+        list.innerHTML = '<div class="pn-picker-empty"><div class="spinner-inline"></div></div>';
+    } else if (error) {
+        list.innerHTML = '<div class="pn-picker-empty">Error al cargar las asignaciones.</div>';
+    } else if (!tarjetas || !tarjetas.length) {
+        list.innerHTML = '<div class="pn-picker-empty">Este profesor no tiene asignaciones registradas.</div>';
+    } else {
+        list.innerHTML = tarjetas.map((t, i) => `
+            <button type="button"
+                    class="pn-picker-card${t.tiene_notas ? '' : ' pn-picker-card--disabled'}"
+                    data-idx="${i}"
+                    title="${t.tiene_notas ? 'Ver notas cargadas' : 'Sin notas en ' + mes}">
+                <span class="pn-picker-card__curso">${_escapeHtml(t.curso)}</span>
+                <span class="pn-picker-card__materia">${_escapeHtml(t.materia)}</span>
+                ${t.tiene_notas
+                    ? '<span class="pn-picker-card__badge pn-picker-card__badge--ok">Con notas</span>'
+                    : '<span class="pn-picker-card__badge pn-picker-card__badge--off">Sin notas</span>'}
+            </button>
+        `).join('');
+
+        list.querySelectorAll('.pn-picker-card').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const t = tarjetas[parseInt(btn.dataset.idx, 10)];
+                if (!t || !t.tiene_notas) return;
+                _pnCerrarPicker();
+                _pnNavegar(t.pc_id, prof.nombre, t.curso, t.materia);
+            });
+        });
+    }
+
+    overlay.classList.add('visible');
 }
 
 // ── Clic en chip verde ────────────────────────────────────────────
@@ -2796,7 +2878,15 @@ function _pnChipClick(profIdx, cursoIdx) {
 }
 
 function _pnNavegar(pcId, profesor, curso, materia) {
-    window.location.href = `/director/notas-curso/?pc_id=${pcId}&mes=${_pnMes}`;
+    const params = new URLSearchParams({
+        pc_id: pcId,
+        label: `${materia} — ${curso}`,
+        materia: materia,
+        curso: curso,
+        mes_hasta: String(_pnMes),
+        modo: 'historial',
+    });
+    window.location.href = `/profesor/calificaciones/?${params.toString()}`;
 }
 
 // ── Modal picker de materia ───────────────────────────────────────
@@ -2828,3 +2918,293 @@ function _pnAbrirPicker(pcIds, profNombre, cursoNombre) {
 function _pnCerrarPicker() {
     document.getElementById('pnPickerOverlay').classList.remove('visible');
 }
+
+// ── Descargas: Notas (modal) / Centralizador (directo) ──────────
+(function _initDescargasNotasCentralizador() {
+    const modalNotas       = document.getElementById('modalDescargarNotas');
+    const btnNotas         = document.getElementById('btnDescargarNotas');
+    const btnCloseNotas    = document.getElementById('btnCloseDescargarNotas');
+    const btnCentralizador = document.getElementById('btnDescargarCentralizador');
+
+    const selDnMes        = document.getElementById('selDnMes');
+    const selDnCurso      = document.getElementById('selDnCurso');
+    const selDnProfesor   = document.getElementById('selDnProfesor');
+    const errDnMsg        = document.getElementById('errorDnMsg');
+    const btnConfirmarDn  = document.getElementById('btnConfirmarDescargarNotas');
+
+    let _dnMesesCargados      = false;
+    let _dnProfesoresCargados = false;
+
+    async function _cargarMesesDescargaNotas() {
+        if (_dnMesesCargados) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch('/api/academics/director/meses-con-notas/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data  = await res.json();
+            const meses = data.meses || [];
+            const opcionActualizadas = '<option value="actualizadas">Notas actualizadas</option>';
+            if (!meses.length) {
+                selDnMes.innerHTML = opcionActualizadas;
+            } else {
+                selDnMes.innerHTML =
+                    meses.map(m => `<option value="${m.mes}">${m.nombre}</option>`).join('') +
+                    opcionActualizadas;
+            }
+            _dnMesesCargados = true;
+            btnConfirmarDn.disabled = false;
+        } catch (err) {
+            console.error(err);
+            selDnMes.innerHTML = '<option value="">Error al cargar meses</option>';
+            btnConfirmarDn.disabled = true;
+        }
+    }
+
+    async function _cargarProfesoresDescargaNotas() {
+        if (_dnProfesoresCargados) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch('/api/academics/director/profesores-con-notas/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data  = await res.json();
+            const lista = data.profesores || [];
+            if (!lista.length) {
+                selDnProfesor.innerHTML = '<option value="">Sin profesores con notas</option>';
+                btnConfirmarDn.disabled = true;
+                return;
+            }
+            selDnProfesor.innerHTML = lista
+                .map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            _dnProfesoresCargados = true;
+            // cargar cursos del primer profesor automáticamente
+            await _cargarCursosDelProfesor(selDnProfesor.value);
+        } catch (err) {
+            console.error(err);
+            selDnProfesor.innerHTML = '<option value="">Error al cargar</option>';
+        }
+    }
+
+    async function _cargarCursosDelProfesor(profesorId) {
+        selDnCurso.innerHTML = '<option value="">Cargando…</option>';
+        if (!profesorId) {
+            selDnCurso.innerHTML = '<option value="">Todos sus cursos</option>';
+            return;
+        }
+        try {
+            const token = localStorage.getItem('access_token');
+            const res   = await fetch(`/api/academics/director/profesores/${profesorId}/asignaciones/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const asigs = data.asignaciones || [];
+            const vistos = new Set();
+            const cursos = [];
+            asigs.forEach(a => {
+                if (!vistos.has(a.curso_id)) {
+                    vistos.add(a.curso_id);
+                    cursos.push({ id: a.curso_id, nombre: a.curso_nombre });
+                }
+            });
+            cursos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            selDnCurso.innerHTML =
+                '<option value="">Todos sus cursos</option>' +
+                cursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        } catch (err) {
+            console.error(err);
+            selDnCurso.innerHTML = '<option value="">Todos sus cursos</option>';
+        }
+    }
+
+    selDnProfesor?.addEventListener('change', () => {
+        _cargarCursosDelProfesor(selDnProfesor.value);
+    });
+
+    btnNotas?.addEventListener('click', () => {
+        errDnMsg.style.display = 'none';
+        modalNotas?.classList.add('visible');
+        _cargarMesesDescargaNotas();
+        _cargarProfesoresDescargaNotas();
+    });
+    btnCloseNotas?.addEventListener('click', () => modalNotas?.classList.remove('visible'));
+    modalNotas?.addEventListener('click', e => {
+        if (e.target === modalNotas) modalNotas.classList.remove('visible');
+    });
+
+    btnConfirmarDn?.addEventListener('click', async () => {
+        const mes         = selDnMes.value;          // número 1-12 ó "actualizadas"
+        const cursoId     = selDnCurso.value;
+        const profesorId  = selDnProfesor.value;
+        const cursoLabel  = cursoId
+            ? (selDnCurso.options[selDnCurso.selectedIndex]?.text || cursoId)
+            : 'todos los cursos';
+        const profesorLabel = profesorId
+            ? (selDnProfesor.options[selDnProfesor.selectedIndex]?.text || profesorId)
+            : 'todos los profesores';
+        const mesLabel = selDnMes.options[selDnMes.selectedIndex]?.text || mes;
+
+        if (!mes) {
+            errDnMsg.textContent  = 'Selecciona un mes.';
+            errDnMsg.style.display = '';
+            return;
+        }
+        if (!profesorId) {
+            errDnMsg.textContent  = 'Selecciona un profesor.';
+            errDnMsg.style.display = '';
+            return;
+        }
+        errDnMsg.style.display = 'none';
+
+        modalNotas?.classList.remove('visible');
+        _mostrarLoading(
+            'Preparando descarga…',
+            `Generando ${mesLabel.toLowerCase()} · ${profesorLabel} · ${cursoLabel}.`,
+        );
+
+        try {
+            // TODO: endpoint real. mes="actualizadas" => última nota registrada por profesor.
+            const params = new URLSearchParams({ mes });
+            if (cursoId)    params.set('curso_id',    cursoId);
+            if (profesorId) params.set('profesor_id', profesorId);
+            const token = localStorage.getItem('access_token');
+            const res = await fetch(
+                `/api/academics/director/notas-export/?${params.toString()}`,
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+
+            _ocultarLoading();
+
+            const reabrirSeleccion = () => modalNotas?.classList.add('visible');
+
+            if (res.status === 404 || res.status === 204) {
+                _mostrarInfo(
+                    'Sin notas para los filtros seleccionados',
+                    `No hay notas registradas para ${mesLabel.toLowerCase()} · ${profesorLabel} · ${cursoLabel}.`,
+                    'warning',
+                    reabrirSeleccion,
+                );
+                return;
+            }
+            if (!res.ok) {
+                _mostrarInfo(
+                    'No se pudo descargar',
+                    'Ocurrió un error al generar el archivo. Intenta nuevamente.',
+                    'error',
+                    reabrirSeleccion,
+                );
+                return;
+            }
+
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            const sufijo = [
+                mes,
+                profesorId ? `prof${profesorId}` : null,
+                cursoId    ? `curso${cursoId}`   : null,
+            ].filter(Boolean).join('_');
+            a.download = `notas_${sufijo}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            _ocultarLoading();
+            _mostrarInfo(
+                'No se pudo descargar',
+                'Ocurrió un error al generar el archivo. Intenta nuevamente.',
+                'error',
+                () => modalNotas?.classList.add('visible'),
+            );
+        }
+    });
+
+    const modalLoading = document.getElementById('modalLoadingGeneric');
+    const loadingTitle = document.getElementById('modalLoadingTitle');
+    const loadingSub   = document.getElementById('modalLoadingSub');
+
+    function _mostrarLoading(titulo, subtitulo) {
+        if (loadingTitle) loadingTitle.textContent = titulo;
+        if (loadingSub)   loadingSub.textContent   = subtitulo;
+        modalLoading?.classList.add('visible');
+    }
+    function _ocultarLoading() {
+        modalLoading?.classList.remove('visible');
+    }
+
+    // ── Modal Info (avisos / sin datos / errores) ─────────────────────
+    const modalInfo      = document.getElementById('modalInfoGeneric');
+    const modalInfoTitle = document.getElementById('modalInfoTitle');
+    const modalInfoMsg   = document.getElementById('modalInfoMsg');
+    const modalInfoIcon  = document.getElementById('modalInfoIcon');
+    const btnCloseInfo   = document.getElementById('btnCloseInfo');
+
+    const _INFO_STYLES = {
+        info:    { bg: 'rgba(96,165,250,.15)', color: '#60a5fa' },
+        warning: { bg: 'rgba(251,191,36,.15)', color: '#fbbf24' },
+        success: { bg: 'rgba(34,197,94,.15)',  color: '#22c55e' },
+        error:   { bg: 'rgba(239,68,68,.15)',  color: '#ef4444' },
+    };
+
+    let _modalInfoOnClose = null;
+
+    function _mostrarInfo(titulo, mensaje, tipo = 'info', onClose = null) {
+        if (modalInfoTitle) modalInfoTitle.textContent = titulo;
+        if (modalInfoMsg)   modalInfoMsg.textContent   = mensaje;
+        const style = _INFO_STYLES[tipo] || _INFO_STYLES.info;
+        if (modalInfoIcon) {
+            modalInfoIcon.style.background = style.bg;
+            modalInfoIcon.style.color      = style.color;
+        }
+        _modalInfoOnClose = onClose;
+        modalInfo?.classList.add('visible');
+    }
+    function _cerrarInfo() {
+        modalInfo?.classList.remove('visible');
+        const cb = _modalInfoOnClose;
+        _modalInfoOnClose = null;
+        if (typeof cb === 'function') cb();
+    }
+    btnCloseInfo?.addEventListener('click', _cerrarInfo);
+    modalInfo?.addEventListener('click', e => {
+        if (e.target === modalInfo) _cerrarInfo();
+    });
+
+    btnCentralizador?.addEventListener('click', async () => {
+        if (btnCentralizador.disabled) return;
+        btnCentralizador.disabled = true;
+        _mostrarLoading(
+            'Generando centralizador…',
+            'Estamos consolidando las notas de todos los cursos. Esto puede tomar unos segundos.'
+        );
+        try {
+            const token = localStorage.getItem('access_token');
+            const res = await fetch('/api/academics/director/centralizador/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = `centralizador_${new Date().getFullYear()}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            alert('No se pudo generar el centralizador. Intenta nuevamente.');
+            console.error(err);
+        } finally {
+            _ocultarLoading();
+            btnCentralizador.disabled = false;
+        }
+    });
+})();
+

@@ -35,7 +35,8 @@ class UserDetailView(APIView):
             )
             data['citaciones_recientes'] = list(
                 Citacion.objects.filter(estudiante__tutor=user)
-                .order_by('-fecha_envio')[:5]
+                .filter(asistencia='PENDIENTE')
+                .order_by('-fecha_envio')
                 .values('id', 'motivo', 'asistencia',
                         'fecha_limite_asistencia', 'fecha_envio',
                         'estudiante__nombre', 'estudiante__apellido_paterno', 'estudiante__apellido_materno')

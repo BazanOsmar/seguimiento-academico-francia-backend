@@ -30,6 +30,14 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
+            </a>
             <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
@@ -55,14 +63,6 @@
                     <path d="M9 16l2 2 4-4"/>
                 </svg>
                 <span class="nav-label">Asistencia</span>
-            </a>
-            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-                    <rect x="9" y="3" width="6" height="4" rx="1"/>
-                    <path d="M9 12l2 2 4-4"/>
-                </svg>
-                <span class="nav-label">Control Diario</span>
             </a>
             <a href="/director/comunicados/" class="nav-item" aria-label="Avisos">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -120,14 +120,6 @@
             <h1 class="page-title">Estadísticas</h1>
         </div>
         <div class="topbar-actions">
-            <button class="btn-icon" id="btnBroadcast" aria-label="Enviar comunicado">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </button>
             {% include 'director/_notif_bell.html' %}
         </div>
     </header>
@@ -203,8 +195,17 @@
             </div>
 
             <!-- ═══════════════════════════════════════════════════
-                 2. K-MEANS
+                 2. TAB NAV
             ════════════════════════════════════════════════════ -->
+            <div class="analytics-tab-nav">
+                <button class="tab-btn active" data-tab="kmeans">K-Means</button>
+                <button class="tab-btn" data-tab="arbol">Árboles de Decisión</button>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════
+                 3. K-MEANS PANEL
+            ════════════════════════════════════════════════════ -->
+            <div id="panelKmeans" class="tab-panel active">
             <div class="section-block">
                 <div class="section-header director-estadisticas-inline-style-2">
                     <span class="section-title">Agrupamiento de Estudiantes</span>
@@ -288,46 +289,112 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="pagination-row" id="paginacionKmeans" style="display:none">
+                        <button id="kPrevBtn">&#8592; Anterior</button>
+                        <span id="kPagInfo"></span>
+                        <button id="kNextBtn">Siguiente &#8594;</button>
+                    </div>
                 </div>
-            </div>
+            </div><!-- /.section-block -->
+            </div><!-- /#panelKmeans -->
+
+            <!-- ═══════════════════════════════════════════════════
+                 4. ÁRBOLES DE DECISIÓN PANEL
+            ════════════════════════════════════════════════════ -->
+            <div id="panelArbol" class="tab-panel">
+            <div class="section-block">
+                <div class="section-header director-estadisticas-inline-style-2">
+                    <span class="section-title">Riesgo de Reprobación por Materia</span>
+                    <span class="section-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">Árbol de Decisión</span>
+                    <span class="section-desc director-estadisticas-inline-style-3">Predicción individual por estudiante y materia</span>
+                    <div class="director-estadisticas-inline-style-4">
+                        <select id="arbolMes" class="director-estadisticas-inline-style-5">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p id="arbolEstado" class="director-estadisticas-inline-style-7"></p>
+
+                <!-- KPIs mini riesgo -->
+                <div class="arbol-kpi-row">
+                    <div class="arbol-kpi">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-total">—</div>
+                        <div class="arbol-kpi__lbl">Predicciones</div>
+                    </div>
+                    <div class="arbol-kpi arbol-kpi--alto">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-alto">—</div>
+                        <div class="arbol-kpi__lbl">Riesgo Alto</div>
+                    </div>
+                    <div class="arbol-kpi arbol-kpi--medio">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-medio">—</div>
+                        <div class="arbol-kpi__lbl">Riesgo Medio</div>
+                    </div>
+                    <div class="arbol-kpi arbol-kpi--bajo">
+                        <div class="arbol-kpi__val loading" id="arbol-kpi-bajo">—</div>
+                        <div class="arbol-kpi__lbl">Riesgo Bajo</div>
+                    </div>
+                </div>
+
+                <!-- Tabla detalle -->
+                <div class="chart-card">
+                    <div class="director-estadisticas-inline-style-11">
+                        <span class="chart-card__title director-estadisticas-inline-style-12">Detalle por Estudiante y Materia</span>
+                        <select id="filtroArbolCurso" class="director-estadisticas-inline-style-13">
+                            <option value="">Todos los cursos</option>
+                        </select>
+                        <select id="filtroArbolMateria" class="director-estadisticas-inline-style-13">
+                            <option value="">Todas las materias</option>
+                        </select>
+                        <select id="filtroArbolRiesgo" class="director-estadisticas-inline-style-13">
+                            <option value="">Todos los niveles</option>
+                            <option value="Alto">Alto</option>
+                            <option value="Medio">Medio</option>
+                            <option value="Bajo">Bajo</option>
+                        </select>
+                        <span id="arbolConteo" class="director-estadisticas-inline-style-14"></span>
+                    </div>
+                    <div class="director-estadisticas-inline-style-15">
+                        <table class="data-table director-estadisticas-inline-style-16" id="tablaArbol" style="min-width:700px">
+                            <thead>
+                                <tr>
+                                    <th>Estudiante</th>
+                                    <th>Curso</th>
+                                    <th>Materia</th>
+                                    <th>Riesgo</th>
+                                    <th title="Probabilidad de reprobar según el modelo">Prob. Reprobar</th>
+                                    <th title="Modelo 1 = solo T1 | Modelo 2 = T1+T2">Modelo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyArbol">
+                                <tr><td colspan="6" class="director-estadisticas-inline-style-17">Sin datos para este mes.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-row" id="paginacionArbol" style="display:none">
+                        <button id="aPrevBtn">&#8592; Anterior</button>
+                        <span id="aPagInfo"></span>
+                        <button id="aNextBtn">Siguiente &#8594;</button>
+                    </div>
+                </div>
+            </div><!-- /.section-block -->
+            </div><!-- /#panelArbol -->
 
         </div><!-- /.page-inner -->
     </main>
 
-    <!-- ── Modal Broadcast ──────────────────────────────────────── -->
-    <div class="modal-backdrop" id="broadcastBackdrop">
-        <div class="modal modal--wide">
-            <div class="modal-icon director-estadisticas-inline-style-18">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </div>
-            <p class="modal-title">Enviar comunicado</p>
-            <p class="modal-subtitle">El mensaje llegará a todos los dispositivos registrados.</p>
-            <div class="form-group director-estadisticas-inline-style-19">
-                <label class="form-label">Título</label>
-                <input id="broadcastTitulo" class="form-input" type="text"
-                       placeholder="Ej: Reunión de padres" maxlength="80">
-            </div>
-            <div class="form-group director-estadisticas-inline-style-19">
-                <label class="form-label">Mensaje</label>
-                <textarea id="broadcastCuerpo" class="form-input form-textarea"
-                          placeholder="Escribe el mensaje aquí..." maxlength="300" rows="4"></textarea>
-            </div>
-            <p id="broadcastError" class="form-error director-estadisticas-inline-style-20"></p>
-            <div class="director-estadisticas-inline-style-21">
-                <button id="broadcastCancelar" class="btn-secondary director-estadisticas-inline-style-3">Cancelar</button>
-                <button id="broadcastEnviar" class="btn-primary director-estadisticas-inline-style-3" >Enviar</button>
-            </div>
-        </div>
-    </div>
-
 <script src="{% static 'js/estadisticas.js' %}"></script>
-
-<script src="{% static 'js/director_estadisticas_inline_2.js' %}"></script>
 
 <!-- Firebase Cloud Messaging -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>

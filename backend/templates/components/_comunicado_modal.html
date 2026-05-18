@@ -28,6 +28,7 @@
                             <label class="radio-option"><input type="radio" name="comAlcance" value="TODOS" checked> Todo el colegio</label>
                             <label class="radio-option"><input type="radio" name="comAlcance" value="GRADO"> Por grado</label>
                             <label class="radio-option"><input type="radio" name="comAlcance" value="CURSO"> Por curso</label>
+                            <label class="radio-option"><input type="radio" name="comAlcance" value="GRUPO"> Por grupo</label>
                         </div>
                     </div>
                     <div class="form-row">
@@ -39,6 +40,15 @@
                             <label class="form-label">Curso <span class="req">*</span></label>
                             <select id="comCurso" class="form-input form-select"><option value="">— Selecciona curso —</option></select>
                         </div>
+                    </div>
+                    <div class="form-group com-form-hidden" id="wrapComGrupo">
+                        <label class="form-label">Cursos <span class="req">*</span> <span class="com-muted">(min. 2)</span></label>
+                        <div class="com-course-picker" id="comGrupoPicker">
+                            <button type="button" id="comGrupoPickerBtn" class="form-input com-course-picker__button">-- Anadir curso --</button>
+                            <div id="comGrupoPickerMenu" class="com-course-picker__menu"></div>
+                        </div>
+                        <select id="comGrupoSelect" class="com-form-hidden" tabindex="-1" aria-hidden="true"><option value="">-- Anadir curso --</option></select>
+                        <div id="comGrupoPills" class="com-prof-grupo-pills"></div>
                     </div>
                     <div id="fcmCoberturaWrap" class="com-form-hidden">
                         <button type="button" id="fcmCoberturaBtn" class="fcm-cobertura-pill">
@@ -133,7 +143,7 @@
                     <div class="form-group com-prof-field com-prof-field--scope">
                         <label class="form-label" for="comProfAlcance">Alcance <span class="req">*</span></label>
                         <select id="comProfAlcance" class="form-input form-select" required>
-                            <option value="MIS_CURSOS">Mis cursos (todos mis cursos asignados)</option>
+                            <option value="MIS_CURSOS">Mis cursos</option>
                             <option value="CURSO">Curso específico</option>
                             <option value="GRUPO">Grupo de cursos</option>
                         </select>

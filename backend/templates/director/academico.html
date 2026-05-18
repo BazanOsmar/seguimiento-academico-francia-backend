@@ -1,4 +1,4 @@
-{% load static %}
+{% load static static_v %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -32,6 +32,14 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
+            </a>
             <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
@@ -57,14 +65,6 @@
                     <path d="M9 16l2 2 4-4"/>
                 </svg>
                 <span class="nav-label">Asistencia</span>
-            </a>
-            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-                    <rect x="9" y="3" width="6" height="4" rx="1"/>
-                    <path d="M9 12l2 2 4-4"/>
-                </svg>
-                <span class="nav-label">Control Diario</span>
             </a>
             <a href="/director/comunicados/" class="nav-item" aria-label="Avisos">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -388,6 +388,24 @@
                                         <h2 class="mat-header__title">Control Calificaciones</h2>
                                         <p class="mat-header__sub">Control mensual de carga de calificaciones. Haz clic en un curso verde para ver el detalle de notas.</p>
                                     </div>
+                                    <div class="acad-actions-row">
+                                        <button class="btn-descargar-planes" id="btnDescargarNotas" type="button">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="7 10 12 15 17 10"/>
+                                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                            Descargar notas
+                                        </button>
+                                        <button class="btn-descargar-planes" id="btnDescargarCentralizador" type="button">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                                <line x1="9" y1="21" x2="9" y2="9"/>
+                                            </svg>
+                                            Descargar centralizador
+                                        </button>
+                                    </div>
                                 </div>
                             </section>
 
@@ -432,16 +450,10 @@
                                 </div>
                             </div>
 
-                            <div class="pn-grid-wrap">
-                                <div class="pn-grid-head">
-                                    <div>
-                                        <h3 class="pn-grid-title">Estado de carga por docente</h3>
-                                        <p class="pn-grid-subtitle">Cada tarjeta resume el avance mensual por profesor y los cursos que ya tienen notas disponibles.</p>
-                                    </div>
+                            <div class="vp-follow-card">
+                                <div class="vp-follow-table-wrap" id="pnTableWrap">
+                                    <div class="vp-follow-loading"><div class="spinner-inline"></div></div>
                                 </div>
-
-                                <!-- Grid de tarjetas -->
-                                <div id="pnGrid" class="pn-grid"></div>
                             </div>
                         </div>
                     </div>
@@ -465,17 +477,25 @@
         </div>
     </div>
 
-    <!-- -- Modal: Selector de materia -------------------------------- -->
+    <!-- -- Modal: Detalle del profesor (cursos + materias con notas) -- -->
     <div class="pn-picker-overlay" id="pnPickerOverlay">
-        <div class="pn-picker-box">
-            <div class="pn-picker-head">
-                <div class="pn-picker-title">Selecciona una materia</div>
-                <div class="pn-picker-sub" id="pnPickerSub">Este curso tiene varias materias con notas subidas.</div>
+        <div class="pn-picker-box pn-picker-box--wide">
+            <div class="pn-picker-head pn-picker-head--rich">
+                <div class="pn-picker-prof">
+                    <div class="pn-picker-avatar" id="pnPickerAvatar">—</div>
+                    <div class="pn-picker-prof-copy">
+                        <div class="pn-picker-title" id="pnPickerProfNombre">Profesor</div>
+                        <div class="pn-picker-sub" id="pnPickerSub">Selecciona un curso/materia para ver las notas cargadas.</div>
+                    </div>
+                </div>
+                <button class="pn-picker-close" id="pnPickerCancel" type="button" aria-label="Cerrar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
             <div class="pn-picker-list" id="pnPickerList"></div>
-            <div class="pn-picker-footer">
-                <button class="btn-ghost" id="pnPickerCancel">Cancelar</button>
-            </div>
         </div>
     </div>
 
@@ -723,7 +743,70 @@
         </div>
     </div>
 
-    <script src="{% static 'js/academico.js' %}"></script>
+    <!-- -- Modal: Loading genérico -------------------------------- -->
+    <div class="modal-overlay" id="modalLoadingGeneric">
+        <div class="modal-box" style="text-align:center;padding:32px 40px;max-width:340px;">
+            <div class="ac-loading-spinner" aria-hidden="true"></div>
+            <p class="modal-title" id="modalLoadingTitle" style="margin:18px 0 4px;">Generando archivo…</p>
+            <p class="modal-subtitle" id="modalLoadingSub" style="color:var(--text-muted);font-size:.85rem;margin:0;">
+                Esto puede tomar unos segundos. No cierres la ventana.
+            </p>
+        </div>
+    </div>
+
+    <!-- -- Modal: Info genérico (avisos / sin datos) -------------- -->
+    <div class="modal-overlay" id="modalInfoGeneric">
+        <div class="modal-box" style="text-align:center;padding:28px 36px;max-width:380px;">
+            <div id="modalInfoIcon" style="margin:0 auto 12px;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(251,191,36,.15);color:#fbbf24;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <p class="modal-title" id="modalInfoTitle" style="margin:0 0 6px;">Aviso</p>
+            <p class="modal-subtitle" id="modalInfoMsg" style="color:var(--text-muted);font-size:.88rem;margin:0 0 16px;line-height:1.45;">—</p>
+            <button class="btn-primary" id="btnCloseInfo" type="button" style="width:100%;">Entendido</button>
+        </div>
+    </div>
+
+    <!-- -- Modal: Descargar notas --------------------------------- -->
+    <div class="modal-overlay" id="modalDescargarNotas">
+        <div class="modal-box" style="min-width:380px;">
+            <h3 class="modal-title">Descargar notas</h3>
+            <p class="modal-subtitle" style="color:var(--text-muted);font-size:.85rem;margin:4px 0 18px;">
+                Elige el mes y los cursos a incluir en la descarga.
+            </p>
+
+            <div class="modal-field">
+                <label class="modal-label" for="selDnMes">Mes</label>
+                <select class="modal-select" id="selDnMes">
+                    <option value="">Cargando…</option>
+                </select>
+            </div>
+
+            <div class="modal-field" style="margin-top:12px;">
+                <label class="modal-label" for="selDnProfesor">Profesor</label>
+                <select class="modal-select dn-select" id="selDnProfesor">
+                    <option value="">Cargando…</option>
+                </select>
+            </div>
+
+            <div class="modal-field" style="margin-top:12px;">
+                <label class="modal-label" for="selDnCurso">Curso</label>
+                <select class="modal-select dn-select" id="selDnCurso">
+                    <option value="">Todos sus cursos</option>
+                </select>
+            </div>
+
+            <p class="error-inline" id="errorDnMsg" style="display:none;margin-top:10px;"></p>
+
+            <div class="modal-actions-row" style="margin-top:18px;">
+                <button class="btn-ghost" id="btnCloseDescargarNotas" type="button">Cerrar</button>
+                <button class="btn-primary" id="btnConfirmarDescargarNotas" type="button" disabled>Descargar</button>
+            </div>
+        </div>
+    </div>
+
+<script src="{% static_v 'js/academico.js' %}"></script>
     <script src="{% static 'js/notif_bell.js' %}"></script>
 </body>
 </html>

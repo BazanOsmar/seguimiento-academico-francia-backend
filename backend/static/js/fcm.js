@@ -64,16 +64,11 @@ async function initFCM() {
             body: JSON.stringify({ token: _fcmToken }),
         });
 
-        // Manejar notificaciones con la app en primer plano
+        // Mantener las notificaciones en primer plano silenciosas.
         messaging.onMessage((payload) => {
             const titulo = payload.notification?.title || 'Seguimiento Académico';
             const cuerpo = payload.notification?.body  || '';
-            // Usa el sistema de toasts del proyecto si está disponible
-            if (typeof showAppToast === 'function') {
-                showAppToast('info', titulo, cuerpo);
-            } else {
-                console.info(`[FCM] ${titulo}: ${cuerpo}`);
-            }
+            console.info(`[FCM] ${titulo}: ${cuerpo}`);
         });
 
     } catch (err) {

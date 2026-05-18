@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -137,4 +139,74 @@ class ComunicadoCoberturaView(APIView):
             'con_fcm': con_fcm,
             'sin_fcm': len(lista) - con_fcm,
             'tutores': lista,
+        })
+
+
+class ComunicadoLectoresView(APIView):
+    """
+    GET /api/comunicados/<pk>/lectores/
+
+    Lista los tutores que marcaron como LEIDO el comunicado,
+    con sus estudiantes agrupados por curso.
+    Solo el emisor o el Director pueden consultarlo.
+    """
+    permission_classes = [IsAuthenticated, IsDirectorOrRegenteOrProfesor]
+
+    def get(self, request, pk):
+        try:
+            comunicado = Comunicado.objects.select_related(
+                'emisor', 'emisor__tipo_usuario'
+            ).get(pk=pk)
+        except Comunicado.DoesNotExist:
+            return Response({'errores': 'Comunicado no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
+        if tipo == 'Profesor' and comunicado.emisor != request.user:
+            return Response({'errores': 'No tienes permiso.'}, status=status.HTTP_403_FORBIDDEN)
+
+        entregas_leidas = (
+            ComunicadoEstudiante.objects
+            .filter(comunicado=comunicado, estado=ComunicadoEstudiante.ESTADO_LEIDO, estudiante__tutor__isnull=False)
+            .select_related('estudiante', 'estudiante__tutor', 'estudiante__curso')
+        )
+
+        # Agrupar por tutor → cursos → estudiantes
+        tutores_map = {}
+        for entrega in entregas_leidas:
+            est   = entrega.estudiante
+            tid   = est.tutor_id
+            curso = f"{est.curso.grado} {est.curso.paralelo}".strip() if est.curso else ''
+
+            if tid not in tutores_map:
+                t = est.tutor
+                tutores_map[tid] = {
+                    'id':     tid,
+                    'nombre': f"{t.first_name} {t.last_name}".strip() or t.username,
+                    'cursos': defaultdict(list),
+                }
+
+            nombre_est = f"{est.apellido_paterno} {est.apellido_materno}, {est.nombre}".strip(', ')
+            tutores_map[tid]['cursos'][curso].append(nombre_est)
+
+        lista = [
+            {
+                'id':     t['id'],
+                'nombre': t['nombre'],
+                'cursos': [
+                    {'curso': curso, 'estudiantes': sorted(alumnos)}
+                    for curso, alumnos in sorted(t['cursos'].items())
+                ],
+            }
+            for t in sorted(tutores_map.values(), key=lambda x: x['nombre'])
+        ]
+
+        total_entregas = ComunicadoEstudiante.objects.filter(
+            comunicado=comunicado, estudiante__tutor__isnull=False
+        ).values('estudiante__tutor_id').distinct().count()
+
+        return Response({
+            'total_tutores':        total_entregas,
+            'tutores_que_leyeron':  len(lista),
+            'tutores_pendientes':   total_entregas - len(lista),
+            'tutores':              lista,
         })

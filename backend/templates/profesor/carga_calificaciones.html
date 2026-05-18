@@ -1,4 +1,4 @@
-{% load static %}
+{% load static static_v %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,9 +8,9 @@
     <title>Carga de Calificaciones — Francia "A"</title>
     <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
     <link rel="stylesheet" href="{% static 'css/director.css' %}">
-    <script src="{% static 'js/api.js' %}?v=2"></script>
+    <script src="{% static_v 'js/api.js' %}"></script>
 
-<link rel="stylesheet" href="{% static 'css/profesor_carga_calificaciones.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/profesor_carga_calificaciones.css' %}?v=6">
 </head>
 <body>
 
@@ -108,7 +108,7 @@
 
         <div class="cc-body">
 
-            <div class="cc-back-row">
+            <div class="cc-back-row" style="display:none;">
                 <button class="cc-back-btn" id="btnBackCalificaciones" type="button">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -119,10 +119,10 @@
             </div>
 
             <!-- Título -->
-            <h1 class="cc-title">Carga de Calificaciones</h1>
+            <h1 class="cc-title" style="display:none;">Carga de Calificaciones</h1>
 
             <!-- Meta -->
-            <div class="cc-meta">
+            <div class="cc-meta" style="display:none;">
                 <div class="cc-meta-item">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -144,7 +144,7 @@
             <!-- ── Estado de carga inicial ───────────────────────── -->
             <div class="cc-init-loader" id="ccInitLoader">
                 <div class="cc-init-loader__spinner"></div>
-                <p class="cc-init-loader__label">Verificando estado del período...</p>
+                <p class="cc-init-loader__label">Cargando…</p>
             </div>
 
             <!-- ── Tarjeta principal ──────────────────────────────── -->
@@ -248,9 +248,9 @@
         </div>
     </div>
 
-    <script src="{% static 'js/profesor_carga_calificaciones_inline.js' %}"></script>
+    <script src="{% static_v 'js/profesor_carga_calificaciones_inline.js' %}"></script>
 
-    <script src="{% static 'js/carga_calificaciones.js' %}?v=11"></script>
+    <script src="{% static_v 'js/carga_calificaciones.js' %}"></script>
 
     <!-- ── Dialog de confirmación de subida ──────────────────────────── -->
     <dialog id="dlgConfirmarSubida">

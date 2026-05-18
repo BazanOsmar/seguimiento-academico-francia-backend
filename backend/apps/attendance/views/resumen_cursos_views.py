@@ -75,12 +75,16 @@ class ResumenCursosTodosView(APIView):
                 falta=Count('id', filter=Q(estado='FALTA')),
                 atraso=Count('id', filter=Q(estado='ATRASO')),
                 licencia=Count('id', filter=Q(estado='LICENCIA')),
+                sin_uniforme=Count(
+                    'id',
+                    filter=Q(uniforme=False) & ~Q(estado__in=('FALTA', 'LICENCIA')),
+                ),
             )
         )
         agg_map = {r['sesion__curso_id']: r for r in agg}
 
         es_mes_anterior = False
-        if not agg_map:
+        if not request.query_params.get('mes', '').strip() and not agg_map:
             py, pm = _mes_anterior(year, month)
             desde2, hasta2 = _rango_mes(py, pm)
             agg2 = (
@@ -93,6 +97,10 @@ class ResumenCursosTodosView(APIView):
                     falta=Count('id', filter=Q(estado='FALTA')),
                     atraso=Count('id', filter=Q(estado='ATRASO')),
                     licencia=Count('id', filter=Q(estado='LICENCIA')),
+                    sin_uniforme=Count(
+                        'id',
+                        filter=Q(uniforme=False) & ~Q(estado__in=('FALTA', 'LICENCIA')),
+                    ),
                 )
             )
             agg_map = {r['sesion__curso_id']: r for r in agg2}
@@ -103,7 +111,14 @@ class ResumenCursosTodosView(APIView):
         cursos = Curso.objects.all().order_by('grado', 'paralelo')
         resultado = []
         for c in cursos:
-            r = agg_map.get(c.id, {'total': 0, 'presente': 0, 'falta': 0, 'atraso': 0, 'licencia': 0})
+            r = agg_map.get(c.id, {
+                'total': 0,
+                'presente': 0,
+                'falta': 0,
+                'atraso': 0,
+                'licencia': 0,
+                'sin_uniforme': 0,
+            })
             resultado.append({
                 'id': c.id,
                 'nombre': f'{c.grado} {c.paralelo}',
@@ -112,6 +127,7 @@ class ResumenCursosTodosView(APIView):
                 'falta': r['falta'],
                 'atraso': r['atraso'],
                 'licencia': r['licencia'],
+                'sin_uniforme': r['sin_uniforme'],
                 'total': r['total'],
             })
 
@@ -127,13 +143,15 @@ class ResumenCursosTodosView(APIView):
 class ResumenEstudiantesCursoView(APIView):
     """
     Devuelve el resumen mensual de asistencia por estudiante en un curso.
-    Si el mes no tiene datos retrocede al anterior.
+    Devuelve los datos del mes solicitado. Si no se solicita mes, puede
+    retroceder al anterior para la carga inicial.
     """
     permission_classes = (IsAuthenticated, IsDirectorOrRegente)
 
     def get(self, request, curso_id):
         get_object_or_404(Curso, pk=curso_id)
-        year, month = _parse_mes(request.query_params.get('mes', '').strip())
+        mes_param = request.query_params.get('mes', '').strip()
+        year, month = _parse_mes(mes_param)
         desde, hasta = _rango_mes(year, month)
 
         agg = (
@@ -146,12 +164,16 @@ class ResumenEstudiantesCursoView(APIView):
                 falta=Count('id', filter=Q(estado='FALTA')),
                 atraso=Count('id', filter=Q(estado='ATRASO')),
                 licencia=Count('id', filter=Q(estado='LICENCIA')),
+                sin_uniforme=Count(
+                    'id',
+                    filter=Q(uniforme=False) & ~Q(estado__in=('FALTA', 'LICENCIA')),
+                ),
             )
         )
         agg_map = {r['estudiante_id']: r for r in agg}
 
         es_mes_anterior = False
-        if not agg_map:
+        if not mes_param and not agg_map:
             py, pm = _mes_anterior(year, month)
             desde2, hasta2 = _rango_mes(py, pm)
             agg2 = (
@@ -164,6 +186,10 @@ class ResumenEstudiantesCursoView(APIView):
                     falta=Count('id', filter=Q(estado='FALTA')),
                     atraso=Count('id', filter=Q(estado='ATRASO')),
                     licencia=Count('id', filter=Q(estado='LICENCIA')),
+                    sin_uniforme=Count(
+                        'id',
+                        filter=Q(uniforme=False) & ~Q(estado__in=('FALTA', 'LICENCIA')),
+                    ),
                 )
             )
             agg_map = {r['estudiante_id']: r for r in agg2}
@@ -171,23 +197,35 @@ class ResumenEstudiantesCursoView(APIView):
                 year, month = py, pm
                 es_mes_anterior = True
 
-        estudiantes = Estudiante.objects.filter(curso_id=curso_id, activo=True).order_by('apellido_paterno', 'nombre')
+        estudiantes = (
+            Estudiante.objects
+            .filter(curso_id=curso_id, activo=True)
+            .order_by('apellido_paterno', 'apellido_materno', 'nombre')
+        )
         resultado = []
         for e in estudiantes:
-            r = agg_map.get(e.id, {'total': 0, 'presente': 0, 'falta': 0, 'atraso': 0, 'licencia': 0})
+            r = agg_map.get(e.id, {
+                'total': 0,
+                'presente': 0,
+                'falta': 0,
+                'atraso': 0,
+                'licencia': 0,
+                'sin_uniforme': 0,
+            })
             nombre = f'{e.apellido_paterno} {e.apellido_materno} {e.nombre}'.strip()
             resultado.append({
                 'id': e.id,
                 'nombre': nombre,
-                'porcentaje': _pct(r['presente'], r['total']),
+                'porcentaje_asistencia': _pct(r['presente'], r['total']),
+                'porcentaje_atrasos': _pct(r['atraso'], r['total']),
+                'porcentaje_faltas': _pct(r['falta'], r['total']),
                 'presente': r['presente'],
                 'falta': r['falta'],
                 'atraso': r['atraso'],
                 'licencia': r['licencia'],
+                'sin_uniforme': r['sin_uniforme'],
                 'total': r['total'],
             })
-
-        resultado.sort(key=lambda x: (x['porcentaje'] is None, -(x['porcentaje'] or 0)))
 
         return Response({
             'mes': f'{year}-{month:02d}',

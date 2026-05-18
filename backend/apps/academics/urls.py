@@ -11,7 +11,9 @@ from .views import (
     HistorialMesesView, AsignacionesHistorialMesView, NotasHistoricoView,
     NotasMongoView, EstadoNotasView, NotasEstadoMesView,
     ComparadorNombresView,
-    DirectorResumenNotasMesView, DirectorNotasMesDetalleView, DirectorSeguimientoProfesoresView,
+    DirectorResumenNotasMesView, DirectorSeguimientoProfesoresView,
+    DirectorCentralizadorView, DirectorMesesConNotasView, DirectorProfesoresConNotasView,
+    DirectorNotasExportView, DirectorEliminarNotasMesView,
     DirectorProfesorAsignacionesView,
     NotasEstudianteProfesorView, ResumenGrupoProfesorView,
 )
@@ -43,7 +45,11 @@ urlpatterns = [
     path("director/planes/exportar/",         DirectorPlanesExportarView.as_view(), name="director-planes-exportar"),
     path("director/comparar-nombres/",        ComparadorNombresView.as_view(),      name="director-comparar-nombres"),
     path("director/resumen-notas-mes/",       DirectorResumenNotasMesView.as_view(), name="director-resumen-notas-mes"),
-    path("director/notas-mes-detalle/",        DirectorNotasMesDetalleView.as_view(),         name="director-notas-mes-detalle"),
     path("director/seguimiento-profesores/",   DirectorSeguimientoProfesoresView.as_view(),   name="director-seguimiento-profesores"),
+    path("director/centralizador/",            DirectorCentralizadorView.as_view(),           name="director-centralizador"),
+    path("director/meses-con-notas/",          DirectorMesesConNotasView.as_view(),           name="director-meses-con-notas"),
+    path("director/profesores-con-notas/",     DirectorProfesoresConNotasView.as_view(),      name="director-profesores-con-notas"),
+    path("director/notas-export/",             DirectorNotasExportView.as_view(),             name="director-notas-export"),
+    path("director/eliminar-notas-mes/",       DirectorEliminarNotasMesView.as_view(),        name="director-eliminar-notas-mes"),
     path("director/profesores/<int:profesor_id>/asignaciones/", DirectorProfesorAsignacionesView.as_view(), name="director-profesor-asignaciones"),
 ]

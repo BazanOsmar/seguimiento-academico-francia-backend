@@ -25,20 +25,24 @@ let _modoAnterior = false; // toggle: false = Excel actual, true = datos anterio
 let _modoHistorial     = false;
 let _modHistorialMap   = new Map();
 let _hayModHistorial   = false;
-let _mostrandoOriginal = true;
+let _mostrandoOriginal = true;    // true = nota original del mes (default), false = nota actual
+
+// ── Rol del usuario actual ────────────────────────────────────────
+let _esDirector = false;
 
 // ── Filtros de vista ──────────────────────────────────────────────
-let _dimFilter   = null;   // null = todas | dimension key = solo esa
+let _dimFilter   = null;   // null = todas | 'saber'|'hacer'|'ser' = solo esa
 let _currentTrim = null;   // trimestre activo para preservarlo al cambiar filtro
 
 // ── Bootstrap ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('access_token');
     const user  = JSON.parse(localStorage.getItem('user') || 'null');
-    if (!token || !user || user.tipo_usuario !== 'Profesor') {
+    if (!token || !user || !['Profesor', 'Director'].includes(user.tipo_usuario)) {
         window.location.replace('/login/');
         return;
     }
+    _esDirector = user.tipo_usuario === 'Director';
 
     // Poblar metadatos
     document.getElementById('ccCurso').textContent   = _curso;
@@ -57,7 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     _initDragDrop();
     _initButtons();
 
-    if (_modoParam === 'historial' && _pcId && _mesHasta) {
+    // Director: siempre modo historial (solo lectura, sin upload).
+    if (_esDirector) {
+        _modoHistorial = true;
+        const loaderLabel = document.querySelector('#ccInitLoader .cc-init-loader__label');
+        if (loaderLabel) loaderLabel.textContent = 'Cargando notas...';
+        _cargarNotasHistorico();
+    } else if (_modoParam === 'historial' && _pcId && _mesHasta) {
         _modoHistorial = true;
         _cargarNotasHistorico();
     } else if (_pcId && _mes) {
@@ -92,14 +102,20 @@ async function _verificarEstadoNotas() {
 
 // ── Modo historial: carga notas acumuladas hasta mes_hasta ────────
 async function _cargarNotasHistorico() {
+    const _fallback = () => _esDirector ? _mostrarVistaSinNotasDirector() : _mostrarVistaUpload();
     try {
         const token = localStorage.getItem('access_token');
         const res   = await fetch(
             `/api/academics/profesor/notas-historico/?pc_id=${encodeURIComponent(_pcId)}&mes_hasta=${encodeURIComponent(_mesHasta)}`,
             { headers: { 'Authorization': `Bearer ${token}` } },
         );
-        if (!res.ok) { _mostrarVistaUpload(); return; }
+        if (!res.ok) { _fallback(); return; }
         const data = await res.json();
+
+        if (!data.headers_por_trim || !Object.keys(data.headers_por_trim).length) {
+            _fallback();
+            return;
+        }
 
         // Construir mapa de notas modificadas
         _hayModHistorial = data.hay_modificadas || false;
@@ -116,13 +132,36 @@ async function _cargarNotasHistorico() {
 
         _mostrarVistaLecturaHistorial(data.headers_por_trim);
     } catch {
-        _mostrarVistaUpload();
+        _fallback();
     }
+}
+
+function _mostrarVistaSinNotasDirector() {
+    document.getElementById('ccInitLoader').style.display = 'none';
+    document.getElementById('ccCard').style.display       = 'none';
+    document.querySelector('.cc-title').style.display     = 'none';
+    document.querySelector('.cc-meta').style.display      = 'none';
+
+    const dashboard = document.getElementById('ccDashboard');
+    dashboard.innerHTML = `
+        <div style="padding:80px 20px;text-align:center;color:var(--text-muted);">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4;margin-bottom:14px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p style="font-size:1rem;font-weight:600;color:var(--text-secondary);margin:0 0 6px;">
+                Sin notas registradas
+            </p>
+            <p style="font-size:.85rem;margin:0;">
+                Este profesor aún no ha cargado notas para el período seleccionado.
+            </p>
+        </div>`;
+    dashboard.style.display = 'block';
 }
 
 function _mostrarVistaLecturaHistorial(headersPorTrim) {
     _soloLectura = true;
-    document.querySelector('.cc-body')?.classList.add('cc-body--readonly');
     document.getElementById('ccInitLoader').style.display = 'none';
     document.getElementById('ccCard').style.display       = 'none';
     document.querySelector('.cc-title').style.display     = 'none';
@@ -140,11 +179,11 @@ function _mostrarVistaLecturaHistorial(headersPorTrim) {
     dashboard.innerHTML     = _renderSuccessDashboard(r, null, true);
     dashboard.style.display = 'block';
     _initTableScrollSync();
+    _renderBotonEliminarSiDirector(parseInt(_mesHasta || _mes, 10));
 }
 
 function _mostrarVistaLectura(headersPorTrim) {
     _soloLectura = true;
-    document.querySelector('.cc-body')?.classList.add('cc-body--readonly');
     document.getElementById('ccInitLoader').style.display  = 'none';
     document.getElementById('ccCard').style.display        = 'none';
     // En modo lectura ocultamos solo el título y meta de "Carga de Calificaciones"
@@ -166,10 +205,12 @@ function _mostrarVistaLectura(headersPorTrim) {
 
 function _mostrarVistaUpload() {
     _soloLectura = false;
-    document.querySelector('.cc-body')?.classList.remove('cc-body--readonly');
     document.getElementById('ccInitLoader').style.display = 'none';
     document.getElementById('ccCard').style.display       = 'block';
     document.getElementById('ccDashboard').style.display  = 'none';
+    document.querySelector('.cc-back-row').style.display = '';
+    document.querySelector('.cc-title').style.display    = '';
+    document.querySelector('.cc-meta').style.display     = '';
 }
 
 // ── Drag & Drop ───────────────────────────────────────────────────
@@ -756,75 +797,21 @@ function _initTableScrollSync() {
     window.addEventListener('resize', updateGhostRange, { once: true });
 }
 
-function _captureTableScrollState() {
-    const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
-    const bodyWrap = shell?.querySelector('.cc-success-table-body-wrap');
-    const ghost = shell?.querySelector('.cc-success-ghost-scroll');
-    const tableScroll = document.querySelector('#ccDashboard .cc-success-table-scroll');
-
-    if (bodyWrap) {
-        return {
-            type: 'split',
-            left: bodyWrap.scrollLeft,
-            top: bodyWrap.scrollTop,
-            ghostLeft: ghost?.scrollLeft || bodyWrap.scrollLeft,
-        };
-    }
-    if (tableScroll) {
-        return {
-            type: 'single',
-            left: tableScroll.scrollLeft,
-            top: tableScroll.scrollTop,
-        };
-    }
-    return null;
-}
-
-function _restoreTableScrollState(state) {
-    if (!state) return;
-    requestAnimationFrame(() => {
-        if (state.type === 'split') {
-            const shell = document.querySelector('#ccDashboard .cc-success-table-shell');
-            const headWrap = shell?.querySelector('.cc-success-table-head-wrap');
-            const bodyWrap = shell?.querySelector('.cc-success-table-body-wrap');
-            const ghost = shell?.querySelector('.cc-success-ghost-scroll');
-            if (!bodyWrap) return;
-
-            const maxLeft = Math.max(0, bodyWrap.scrollWidth - bodyWrap.clientWidth);
-            const maxTop = Math.max(0, bodyWrap.scrollHeight - bodyWrap.clientHeight);
-            const left = Math.min(state.left, maxLeft);
-            const top = Math.min(state.top, maxTop);
-
-            bodyWrap.scrollLeft = left;
-            bodyWrap.scrollTop = top;
-            if (headWrap) headWrap.scrollLeft = left;
-            if (ghost) ghost.scrollLeft = Math.min(state.ghostLeft, maxLeft);
-            return;
-        }
-
-        const tableScroll = document.querySelector('#ccDashboard .cc-success-table-scroll');
-        if (!tableScroll) return;
-        tableScroll.scrollLeft = Math.min(state.left, Math.max(0, tableScroll.scrollWidth - tableScroll.clientWidth));
-        tableScroll.scrollTop = Math.min(state.top, Math.max(0, tableScroll.scrollHeight - tableScroll.clientHeight));
-    });
-}
-
 function _toggleModoAnterior() {
-    const scrollState = _captureTableScrollState();
     _modoAnterior = !_modoAnterior;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
-    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, _currentTrim, _soloLectura);
+    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, _soloLectura);
     _initTableScrollSync();
-    _restoreTableScrollState(scrollState);
 }
 
-function _verValorActualHistorial() {
-    _mostrandoOriginal = false;
+function _toggleVistaHistorial() {
+    _mostrandoOriginal = !_mostrandoOriginal;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
     dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, true);
     _initTableScrollSync();
+    _renderBotonEliminarSiDirector(parseInt(_mesHasta || _mes, 10));
 }
 
 function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
@@ -850,9 +837,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _modMap = new Map();
     _modForTrim.forEach(m => {
         const dimCols = trimData[m.dimension] || [];
-        const pos = m.col_idx != null
-            ? dimCols.findIndex(c => c.col === m.col_idx)
-            : dimCols.findIndex(c => c.titulo === m.titulo);
+        const pos = dimCols.findIndex(c => c.titulo === m.titulo);
         if (pos >= 0) _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
     });
 
@@ -867,10 +852,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _hayModificadas = _modForTrim.length > 0;
 
     const dimensionDefs = [
-        { key: 'saber', label: 'SABER',  css: 'saber', short: 'Saber' },
-        { key: 'hacer', label: 'HACER',  css: 'hacer', short: 'Hacer' },
+        { key: 'saber', label: 'HACER',  css: 'saber', short: 'Hacer' },
+        { key: 'hacer', label: 'SABER',  css: 'hacer', short: 'Saber' },
         { key: 'ser',   label: 'SER',    css: 'ser',   short: 'Ser'   },
-        { key: '_autoeval', label: 'AUTOEVALUACION', css: 'autoeval', short: 'Autoevaluacion', noProm: true, noGroupLabel: true },
     ];
 
     const allDimensions = dimensionDefs
@@ -879,9 +863,8 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
 
     if (!allDimensions.length) return '';
 
-    const effectiveDimFilter = allDimensions.some(d => d.key === _dimFilter) ? _dimFilter : null;
-    const displayDimensions = effectiveDimFilter
-        ? allDimensions.filter(d => d.key === effectiveDimFilter)
+    const displayDimensions = _dimFilter
+        ? allDimensions.filter(d => d.key === _dimFilter)
         : allDimensions;
 
     const rowMap = new Map();
@@ -956,14 +939,13 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const gestion = meta.gestion || new Date().getFullYear();
 
     const totalScoreCols = displayDimensions.reduce((sum, dim) => sum + dim.columns.length, 0);
-    const totalDimPromCols = displayDimensions.filter(dim => !dim.noProm).length;
-    const tableWidth = 54 + 260 + totalScoreCols * 52 + totalDimPromCols * 60 + 80;
+    const tableWidth = 54 + 260 + totalScoreCols * 52 + displayDimensions.length * 60 + 80;
     const colgroup = `<colgroup>
         <col style="width:54px">
         <col style="width:260px">
         ${displayDimensions.map(dim => [
             ...dim.columns.map(() => '<col style="width:52px">'),
-            dim.noProm ? '' : '<col style="width:60px">',
+            '<col style="width:60px">',
         ].join('')).join('')}
         <col>
     </colgroup>`;
@@ -982,25 +964,23 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         }).join('')}
     </select>`;
     const dimSelectHtml = `<select onchange="_ccSwitchDim(this.value)" style="${_selectStyle}">
-        <option value="" ${!effectiveDimFilter ? 'selected' : ''}>Todas las dimensiones</option>
-        ${allDimensions.map(d => `<option value="${d.key}" ${effectiveDimFilter === d.key ? 'selected' : ''}>${d.label}</option>`).join('')}
+        <option value="" ${!_dimFilter ? 'selected' : ''}>Todas las dimensiones</option>
+        ${allDimensions.map(d => `<option value="${d.key}" ${_dimFilter === d.key ? 'selected' : ''}>${d.label}</option>`).join('')}
     </select>`;
     const trimTabsHtml = `${trimSelectHtml}${dimSelectHtml}`;
 
-    const groupedHeaders = displayDimensions.map(dim => {
-        const colspan = dim.columns.length + (dim.noProm ? 0 : 1);
-        return `
-        <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${colspan}">
-            ${dim.noGroupLabel ? '' : _esc(dim.label)}
-        </th>`;
-    }).join('');
+    const groupedHeaders = displayDimensions.map(dim => `
+        <th class="cc-success-table__group cc-success-table__group--${dim.css}" colspan="${dim.columns.length + 1}">
+            ${_esc(dim.label)}
+        </th>
+    `).join('');
 
     const rotatedHeaders = displayDimensions.map(dim => [
         ...dim.columns.map(col => `
             <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
                 <span>${_rotHeaderHtml(col.titulo)}</span>
             </th>`),
-        dim.noProm ? '' : `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
+        `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
     ].join('')).join('');
 
     const tableRows = rowSummaries.map(row => {
@@ -1060,7 +1040,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             }).join('');
 
             const dimProm = row.dimPromedios[dim.key];
-            const dimPromCell = dim.noProm ? '' : `<td class="cc-success-table__dim-prom">${_fmt1(dimProm)}</td>`;
+            const dimPromCell = `<td class="cc-success-table__dim-prom">${_fmt1(dimProm)}</td>`;
             return cells + dimPromCell;
         }).join('');
 
@@ -1085,28 +1065,42 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         ? `<span style="font-size:2rem;font-weight:800;letter-spacing:-.02em;">Calificaciones - ${_esc(_mesLabel)}</span>`
         : `Registro de Notas - ${_esc(_materia)} - ${_esc(_curso)}`;
 
-    const readonlyBadgeHtml = `
-        <span class="cc-readonly-badge">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Notas subidas
-        </span>`;
-
-    const readonlyHistoryButtonHtml = _modoHistorial && _hayModHistorial && _mostrandoOriginal ? `
-        <button class="cc-success-tool" type="button" onclick="_verValorActualHistorial()"
-            style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-            </svg>
-            Ver notas con valor actual
-        </button>` : '';
-
-    // Barra de acciones: en lectura los controles viven en el encabezado para ahorrar espacio.
+    // Barra de acciones: ancho completo, botones a la izquierda, tabs a la derecha
     const actionBarHtml = soloLectura
-        ? ''
+        ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
+               <span class="cc-readonly-badge">
+                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                       <polyline points="20 6 9 17 4 12"/>
+                   </svg>
+                   Notas subidas
+               </span>
+               ${_modoHistorial && _hayModHistorial ? (() => {
+                   const mesesNombre = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                   const mesNum = parseInt(_mesHasta || _mes, 10);
+                   const mesLbl = (mesNum >= 1 && mesNum <= 12) ? mesesNombre[mesNum] : 'el mes';
+                   const textoBtn  = _mostrandoOriginal
+                       ? 'Ver nota actual'
+                       : `Ver nota de ${mesLbl}`;
+                   // ↑ Si _mostrandoOriginal=true (default → nota original del mes con rojo),
+                   //   el botón ofrece pasar a la nota actual.
+                   //   Si _mostrandoOriginal=false (estás viendo la nota actual), el botón
+                   //   ofrece volver a la nota original del mes.
+                   return `
+               <button class="cc-success-tool" type="button" onclick="_toggleVistaHistorial()"
+                   style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                       <circle cx="12" cy="12" r="3"/>
+                   </svg>
+                   ${textoBtn}
+               </button>`;
+               })() : ''}
+               <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+                   ${trimTabsHtml}
+               </div>
+           </div>`
         : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
                <button class="cc-success-tool" type="button" onclick="_resetUpload()">
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1128,10 +1122,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     return `
         <div class="cc-success-report" data-scroll-anchor>
             <div class="cc-success-head">
-                <div class="cc-success-head-main">
+                <div>
                     <h2 class="cc-success-title">${headTitle}</h2>
                     ${soloLectura ? `
-                    <div class="cc-readonly-subrow">
                     <p class="cc-success-sub">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -1140,17 +1133,8 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
                         <span style="font-size:1.05rem;">${_esc(_curso)} · ${_esc(_materia)}</span>
-                    </p>
-                    </div>` : ''}
+                    </p>` : ''}
                 </div>
-                ${soloLectura ? `
-                <div class="cc-readonly-side">
-                    <div class="cc-readonly-status">${readonlyBadgeHtml}</div>
-                    <div class="cc-readonly-filters">
-                        ${trimTabsHtml}
-                        ${readonlyHistoryButtonHtml}
-                    </div>
-                </div>` : ''}
             </div>
 
             ${actionBarHtml}
@@ -1413,5 +1397,120 @@ async function _confirmarPlanilla() {
         showToast('Error de conexión al subir las notas.', 'error');
     } finally {
         _confirmandoEnCurso = false;
+    }
+}
+
+
+// ── Director: botón "Eliminar notas del mes" ─────────────────────────
+function _renderBotonEliminarSiDirector(mesObjetivo) {
+    if (!_esDirector) return;
+    if (!_pcId)        return;
+
+    // Solo aparece si el mes mostrado es el mes actual.
+    const mesActual = new Date().getMonth() + 1;
+    if (Number(mesObjetivo) !== mesActual) return;
+
+    const head = document.querySelector('#ccDashboard .cc-success-head');
+    if (!head) return;
+
+    // Re-render: quitar botón previo si existe
+    head.querySelector('#btnDnEliminar')?.remove();
+
+    // Layout: título a la izquierda, botón a la derecha
+    head.style.display        = 'flex';
+    head.style.alignItems     = 'center';
+    head.style.justifyContent = 'space-between';
+    head.style.gap            = '16px';
+    head.style.flexWrap       = 'wrap';
+
+    const btn = document.createElement('button');
+    btn.id    = 'btnDnEliminar';
+    btn.title = 'Eliminar la carga de notas de este mes.';
+    btn.style.cssText = `
+        background:#ef4444;
+        color:#fff;
+        border:none;
+        border-radius:8px;
+        padding:10px 18px;
+        font-size:.88rem;
+        font-weight:600;
+        cursor:pointer;
+        display:inline-flex;align-items:center;gap:8px;
+        transition:filter .15s, box-shadow .15s;
+        box-shadow:0 2px 10px rgba(239,68,68,.35);
+        flex-shrink:0;
+    `;
+    btn.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+        Eliminar notas del mes`;
+    btn.addEventListener('mouseenter', () => { btn.style.filter = 'brightness(1.07)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.filter = 'none'; });
+    btn.addEventListener('click',      () => _confirmarEliminarNotasMes(mesObjetivo));
+
+    head.appendChild(btn);
+}
+
+function _confirmarEliminarNotasMes(mes) {
+    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const mesNombre = meses[mes] || mes;
+    const msg =
+        `¿Eliminar las notas que el profesor cargó en ${mesNombre}?\n\n` +
+        `• Las notas NUEVAS de este mes se borrarán.\n` +
+        `• Las correcciones se revertirán al valor anterior.\n` +
+        `• Esta acción no se puede deshacer.`;
+    if (!window.confirm(msg)) return;
+    _ejecutarEliminarNotasMes(mes);
+}
+
+async function _ejecutarEliminarNotasMes(mes) {
+    const btn = document.getElementById('btnDnEliminar');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Eliminando…'; }
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/academics/director/eliminar-notas-mes/', {
+            method:  'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type':  'application/json',
+            },
+            body: JSON.stringify({
+                profesor_id: undefined, // se resuelve en backend a partir del pc_id
+                mes:         mes,
+                curso_id:    undefined,
+                materia_id:  undefined,
+                pc_id:       _pcId,
+            }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            alert(data.errores || `No se pudo eliminar (HTTP ${res.status}).`);
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = 'Eliminar notas del mes'; }
+            return;
+        }
+
+        const data = await res.json();
+        const resumen =
+            `Eliminación completada:\n` +
+            `• Notas nuevas borradas: ${data.detalle_notas_borrados ?? 0}\n` +
+            `• Notas revertidas: ${data.detalle_notas_revertidos ?? 0}\n` +
+            `• Historiales borrados: ${data.historial_borrados ?? 0}\n` +
+            `• Snapshots mensuales: ${data.notas_mensuales ?? 0}\n` +
+            `• Predicciones (KMeans): ${data.predicciones ?? 0}\n` +
+            `• Predicciones (árbol): ${data.predicciones_arbol ?? 0}`;
+        alert(resumen);
+        window.location.reload();
+    } catch (err) {
+        console.error(err);
+        alert('Error de conexión al eliminar.');
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = 'Eliminar notas del mes'; }
     }
 }

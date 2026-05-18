@@ -489,10 +489,6 @@ def profesor_carga_calificaciones_view(request):
     return private_render(request, 'profesor/carga_calificaciones.html')
 
 
-def director_notas_curso_mes_view(request):
-    return private_render(request, 'director/notas_curso_mes.html')
-
-
 def privacidad_view(request):
     return render(request, 'privacidad.html')
 

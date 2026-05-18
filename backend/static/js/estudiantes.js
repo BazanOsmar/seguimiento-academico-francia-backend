@@ -7,18 +7,11 @@
 const API_CURSOS      = '/api/academics/cursos/';
 const API_ESTUDIANTES = '/api/students/';
 
-const CARD_COLORS = [
-    { color: '#818cf8', bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.25)'  },
-    { color: '#c084fc', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.25)'  },
-    { color: '#4ade80', bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.22)'   },
-    { color: '#22d3ee', bg: 'rgba(6,182,212,0.10)',   border: 'rgba(6,182,212,0.22)'   },
-    { color: '#f472b6', bg: 'rgba(236,72,153,0.10)',  border: 'rgba(236,72,153,0.22)'  },
-    { color: '#fbbf24', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.22)'  },
-    { color: '#2dd4bf', bg: 'rgba(20,184,166,0.10)',  border: 'rgba(20,184,166,0.22)'  },
-    { color: '#f87171', bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.22)'   },
-    { color: '#34d399', bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.22)'  },
-    { color: '#60a5fa', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.25)'  },
-];
+const CARD_NEUTRAL = {
+    color:  '#60a5fa',
+    bg:     'rgba(59,130,246,0.10)',
+    border: 'rgba(59,130,246,0.25)',
+};
 
 // ── DOM refs ──────────────────────────────────────────────────────
 const grid         = document.getElementById('coursesGrid');
@@ -77,7 +70,7 @@ function renderCursos(lista) {
     }
 
     lista.forEach((curso, i) => {
-        const pal   = CARD_COLORS[i % CARD_COLORS.length];
+        const pal   = CARD_NEUTRAL;
         const code  = shortCode(curso.grado, curso.paralelo);
         const count = curso.estudiantes_count ?? 0;
 

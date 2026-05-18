@@ -3,7 +3,7 @@
         // ── Auth guard ───────────────────────────────────────────────
         const _token = localStorage.getItem('access_token');
         const _user  = JSON.parse(localStorage.getItem('user') || 'null');
-        if (!_token || !_user || _user.tipo_usuario !== 'Profesor') {
+        if (!_token || !_user || !['Profesor', 'Director'].includes(_user.tipo_usuario)) {
             window.location.replace('/login/');
         }
 

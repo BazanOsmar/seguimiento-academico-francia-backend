@@ -147,7 +147,7 @@
 }
 
 .modal-form--comunicado.modal-form--director-create .radio-group {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .modal-form--citcom-create .radio-option {

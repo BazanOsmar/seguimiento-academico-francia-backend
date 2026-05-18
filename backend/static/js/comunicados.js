@@ -422,6 +422,11 @@ const selectEstud    = document.getElementById('nuevaEstudiante');
 const radiosAlcance  = document.querySelectorAll('input[name="comAlcance"]');
 const wrapComGrado   = document.getElementById('wrapComGrado');
 const wrapComCurso   = document.getElementById('wrapComCurso');
+const wrapComGrupo   = document.getElementById('wrapComGrupo');
+const comGrupoSelect  = document.getElementById('comGrupoSelect');
+const comGrupoPills   = document.getElementById('comGrupoPills');
+const comGrupoPickerBtn  = document.getElementById('comGrupoPickerBtn');
+const comGrupoPickerMenu = document.getElementById('comGrupoPickerMenu');
 const rowCursoEstud  = document.getElementById('rowCursoEstud');
 const wrapCurso      = document.getElementById('wrapCurso');
 const wrapEstudiante = document.getElementById('wrapEstudiante');
@@ -439,6 +444,7 @@ const btnToggleCom   = document.getElementById('btnToggleCom');
 let fpFechaLimite     = null;
 let fpFechaExpiracion = null;
 let _cursosCache      = [];
+let _comGrupoSeleccionados = [];
 let _estudiantesIndividualData = []; // cache de estudiantes del select individual
 
 // ── Modales de formulario ─────────────────────────────────────────
@@ -486,18 +492,77 @@ function getAlcance() {
     return document.querySelector('input[name="comAlcance"]:checked').value;
 }
 
+function _renderComGrupoPills() {
+    if (!comGrupoPills) return;
+    comGrupoPills.innerHTML = _comGrupoSeleccionados.map(c => `
+        <span class="com-prof-grupo-pill">${_escapeHtml(c.label)}
+            <button type="button" data-id="${c.id}" aria-label="Quitar curso">x</button>
+        </span>`).join('');
+    comGrupoPills.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _comGrupoSeleccionados = _comGrupoSeleccionados.filter(c => c.id !== parseInt(btn.dataset.id));
+            _renderComGrupoPills();
+            _renderComGrupoMenu();
+            _actualizarCoberturaFCM();
+        });
+    });
+}
+
+function _renderComGrupoMenu() {
+    if (!comGrupoPickerMenu) return;
+    const seleccionados = new Set(_comGrupoSeleccionados.map(c => c.id));
+    comGrupoPickerMenu.innerHTML = _cursosCache
+        .filter(c => !seleccionados.has(c.id))
+        .map(c => `<button type="button" class="com-course-picker__option" data-id="${c.id}">${_escapeHtml(`${c.grado} ${c.paralelo}`)}</button>`)
+        .join('') || '<p class="com-course-picker__empty">No hay mas cursos disponibles.</p>';
+    comGrupoPickerMenu.querySelectorAll('[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            _comGrupoSeleccionados.push({ id: parseInt(btn.dataset.id), label: btn.textContent });
+            _renderComGrupoPills();
+            _renderComGrupoMenu();
+            comGrupoPickerMenu.classList.remove('visible');
+            _actualizarCoberturaFCM();
+        });
+    });
+}
+
+comGrupoPickerBtn?.addEventListener('click', () => {
+    _renderComGrupoMenu();
+    comGrupoPickerMenu.classList.toggle('visible');
+});
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#comGrupoPicker')) {
+        comGrupoPickerMenu?.classList.remove('visible');
+    }
+});
+
 // ── Cambio de alcance del comunicado ─────────────────────────────
 radiosAlcance.forEach(r => {
     r.addEventListener('change', () => {
         const alcance = getAlcance();
         wrapComGrado.style.display = alcance === 'GRADO' ? 'block' : 'none';
         wrapComCurso.style.display = alcance === 'CURSO' ? 'block' : 'none';
+        wrapComGrupo.style.display = alcance === 'GRUPO' ? 'block' : 'none';
         _actualizarCoberturaFCM();
     });
 });
 
 document.getElementById('comGrado').addEventListener('change', _actualizarCoberturaFCM);
 document.getElementById('comCurso').addEventListener('change', _actualizarCoberturaFCM);
+
+comGrupoSelect?.addEventListener('change', function () {
+    if (!this.value) return;
+    const id = parseInt(this.value);
+    if (_comGrupoSeleccionados.some(c => c.id === id)) {
+        this.value = '';
+        return;
+    }
+    _comGrupoSeleccionados.push({ id, label: this.options[this.selectedIndex].textContent });
+    _renderComGrupoPills();
+    this.value = '';
+    _actualizarCoberturaFCM();
+});
 
 function resetForm() {
     formNueva.reset();
@@ -544,6 +609,10 @@ function resetFormCom() {
     if (fpFechaExpiracion) fpFechaExpiracion.clear();
     if (wrapComGrado) wrapComGrado.style.display = 'none';
     if (wrapComCurso) wrapComCurso.style.display = 'none';
+    if (wrapComGrupo) wrapComGrupo.style.display = 'none';
+    _comGrupoSeleccionados = [];
+    _renderComGrupoPills();
+    _renderComGrupoMenu();
     const errEl = document.getElementById('errorNuevaCom');
     const progEl = document.getElementById('progressMsgCom');
     if (errEl)  errEl.style.display  = 'none';
@@ -578,6 +647,12 @@ async function cargarCursosForm() {
     const comCursoSel = document.getElementById('comCurso');
     comCursoSel.innerHTML = '<option value="">— Selecciona curso —</option>'
         + data.map(c => `<option value="${c.id}">${c.grado} ${c.paralelo}</option>`).join('');
+
+    if (comGrupoSelect) {
+        comGrupoSelect.innerHTML = '<option value="">-- Anadir curso --</option>'
+            + data.map(c => `<option value="${c.id}">${c.grado} ${c.paralelo}</option>`).join('');
+    }
+    _renderComGrupoMenu();
 
     // Select de grado — valores únicos ordenados
     const grados = [...new Set(data.map(c => c.grado))].sort();
@@ -1105,9 +1180,11 @@ btnEnviarCom.addEventListener('click', async () => {
     const fechaExp  = document.getElementById('comFechaExpiracion').value || null;
     const grado     = document.getElementById('comGrado').value;
     const cursoId   = document.getElementById('comCurso').value;
+    const cursosGrupo = _comGrupoSeleccionados.map(c => c.id);
 
     if (alcance === 'GRADO' && !grado)   return mostrarErrorCom('Selecciona el grado.');
     if (alcance === 'CURSO' && !cursoId) return mostrarErrorCom('Selecciona el curso.');
+    if (alcance === 'GRUPO' && cursosGrupo.length < 2) return mostrarErrorCom('Selecciona al menos 2 cursos.');
     if (!titulo)                         return mostrarErrorCom('Escribe un título.');
     if (!descripcion)                    return mostrarErrorCom('Escribe el contenido.');
 
@@ -1118,6 +1195,7 @@ btnEnviarCom.addEventListener('click', async () => {
     if (fechaExp)            body.fecha_expiracion = fechaExp;
     if (alcance === 'GRADO') body.grado = grado;
     if (alcance === 'CURSO') body.curso = parseInt(cursoId);
+    if (alcance === 'GRUPO') body.cursos_grupo_ids = cursosGrupo;
 
     const alcanceLabel = { TODOS: 'todos los tutores', GRADO: `grado ${grado}`, CURSO: 'el curso seleccionado' };
 
@@ -1840,10 +1918,12 @@ async function _actualizarCoberturaFCM() {
     const alcance  = getAlcance();
     const grado    = document.getElementById('comGrado').value;
     const cursoId  = document.getElementById('comCurso').value;
+    const cursoIds  = _comGrupoSeleccionados.map(c => c.id);
 
-    // Para GRADO/CURSO esperar a que se seleccione el valor
+    // Para GRADO/CURSO/GRUPO esperar a que se seleccione el valor
     if (alcance === 'GRADO' && !grado)   { wrap.style.display = 'none'; return; }
     if (alcance === 'CURSO' && !cursoId) { wrap.style.display = 'none'; return; }
+    if (alcance === 'GRUPO' && cursoIds.length < 2) { wrap.style.display = 'none'; return; }
 
     // Debounce leve para no disparar en cada keystroke
     clearTimeout(_coberturaTimer);
@@ -1855,6 +1935,7 @@ async function _actualizarCoberturaFCM() {
         const params = new URLSearchParams({ alcance });
         if (alcance === 'GRADO') params.set('grado', grado);
         if (alcance === 'CURSO') params.set('curso_id', cursoId);
+        if (alcance === 'GRUPO') params.set('curso_ids', cursoIds.join(','));
 
         const { ok, data } = await fetchAPI(`/api/notifications/cobertura-comunicado/?${params}`);
         if (!ok) { wrap.style.display = 'none'; return; }
