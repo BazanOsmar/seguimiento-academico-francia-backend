@@ -33,6 +33,7 @@
         .kpi-icon--green   { background: rgba(34,197,94,.15);   color: #22c55e; }
         .kpi-icon--yellow  { background: rgba(245,158,11,.15);  color: #f59e0b; }
         .kpi-icon--purple  { background: rgba(168,85,247,.15);  color: #a855f7; }
+        .kpi-icon--red     { background: rgba(239,68,68,.15);   color: #ef4444; }
 
         .kpi-info { min-width: 0; }
         .kpi-val  { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); line-height: 1; }

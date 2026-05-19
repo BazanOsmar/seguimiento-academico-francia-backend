@@ -147,24 +147,9 @@
                     </div>
                 </div>
 
-                <!-- Asistencia Global -->
+                <!-- En Riesgo Crítico (K-Means) -->
                 <div class="kpi-card">
-                    <div class="kpi-icon kpi-icon--green">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 11l3 3L22 4"/>
-                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                        </svg>
-                    </div>
-                    <div class="kpi-info">
-                        <div class="kpi-val loading" id="kpi-asistencia">—</div>
-                        <div class="kpi-lbl">Asistencia Hoy</div>
-                    </div>
-                </div>
-
-                <!-- Citaciones Activas -->
-                <div class="kpi-card">
-                    <div class="kpi-icon kpi-icon--yellow">
+                    <div class="kpi-icon kpi-icon--red">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -173,23 +158,38 @@
                         </svg>
                     </div>
                     <div class="kpi-info">
-                        <div class="kpi-val loading" id="kpi-citaciones">—</div>
-                        <div class="kpi-lbl">Citaciones Pendientes</div>
+                        <div class="kpi-val" id="kpi-riesgo-critico">—</div>
+                        <div class="kpi-lbl">Riesgo Crítico</div>
                     </div>
                 </div>
 
-                <!-- Cursos Registrados -->
+                <!-- Nota Promedio (K-Means) -->
                 <div class="kpi-card">
-                    <div class="kpi-icon kpi-icon--purple">
+                    <div class="kpi-icon kpi-icon--green">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
                     </div>
                     <div class="kpi-info">
-                        <div class="kpi-val loading" id="kpi-cursos">—</div>
-                        <div class="kpi-lbl">Cursos Registrados</div>
+                        <div class="kpi-val" id="kpi-nota-prom">—</div>
+                        <div class="kpi-lbl">Nota Promedio /95</div>
+                    </div>
+                </div>
+
+                <!-- Requieren Apoyo (K-Means) -->
+                <div class="kpi-card">
+                    <div class="kpi-icon kpi-icon--yellow">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-info">
+                        <div class="kpi-val" id="kpi-requiere-apoyo">—</div>
+                        <div class="kpi-lbl">Requieren Apoyo</div>
                     </div>
                 </div>
             </div>
@@ -237,13 +237,21 @@
 
                 <div class="two-col">
                     <div class="chart-card">
-                        <div class="chart-card__title">Scatter — Asistencia vs Nota Mensual</div>
+                        <div class="chart-card__title">Agrupamiento por Componentes Principales (PCA)</div>
                         <div class="chart-wrap chart-wrap--tall">
                             <canvas id="chartBurbuja"></canvas>
                         </div>
                     </div>
                     <div class="cluster-cards-col" id="clusterCards">
                         <div class="director-estadisticas-inline-style-8">Selecciona un mes y ejecuta el análisis.</div>
+                    </div>
+                </div>
+
+                <!-- Perfil promedio por grupo -->
+                <div class="chart-card director-estadisticas-inline-style-9">
+                    <div class="chart-card__title">Perfil Promedio por Grupo</div>
+                    <div class="chart-wrap" style="height:260px">
+                        <canvas id="chartPerfilGrupo"></canvas>
                     </div>
                 </div>
 

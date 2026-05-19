@@ -58,30 +58,27 @@ function _inicializarTabs() {
 // 1. KPI CARDS
 // ════════════════════════════════════════════════════════════════
 async function _cargarKPIs() {
-    const hoy = new Date().toISOString().split('T')[0];
+    const { ok, data } = await fetchAPI('/api/students/');
+    if (ok && Array.isArray(data))
+        document.getElementById('kpi-estudiantes').textContent = data.length;
+}
 
-    const [resEstudiantes, resCursos, resCitaciones, resAsistencia] = await Promise.all([
-        fetchAPI('/api/students/'),
-        fetchAPI('/api/academics/cursos/'),
-        fetchAPI('/api/discipline/citaciones/?asistencia=PENDIENTE'),
-        fetchAPI(`/api/attendance/estado-diario/?fecha=${hoy}`),
-    ]);
+function _actualizarKPIsKmeans(estudiantes) {
+    const critico = estudiantes.filter(e => e.cluster === 'Riesgo Crítico').length;
+    const apoyo   = estudiantes.filter(e => e.cluster === 'Requiere Apoyo').length;
+    const promedio = estudiantes.length
+        ? (estudiantes.reduce((s, e) => s + e.nota_mensual, 0) / estudiantes.length).toFixed(1)
+        : '—';
 
-    if (resEstudiantes.ok && Array.isArray(resEstudiantes.data))
-        document.getElementById('kpi-estudiantes').textContent = resEstudiantes.data.length;
+    document.getElementById('kpi-riesgo-critico').textContent  = critico  || '—';
+    document.getElementById('kpi-requiere-apoyo').textContent  = apoyo    || '—';
+    document.getElementById('kpi-nota-prom').textContent       = estudiantes.length ? promedio : '—';
+}
 
-    if (resCursos.ok && Array.isArray(resCursos.data))
-        document.getElementById('kpi-cursos').textContent = resCursos.data.length;
-
-    if (resCitaciones.ok && Array.isArray(resCitaciones.data))
-        document.getElementById('kpi-citaciones').textContent = resCitaciones.data.length;
-
-    if (resAsistencia.ok && resAsistencia.data) {
-        const totalCursos = resCursos.ok && Array.isArray(resCursos.data) ? resCursos.data.length : 0;
-        const sesionesHoy = Array.isArray(resAsistencia.data.sesiones) ? resAsistencia.data.sesiones.length : 0;
-        document.getElementById('kpi-asistencia').textContent =
-            totalCursos > 0 ? `${Math.round((sesionesHoy / totalCursos) * 100)}%` : '—';
-    }
+function _resetKPIsKmeans() {
+    ['kpi-riesgo-critico', 'kpi-requiere-apoyo', 'kpi-nota-prom'].forEach(id => {
+        document.getElementById(id).textContent = '—';
+    });
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -101,8 +98,10 @@ async function _cargarKMeans(mes, gestion) {
         document.getElementById('clusterCards').innerHTML =
             `<div style="color:var(--text-muted);font-size:0.8rem;padding:20px 0">Sin datos disponibles.</div>`;
         document.getElementById('paginacionKmeans').style.display = 'none';
-        if (_charts.burbuja)   _charts.burbuja.destroy();
-        if (_charts.distCurso) _charts.distCurso.destroy();
+        if (_charts.burbuja)    _charts.burbuja.destroy();
+        if (_charts.distCurso)  _charts.distCurso.destroy();
+        if (_charts.perfilGrupo) _charts.perfilGrupo.destroy();
+        _resetKPIsKmeans();
         return;
     }
 
@@ -113,8 +112,10 @@ async function _cargarKMeans(mes, gestion) {
     const fechaStr = data.fecha_analisis ? new Date(data.fecha_analisis).toLocaleString('es-BO') : '—';
     estadoEl.textContent = `Último análisis: ${mesesNombres[mes]} ${gestion} · ${data.estudiantes.length} estudiantes · ${data.k} grupos · Generado: ${fechaStr}`;
 
+    _actualizarKPIsKmeans(data.estudiantes);
     _renderScatterKmeans(data.estudiantes);
     _renderClusterCards(data.estudiantes);
+    _renderPerfilGrupo(data.estudiantes);
     _renderDistribucionPorCurso(data.estudiantes);
     _inicializarFiltrosKmeans(data.estudiantes);
 }
@@ -327,6 +328,68 @@ const _ORDEN_CLUSTERS = [
     'Excelente', 'Rendimiento Adecuado', 'Satisfactorio', 'Muy Bien',
     'En Desarrollo', 'Requiere Apoyo', 'Riesgo Académico', 'Riesgo Crítico',
 ];
+
+function _renderPerfilGrupo(estudiantes) {
+    const ctx = document.getElementById('chartPerfilGrupo').getContext('2d');
+    if (_charts.perfilGrupo) _charts.perfilGrupo.destroy();
+
+    const clusters = [...new Set(estudiantes.map(e => e.cluster))]
+        .sort((a, b) => _ORDEN_CLUSTERS.indexOf(a) - _ORDEN_CLUSTERS.indexOf(b));
+
+    const avg = (lista, fn) => lista.length ? +(lista.reduce((s, e) => s + fn(e), 0) / lista.length).toFixed(1) : 0;
+
+    const dimensiones = ['SER', 'SABER', 'HACER', 'Tareas'];
+    const datasets = clusters.map(label => {
+        const lista = estudiantes.filter(e => e.cluster === label);
+        const color = CLUSTER_COLORES[label] || '#94a3b8';
+        return {
+            label,
+            data: [
+                avg(lista, e => e.features.ser_pct),
+                avg(lista, e => e.features.saber_pct),
+                avg(lista, e => e.features.hacer_pct),
+                avg(lista, e => e.features.tasa_entrega_tareas),
+            ],
+            backgroundColor: color + '99',
+            borderColor: color,
+            borderWidth: 2,
+            borderRadius: 4,
+        };
+    });
+
+    _charts.perfilGrupo = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: dimensiones, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 14 } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`,
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#94a3b8', font: { family: 'inherit', size: 13, weight: '600' } },
+                    grid: { display: false },
+                },
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: '#64748b',
+                        font: _baseFont,
+                        callback: v => `${v}%`,
+                    },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                },
+            },
+        },
+    });
+}
 
 function _renderDistribucionPorCurso(estudiantes) {
     const cursos   = [...new Set(estudiantes.map(e => e.curso))].sort();
