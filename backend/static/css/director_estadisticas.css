@@ -89,7 +89,7 @@
         .chart-wrap {
             position: relative;
         }
-        .chart-wrap--tall  { height: 280px; }
+        .chart-wrap--tall  { height: 280px; min-height: 280px; }
         .chart-wrap--med   { height: 240px; }
         .chart-wrap--short { height: 200px; }
 
@@ -98,7 +98,7 @@
             display: grid;
             grid-template-columns: 3fr 2fr;
             gap: 16px;
-            align-items: start;
+            align-items: stretch;
         }
         .two-col--equal {
             grid-template-columns: 1fr 1fr;
@@ -265,7 +265,8 @@
 .director-estadisticas-inline-style-2 { flex-wrap:wrap;gap:10px; }
 .director-estadisticas-inline-style-3 { flex:1 }
 .director-estadisticas-inline-style-4 { display:flex;align-items:center;gap:8px;margin-left:auto }
-.director-estadisticas-inline-style-5 { background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.8rem;padding:6px 10px;outline:none;cursor:pointer }
+.director-estadisticas-inline-style-5 { background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.8rem;padding:6px 10px;outline:none;cursor:pointer;color-scheme:dark }
+.director-estadisticas-inline-style-5 option { background:#1e293b;color:#f1f5f9 }
 .director-estadisticas-inline-style-6 { background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.8rem;font-weight:600;cursor:pointer }
 .director-estadisticas-inline-style-7 { font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;display:none }
 .director-estadisticas-inline-style-8 { color:var(--text-muted);font-size:0.8rem;padding:20px 0 }
