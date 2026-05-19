@@ -116,10 +116,12 @@ GRADOS_VALIDOS = {'1ro', '2do', '3ro', '4to', '5to', '6to'}
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _perfil(est_id: int) -> str:
+    # Distribución realista: satisfactorio es el grupo dominante (~50%)
+    # excelente:20%  satisfactorio:50%  apoyo:20%  critico:10%
     v = est_id % 20
-    if v < 5:  return 'excelente'
-    if v < 11: return 'satisfactorio'
-    if v < 17: return 'apoyo'
+    if v < 4:  return 'excelente'
+    if v < 14: return 'satisfactorio'
+    if v < 18: return 'apoyo'
     return 'critico'
 
 
