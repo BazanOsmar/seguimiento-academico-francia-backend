@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from backend.core.permissions import IsDirector
+from backend.core.permissions import IsDirector, IsTutor
 from backend.apps.academics.services.notas_mongo_service import _get_db
 from backend.apps.students.models import Estudiante
 from backend.apps.academics.models import Materia, Curso as CursoModel
@@ -345,4 +345,143 @@ class EstadisticasArbolView(APIView):
             'tasa_reprobacion':     tasa_reprobacion,
             'por_riesgo':           por_riesgo,
             'por_materia':          por_materia,
+        })
+
+
+_MESES_NOMBRES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
+
+class KMeansTutorView(APIView):
+    """
+    GET /api/analytics/kmeans/tutor/?gestion=2026&mes=4
+
+    Devuelve el resultado K-Means de cada hijo del tutor autenticado.
+    Uno o varios hijos según cuántos estudiantes tenga asignados.
+    """
+    permission_classes = [IsAuthenticated, IsTutor]
+
+    def get(self, request):
+        try:
+            gestion = int(request.query_params.get('gestion', timezone.now().year))
+            mes     = int(request.query_params.get('mes', timezone.now().month))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        hijos = list(
+            Estudiante.objects.filter(tutor=request.user, activo=True).select_related('curso')
+        )
+        if not hijos:
+            return Response({'errores': 'No tiene estudiantes asignados.'}, status=status.HTTP_404_NOT_FOUND)
+
+        col     = _get_db()['predicciones']
+        ids     = [h.id for h in hijos]
+        docs    = {
+            d['estudiante_id']: d
+            for d in col.find({'estudiante_id': {'$in': ids}, 'gestion': gestion, 'mes': mes}, {'_id': 0})
+        }
+        hijos_map = {h.id: h for h in hijos}
+
+        resultados = []
+        for est_id in ids:
+            h   = hijos_map[est_id]
+            doc = docs.get(est_id)
+            entry = {
+                'estudiante_id': est_id,
+                'nombre':  f"{h.apellido_paterno} {h.apellido_materno}, {h.nombre}".strip(),
+                'curso':   f"{h.curso.grado} \"{h.curso.paralelo}\"",
+                'gestion': gestion,
+                'mes':     mes,
+                'mes_nombre': _MESES_NOMBRES[mes] if mes <= 12 else '',
+            }
+            if doc:
+                f = doc.get('features_usadas', {})
+                entry.update({
+                    'cluster':        doc.get('cluster', ''),
+                    'nota_mensual':   round(doc.get('nota_mensual', 0), 1),
+                    'fecha_analisis': doc['fecha_analisis'].isoformat() if doc.get('fecha_analisis') else None,
+                    'features': {
+                        'ser_pct':             round((f.get('ser_pct') or 0) * 100, 1),
+                        'saber_pct':           round((f.get('saber_pct') or 0) * 100, 1),
+                        'hacer_pct':           round((f.get('hacer_pct') or 0) * 100, 1),
+                        'tasa_entrega_tareas': round((f.get('tasa_entrega_tareas') or 0) * 100, 1),
+                        'pct_asistencia':      round((f.get('pct_asistencia') or 0) * 100, 1),
+                        'tasa_citaciones':     round((f.get('tasa_citaciones') or 0) * 100, 1),
+                    },
+                })
+            else:
+                entry['cluster'] = None
+            resultados.append(entry)
+
+        return Response({'gestion': gestion, 'mes': mes, 'hijos': resultados})
+
+
+class ArbolTutorView(APIView):
+    """
+    GET /api/analytics/arbol/tutor/?gestion=2026&mes=4
+
+    Devuelve las predicciones de reprobación por materia de cada hijo del tutor.
+    Ordenadas de mayor a menor probabilidad de reprobar.
+    """
+    permission_classes = [IsAuthenticated, IsTutor]
+
+    def get(self, request):
+        try:
+            gestion = int(request.query_params.get('gestion', timezone.now().year))
+            mes     = int(request.query_params.get('mes', timezone.now().month))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        hijos = list(
+            Estudiante.objects.filter(tutor=request.user, activo=True).select_related('curso')
+        )
+        if not hijos:
+            return Response({'errores': 'No tiene estudiantes asignados.'}, status=status.HTTP_404_NOT_FOUND)
+
+        col  = _get_db()['predicciones_arbol']
+        ids  = [h.id for h in hijos]
+        docs = list(
+            col.find(
+                {'estudiante_id': {'$in': ids}, 'gestion': gestion, 'mes': mes},
+                {'_id': 0}
+            ).sort('probabilidad_reprobar', -1)
+        )
+
+        mat_ids = list({d['materia_id'] for d in docs})
+        materias_map = {m.id: m.nombre for m in Materia.objects.filter(id__in=mat_ids)}
+        hijos_map    = {h.id: h for h in hijos}
+
+        # Agrupar por hijo
+        por_hijo = {h.id: [] for h in hijos}
+        fecha_analisis = None
+        modelo = None
+        for doc in docs:
+            if fecha_analisis is None and doc.get('fecha_analisis'):
+                fecha_analisis = doc['fecha_analisis'].isoformat()
+            if modelo is None:
+                modelo = doc.get('modelo')
+            por_hijo[doc['estudiante_id']].append({
+                'materia_id':           doc['materia_id'],
+                'materia':              materias_map.get(doc['materia_id'], '—'),
+                'probabilidad_reprobar': round(doc.get('probabilidad_reprobar', 0), 1),
+                'prediccion':           doc.get('prediccion', 0),
+                'riesgo':               doc.get('riesgo', ''),
+            })
+
+        resultados = []
+        for h in hijos:
+            resultados.append({
+                'estudiante_id': h.id,
+                'nombre':  f"{h.apellido_paterno} {h.apellido_materno}, {h.nombre}".strip(),
+                'curso':   f"{h.curso.grado} \"{h.curso.paralelo}\"",
+                'materias': por_hijo[h.id],
+            })
+
+        return Response({
+            'gestion':        gestion,
+            'mes':            mes,
+            'mes_nombre':     _MESES_NOMBRES[mes] if mes <= 12 else '',
+            'modelo':         modelo,
+            'fecha_analisis': fecha_analisis,
+            'hijos':          resultados,
         })
