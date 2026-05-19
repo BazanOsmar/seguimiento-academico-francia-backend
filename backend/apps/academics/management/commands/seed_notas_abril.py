@@ -185,7 +185,7 @@ def _generar_docs_estudiante(est: Estudiante, pc: ProfesorCurso, ahora: datetime
     for seq, (col_local, titulo) in enumerate(ACTIVIDADES['ser']):
         col_real = _COL_OFFSETS['ser'] + col_local
         rng      = _rng(est.id, pc.materia.id, DIM_OFFSET['ser'], seq)
-        nota     = round(rng.uniform(*perfil['ser']), 1)
+        nota     = float(int(round(rng.uniform(*perfil['ser']))))
         notas_ser.append(nota)
         ops_detalle.append(UpdateOne(
             {
@@ -217,7 +217,7 @@ def _generar_docs_estudiante(est: Estudiante, pc: ProfesorCurso, ahora: datetime
     for seq, (col_local, titulo) in enumerate(ACTIVIDADES['saber']):
         col_real = _COL_OFFSETS['saber'] + col_local
         rng      = _rng(est.id, pc.materia.id, DIM_OFFSET['saber'], seq)
-        nota     = round(rng.uniform(*perfil['saber']), 1)
+        nota     = float(int(round(rng.uniform(*perfil['saber']))))
         notas_saber.append(nota)
         ops_detalle.append(UpdateOne(
             {
@@ -253,7 +253,7 @@ def _generar_docs_estudiante(est: Estudiante, pc: ProfesorCurso, ahora: datetime
         if rng.random() > perfil['tasa_hacer']:
             nota = 0.0
         else:
-            nota = round(rng.uniform(*perfil['hacer']), 1)
+            nota = float(int(round(rng.uniform(*perfil['hacer']))))
         notas_hacer.append(nota)
         ops_detalle.append(UpdateOne(
             {
