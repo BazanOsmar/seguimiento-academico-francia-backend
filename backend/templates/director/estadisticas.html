@@ -335,23 +335,39 @@
 
                 <p id="arbolEstado" class="director-estadisticas-inline-style-7"></p>
 
-                <!-- KPIs mini riesgo -->
+                <!-- KPIs árbol -->
                 <div class="arbol-kpi-row">
-                    <div class="arbol-kpi">
-                        <div class="arbol-kpi__val loading" id="arbol-kpi-total">—</div>
-                        <div class="arbol-kpi__lbl">Predicciones</div>
+                    <div class="arbol-kpi arbol-kpi--alto">
+                        <div class="arbol-kpi__val" id="arbol-kpi-est-alto">—</div>
+                        <div class="arbol-kpi__lbl">Estudiantes en Riesgo</div>
                     </div>
                     <div class="arbol-kpi arbol-kpi--alto">
-                        <div class="arbol-kpi__val loading" id="arbol-kpi-alto">—</div>
-                        <div class="arbol-kpi__lbl">Riesgo Alto</div>
+                        <div class="arbol-kpi__val" id="arbol-kpi-pred-alto">—</div>
+                        <div class="arbol-kpi__lbl">Predicciones REPROBADO</div>
                     </div>
-                    <div class="arbol-kpi arbol-kpi--medio">
-                        <div class="arbol-kpi__val loading" id="arbol-kpi-medio">—</div>
-                        <div class="arbol-kpi__lbl">Riesgo Medio</div>
+                    <div class="arbol-kpi">
+                        <div class="arbol-kpi__val" id="arbol-kpi-tasa">—</div>
+                        <div class="arbol-kpi__lbl">Tasa de Reprobación</div>
                     </div>
                     <div class="arbol-kpi arbol-kpi--bajo">
-                        <div class="arbol-kpi__val loading" id="arbol-kpi-bajo">—</div>
-                        <div class="arbol-kpi__lbl">Riesgo Bajo</div>
+                        <div class="arbol-kpi__val" id="arbol-kpi-pred-bajo">—</div>
+                        <div class="arbol-kpi__lbl">Predicciones APROBADO</div>
+                    </div>
+                </div>
+
+                <!-- Gráficas árbol -->
+                <div class="two-col" style="margin-top:16px">
+                    <div class="chart-card" style="display:flex;flex-direction:column;">
+                        <div class="chart-card__title">Riesgo de Reprobación por Materia</div>
+                        <div class="chart-wrap" style="flex:1;min-height:300px" id="arbolMatWrap">
+                            <canvas id="chartArbolMaterias"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="display:flex;flex-direction:column;justify-content:center;">
+                        <div class="chart-card__title">Distribución de Predicciones</div>
+                        <div class="chart-wrap" style="height:280px">
+                            <canvas id="chartArbolDonut"></canvas>
+                        </div>
                     </div>
                 </div>
 

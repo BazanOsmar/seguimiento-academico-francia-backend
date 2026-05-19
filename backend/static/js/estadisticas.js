@@ -491,6 +491,128 @@ function _inicializarFiltrosKmeans(estudiantes) {
 // ════════════════════════════════════════════════════════════════
 // 3. ÁRBOLES DE DECISIÓN
 // ════════════════════════════════════════════════════════════════
+
+async function _cargarEstadisticasArbol(mes, gestion) {
+    const { ok, data } = await fetchAPI(`/api/analytics/arbol/estadisticas/?gestion=${gestion}&mes=${mes}`);
+    if (!ok || !data.total_predicciones) {
+        ['arbol-kpi-est-alto','arbol-kpi-pred-alto','arbol-kpi-tasa','arbol-kpi-pred-bajo']
+            .forEach(id => { document.getElementById(id).textContent = '—'; });
+        if (_charts.arbolMat)   _charts.arbolMat.destroy();
+        if (_charts.arbolDonut) _charts.arbolDonut.destroy();
+        return;
+    }
+
+    const pr = data.por_riesgo || {};
+    document.getElementById('arbol-kpi-est-alto').textContent  = data.estudiantes_riesgo_alto ?? '—';
+    document.getElementById('arbol-kpi-pred-alto').textContent = pr['Alto']  ?? 0;
+    document.getElementById('arbol-kpi-tasa').textContent      = data.tasa_reprobacion != null ? `${data.tasa_reprobacion}%` : '—';
+    document.getElementById('arbol-kpi-pred-bajo').textContent = pr['Bajo']  ?? 0;
+
+    _renderArbolMaterias(data.por_materia || []);
+    _renderArbolDonut(pr);
+}
+
+function _renderArbolMaterias(porMateria) {
+    const ctx = document.getElementById('chartArbolMaterias').getContext('2d');
+    if (_charts.arbolMat) _charts.arbolMat.destroy();
+
+    const sorted = [...porMateria].sort((a, b) => b.pct_reprobacion - a.pct_reprobacion);
+    const labels  = sorted.map(m => m.materia);
+    const valores = sorted.map(m => m.pct_reprobacion);
+    const colores = valores.map(v => v >= 50 ? '#ef4444cc' : v >= 25 ? '#f59e0bcc' : '#22c55ecc');
+    const bordes  = valores.map(v => v >= 50 ? '#ef4444' : v >= 25 ? '#f59e0b' : '#22c55e');
+
+    const wrap = document.getElementById('arbolMatWrap');
+    wrap.style.height = `${Math.max(300, sorted.length * 36)}px`;
+
+    _charts.arbolMat = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: '% Estudiantes que reprobarían',
+                data: valores,
+                backgroundColor: colores,
+                borderColor: bordes,
+                borderWidth: 1.5,
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const m = sorted[ctx.dataIndex];
+                            return ` ${ctx.parsed.x}% (${m.alto} de ${m.total} estudiantes)`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    min: 0, max: 100,
+                    ticks: { color: '#64748b', font: _baseFont, callback: v => `${v}%` },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                },
+                y: {
+                    ticks: { color: '#94a3b8', font: _baseFont },
+                    grid: { display: false },
+                },
+            },
+        },
+    });
+}
+
+function _renderArbolDonut(porRiesgo) {
+    const ctx = document.getElementById('chartArbolDonut').getContext('2d');
+    if (_charts.arbolDonut) _charts.arbolDonut.destroy();
+
+    const labels = ['Aprobado', 'Reprobado'];
+    const bajo   = porRiesgo['Bajo']  || 0;
+    const medio  = porRiesgo['Medio'] || 0;
+    const alto   = porRiesgo['Alto']  || 0;
+    const aprobados   = bajo + medio;
+    const reprobados  = alto;
+
+    _charts.arbolDonut = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: [aprobados, reprobados],
+                backgroundColor: ['#22c55e99', '#ef444499'],
+                borderColor:     ['#22c55e',   '#ef4444'],
+                borderWidth: 2,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#94a3b8', font: _baseFont, boxWidth: 12, padding: 16 },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const total = aprobados + reprobados;
+                            const pct = total ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                            return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
+
 async function _cargarArbol(mes, gestion, page) {
     const estadoEl = document.getElementById('arbolEstado');
     estadoEl.style.display = 'block';
@@ -529,15 +651,7 @@ async function _cargarArbol(mes, gestion, page) {
     _renderTablaArbol(data.resultados || [], data.total, data.pages);
 }
 
-function _actualizarKpisArbol(resumen, total) {
-    document.getElementById('arbol-kpi-total').textContent = total || (Object.values(resumen).reduce((s, v) => s + v, 0)) || '—';
-    document.getElementById('arbol-kpi-alto').textContent  = resumen['Alto']  ?? '—';
-    document.getElementById('arbol-kpi-medio').textContent = resumen['Medio'] ?? '—';
-    document.getElementById('arbol-kpi-bajo').textContent  = resumen['Bajo']  ?? '—';
-
-    ['arbol-kpi-total','arbol-kpi-alto','arbol-kpi-medio','arbol-kpi-bajo']
-        .forEach(id => document.getElementById(id).classList.remove('loading'));
-}
+function _actualizarKpisArbol() { /* reemplazado por _cargarEstadisticasArbol */ }
 
 function _poblarFiltrosArbol(opciones) {
     const selCurso   = document.getElementById('filtroArbolCurso');
@@ -620,7 +734,10 @@ function _inicializarFiltrosArbol() {
         _cargarArbol(parseInt(selMes.value), new Date().getFullYear(), 1);
     };
 
-    selMes.addEventListener('change', recargar);
+    selMes.addEventListener('change', () => {
+        _cargarEstadisticasArbol(parseInt(selMes.value), new Date().getFullYear());
+        recargar();
+    });
     selCurso.addEventListener('change', recargar);
     selMateria.addEventListener('change', recargar);
     selRiesgo.addEventListener('change', recargar);
@@ -654,5 +771,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selMesArbol = document.getElementById('arbolMes');
     selMesArbol.value = mesActual;
     _inicializarFiltrosArbol();
+    _cargarEstadisticasArbol(mesActual, gestion);
     _cargarArbol(mesActual, gestion, 1);
 });

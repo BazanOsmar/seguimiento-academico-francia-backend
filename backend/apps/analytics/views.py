@@ -269,3 +269,80 @@ class ResultadosArbolView(APIView):
             'opciones':       {'cursos': cursos_filtro, 'materias': materias_filtro},
             'resultados':     resultados,
         })
+
+
+class EstadisticasArbolView(APIView):
+    """
+    GET /api/analytics/arbol/estadisticas/?gestion=2026&mes=4
+
+    Agrega predicciones del árbol para KPIs y gráficas (sin paginación).
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        try:
+            gestion = int(request.query_params.get('gestion', timezone.now().year))
+            mes     = int(request.query_params.get('mes', timezone.now().month))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        col    = _get_db()['predicciones_arbol']
+        filtro = {'gestion': gestion, 'mes': mes}
+
+        total = col.count_documents(filtro)
+        if not total:
+            return Response({'gestion': gestion, 'mes': mes, 'total_predicciones': 0})
+
+        # ── Resumen global ────────────────────────────────────────────
+        resumen_raw = col.aggregate([
+            {'$match': filtro},
+            {'$group': {'_id': '$riesgo', 'count': {'$sum': 1}}},
+        ])
+        por_riesgo = {r['_id']: r['count'] for r in resumen_raw}
+
+        reprobados          = col.count_documents({**filtro, 'prediccion': 1})
+        estudiantes_alto    = len(col.distinct('estudiante_id', {**filtro, 'riesgo': 'Alto'}))
+        tasa_reprobacion    = round(reprobados / total * 100, 1)
+
+        fecha_doc = col.find_one(filtro, {'fecha_analisis': 1, '_id': 0})
+        fecha_analisis = fecha_doc['fecha_analisis'].isoformat() if fecha_doc and fecha_doc.get('fecha_analisis') else None
+
+        # ── Por materia ───────────────────────────────────────────────
+        pipe_mat = col.aggregate([
+            {'$match': filtro},
+            {'$group': {
+                '_id':   '$materia_id',
+                'alto':  {'$sum': {'$cond': [{'$eq': ['$riesgo', 'Alto']},  1, 0]}},
+                'medio': {'$sum': {'$cond': [{'$eq': ['$riesgo', 'Medio']}, 1, 0]}},
+                'bajo':  {'$sum': {'$cond': [{'$eq': ['$riesgo', 'Bajo']},  1, 0]}},
+                'total': {'$sum': 1},
+            }},
+            {'$sort': {'alto': -1}},
+        ])
+        mat_docs  = list(pipe_mat)
+        mat_ids   = [d['_id'] for d in mat_docs]
+        mat_nombres = {m.id: m.nombre for m in Materia.objects.filter(id__in=mat_ids)}
+
+        por_materia = [
+            {
+                'materia_id':      d['_id'],
+                'materia':         mat_nombres.get(d['_id'], '—'),
+                'alto':            d['alto'],
+                'medio':           d['medio'],
+                'bajo':            d['bajo'],
+                'total':           d['total'],
+                'pct_reprobacion': round(d['alto'] / d['total'] * 100, 1) if d['total'] else 0,
+            }
+            for d in mat_docs
+        ]
+
+        return Response({
+            'gestion':              gestion,
+            'mes':                  mes,
+            'fecha_analisis':       fecha_analisis,
+            'total_predicciones':   total,
+            'estudiantes_riesgo_alto': estudiantes_alto,
+            'tasa_reprobacion':     tasa_reprobacion,
+            'por_riesgo':           por_riesgo,
+            'por_materia':          por_materia,
+        })
