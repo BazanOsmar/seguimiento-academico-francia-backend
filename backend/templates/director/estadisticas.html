@@ -235,6 +235,20 @@
                 <!-- Estado / último análisis -->
                 <p id="kmeansEstado" class="director-estadisticas-inline-style-7"></p>
 
+                <!-- Banner sin datos -->
+                <div id="kmeansEmptyState" class="analytics-empty-state" style="display:none">
+                    <div class="analytics-empty-state__icon">
+                        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <div class="analytics-empty-state__title">Sin análisis para este mes</div>
+                    <div class="analytics-empty-state__desc">El agrupamiento K-Means aún no se ha ejecutado para el mes seleccionado. Usa el botón "Ejecutar análisis" cuando todas las planillas del mes estén cargadas.</div>
+                </div>
+
+                <!-- Contenido K-Means (se oculta si no hay datos) -->
+                <div id="kmeansContent">
+
                 <div class="two-col">
                     <div class="chart-card" style="display:flex;flex-direction:column;">
                         <div class="chart-card__title">Agrupamiento por Componentes Principales (PCA)</div>
@@ -303,6 +317,7 @@
                         <button id="kNextBtn">Siguiente &#8594;</button>
                     </div>
                 </div>
+                </div><!-- /#kmeansContent -->
             </div><!-- /.section-block -->
             </div><!-- /#panelKmeans -->
 
@@ -334,6 +349,20 @@
                 </div>
 
                 <p id="arbolEstado" class="director-estadisticas-inline-style-7"></p>
+
+                <!-- Banner sin datos -->
+                <div id="arbolEmptyState" class="analytics-empty-state" style="display:none">
+                    <div class="analytics-empty-state__icon">
+                        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/>
+                        </svg>
+                    </div>
+                    <div class="analytics-empty-state__title">Sin predicciones para este mes</div>
+                    <div class="analytics-empty-state__desc">El árbol de decisión aún no ha procesado el mes seleccionado. El análisis se ejecuta automáticamente cuando todos los profesores confirman su planilla mensual.</div>
+                </div>
+
+                <!-- Contenido árbol (se oculta si no hay datos) -->
+                <div id="arbolContent">
 
                 <!-- KPIs árbol -->
                 <div class="arbol-kpi-row">
@@ -412,6 +441,7 @@
                         <button id="aNextBtn">Siguiente &#8594;</button>
                     </div>
                 </div>
+                </div><!-- /#arbolContent -->
             </div><!-- /.section-block -->
             </div><!-- /#panelArbol -->
 

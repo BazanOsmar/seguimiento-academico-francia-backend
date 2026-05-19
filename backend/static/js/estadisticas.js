@@ -82,6 +82,16 @@ function _resetKPIsKmeans() {
     });
 }
 
+function _toggleKmeansContent(hayDatos) {
+    document.getElementById('kmeansContent').style.display    = hayDatos ? '' : 'none';
+    document.getElementById('kmeansEmptyState').style.display = hayDatos ? 'none' : 'block';
+}
+
+function _toggleArbolContent(hayDatos) {
+    document.getElementById('arbolContent').style.display    = hayDatos ? '' : 'none';
+    document.getElementById('arbolEmptyState').style.display = hayDatos ? 'none' : 'block';
+}
+
 // ════════════════════════════════════════════════════════════════
 // 2. K-MEANS
 // ════════════════════════════════════════════════════════════════
@@ -93,18 +103,16 @@ async function _cargarKMeans(mes, gestion) {
     const { ok, data } = await fetchAPI(`/api/analytics/kmeans/resultados/?gestion=${gestion}&mes=${mes}`);
 
     if (!ok || !data.estudiantes || !data.estudiantes.length) {
-        estadoEl.textContent = 'Sin resultados para este mes. Usa el botón "Ejecutar análisis" si ya están todas las planillas cargadas.';
-        document.getElementById('tbodyKmeans').innerHTML =
-            `<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos para este mes.</td></tr>`;
-        document.getElementById('clusterCards').innerHTML =
-            `<div style="color:var(--text-muted);font-size:0.8rem;padding:20px 0">Sin datos disponibles.</div>`;
-        document.getElementById('paginacionKmeans').style.display = 'none';
-        if (_charts.burbuja)    _charts.burbuja.destroy();
-        if (_charts.distCurso)  _charts.distCurso.destroy();
+        estadoEl.style.display = 'none';
+        _toggleKmeansContent(false);
+        if (_charts.burbuja)     _charts.burbuja.destroy();
+        if (_charts.distCurso)   _charts.distCurso.destroy();
         if (_charts.perfilGrupo) _charts.perfilGrupo.destroy();
         _resetKPIsKmeans();
         return;
     }
+
+    _toggleKmeansContent(true);
 
     _kmeansData = data;
     _kmeansPagina = 1;
@@ -636,14 +644,13 @@ async function _cargarArbol(mes, gestion, page) {
     const fechaStr = data.fecha_analisis ? new Date(data.fecha_analisis).toLocaleString('es-BO') : '—';
 
     if (!data.total) {
-        estadoEl.textContent = `Sin predicciones para ${mesesNombres[mes]} ${gestion}. El análisis se ejecuta automáticamente cuando todos los profesores cargan su planilla.`;
-        document.getElementById('tbodyArbol').innerHTML =
-            `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Sin datos para este mes.</td></tr>`;
-        document.getElementById('paginacionArbol').style.display = 'none';
-        _actualizarKpisArbol({});
+        estadoEl.style.display = 'none';
+        _toggleArbolContent(false);
         return;
     }
 
+    _toggleArbolContent(true);
+    estadoEl.style.display = 'block';
     estadoEl.textContent = `Último análisis: ${mesesNombres[mes]} ${gestion} · ${data.total} predicciones · Generado: ${fechaStr}`;
 
     _actualizarKpisArbol(data.resumen_riesgo || {}, data.total);
