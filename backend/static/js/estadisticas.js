@@ -70,6 +70,7 @@ function _actualizarKPIsKmeans(estudiantes) {
         ? (estudiantes.reduce((s, e) => s + e.nota_mensual, 0) / estudiantes.length).toFixed(1)
         : '—';
 
+    document.getElementById('kpi-estudiantes').textContent     = estudiantes.length || '—';
     document.getElementById('kpi-riesgo-critico').textContent  = critico  || '—';
     document.getElementById('kpi-requiere-apoyo').textContent  = apoyo    || '—';
     document.getElementById('kpi-nota-prom').textContent       = estudiantes.length ? promedio : '—';
