@@ -251,7 +251,7 @@ class ConfirmarPlanillaView(APIView):
 
         for hoja, dims in draft['headers_por_trim'].items():
             t  = _TRIM_MAP.get(hoja, 1)
-            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'])
+            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
             rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
             resultado['insertados']            += r['insertados']
             resultado['actualizados']          += r['actualizados']

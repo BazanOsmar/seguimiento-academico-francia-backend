@@ -157,7 +157,7 @@ def _nota_maxima(dimension):
 
 # ── API pública ───────────────────────────────────────────────────────────────
 
-def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
+def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, mes=None):
     """
     Guarda las notas del Excel en detalle_notas con lógica de comparación:
       - Documento nuevo      → INSERT  (fecha_carga = ahora)
@@ -200,7 +200,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
             col_idx     = col_data['col']
             titulo      = col_data['titulo']
             fecha_activ = _parsear_fecha(titulo)
-            mes         = fecha_activ.month if fecha_activ else None
+            mes_doc     = mes
 
             for n in col_data.get('notas', []):
                 clave = (n['nro'], dimension, col_idx)
@@ -215,7 +215,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
                         'profesor_id':        profesor_id,
                         'gestion':            gestion,
                         'trimestre':          trimestre,
-                        'mes':                mes,
+                        'mes':                mes_doc,
                         'dimension':          dimension,
                         'columna_idx':        col_idx,
                         'titulo':             titulo,
@@ -236,7 +236,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026):
                             'fecha_actividad':     fecha_activ,
                             'nota':                n['nota'],
                             'nota_maxima':         nota_max,
-                            'mes':                 mes,
+                            'mes':                 mes_doc,
                             'fecha_actualizacion': ahora,
                         }},
                     ))
