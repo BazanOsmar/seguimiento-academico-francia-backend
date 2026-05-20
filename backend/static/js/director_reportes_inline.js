@@ -329,40 +329,11 @@ function renderTutores(d) {
     ]);
 }
 
-/* ── Autenticación sidebar / logout ──────────────────────────── */
-(function initSidebar() {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    if (user) {
-        const nameEl = document.getElementById('profileName');
-        const roleEl = document.getElementById('profileRole');
-        if (nameEl && user.first_name) nameEl.textContent = `${user.first_name} ${user.last_name || ''}`.trim();
-        if (roleEl) roleEl.textContent = 'Director';
-    }
+/* ── Arranque (llamado desde estadisticas.js al activar el tab) ── */
+btnCargar.addEventListener('click', cargarTodo);
 
-    const btnMenu     = document.getElementById('btnMenu');
-    const sidebar     = document.querySelector('.sidebar');
-    const backdrop    = document.getElementById('sidebarBackdrop');
-    if (btnMenu) {
-        btnMenu.addEventListener('click', () => { sidebar.classList.toggle('open'); backdrop.classList.toggle('show'); });
-        backdrop.addEventListener('click', () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); });
-    }
-
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => {
-            if (typeof logoutFCM === 'function') await logoutFCM();
-            localStorage.clear();
-            window.location.replace('/');
-        });
-    }
-})();
-
-/* ── Mes actual por defecto ──────────────────────────────────── */
-(function setDefaultMonth() {
+window.rptInit = function () {
     const m = new Date().getMonth() + 1;
     if (selMes) selMes.value = String(m);
-})();
-
-/* ── Arranque ────────────────────────────────────────────────── */
-btnCargar.addEventListener('click', cargarTodo);
-cargarTodo();
+    cargarTodo();
+};

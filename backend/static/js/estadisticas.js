@@ -42,14 +42,62 @@ const C = {
 };
 
 // ════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ════════════════════════════════════════════════════════════════
+function _initSidebar() {
+    const sidebar  = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const btnMenu  = document.getElementById('btnMenu');
+    const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
+    let _leaveTimer;
+
+    sidebar.addEventListener('mouseenter', () => {
+        clearTimeout(_leaveTimer);
+        if (isDesktop()) sidebar.classList.add('sidebar--expanded');
+    });
+    sidebar.addEventListener('mouseleave', () => {
+        if (isDesktop())
+            _leaveTimer = setTimeout(() => sidebar.classList.remove('sidebar--expanded'), 200);
+    });
+    btnMenu.addEventListener('click', () =>
+        sidebar.classList.contains('sidebar--open')
+            ? (sidebar.classList.remove('sidebar--open'), backdrop.classList.remove('visible'))
+            : (sidebar.classList.add('sidebar--open'),    backdrop.classList.add('visible'))
+    );
+    backdrop.addEventListener('click', () => {
+        sidebar.classList.remove('sidebar--open');
+        backdrop.classList.remove('visible');
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.replace('/login/');
+    });
+
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (user) {
+        const rol = document.getElementById('profileRole');
+        if (rol) rol.textContent = user.tipo_usuario || 'Director';
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 // TABS
 // ════════════════════════════════════════════════════════════════
+let _rptCargado = false;
+
 function _inicializarTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.tab;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
+            if (tab === 'reportes' && !_rptCargado) {
+                _rptCargado = true;
+                if (typeof window.rptInit === 'function') window.rptInit();
+            }
         });
     });
 }
@@ -759,6 +807,7 @@ function _inicializarFiltrosArbol() {
 // INIT
 // ════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
+    _initSidebar();
     _inicializarTabs();
     _cargarKPIs();
 
