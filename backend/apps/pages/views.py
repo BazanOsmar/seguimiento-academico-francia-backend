@@ -442,6 +442,10 @@ def director_estadisticas_view(request):
     return private_render(request, 'director/estadisticas.html')
 
 
+def director_reportes_view(request):
+    return private_render(request, 'director/reportes.html')
+
+
 def director_actividad_view(request):
     return private_render(request, 'director/actividad.html')
 

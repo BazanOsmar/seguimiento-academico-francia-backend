@@ -1,0 +1,526 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Reportes — Francia "A"</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo_francia.png' %}">
+    <link rel="stylesheet" href="{% static 'css/director.css' %}">
+    <link rel="stylesheet" href="{% static 'css/director_reportes.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <!-- ── Sidebar ────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img src="{% static 'img/logo_francia.png' %}" alt="Logo Francia A">
+            </div>
+            <div class="sidebar-profile-info">
+                <span class="profile-name" id="profileName">Republica de Francia 'A'</span>
+                <span class="profile-role" id="profileRole">Administración</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a href="/director/control-diario/" class="nav-item" aria-label="Control Diario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Control Diario</span>
+            </a>
+            <a href="/director/estudiantes/" class="nav-item" aria-label="Estudiantes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                <span class="nav-label">Estudiantes</span>
+            </a>
+            <a href="/director/usuarios/" class="nav-item" aria-label="Usuarios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="nav-label">Usuarios</span>
+            </a>
+            <a href="/director/asistencia/" class="nav-item" aria-label="Asistencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8"  y1="2" x2="8"  y2="6"/>
+                    <line x1="3"  y1="10" x2="21" y2="10"/>
+                    <path d="M9 16l2 2 4-4"/>
+                </svg>
+                <span class="nav-label">Asistencia</span>
+            </a>
+            <a href="/director/comunicados/" class="nav-item" aria-label="Avisos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 11l19-9v18L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                </svg>
+                <span class="nav-label">Avisos</span>
+            </a>
+            <a href="/director/academico/" class="nav-item" aria-label="Académico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span class="nav-label">Académico</span>
+            </a>
+            <a href="/director/estadisticas/" class="nav-item" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
+            </a>
+            <a href="/director/reportes/" class="nav-item active" aria-label="Reportes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <span class="nav-label">Reportes</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <a href="/director/mi-perfil/" class="nav-item" aria-label="Mi Perfil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="nav-label">Mi Perfil</span>
+            </a>
+            <button class="nav-item" id="btnLogout" aria-label="Cerrar sesión">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Cerrar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ── Top bar ─────────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div class="rpt-topbar-left">
+            <button class="btn-menu" id="btnMenu" aria-label="Abrir menú">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6"  x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="page-title">Reportes</h1>
+        </div>
+        <div class="topbar-actions">
+            {% include 'director/_notif_bell.html' %}
+        </div>
+    </header>
+
+    <!-- ── Contenido principal ─────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="page-inner">
+
+            <!-- Selectores de período -->
+            <div class="rpt-period-bar">
+                <div class="rpt-period-group">
+                    <label class="rpt-period-label">Mes</label>
+                    <select id="selMes" class="rpt-select">
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div class="rpt-period-group">
+                    <label class="rpt-period-label">Gestión</label>
+                    <select id="selGestion" class="rpt-select">
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                    </select>
+                </div>
+                <button id="btnCargar" class="rpt-btn-cargar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 .49-3.52"/>
+                    </svg>
+                    Cargar
+                </button>
+                <span id="rptLoading" class="rpt-loading" style="display:none">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rpt-spin">
+                        <path d="M21 12a9 9 0 1 1-9-9"/>
+                    </svg>
+                    Cargando...
+                </span>
+            </div>
+
+            <!-- Tab nav -->
+            <div class="rpt-tab-nav">
+                <button class="rpt-tab active" data-tab="academico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    Académico
+                </button>
+                <button class="rpt-tab" data-tab="asistencia">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                    Asistencia
+                </button>
+                <button class="rpt-tab" data-tab="citaciones">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Citaciones
+                </button>
+                <button class="rpt-tab" data-tab="comunicados">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9v18L3 13v-2z"/></svg>
+                    Comunicados
+                </button>
+                <button class="rpt-tab" data-tab="profesores">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    Profesores
+                </button>
+                <button class="rpt-tab" data-tab="tutores">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Tutores
+                </button>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TAB: ACADÉMICO
+            ══════════════════════════════════════════════════════ -->
+            <div id="tab-academico" class="rpt-panel active">
+                <div class="rpt-kpi-row">
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="acad-prom">—</div><div class="rpt-kpi__lbl">Promedio colegio /95</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="acad-total">—</div><div class="rpt-kpi__lbl">Estudiantes con notas</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--yellow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="acad-mejor-prof">—</div><div class="rpt-kpi__lbl">Mejor profesor (prom.)</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--red">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="acad-peor-mat">—</div><div class="rpt-kpi__lbl">Materia crítica</div></div>
+                    </div>
+                </div>
+
+                <div class="rpt-two-col">
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Materias — promedio más bajo</div>
+                        <div class="rpt-chart-wrap"><canvas id="chartMaterias"></canvas></div>
+                    </div>
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Cursos — promedio más bajo</div>
+                        <div class="rpt-chart-wrap"><canvas id="chartCursos"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="rpt-two-col">
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Top 5 — Mejores estudiantes</div>
+                        <table class="rpt-table" id="tablaTop5">
+                            <thead><tr><th>#</th><th>Estudiante</th><th>Curso</th><th>Nota</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Bottom 5 — Requieren atención</div>
+                        <table class="rpt-table" id="tablaBottom5">
+                            <thead><tr><th>#</th><th>Estudiante</th><th>Curso</th><th>Nota</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="rpt-card">
+                    <div class="rpt-card__title">Ranking de profesores por promedio</div>
+                    <div class="rpt-table-scroll">
+                        <table class="rpt-table" id="tablaProfs">
+                            <thead><tr><th>#</th><th>Profesor</th><th>Estudiantes</th><th>Promedio /95</th><th>Indicador</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TAB: ASISTENCIA
+            ══════════════════════════════════════════════════════ -->
+            <div id="tab-asistencia" class="rpt-panel">
+                <div class="rpt-kpi-row">
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="asist-pct-pres">—</div><div class="rpt-kpi__lbl">% Presentes</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--red">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="asist-pct-faltas">—</div><div class="rpt-kpi__lbl">% Faltas</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--yellow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="asist-pct-atrasos">—</div><div class="rpt-kpi__lbl">% Atrasos</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="asist-sesiones">—</div><div class="rpt-kpi__lbl">Sesiones registradas</div></div>
+                    </div>
+                </div>
+
+                <div class="rpt-two-col">
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Distribución global de estados</div>
+                        <div class="rpt-chart-wrap rpt-chart-wrap--sm"><canvas id="chartAsistDonut"></canvas></div>
+                    </div>
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Cursos con mayor tasa de faltas</div>
+                        <div class="rpt-chart-wrap"><canvas id="chartCursosFaltas"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="rpt-card">
+                    <div class="rpt-card__title">Ranking de cursos por asistencia</div>
+                    <div class="rpt-table-scroll">
+                        <table class="rpt-table" id="tablaCursosAsist">
+                            <thead><tr><th>Curso</th><th>% Faltas</th><th>% Atrasos</th><th>Sesiones</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TAB: CITACIONES
+            ══════════════════════════════════════════════════════ -->
+            <div id="tab-citaciones" class="rpt-panel">
+                <div class="rpt-kpi-row">
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="cit-total">—</div><div class="rpt-kpi__lbl">Total citaciones</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="cit-pct-asistio">—</div><div class="rpt-kpi__lbl">% Tutores asistieron</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--red">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="cit-vencidas">—</div><div class="rpt-kpi__lbl">Vencidas sin atender</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--yellow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="cit-auto">—</div><div class="rpt-kpi__lbl">Automáticas</div></div>
+                    </div>
+                </div>
+
+                <div class="rpt-two-col">
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Estado de asistencia a citaciones</div>
+                        <div class="rpt-chart-wrap rpt-chart-wrap--sm"><canvas id="chartCitDonut"></canvas></div>
+                    </div>
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Cursos con más citaciones</div>
+                        <div class="rpt-chart-wrap"><canvas id="chartCitCursos"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TAB: COMUNICADOS
+            ══════════════════════════════════════════════════════ -->
+            <div id="tab-comunicados" class="rpt-panel">
+                <div class="rpt-kpi-row">
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9v18L3 13v-2z"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="com-total">—</div><div class="rpt-kpi__lbl">Comunicados activos</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="com-pct">—</div><div class="rpt-kpi__lbl">% Leídos</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--red">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="com-nunca">—</div><div class="rpt-kpi__lbl">Tutores sin leer</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--yellow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="com-vencer">—</div><div class="rpt-kpi__lbl">Por vencer (3 días)</div></div>
+                    </div>
+                </div>
+
+                <div class="rpt-two-col">
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Lectura de comunicados</div>
+                        <div class="rpt-chart-wrap rpt-chart-wrap--sm"><canvas id="chartComDonut"></canvas></div>
+                    </div>
+                    <div class="rpt-card rpt-card--stat">
+                        <div class="rpt-card__title">Resumen de entregas</div>
+                        <div class="rpt-stat-list" id="comStatList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TAB: PROFESORES
+            ══════════════════════════════════════════════════════ -->
+            <div id="tab-profesores" class="rpt-panel">
+                <div class="rpt-kpi-row">
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="prof-total">—</div><div class="rpt-kpi__lbl">Total profesores</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="prof-con-notas">—</div><div class="rpt-kpi__lbl">Con notas cargadas</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--red">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="prof-sin-notas">—</div><div class="rpt-kpi__lbl">Sin notas cargadas</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--yellow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="prof-con-planes">—</div><div class="rpt-kpi__lbl">Con planes completos</div></div>
+                    </div>
+                </div>
+
+                <div class="rpt-card">
+                    <div class="rpt-card__title">Estado por profesor</div>
+                    <div class="rpt-table-scroll">
+                        <table class="rpt-table" id="tablaProfsDetalle">
+                            <thead>
+                                <tr>
+                                    <th>Profesor</th>
+                                    <th>Asignaciones</th>
+                                    <th>Notas</th>
+                                    <th>Planes</th>
+                                    <th>Citaciones emitidas</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TAB: TUTORES
+            ══════════════════════════════════════════════════════ -->
+            <div id="tab-tutores" class="rpt-panel">
+                <div class="rpt-kpi-row">
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="tut-total-est">—</div><div class="rpt-kpi__lbl">Estudiantes activos</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="tut-con-tutor">—</div><div class="rpt-kpi__lbl">Con tutor registrado</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--red">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="tut-sin-tutor">—</div><div class="rpt-kpi__lbl">Sin tutor</div></div>
+                    </div>
+                    <div class="rpt-kpi">
+                        <div class="rpt-kpi__icon rpt-kpi__icon--yellow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                        </div>
+                        <div><div class="rpt-kpi__val" id="tut-con-fcm">—</div><div class="rpt-kpi__lbl">Con notificaciones (FCM)</div></div>
+                    </div>
+                </div>
+
+                <div class="rpt-two-col">
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Cobertura de tutores</div>
+                        <div class="rpt-chart-wrap rpt-chart-wrap--sm"><canvas id="chartTutoresDonut"></canvas></div>
+                    </div>
+                    <div class="rpt-card">
+                        <div class="rpt-card__title">Tutores con notificaciones FCM</div>
+                        <div class="rpt-chart-wrap rpt-chart-wrap--sm"><canvas id="chartFcmDonut"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="rpt-card rpt-card--stat">
+                    <div class="rpt-card__title">Resumen de acceso</div>
+                    <div class="rpt-stat-list" id="tutStatList"></div>
+                </div>
+            </div>
+
+        </div><!-- /.page-inner -->
+    </main>
+
+<script src="{% static 'js/director_reportes_inline.js' %}"></script>
+
+<!-- Firebase Cloud Messaging -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+<script src="{% static 'js/fcm.js' %}"></script>
+<script src="{% static 'js/notif_bell.js' %}"></script>
+
+</body>
+</html>

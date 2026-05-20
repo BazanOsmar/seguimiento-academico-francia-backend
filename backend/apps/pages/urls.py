@@ -15,6 +15,7 @@ urlpatterns = [
     path('director/asistencia/exportar/', views.director_asistencia_exportar_view, name='director-asistencia-exportar'),
     path('director/asistencia/exportar/excel/', views.director_asistencia_exportar_excel_view, name='director-asistencia-exportar-excel'),
     path('director/estadisticas/',   views.director_estadisticas_view, name='director-estadisticas'),
+    path('director/reportes/',       views.director_reportes_view,     name='director-reportes'),
     path('director/actividad/',      views.director_actividad_view,   name='director-actividad'),
     path('director/control-diario/', views.director_control_diario_view, name='director-control-diario'),
     path('director/comunicados/',    views.director_comunicados_view,      name='director-comunicados'),

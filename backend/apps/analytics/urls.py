@@ -4,6 +4,10 @@ from .views import (
     ResultadosArbolView, EstadisticasArbolView,
     KMeansTutorView, ArbolTutorView,
 )
+from .reportes_views import (
+    ReporteRendimientoView, ReporteAsistenciaView, ReporteCitacionesView,
+    ReporteComunicadosView, ReporteActividadProfesoresView, ReporteTutoresView,
+)
 
 urlpatterns = [
     path('kmeans/ejecutar/',      EjecutarKMeansView.as_view()),
@@ -12,4 +16,12 @@ urlpatterns = [
     path('arbol/resultados/',     ResultadosArbolView.as_view()),
     path('arbol/estadisticas/',   EstadisticasArbolView.as_view()),
     path('arbol/tutor/',          ArbolTutorView.as_view()),
+
+    # Reportes institucionales
+    path('reportes/rendimiento/',  ReporteRendimientoView.as_view()),
+    path('reportes/asistencia/',   ReporteAsistenciaView.as_view()),
+    path('reportes/citaciones/',   ReporteCitacionesView.as_view()),
+    path('reportes/comunicados/',  ReporteComunicadosView.as_view()),
+    path('reportes/profesores/',   ReporteActividadProfesoresView.as_view()),
+    path('reportes/tutores/',      ReporteTutoresView.as_view()),
 ]

@@ -215,20 +215,24 @@ class NotificacionesEnviadasView(APIView):
     """
     GET /api/notifications/enviadas/
 
-    Lista todas las notificaciones personales enviadas por el usuario
-    autenticado, ordenadas de más reciente a más antigua.
-    Incluye si el receptor ya la leyó o no.
+    Director: lista todas las notificaciones personales enviadas por cualquier usuario.
+    Profesor: lista solo las notificaciones personales enviadas por el mismo profesor.
+    Ordena de mas reciente a mas antigua.
+    Incluye si el receptor ya la leyo o no.
 
-    Opcional: ?no_leidas=true → solo las que el receptor aún no leyó.
+    Opcional: ?no_leidas=true -> solo las que el receptor aun no leyo.
     """
     permission_classes = [IsDirectorOrProfesor]
 
     def get(self, request):
+        tipo = request.user.tipo_usuario.nombre if request.user.tipo_usuario else None
         qs = (
             Notificacion.objects
-            .filter(emisor=request.user)
-            .select_related('receptor', 'receptor__tipo_usuario')
+            .select_related('emisor', 'emisor__tipo_usuario', 'receptor', 'receptor__tipo_usuario')
         )
+
+        if tipo != 'Director':
+            qs = qs.filter(emisor=request.user)
 
         if request.query_params.get('no_leidas') == 'true':
             qs = qs.filter(leida=False)
@@ -239,6 +243,15 @@ class NotificacionesEnviadasView(APIView):
                 'descripcion':     n.descripcion,
                 'leida':           n.leida,
                 'fecha_creacion':  n.fecha_creacion,
+                'emisor_id':       n.emisor_id,
+                'emisor_nombre': (
+                    f"{n.emisor.first_name} {n.emisor.last_name}".strip()
+                    or n.emisor.username
+                    if n.emisor else 'Sistema'
+                ),
+                'emisor_tipo': (
+                    n.emisor.tipo_usuario.nombre if n.emisor and n.emisor.tipo_usuario else None
+                ),
                 'receptor_id':     n.receptor_id,
                 'receptor_nombre': (
                     f"{n.receptor.first_name} {n.receptor.last_name}".strip()

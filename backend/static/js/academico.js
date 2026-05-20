@@ -380,7 +380,7 @@ function _initVpSeguimientoMes() {
     if (!_vpSeguimientoMes) _vpSeguimientoMes = currentMonth;
 
     const date = new Date(now.getFullYear(), _vpSeguimientoMes - 1, 1);
-    label.textContent = date.toLocaleDateString('es-BO', { month: 'long', year: 'numeric' });
+    label.textContent = date.toLocaleDateString('es-BO', { month: 'long' });
 
     prev.disabled = _vpSeguimientoMes <= 1;
     next.disabled = _vpSeguimientoMes >= currentMonth;
