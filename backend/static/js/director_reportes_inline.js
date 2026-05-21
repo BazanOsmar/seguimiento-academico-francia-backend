@@ -20,17 +20,17 @@ Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = 'rgba(59,130,246,.12)';
 
 /* ── Referencias DOM ─────────────────────────────────────────── */
-const $ = id => document.getElementById(id);
-const selMes    = $('selMes');
-const selGest   = $('selGestion');
-const btnCargar = $('btnCargar');
-const rptLoad   = $('rptLoading');
+const _rpt$ = id => document.getElementById(id);
+const selMes    = _rpt$('selMes');
+const selGest   = _rpt$('selGestion');
+const btnCargar = _rpt$('btnCargar');
+const rptLoad   = _rpt$('rptLoading');
 
 /* ── Instancias de gráficas (para destruir al recargar) ──────── */
-const _charts = {};
+const _rptCharts = {};
 
 function destroyChart(key) {
-    if (_charts[key]) { _charts[key].destroy(); delete _charts[key]; }
+    if (_rptCharts[key]) { _rptCharts[key].destroy(); delete _rptCharts[key]; }
 }
 
 /* ── Tab switching ───────────────────────────────────────────── */
@@ -39,13 +39,13 @@ document.querySelectorAll('.rpt-tab').forEach(btn => {
         document.querySelectorAll('.rpt-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.rpt-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
-        $(`tab-${btn.dataset.tab}`).classList.add('active');
+        _rpt$(`tab-${btn.dataset.tab}`).classList.add('active');
     });
 });
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 function txt(id, val) {
-    const el = $(id);
+    const el = _rpt$(id);
     if (el) el.textContent = val ?? '—';
 }
 
@@ -64,7 +64,7 @@ function setLoading(on) {
 
 function buildDonut(key, canvas, labels, data, colors) {
     destroyChart(key);
-    _charts[key] = new Chart(canvas, {
+    _rptCharts[key] = new Chart(canvas, {
         type: 'doughnut',
         data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
         options: {
@@ -81,7 +81,7 @@ function buildDonut(key, canvas, labels, data, colors) {
 
 function buildBar(key, canvas, labels, datasets, opts = {}) {
     destroyChart(key);
-    _charts[key] = new Chart(canvas, {
+    _rptCharts[key] = new Chart(canvas, {
         type: 'bar',
         data: { labels, datasets },
         options: {
@@ -111,7 +111,7 @@ function fillTable(tbodyId, rows) {
 }
 
 function statList(containerId, items) {
-    const el = $(containerId);
+    const el = _rpt$(containerId);
     if (!el) return;
     if (!items || !items.length) { el.innerHTML = '<p class="rpt-empty">Sin datos</p>'; return; }
     el.innerHTML = items.map(([k, v, cls]) =>
@@ -153,7 +153,7 @@ function renderAcademico(d) {
 
     /* Gráfica materias (peor primero) */
     const mats  = (d.materias || []).slice(0, 8);
-    buildBar('chartMaterias', $('chartMaterias'),
+    buildBar('chartMaterias', _rpt$('chartMaterias'),
         mats.map(m => m.materia),
         [{ label: 'Promedio', data: mats.map(m => m.promedio), backgroundColor: RED, borderRadius: 6 }],
         { horizontal: true, extra: { scales: { x: { max: 95, ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } } }
@@ -161,7 +161,7 @@ function renderAcademico(d) {
 
     /* Gráfica cursos (peor primero) */
     const cursos = (d.cursos || []).slice(0, 8);
-    buildBar('chartCursos', $('chartCursos'),
+    buildBar('chartCursos', _rpt$('chartCursos'),
         cursos.map(c => c.curso),
         [{ label: 'Promedio', data: cursos.map(c => c.promedio), backgroundColor: ORANGE, borderRadius: 6 }],
         { horizontal: true, extra: { scales: { x: { max: 95, ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } } }
@@ -211,14 +211,14 @@ function renderAsistencia(d) {
     txt('asist-sesiones',    num(d.total_sesiones));
 
     /* Donut global */
-    buildDonut('chartAsistDonut', $('chartAsistDonut'),
+    buildDonut('chartAsistDonut', _rpt$('chartAsistDonut'),
         ['Presentes', 'Faltas', 'Atrasos', 'Otros'],
         [d.pct_presentes, d.pct_faltas, d.pct_atrasos, d.pct_otros ?? 0],
         [GREEN, RED, YELLOW, BLUE]);
 
     /* Cursos con mayor tasa de faltas */
     const cfal = (d.cursos || []).slice(0, 8);
-    buildBar('chartCursosFaltas', $('chartCursosFaltas'),
+    buildBar('chartCursosFaltas', _rpt$('chartCursosFaltas'),
         cfal.map(c => c.curso),
         [{ label: '% Faltas', data: cfal.map(c => c.pct_faltas), backgroundColor: RED, borderRadius: 6 }],
         { horizontal: true });
@@ -242,14 +242,14 @@ function renderCitaciones(d) {
 
     /* Donut estados */
     const est = d.por_estado || {};
-    buildDonut('chartCitDonut', $('chartCitDonut'),
+    buildDonut('chartCitDonut', _rpt$('chartCitDonut'),
         ['Asistió', 'No asistió', 'Atraso', 'Pendiente', 'Anulada'],
         [est.ASISTIO ?? 0, est.NO_ASISTIO ?? 0, est.ATRASO ?? 0, est.PENDIENTE ?? 0, est.ANULADA ?? 0],
         [GREEN, RED, YELLOW, BLUE, PURPLE]);
 
     /* Cursos */
     const cursos = (d.cursos || []).slice(0, 8);
-    buildBar('chartCitCursos', $('chartCitCursos'),
+    buildBar('chartCitCursos', _rpt$('chartCitCursos'),
         cursos.map(c => c.curso),
         [{ label: 'Citaciones', data: cursos.map(c => c.total), backgroundColor: BLUE, borderRadius: 6 }],
         { horizontal: true });
@@ -263,7 +263,7 @@ function renderComunicados(d) {
     txt('com-vencer', num(d.proximos_vencer));
 
     /* Donut lectura */
-    buildDonut('chartComDonut', $('chartComDonut'),
+    buildDonut('chartComDonut', _rpt$('chartComDonut'),
         ['Leídos', 'No leídos'],
         [d.total_leidos ?? 0, d.total_no_leidos ?? 0],
         [GREEN, RED]);
@@ -307,13 +307,13 @@ function renderTutores(d) {
     txt('tut-con-fcm',   num(d.con_fcm));
 
     /* Donut cobertura tutores */
-    buildDonut('chartTutoresDonut', $('chartTutoresDonut'),
+    buildDonut('chartTutoresDonut', _rpt$('chartTutoresDonut'),
         ['Con tutor', 'Sin tutor'],
         [d.con_tutor ?? 0, d.sin_tutor ?? 0],
         [GREEN, RED]);
 
     /* Donut FCM */
-    buildDonut('chartFcmDonut', $('chartFcmDonut'),
+    buildDonut('chartFcmDonut', _rpt$('chartFcmDonut'),
         ['Con FCM', 'Sin FCM'],
         [d.con_fcm ?? 0, (d.total_tutores ?? 0) - (d.con_fcm ?? 0)],
         [BLUE, PURPLE]);
