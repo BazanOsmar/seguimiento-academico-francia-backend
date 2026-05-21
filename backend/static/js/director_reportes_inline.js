@@ -127,7 +127,7 @@ async function cargarTodo() {
 
     const [rRend, rAsist, rCit, rCom, rProf, rTut] = await Promise.all([
         fetchAPI(`/api/analytics/reportes/rendimiento/?mes=${mes}&gestion=${gestion}`),
-        fetchAPI(`/api/analytics/reportes/asistencia/`),
+        fetchAPI(`/api/analytics/reportes/asistencia/?mes=${mes}&gestion=${gestion}`),
         fetchAPI(`/api/analytics/reportes/citaciones/`),
         fetchAPI(`/api/analytics/reportes/comunicados/`),
         fetchAPI(`/api/analytics/reportes/profesores/?mes=${mes}&gestion=${gestion}`),
@@ -146,24 +146,28 @@ async function cargarTodo() {
 
 /* ── Académico ───────────────────────────────────────────────── */
 function renderAcademico(d) {
-    txt('acad-prom',     flo(d.promedio_colegio));
-    txt('acad-total',    num(d.total_estudiantes));
-    txt('acad-mejor-prof', d.profesores?.length ? d.profesores[0].nombre : '—');
-    txt('acad-peor-mat',   d.materias?.length   ? d.materias[0].materia  : '—');
+    const mats  = d.materias_ranking  || d.materias   || [];
+    const curs  = d.cursos_ranking    || d.cursos     || [];
+    const profs = d.profesores_ranking|| d.profesores || [];
+
+    txt('acad-prom',       flo(d.promedio_colegio));
+    txt('acad-total',      num(d.total_estudiantes));
+    txt('acad-mejor-prof', profs.length ? profs[0].nombre : '—');
+    txt('acad-peor-mat',   mats.length  ? mats[0].nombre  : '—');
 
     /* Gráfica materias (peor primero) */
-    const mats  = (d.materias || []).slice(0, 8);
+    const matsSlice = mats.slice(0, 8);
     buildBar('chartMaterias', _rpt$('chartMaterias'),
-        mats.map(m => m.materia),
-        [{ label: 'Promedio', data: mats.map(m => m.promedio), backgroundColor: RED, borderRadius: 6 }],
+        matsSlice.map(m => m.nombre),
+        [{ label: 'Promedio', data: matsSlice.map(m => m.promedio), backgroundColor: RED, borderRadius: 6 }],
         { horizontal: true, extra: { scales: { x: { max: 95, ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } } }
     );
 
     /* Gráfica cursos (peor primero) */
-    const cursos = (d.cursos || []).slice(0, 8);
+    const cursSlice = curs.slice(0, 8);
     buildBar('chartCursos', _rpt$('chartCursos'),
-        cursos.map(c => c.curso),
-        [{ label: 'Promedio', data: cursos.map(c => c.promedio), backgroundColor: ORANGE, borderRadius: 6 }],
+        cursSlice.map(c => c.nombre),
+        [{ label: 'Promedio', data: cursSlice.map(c => c.promedio), backgroundColor: ORANGE, borderRadius: 6 }],
         { horizontal: true, extra: { scales: { x: { max: 95, ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } } }
     );
 
@@ -173,7 +177,7 @@ function renderAcademico(d) {
             <td>${i + 1}</td>
             <td>${e.nombre}</td>
             <td>${e.curso || '—'}</td>
-            <td><strong>${flo(e.promedio)}</strong></td>
+            <td><strong>${flo(e.nota ?? e.promedio)}</strong></td>
         </tr>`));
 
     /* Bottom 5 */
@@ -182,11 +186,11 @@ function renderAcademico(d) {
             <td>${i + 1}</td>
             <td>${e.nombre}</td>
             <td>${e.curso || '—'}</td>
-            <td class="text-danger" style="color:#f87171"><strong>${flo(e.promedio)}</strong></td>
+            <td class="text-danger" style="color:#f87171"><strong>${flo(e.nota ?? e.promedio)}</strong></td>
         </tr>`));
 
     /* Ranking profesores */
-    fillTable('tablaProfs', (d.profesores || []).map((p, i) => {
+    fillTable('tablaProfs', profs.map((p, i) => {
         const prom = +p.promedio;
         const badge = prom >= 70
             ? `<span class="rpt-badge rpt-badge--green">${flo(prom)}</span>`
@@ -196,7 +200,7 @@ function renderAcademico(d) {
         return `<tr>
             <td>${i + 1}</td>
             <td>${p.nombre}</td>
-            <td>${num(p.total_estudiantes)}</td>
+            <td>${num(p.total ?? p.total_estudiantes)}</td>
             <td>${flo(p.promedio)}</td>
             <td>${badge}</td>
         </tr>`;
@@ -205,31 +209,33 @@ function renderAcademico(d) {
 
 /* ── Asistencia ──────────────────────────────────────────────── */
 function renderAsistencia(d) {
-    txt('asist-pct-pres',    pct(d.pct_presentes));
-    txt('asist-pct-faltas',  pct(d.pct_faltas));
-    txt('asist-pct-atrasos', pct(d.pct_atrasos));
+    const g = d.globales || d;
+    txt('asist-pct-pres',    pct(g.pct_presentes));
+    txt('asist-pct-faltas',  pct(g.pct_faltas));
+    txt('asist-pct-atrasos', pct(g.pct_atrasos));
     txt('asist-sesiones',    num(d.total_sesiones));
 
     /* Donut global */
     buildDonut('chartAsistDonut', _rpt$('chartAsistDonut'),
         ['Presentes', 'Faltas', 'Atrasos', 'Otros'],
-        [d.pct_presentes, d.pct_faltas, d.pct_atrasos, d.pct_otros ?? 0],
+        [g.pct_presentes, g.pct_faltas, g.pct_atrasos, g.pct_licencias ?? g.pct_otros ?? 0],
         [GREEN, RED, YELLOW, BLUE]);
 
     /* Cursos con mayor tasa de faltas */
-    const cfal = (d.cursos || []).slice(0, 8);
+    const cursos = d.cursos_ranking || d.cursos || [];
+    const cfal = cursos.slice(0, 8);
     buildBar('chartCursosFaltas', _rpt$('chartCursosFaltas'),
-        cfal.map(c => c.curso),
+        cfal.map(c => c.nombre ?? c.curso),
         [{ label: '% Faltas', data: cfal.map(c => c.pct_faltas), backgroundColor: RED, borderRadius: 6 }],
         { horizontal: true });
 
     /* Tabla ranking */
-    fillTable('tablaCursosAsist', (d.cursos || []).map(c => `
+    fillTable('tablaCursosAsist', cursos.map(c => `
         <tr>
-            <td>${c.curso}</td>
+            <td>${c.nombre ?? c.curso}</td>
             <td style="color:#f87171">${pct(c.pct_faltas)}</td>
             <td style="color:#facc15">${pct(c.pct_atrasos)}</td>
-            <td>${num(c.total_sesiones)}</td>
+            <td>${num(c.sesiones ?? c.total_sesiones)}</td>
         </tr>`));
 }
 
