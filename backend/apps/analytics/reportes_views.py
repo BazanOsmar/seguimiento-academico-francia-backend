@@ -346,7 +346,10 @@ class ReporteComunicadosView(APIView):
         proximos_vencer = sum(
             1 for c in comunicados
             if c['fecha_expiracion']
-            and 0 <= (c['fecha_expiracion'].astimezone(la_paz).date() - hoy).days <= 3
+            and 0 <= (
+                (c['fecha_expiracion'] if isinstance(c['fecha_expiracion'], type(hoy))
+                 else c['fecha_expiracion'].astimezone(la_paz).date()) - hoy
+            ).days <= 3
         )
 
         if not com_ids:
