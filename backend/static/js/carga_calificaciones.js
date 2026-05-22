@@ -506,7 +506,10 @@ function _mostrarResultado(r) {
     _diferencias   = r.diferencias || null;
     _modoAnterior  = false;
     _hideInlineObservation();
-    document.getElementById('ccCard').style.display = 'none';
+    document.getElementById('ccCard').style.display       = 'none';
+    document.querySelector('.cc-title').style.display     = 'none';
+    document.querySelector('.cc-meta').style.display      = 'none';
+    document.querySelector('.cc-back-row').style.display  = 'none';
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = _renderSuccessDashboard(r) || _renderSuccessDashboard(_buildMockResultado());
     dashboard.style.display = 'block';
@@ -987,7 +990,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         ...dim.columns.map((col, colIdx) => {
             const ck          = `${dim.key}-${colIdx}`;
             const tituloViejo = _colTituloMap.get(ck);
-            const thStyle     = tituloViejo ? ' style="background:rgba(245,158,11,.18);"' : '';
+            const thStyle     = tituloViejo ? ' style="background:#151e2d;box-shadow:inset 0 0 0 9999px rgba(245,158,11,.22);"' : '';
             const titleAttr   = tituloViejo
                 ? `title="Antes: ${_esc(tituloViejo)}"`
                 : `title="${_esc(col.titulo || '')}"`;
