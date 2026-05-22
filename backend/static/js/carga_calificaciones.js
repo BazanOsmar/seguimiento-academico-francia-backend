@@ -423,7 +423,10 @@ function _resetUpload() {
     const dashboard = document.getElementById('ccDashboard');
     dashboard.innerHTML     = '';
     dashboard.style.display = 'none';
-    document.getElementById('ccCard').style.display = 'block';
+    document.getElementById('ccCard').style.display       = 'block';
+    document.querySelector('.cc-title').style.display     = '';
+    document.querySelector('.cc-meta').style.display      = '';
+    document.querySelector('.cc-back-row').style.display  = '';
     _setValidationBusy(false);
 }
 
