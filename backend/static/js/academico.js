@@ -2886,7 +2886,7 @@ function _pnNavegar(pcId, profesor, curso, materia) {
         mes_hasta: String(_pnMes),
         modo: 'historial',
     });
-    window.location.href = `/profesor/calificaciones/?${params.toString()}`;
+    window.location.href = `/director/calificaciones/?${params.toString()}`;
 }
 
 // ── Modal picker de materia ───────────────────────────────────────

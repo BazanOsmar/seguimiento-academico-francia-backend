@@ -8,7 +8,7 @@ def marcar_citaciones_vencidas():
     cuya fecha_limite_asistencia ya pasó.
     Retorna la cantidad de registros actualizados.
     """
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     return Citacion.objects.filter(
         asistencia="PENDIENTE",
         fecha_limite_asistencia__lt=hoy,

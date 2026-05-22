@@ -83,7 +83,7 @@ def asignar_comunicados_pendientes(estudiante):
     from django.utils import timezone
     from .models import Comunicado, ComunicadoEstudiante
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
 
     comunicados_pendientes = (
         Comunicado.objects

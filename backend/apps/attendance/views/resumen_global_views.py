@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from django.utils import timezone
 
 from django.db.models import Count, Q
 from rest_framework import status
@@ -52,7 +52,7 @@ class ResumenGlobalView(APIView):
 
     def get(self, request):
         mes_str = request.query_params.get('mes', '').strip()
-        hoy = date.today()
+        hoy = timezone.localdate()
 
         if mes_str:
             try:

@@ -16,7 +16,7 @@ class ComunicadoCreateSerializer(serializers.Serializer):
     )
 
     def validate_fecha_expiracion(self, value):
-        if value and value < timezone.now().date():
+        if value and value < timezone.localdate():
             raise serializers.ValidationError(
                 "La fecha de expiración no puede ser en el pasado."
             )

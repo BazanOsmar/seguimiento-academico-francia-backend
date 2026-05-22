@@ -1,0 +1,191 @@
+{% load static static_v %}
+    <!-- ── Contenido principal ────────────────────────────────────── -->
+    <main class="main-content">
+
+        <div class="cc-body">
+
+            <div class="cc-back-row" style="display:none;">
+                <button class="cc-back-btn" id="btnBackCalificaciones" type="button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Volver a Calificaciones
+                </button>
+            </div>
+
+            <h1 class="cc-title" style="display:none;">Carga de Calificaciones</h1>
+
+            <div class="cc-meta" style="display:none;">
+                <div class="cc-meta-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                    <span>Curso: <strong id="ccCurso">—</strong></span>
+                </div>
+                <div class="cc-meta-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>Asignatura: <strong id="ccMateria">—</strong></span>
+                </div>
+            </div>
+
+            <!-- ── Estado de carga inicial ───────────────────────── -->
+            <div class="cc-init-loader" id="ccInitLoader">
+                <div class="cc-init-loader__spinner"></div>
+                <p class="cc-init-loader__label">Cargando…</p>
+            </div>
+
+            <!-- ── Tarjeta principal ──────────────────────────────── -->
+            <div class="cc-card profesor-carga-calificaciones-inline-style-3" id="ccCard">
+
+                <div class="cc-upload-view" id="ccUploadView">
+
+                    <div class="cc-file-icon" id="ccFileIcon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <polyline points="12 18 12 12"/>
+                            <polyline points="9 15 12 12 15 15"/>
+                        </svg>
+                    </div>
+
+                    <h2 class="cc-drop-title" id="ccDropTitle">Arrastra tu archivo Excel aquí</h2>
+
+                    <p class="cc-drop-sub" id="ccDropSub">
+                        O haz clic para buscar en tu ordenador. Asegúrate de que el
+                        archivo siga el formato de la plantilla oficial para una
+                        validación exitosa.
+                    </p>
+
+                    <span class="cc-filename-pill" id="ccFilenamePill">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span id="ccFilenameText"></span>
+                    </span>
+
+                    <button class="btn-select-file" id="btnSelectFile" type="button"
+                            onclick="document.getElementById('excelInput').click()">
+                        Seleccionar Archivo
+                    </button>
+                    <button class="btn-validate profesor-carga-calificaciones-inline-style-3" id="btnValidar" disabled>Validar Planilla</button>
+
+                    <input type="file" id="excelInput" accept=".xlsx,.xls" class="profesor-carga-calificaciones-inline-style-4">
+
+                    <div class="cc-formats">
+                        <span class="cc-fmt-badge">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Excel .XLS
+                        </span>
+                        <span class="cc-fmt-badge">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Excel .XLSX
+                        </span>
+                    </div>
+
+                    <div class="cc-inline-observation" id="ccInlineObservation">
+                        <div class="cc-inline-observation__card">
+                            <div class="cc-inline-observation__eyebrow">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                                Observacion detectada
+                            </div>
+                            <h3 class="cc-inline-observation__title">Se observo un problema en la planilla</h3>
+                            <p class="cc-inline-observation__text" id="ccInlineObservationText"></p>
+                            <p class="cc-inline-observation__hint">Corrige ese punto y vuelve a validar. El archivo seleccionado se mantiene para que puedas reemplazarlo cuando quieras.</p>
+                        </div>
+                    </div>
+
+                </div><!-- /cc-upload-view -->
+
+            </div><!-- /cc-card -->
+
+        <div id="ccDashboard" class="profesor-carga-calificaciones-inline-style-3"></div>
+
+        </div><!-- /cc-body -->
+
+    </main>
+
+    <div class="cc-validation-modal" id="ccValidationModal" aria-hidden="true">
+        <div class="cc-validation-dialog" role="dialog" aria-modal="true" aria-labelledby="ccValidationTitle">
+            <div class="cc-validation-dialog__top">
+                <div class="cc-validation-dialog__spinner" aria-hidden="true"></div>
+                <div>
+                    <h2 class="cc-validation-dialog__title" id="ccValidationTitle">Validando planilla...</h2>
+                    <p class="cc-validation-dialog__sub">Esto puede tardar unos segundos. No cierres esta pantalla mientras termina el proceso.</p>
+                </div>
+            </div>
+            <div class="cc-validation-progress" aria-hidden="true">
+                <div class="cc-validation-progress__bar"></div>
+            </div>
+            <p class="cc-validation-dialog__step" id="ccValidationStep">Preparando archivo...</p>
+            <p class="cc-validation-dialog__note">El resultado aparecera automaticamente cuando el servidor responda.</p>
+        </div>
+    </div>
+
+    <dialog id="dlgConfirmarSubida">
+        <div class="dlg-panel" id="dlgPanelConfirm">
+            <div class="dlg-confirm__inner">
+                <div class="dlg-confirm__icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h3 class="dlg-confirm__title">¿Confirmar subida de notas?</h3>
+                <p class="dlg-confirm__body">
+                    Una vez subidas, las notas <strong>no podrán modificarse</strong> desde aquí
+                    y serán visibles para los padres de familia en la aplicación.
+                </p>
+                <p class="dlg-confirm__body dlg-confirm__body--sub">
+                    Asegúrate de que la información sea correcta antes de continuar.
+                </p>
+                <div class="dlg-confirm__actions">
+                    <button class="dlg-confirm__btn dlg-confirm__btn--cancel" id="dlgBtnCancelar" type="button">Cancelar</button>
+                    <button class="dlg-confirm__btn dlg-confirm__btn--confirm" id="dlgBtnConfirmar" type="button">Sí, subir notas</button>
+                </div>
+            </div>
+        </div>
+        <div class="dlg-panel dlg-panel--hidden" id="dlgPanelLoading">
+            <div class="dlg-confirm__inner">
+                <div class="dlg-spinner"></div>
+                <h3 class="dlg-confirm__title">Subiendo notas...</h3>
+                <p class="dlg-confirm__body dlg-confirm__body--sub">Por favor espera, no cierres esta ventana.</p>
+            </div>
+        </div>
+        <div class="dlg-panel dlg-panel--hidden" id="dlgPanelDone">
+            <div class="dlg-confirm__inner">
+                <div class="dlg-confirm__icon dlg-confirm__icon--success">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <h3 class="dlg-confirm__title">¡Notas subidas!</h3>
+                <p class="dlg-confirm__body dlg-confirm__body--sub" id="dlgDoneDetalle"></p>
+                <div class="dlg-confirm__actions">
+                    <button class="dlg-confirm__btn dlg-confirm__btn--confirm" id="dlgBtnCerrar" type="button">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </dialog>

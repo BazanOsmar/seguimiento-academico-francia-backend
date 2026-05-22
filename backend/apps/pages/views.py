@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
@@ -125,7 +125,7 @@ def director_asistencia_exportar_view(request):
         'mes_display': '',
         'dias_habiles': [],
         'estudiantes': [],
-        'generado_en': datetime.now().strftime('%d/%m/%Y %H:%M'),
+        'generado_en': timezone.localtime(timezone.now()).strftime('%d/%m/%Y %H:%M'),
     }
 
     if not curso_id or not fecha_desde:
@@ -491,6 +491,10 @@ def director_comparar_nombres_view(request):
 
 def profesor_carga_calificaciones_view(request):
     return private_render(request, 'profesor/carga_calificaciones.html')
+
+
+def director_ver_calificaciones_view(request):
+    return private_render(request, 'director/ver_calificaciones.html')
 
 
 def privacidad_view(request):

@@ -1,6 +1,7 @@
 import datetime
 import logging
 
+from django.utils import timezone
 from backend.apps.attendance.models import Asistencia
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ def _contar_racha(estudiante, curso, estado):
 
 def _crear_citacion_automatica(estudiante, motivo, descripcion, emisor):
     from backend.apps.discipline.models import Citacion
-    fecha_limite = _sumar_dias_habiles(datetime.date.today(), DIAS_HABILES_LIMITE)
+    fecha_limite = _sumar_dias_habiles(timezone.localdate(), DIAS_HABILES_LIMITE)
     citacion = Citacion.objects.create(
         estudiante=estudiante,
         emisor=emisor,

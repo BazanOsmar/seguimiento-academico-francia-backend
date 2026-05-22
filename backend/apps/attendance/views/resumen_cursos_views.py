@@ -8,7 +8,7 @@ GET /api/attendance/cursos/{id}/resumen-estudiantes/?mes=YYYY-MM
     → Lista de estudiantes del curso con su % de asistencia mensual.
 """
 import calendar
-from datetime import date
+from django.utils import timezone
 
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
@@ -44,7 +44,7 @@ def _parse_mes(mes_str):
             return y, m
         except (ValueError, AttributeError):
             pass
-    hoy = date.today()
+    hoy = timezone.localdate()
     return hoy.year, hoy.month
 
 

@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from django.utils import timezone
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -36,7 +36,7 @@ class CalendarioEstudianteView(APIView):
         get_object_or_404(Estudiante, pk=estudiante_id)
 
         mes_str = request.query_params.get('mes', '').strip()
-        hoy = date.today()
+        hoy = timezone.localdate()
 
         if mes_str:
             try:

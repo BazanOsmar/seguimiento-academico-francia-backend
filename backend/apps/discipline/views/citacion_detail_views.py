@@ -105,7 +105,7 @@ class CitacionDetailView(APIView):
             )
         # Permite PENDIENTE y NO_ASISTIO → la lógica de fecha determina ASISTIO o ATRASO
 
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         citacion.fecha_asistencia = hoy
         citacion.asistencia = (
             "ASISTIO" if hoy <= citacion.fecha_limite_asistencia else "ATRASO"

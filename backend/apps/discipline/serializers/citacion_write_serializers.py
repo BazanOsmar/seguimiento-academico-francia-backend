@@ -33,7 +33,7 @@ class CitacionCreateSerializer(serializers.ModelSerializer):
 
     def validate_fecha_limite_asistencia(self, value):
         """La fecha límite no puede ser en el pasado."""
-        if value < timezone.now().date():
+        if value < timezone.localdate():
             raise serializers.ValidationError(
                 "La fecha límite de asistencia no puede ser en el pasado."
             )

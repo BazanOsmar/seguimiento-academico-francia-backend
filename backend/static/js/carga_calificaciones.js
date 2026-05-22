@@ -166,6 +166,7 @@ function _mostrarVistaLecturaHistorial(headersPorTrim) {
     document.getElementById('ccCard').style.display       = 'none';
     document.querySelector('.cc-title').style.display     = 'none';
     document.querySelector('.cc-meta').style.display      = 'none';
+    document.querySelector('.cc-body').classList.add('cc-body--readonly');
 
     const r = {
         metadatos: {
@@ -186,9 +187,9 @@ function _mostrarVistaLectura(headersPorTrim) {
     _soloLectura = true;
     document.getElementById('ccInitLoader').style.display  = 'none';
     document.getElementById('ccCard').style.display        = 'none';
-    // En modo lectura ocultamos solo el título y meta de "Carga de Calificaciones"
     document.querySelector('.cc-title').style.display = 'none';
     document.querySelector('.cc-meta').style.display  = 'none';
+    document.querySelector('.cc-body').classList.add('cc-body--readonly');
     const r = {
         metadatos: {
             headers_actividades: headersPorTrim,
@@ -837,7 +838,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _modMap = new Map();
     _modForTrim.forEach(m => {
         const dimCols = trimData[m.dimension] || [];
-        const pos = dimCols.findIndex(c => c.titulo === m.titulo);
+        const pos = m.col_idx != null
+            ? dimCols.findIndex(c => c.col === m.col_idx)
+            : dimCols.findIndex(c => c.titulo === m.titulo);
         if (pos >= 0) _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
     });
 
@@ -1066,8 +1069,19 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
         : `Registro de Notas - ${_esc(_materia)} - ${_esc(_curso)}`;
 
     // Barra de acciones: ancho completo, botones a la izquierda, tabs a la derecha
+    const _backHref  = _esDirector ? '/director/academico/' : '/profesor/';
+    const _backLabel = _esDirector ? 'Académico' : 'Calificaciones';
+    const _backBtn   = `<button class="cc-success-tool" type="button" onclick="window.location.href='${_backHref}'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        ${_backLabel}
+    </button>`;
+
     const actionBarHtml = soloLectura
         ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 20px 18px;">
+               ${_backBtn}
                <span class="cc-readonly-badge">
                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                        <polyline points="20 6 9 17 4 12"/>
@@ -1360,7 +1374,15 @@ async function _confirmarPlanilla() {
             _dlgSetPanel('confirm');
             const dlg = document.getElementById('dlgConfirmarSubida');
             if (dlg) dlg.close();
-            showToast(msg, 'error');
+
+            // Si el token venció, volver al upload con mensaje claro
+            const tokenVencido = res.status === 400 && msg.toLowerCase().includes('venció');
+            if (tokenVencido) {
+                _resetUpload();
+                showToast('La sesión de validación expiró (30 min). Vuelve a subir el archivo.', 'warning');
+            } else {
+                showToast(msg, 'error');
+            }
             return;
         }
 

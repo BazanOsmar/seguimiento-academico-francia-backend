@@ -524,6 +524,10 @@
             padding: 26px 26px 24px;
         }
 
+        .cc-body--readonly {
+            padding-top: 16px;
+        }
+
         .cc-body--readonly .cc-back-row {
             margin-bottom: 4px;
         }

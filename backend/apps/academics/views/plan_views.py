@@ -1,6 +1,8 @@
 import io
 from collections import OrderedDict
-from datetime import date, timedelta
+from datetime import timedelta
+
+from django.utils import timezone
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -52,7 +54,7 @@ class ProfesorPlanListCreateView(APIView):
         except (ValueError, TypeError):
             return Response({'errores': 'El mes debe ser un número entre 1 y 12.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if mes != date.today().month:
+        if mes != timezone.localdate().month:
             return Response(
                 {'errores': 'Solo puedes registrar planes del mes actual.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -85,7 +87,7 @@ class ProfesorPlanListCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        año             = date.today().year
+        año             = timezone.localdate().year
         primer_dia      = date(año, mes, 1)
         dias_hasta_lunes = (7 - primer_dia.weekday()) % 7
         primer_lunes    = primer_dia + timedelta(days=dias_hasta_lunes)
@@ -114,7 +116,7 @@ class ProfesorPlanHistorialView(APIView):
     permission_classes = [IsAuthenticated, IsProfesor]
 
     def get(self, request):
-        mes_actual = date.today().month
+        mes_actual = timezone.localdate().month
         qs = (
             ProfesorPlan.objects
             .select_related('plan', 'profesor_curso__materia', 'profesor_curso__curso')
@@ -149,7 +151,7 @@ class ProfesorPlanDetailView(APIView):
         except ProfesorPlan.DoesNotExist:
             return Response({'errores': 'Plan no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if pp.mes != date.today().month:
+        if pp.mes != timezone.localdate().month:
             return Response(
                 {'errores': 'No puedes modificar planes de meses anteriores.'},
                 status=status.HTTP_400_BAD_REQUEST,
