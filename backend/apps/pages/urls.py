@@ -28,6 +28,7 @@ urlpatterns = [
     path('profesor/citaciones/',     views.profesor_citaciones_view,               name='profesor-citaciones'),
     path('profesor/plan/',           views.profesor_plan_view,                     name='profesor-plan'),
     path('profesor/cuenta/',         views.profesor_cuenta_view,                   name='profesor-cuenta'),
+    path('profesor/estadisticas/',   views.profesor_estadisticas_view,             name='profesor-estadisticas'),
     path('profesor/calificaciones/', views.profesor_carga_calificaciones_view,     name='profesor-carga-calificaciones'),
     path('privacidad/',              views.privacidad_view,                        name='privacidad'),
 ]

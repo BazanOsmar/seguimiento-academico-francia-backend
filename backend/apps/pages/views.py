@@ -485,6 +485,10 @@ def profesor_cuenta_view(request):
     return private_render(request, 'profesor/cuenta.html', {'active_nav': 'cuenta'})
 
 
+def profesor_estadisticas_view(request):
+    return private_render(request, 'profesor/estadisticas.html', {'active_nav': 'estadisticas'})
+
+
 def director_comparar_nombres_view(request):
     return private_render(request, 'director/comparar_nombres.html')
 

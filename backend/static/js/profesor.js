@@ -124,10 +124,11 @@ function _initTabs() {
         if (tabInicial !== 'panelNotas') _activarTab(tabInicial);
     } else {
         // Modo páginas separadas: los botones navegan a otras URLs
-        document.getElementById('sideNotas')?.addEventListener('click',      () => window.location.href = '/profesor/');
-        document.getElementById('sideCitaciones')?.addEventListener('click', () => window.location.href = '/profesor/citaciones/');
-        document.getElementById('sidePlan')?.addEventListener('click',       () => window.location.href = '/profesor/plan/');
-        document.getElementById('sideCuenta')?.addEventListener('click',     () => window.location.href = '/profesor/cuenta/');
+        document.getElementById('sideNotas')?.addEventListener('click',         () => window.location.href = '/profesor/');
+        document.getElementById('sideCitaciones')?.addEventListener('click',    () => window.location.href = '/profesor/citaciones/');
+        document.getElementById('sidePlan')?.addEventListener('click',          () => window.location.href = '/profesor/plan/');
+        document.getElementById('sideCuenta')?.addEventListener('click',        () => window.location.href = '/profesor/cuenta/');
+        document.getElementById('sideEstadisticas')?.addEventListener('click',  () => window.location.href = '/profesor/estadisticas/');
     }
 }
 
