@@ -155,6 +155,24 @@ def _nota_maxima(dimension):
     return _NOTA_MAXIMA.get(dimension, 10.0)
 
 
+def _promedio_todos(notas, n_cols):
+    """
+    Promedio de las notas del mes para una dimensión.
+    Las columnas sin nota del estudiante se cuentan como 0.
+    """
+    if not n_cols:
+        return None
+    return round(sum(notas) / n_cols, 2)
+
+
+def _promedio_rendidos(notas):
+    """Promedio de las notas estrictamente positivas (actividades rendidas)."""
+    rendidas = [n for n in notas if n > 0]
+    if not rendidas:
+        return None
+    return round(sum(rendidas) / len(rendidas), 2)
+
+
 # ── API pública ───────────────────────────────────────────────────────────────
 
 def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, mes=None):
@@ -1169,9 +1187,6 @@ def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
             resultado[doc['_id']] = fecha.isoformat() if fecha else None
 
         return resultado
-
-    except Exception:
-        return {mid: None for mid in materia_ids}
 
     except Exception:
         return {mid: None for mid in materia_ids}
