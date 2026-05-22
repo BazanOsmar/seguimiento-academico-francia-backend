@@ -16,6 +16,7 @@ from .views import (
     DirectorNotasExportView, DirectorEliminarNotasMesView,
     DirectorProfesorAsignacionesView,
     NotasEstudianteProfesorView, ResumenGrupoProfesorView,
+    ProfesorEstadisticasView,
 )
 
 urlpatterns = [
@@ -52,4 +53,5 @@ urlpatterns = [
     path("director/notas-export/",             DirectorNotasExportView.as_view(),             name="director-notas-export"),
     path("director/eliminar-notas-mes/",       DirectorEliminarNotasMesView.as_view(),        name="director-eliminar-notas-mes"),
     path("director/profesores/<int:profesor_id>/asignaciones/", DirectorProfesorAsignacionesView.as_view(), name="director-profesor-asignaciones"),
+    path("profesor/estadisticas/",                ProfesorEstadisticasView.as_view(),               name="profesor-estadisticas"),
 ]

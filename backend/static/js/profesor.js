@@ -81,12 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Tabs ──────────────────────────────────────────────────────────
-const _TABS    = ['panelNotas', 'panelCitaciones', 'panelPlan', 'panelCuenta'];
+const _TABS    = ['panelNotas', 'panelCitaciones', 'panelPlan', 'panelCuenta', 'panelEstadisticas'];
 const _TAB_BTNS = {
-    panelNotas:      'sideNotas',
-    panelCitaciones: 'sideCitaciones',
-    panelPlan:       'sidePlan',
-    panelCuenta:     'sideCuenta',
+    panelNotas:         'sideNotas',
+    panelCitaciones:    'sideCitaciones',
+    panelPlan:          'sidePlan',
+    panelCuenta:        'sideCuenta',
+    panelEstadisticas:  'sideEstadisticas',
 };
 
 function _activarTab(panelId) {
@@ -96,9 +97,10 @@ function _activarTab(panelId) {
         const btn = document.getElementById(_TAB_BTNS[id]);
         if (btn) btn.classList.toggle('active', id === panelId);
     });
-    if (panelId === 'panelCitaciones') { cargarCitaciones(); cargarComunicados(); }
-    if (panelId === 'panelPlan')       cargarPlanes();
-    if (panelId === 'panelCuenta')     _initCuentaTab();
+    if (panelId === 'panelCitaciones')   { cargarCitaciones(); cargarComunicados(); }
+    if (panelId === 'panelPlan')         cargarPlanes();
+    if (panelId === 'panelCuenta')       _initCuentaTab();
+    if (panelId === 'panelEstadisticas') _initEstadisticasPanel();
 }
 
 function _initTabs() {
@@ -106,12 +108,18 @@ function _initTabs() {
 
     if (isSPA) {
         // Modo SPA (dashboard.html): los botones cambian de panel
-        document.getElementById('sideNotas')?.addEventListener('click',      () => _activarTab('panelNotas'));
-        document.getElementById('sideCitaciones')?.addEventListener('click', () => _activarTab('panelCitaciones'));
-        document.getElementById('sidePlan')?.addEventListener('click',       () => _activarTab('panelPlan'));
-        document.getElementById('sideCuenta')?.addEventListener('click',     () => _activarTab('panelCuenta'));
+        document.getElementById('sideNotas')?.addEventListener('click',         () => _activarTab('panelNotas'));
+        document.getElementById('sideCitaciones')?.addEventListener('click',    () => _activarTab('panelCitaciones'));
+        document.getElementById('sidePlan')?.addEventListener('click',          () => _activarTab('panelPlan'));
+        document.getElementById('sideCuenta')?.addEventListener('click',        () => _activarTab('panelCuenta'));
+        document.getElementById('sideEstadisticas')?.addEventListener('click',  () => _activarTab('panelEstadisticas'));
         // Activar tab según hash de URL
-        const _HASH_TAB = { '#citaciones': 'panelCitaciones', '#plan': 'panelPlan', '#cuenta': 'panelCuenta' };
+        const _HASH_TAB = {
+            '#citaciones':  'panelCitaciones',
+            '#plan':        'panelPlan',
+            '#cuenta':      'panelCuenta',
+            '#estadisticas':'panelEstadisticas',
+        };
         const tabInicial = _HASH_TAB[window.location.hash] || 'panelNotas';
         if (tabInicial !== 'panelNotas') _activarTab(tabInicial);
     } else {

@@ -17,6 +17,7 @@
 
 <link rel="stylesheet" href="{% static 'css/profesor_dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/citcom-modal.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/profesor_estadisticas.css' %}">
 </head>
 <body>
 
@@ -62,6 +63,15 @@
                 </svg>
                 <span class="nav-label">Plan de Trabajo</span>
                 <span class="nav-dot" id="planDot"></span>
+            </button>
+            <button class="nav-item" id="sideEstadisticas" aria-label="Estadísticas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                <span class="nav-label">Estadísticas</span>
             </button>
         </nav>
 
@@ -536,6 +546,180 @@
                 </div>
             </div>
 
+        </div>
+
+        <!-- ══ Panel Estadísticas ════════════════════════════════════ -->
+        <div class="tab-panel" id="panelEstadisticas" role="tabpanel">
+
+            <!-- Spinner de carga inicial -->
+            <div class="est-spinner-wrap" id="estSpinner" style="display:none">
+                <div class="spinner"></div>
+            </div>
+
+            <div id="estContent" class="est-wrap">
+
+                <!-- Header -->
+                <div class="est-header">
+                    <h1 class="est-title">Estadísticas</h1>
+                    <p class="est-subtitle" id="estSubtitle">
+                        <span>Cargando…</span>
+                    </p>
+                </div>
+
+                <!-- Tarjetas resumen -->
+                <div class="est-summary-grid">
+                    <div class="est-stat-card">
+                        <div class="est-stat-icon est-stat-icon--prom">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="est-stat-body">
+                            <div class="est-stat-num est-stat-num--prom" id="estValProm">—</div>
+                            <div class="est-stat-label">Promedio General</div>
+                        </div>
+                    </div>
+                    <div class="est-stat-card">
+                        <div class="est-stat-icon est-stat-icon--cit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="est-stat-body">
+                            <div class="est-stat-num est-stat-num--cit" id="estValCit">—</div>
+                            <div class="est-stat-label">Citaciones Enviadas</div>
+                        </div>
+                    </div>
+                    <div class="est-stat-card">
+                        <div class="est-stat-icon est-stat-icon--ok">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div class="est-stat-body">
+                            <div class="est-stat-num est-stat-num--ok" id="estValAsist">—</div>
+                            <div class="est-stat-label">Asistencias</div>
+                        </div>
+                    </div>
+                    <div class="est-stat-card">
+                        <div class="est-stat-icon est-stat-icon--fail">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                        </div>
+                        <div class="est-stat-body">
+                            <div class="est-stat-num est-stat-num--fail" id="estValNoAsist">—</div>
+                            <div class="est-stat-label">No Asistieron</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid principal -->
+                <div class="est-main-grid">
+
+                    <!-- Columna izquierda -->
+                    <div class="est-left">
+
+                        <!-- Cursos con mejores notas -->
+                        <div class="est-card">
+                            <div class="est-card-header">
+                                <span class="est-card-title">Cursos con mejores notas</span>
+                            </div>
+                            <div class="est-card-body">
+                                <div class="est-bars-list" id="estCursosBars">
+                                    <div class="est-empty">Cargando…</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mejores estudiantes -->
+                        <div class="est-card">
+                            <div class="est-card-header">
+                                <span class="est-card-title">Mejores estudiantes</span>
+                            </div>
+                            <div class="est-card-body">
+                                <div class="est-tab-row" id="estCursoTabs"></div>
+                                <div class="est-students-grid" id="estStudentsGrid">
+                                    <div class="est-empty" style="grid-column:1/-1">Cargando…</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Columna derecha -->
+                    <div class="est-right">
+
+                        <!-- Dona: Citaciones · Asistencia -->
+                        <div class="est-card">
+                            <div class="est-card-header">
+                                <span class="est-card-title">Citaciones · Asistencia</span>
+                            </div>
+                            <div class="est-card-body">
+                                <div class="est-donut-wrap">
+                                    <div class="est-donut-canvas-wrap">
+                                        <canvas id="estDonutCanvas" width="160" height="160"></canvas>
+                                        <div class="est-donut-center">
+                                            <div class="est-donut-num" id="estDonutNum">—</div>
+                                            <div class="est-donut-label">Enviadas</div>
+                                        </div>
+                                    </div>
+                                    <div class="est-cit-pills">
+                                        <div class="est-cit-pill">
+                                            <span class="est-cit-pill-num est-cit-pill-num--ok" id="estPillOk">—</span>
+                                            <span class="est-cit-pill-label">Asistieron</span>
+                                        </div>
+                                        <div class="est-cit-pill">
+                                            <span class="est-cit-pill-num est-cit-pill-num--fail" id="estPillFail">—</span>
+                                            <span class="est-cit-pill-label">No Asist.</span>
+                                        </div>
+                                        <div class="est-cit-pill">
+                                            <span class="est-cit-pill-num est-cit-pill-num--pend" id="estPillPend">—</span>
+                                            <span class="est-cit-pill-label">Pendiente</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trimestres con mejores notas -->
+                        <div class="est-card">
+                            <div class="est-card-header">
+                                <span class="est-card-title">Trimestres con mejores notas</span>
+                            </div>
+                            <div class="est-card-body">
+                                <div class="est-trim-list" id="estTrimList">
+                                    <div class="est-empty">Cargando…</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Promedio general por cursos (tabla) -->
+                        <div class="est-card">
+                            <div class="est-card-header">
+                                <span class="est-card-title">Promedio general por cursos</span>
+                            </div>
+                            <div class="est-card-body" style="padding:12px 16px 16px">
+                                <table class="est-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Curso</th>
+                                            <th>T1</th>
+                                            <th>T2</th>
+                                            <th>T3</th>
+                                            <th>Prom.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="estTablaCursos">
+                                        <tr><td colspan="5" class="est-empty">Cargando…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
 
     </main>
@@ -1045,6 +1229,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
     <script src="{% static 'js/profesor.js' %}"></script>
     <script src="{% static 'js/notif_bell.js' %}"></script>
+    <script src="{% static 'js/profesor_estadisticas.js' %}"></script>
 
 </body>
 </html>
