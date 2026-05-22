@@ -6,10 +6,9 @@
 {% block page_css %}
 <link rel="stylesheet" href="{% static 'css/profesor_estadisticas.css' %}">
 <style>
-    /* main-content ya tiene padding:28px; est-wrap añade 24px más → doble margen.
-       Anulamos el de main-content y dejamos que est-wrap gestione el espaciado,
-       igual que en el SPA donde #panelEstadisticas tiene padding:0. */
-    .main-content { padding: 0; }
+    /* En la página separada, main-content ya da padding:28px externo.
+       Centramos est-wrap igual que page-inner en otras páginas del profesor. */
+    .est-wrap { padding: 0; margin: 0 auto; }
 </style>
 {% endblock %}
 
