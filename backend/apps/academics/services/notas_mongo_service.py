@@ -12,7 +12,7 @@ Estructura de cada documento:
 
     gestion:         int       — año escolar (2026)
     trimestre:       int       — 1, 2 o 3
-    mes:             int       — mes de la actividad (1-12)
+    mes:             int       — mes en que se realizó la carga (upload month, inmutable)
 
     dimension:       str       — "saber" | "hacer"
     columna_idx:     int       — índice de columna en el Excel (para upserts)
@@ -254,7 +254,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
                             'fecha_actividad':     fecha_activ,
                             'nota':                n['nota'],
                             'nota_maxima':         nota_max,
-                            'mes':                 mes_doc,
+                            # 'mes' es inmutable: conserva el mes de la carga original
                             'fecha_actualizacion': ahora,
                         }},
                     ))
