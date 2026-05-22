@@ -835,13 +835,18 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _nuevasForTrim = (!soloLectura && _diferencias?.nuevas_columnas || []).filter(c => c.trimestre === _trimNum);
 
     // modMap: "nro_cellKey" → entrada de modificadas
-    const _modMap = new Map();
+    const _modMap        = new Map();
+    const _colTituloMap  = new Map(); // "dim-pos" → titulo_anterior (cuando el nombre cambió)
     _modForTrim.forEach(m => {
         const dimCols = trimData[m.dimension] || [];
         const pos = m.col_idx != null
             ? dimCols.findIndex(c => c.col === m.col_idx)
             : dimCols.findIndex(c => c.titulo === m.titulo);
-        if (pos >= 0) _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
+        if (pos < 0) return;
+        _modMap.set(`${m.estudiante_id}_${m.dimension}-${pos}`, m);
+        if (m.titulo_cambiado && m.titulo_anterior && !_colTituloMap.has(`${m.dimension}-${pos}`)) {
+            _colTituloMap.set(`${m.dimension}-${pos}`, m.titulo_anterior);
+        }
     });
 
     // nuevasSet: cellKeys de columnas que no existían en Mongo
@@ -979,10 +984,17 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     `).join('');
 
     const rotatedHeaders = displayDimensions.map(dim => [
-        ...dim.columns.map(col => `
-            <th class="cc-success-table__head cc-success-table__head--rot" title="${_esc(col.titulo || '')}">
+        ...dim.columns.map((col, colIdx) => {
+            const ck          = `${dim.key}-${colIdx}`;
+            const tituloViejo = _colTituloMap.get(ck);
+            const thStyle     = tituloViejo ? ' style="background:rgba(245,158,11,.18);"' : '';
+            const titleAttr   = tituloViejo
+                ? `title="Antes: ${_esc(tituloViejo)}"`
+                : `title="${_esc(col.titulo || '')}"`;
+            return `<th class="cc-success-table__head cc-success-table__head--rot" ${titleAttr}${thStyle}>
                 <span>${_rotHeaderHtml(col.titulo)}</span>
-            </th>`),
+            </th>`;
+        }),
         `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
     ].join('')).join('');
 

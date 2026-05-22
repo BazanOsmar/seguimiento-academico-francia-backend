@@ -368,6 +368,7 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                         if prev is None:
                             nuevas += 1
                         elif prev['nota'] != n['nota'] or prev.get('titulo') != titulo:
+                            _titulo_cambiado = prev.get('titulo') != titulo
                             modificadas.append({
                                 'estudiante_id':   n['nro'],
                                 'nombre':          n.get('nombre') or prev.get('nombre_estudiante', ''),
@@ -375,9 +376,10 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                                 'dimension':       dimension,
                                 'col_idx':         col_idx,
                                 'titulo':          titulo,
+                                'titulo_anterior': prev.get('titulo') if _titulo_cambiado else None,
                                 'nota_anterior':   prev['nota'],
                                 'nota_nueva':      n['nota'],
-                                'titulo_cambiado': prev.get('titulo') != titulo,
+                                'titulo_cambiado': _titulo_cambiado,
                             })
                         else:
                             sin_cambios += 1
