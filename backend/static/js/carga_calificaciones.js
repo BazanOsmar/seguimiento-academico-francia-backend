@@ -991,11 +991,21 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             const ck          = `${dim.key}-${colIdx}`;
             const tituloViejo = _colTituloMap.get(ck);
             const thStyle     = tituloViejo ? ' style="background:#151e2d;box-shadow:inset 0 0 0 9999px rgba(245,158,11,.22);"' : '';
-            const titleAttr   = tituloViejo
-                ? `title="Antes: ${_esc(tituloViejo)}"`
-                : `title="${_esc(col.titulo || '')}"`;
+            let titleAttr, headerTitulo;
+            if (tituloViejo) {
+                if (_modoAnterior) {
+                    titleAttr    = `title="Nuevo: ${_esc(col.titulo)}"`;
+                    headerTitulo = tituloViejo;
+                } else {
+                    titleAttr    = `title="Antes: ${_esc(tituloViejo)}"`;
+                    headerTitulo = col.titulo;
+                }
+            } else {
+                titleAttr    = `title="${_esc(col.titulo || '')}"`;
+                headerTitulo = col.titulo;
+            }
             return `<th class="cc-success-table__head cc-success-table__head--rot" ${titleAttr}${thStyle}>
-                <span>${_rotHeaderHtml(col.titulo)}</span>
+                <span>${_rotHeaderHtml(headerTitulo)}</span>
             </th>`;
         }),
         `<th class="cc-success-table__head cc-success-table__dim-prom">Prom.</th>`,
