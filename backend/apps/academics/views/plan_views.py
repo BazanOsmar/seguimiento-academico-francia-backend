@@ -1,6 +1,6 @@
 import io
 from collections import OrderedDict
-from datetime import timedelta
+from datetime import timedelta, date
 
 from django.utils import timezone
 
