@@ -64,6 +64,7 @@ class CitacionTutorSerializer(CitacionBaseSerializer):
     Serializer de LECTURA para tutores (app móvil).
     Muestra las citaciones de sus hijos/estudiantes a cargo.
     """
+    estudiante_id = serializers.IntegerField(source='estudiante.id', read_only=True)
     emisor_nombre = serializers.SerializerMethodField()
     emisor_cargo  = serializers.SerializerMethodField()
 
@@ -79,6 +80,7 @@ class CitacionTutorSerializer(CitacionBaseSerializer):
         model = Citacion
         fields = [
             "id",
+            "estudiante_id",
             "estudiante_nombre",
             "curso",
             "motivo",

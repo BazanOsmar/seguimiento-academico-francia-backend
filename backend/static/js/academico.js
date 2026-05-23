@@ -1652,7 +1652,10 @@ function eliminarMateria(id, nombre) {
             'Se eliminarán todas las asignaciones de esta materia con profesores y cursos.',
             'Esta acción no se puede deshacer.',
         ],
-        action:    () => fetchAPI(`/api/academics/materias/${id}/`, { method: 'DELETE' }),
+        action: password => fetchAPI(`/api/academics/materias/${id}/`, {
+            method: 'DELETE',
+            body:   JSON.stringify({ password }),
+        }),
         onSuccess: cargarMaterias,
     });
 }

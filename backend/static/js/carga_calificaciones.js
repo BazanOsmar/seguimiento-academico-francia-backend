@@ -1510,18 +1510,62 @@ function _confirmarEliminarNotasMes(mes) {
     const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const mesNombre = meses[mes] || mes;
-    const msg =
-        `¿Eliminar las notas que el profesor cargó en ${mesNombre}?\n\n` +
-        `• Las notas NUEVAS de este mes se borrarán.\n` +
-        `• Las correcciones se revertirán al valor anterior.\n` +
-        `• Esta acción no se puede deshacer.`;
-    if (!window.confirm(msg)) return;
-    _ejecutarEliminarNotasMes(mes);
+
+    const modal  = document.getElementById('modalEliminarNotas');
+    const passEl = document.getElementById('modalElimNPass');
+    const errEl  = document.getElementById('modalElimNErr');
+    const mesEl  = document.getElementById('modalElimNMes');
+    if (!modal) { _ejecutarEliminarNotasMes(mes, ''); return; }
+
+    // Resetear estado del modal
+    mesEl.textContent   = mesNombre;
+    passEl.value        = '';
+    errEl.style.display = 'none';
+    errEl.textContent   = '';
+    modal.style.display = 'flex';
+    setTimeout(() => passEl.focus(), 80);
+
+    // AbortController para limpiar todos los listeners al cerrar
+    const ac = new AbortController();
+    const sig = ac.signal;
+
+    const cerrar = () => {
+        modal.style.display = 'none';
+        ac.abort();
+    };
+
+    const confirmar = async () => {
+        const password = passEl.value.trim();
+        if (!password) {
+            errEl.textContent   = 'Debes ingresar tu contraseña.';
+            errEl.style.display = 'block';
+            passEl.focus();
+            return;
+        }
+        const btnOk = document.getElementById('modalElimNConfirm');
+        errEl.style.display = 'none';
+        btnOk.disabled      = true;
+        btnOk.textContent   = 'Eliminando…';
+        const resultado = await _ejecutarEliminarNotasMes(mes, password);
+        if (resultado === 'error_pass') {
+            errEl.textContent   = 'Contraseña incorrecta. Inténtalo de nuevo.';
+            errEl.style.display = 'block';
+            btnOk.disabled      = false;
+            btnOk.textContent   = 'Eliminar';
+            passEl.select();
+        } else {
+            cerrar();
+        }
+    };
+
+    document.getElementById('modalElimNConfirm').addEventListener('click', confirmar, { signal: sig });
+    document.getElementById('modalElimNCancel').addEventListener('click', cerrar,    { signal: sig });
+    passEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmar(); }, { signal: sig });
+    modal.addEventListener('click',    (e) => { if (e.target === modal) cerrar(); },  { signal: sig });
 }
 
-async function _ejecutarEliminarNotasMes(mes) {
+async function _ejecutarEliminarNotasMes(mes, password) {
     const btn = document.getElementById('btnDnEliminar');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Eliminando…'; }
 
     try {
         const token = localStorage.getItem('access_token');
@@ -1531,36 +1575,29 @@ async function _ejecutarEliminarNotasMes(mes) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type':  'application/json',
             },
-            body: JSON.stringify({
-                profesor_id: undefined, // se resuelve en backend a partir del pc_id
-                mes:         mes,
-                curso_id:    undefined,
-                materia_id:  undefined,
-                pc_id:       _pcId,
-            }),
+            body: JSON.stringify({ pc_id: _pcId, mes, password }),
         });
+
+        if (res.status === 403) return 'error_pass';
 
         if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            alert(data.errores || `No se pudo eliminar (HTTP ${res.status}).`);
-            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = 'Eliminar notas del mes'; }
-            return;
+            _apiToast(data.errores || `No se pudo eliminar (HTTP ${res.status}).`, 'error');
+            return 'error';
         }
 
         const data = await res.json();
-        const resumen =
-            `Eliminación completada:\n` +
-            `• Notas nuevas borradas: ${data.detalle_notas_borrados ?? 0}\n` +
-            `• Notas revertidas: ${data.detalle_notas_revertidos ?? 0}\n` +
-            `• Historiales borrados: ${data.historial_borrados ?? 0}\n` +
-            `• Snapshots mensuales: ${data.notas_mensuales ?? 0}\n` +
-            `• Predicciones (KMeans): ${data.predicciones ?? 0}\n` +
-            `• Predicciones (árbol): ${data.predicciones_arbol ?? 0}`;
-        alert(resumen);
-        window.location.reload();
+        _apiToast(
+            `Eliminadas: ${data.detalle_notas_borrados ?? 0} notas nuevas, ` +
+            `${data.detalle_notas_revertidos ?? 0} revertidas.`,
+            'success',
+        );
+        setTimeout(() => window.location.reload(), 1200);
+        return 'ok';
     } catch (err) {
         console.error(err);
-        alert('Error de conexión al eliminar.');
-        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = 'Eliminar notas del mes'; }
+        _apiToast('Error de conexión al eliminar.', 'error');
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        return 'error';
     }
 }

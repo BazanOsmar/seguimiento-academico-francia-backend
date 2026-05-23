@@ -74,6 +74,12 @@ class MateriaDetailView(APIView):
         return Response(MateriaSerializer(materia).data)
 
     def delete(self, request, materia_id):
+        password = request.data.get('password', '').strip()
+        if not password:
+            return Response({"errores": "Se requiere tu contraseña para confirmar esta acción."}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password):
+            return Response({"errores": "Contraseña incorrecta."}, status=status.HTTP_403_FORBIDDEN)
+
         materia = self._get_materia(materia_id)
         if materia is None:
             return Response({"errores": "Materia no encontrada."}, status=status.HTTP_404_NOT_FOUND)
