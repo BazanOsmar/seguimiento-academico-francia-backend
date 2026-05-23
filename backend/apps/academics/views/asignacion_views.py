@@ -141,13 +141,6 @@ class ProfesorMisAsignacionesView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        mes_servidor = timezone.localtime(timezone.now()).month
-        if mes != mes_servidor:
-            return Response(
-                {'errores': 'El mes solicitado no coincide con el mes actual del sistema.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         from ..models import ProfesorPlan
         qs = (
             ProfesorCurso.objects
