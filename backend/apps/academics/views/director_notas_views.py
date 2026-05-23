@@ -343,17 +343,25 @@ class DirectorEliminarNotasMesView(APIView):
     """
     POST /api/academics/director/eliminar-notas-mes/
 
-    Body JSON (cualquiera de las dos formas):
-        { "pc_id": int, "mes": int }                          ← simple
-        { "profesor_id", "mes", "curso_id"?, "materia_id"? }  ← detallado
+    Body JSON:
+        { "pc_id": int, "mes": int, "password": str }
 
     Reglas:
       - Solo Director.
+      - Requiere contraseña del director para confirmar la acción.
       - Solo se puede borrar la carga del MES ACTUAL (gestión actual).
     """
     permission_classes = [IsAuthenticated, IsDirector]
 
     def post(self, request):
+        # ── Contraseña del director ───────────────────────────────────
+        password = request.data.get('password', '').strip()
+        if not password:
+            return Response({'errores': 'Se requiere tu contraseña para confirmar esta acción.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password):
+            return Response({'errores': 'Contraseña incorrecta.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # ── Mes ───────────────────────────────────────────────────────
         try:
             mes = int(request.data.get('mes'))
         except (TypeError, ValueError):
@@ -369,32 +377,20 @@ class DirectorEliminarNotasMesView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        pc_id = request.data.get('pc_id')
-        if pc_id:
-            try:
-                pc = ProfesorCurso.objects.select_related('profesor', 'curso', 'materia').get(pk=int(pc_id))
-            except (ProfesorCurso.DoesNotExist, ValueError, TypeError):
-                return Response({'errores': 'Asignación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-            profesor_id = pc.profesor_id
-            curso_id    = pc.curso_id
-            materia_id  = pc.materia_id
-        else:
-            try:
-                profesor_id = int(request.data.get('profesor_id'))
-            except (TypeError, ValueError):
-                return Response({'errores': 'profesor_id requerido.'}, status=status.HTTP_400_BAD_REQUEST)
-            try:
-                curso_id   = int(request.data['curso_id'])   if request.data.get('curso_id')   not in (None, '') else None
-                materia_id = int(request.data['materia_id']) if request.data.get('materia_id') not in (None, '') else None
-            except (TypeError, ValueError):
-                return Response({'errores': 'curso_id / materia_id inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+        # ── Asignación (pc_id) ────────────────────────────────────────
+        try:
+            pc = ProfesorCurso.objects.select_related('profesor', 'curso', 'materia').get(
+                pk=int(request.data.get('pc_id'))
+            )
+        except (ProfesorCurso.DoesNotExist, ValueError, TypeError):
+            return Response({'errores': 'Asignación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
         from ..services.notas_mongo_service import eliminar_notas_mes
         resumen = eliminar_notas_mes(
-            profesor_id=profesor_id,
+            profesor_id=pc.profesor_id,
             mes=mes,
             gestion=ahora.year,
-            curso_id=curso_id,
-            materia_id=materia_id,
+            curso_id=pc.curso_id,
+            materia_id=pc.materia_id,
         )
         return Response(resumen, status=status.HTTP_200_OK)
