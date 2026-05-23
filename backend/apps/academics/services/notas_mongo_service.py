@@ -474,17 +474,23 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     """
     Calcula y guarda notas_mensuales para el mes indicado.
 
+    Criterio de "columna nueva": documentos en detalle_notas con mes == mes_carga
+    (campo inmutable que registra cuándo se subió la columna por primera vez).
+    Las columnas modificadas (que ya existían y solo cambiaron de nota) NO se
+    incluyen — su mes original se preserva.
+
     Lógica por dimensión:
       1. Hay columnas nuevas en `mes`          → promedio de esas notas
       2. Sin columnas en `mes` pero hay notas
          anteriores en el trimestre             → promedio acumulado del trimestre
-      3. Sin ningún dato en el trimestre        → null (K-MEANS imputa 0.5)
-
-    nota_mensual = suma de valores presentes (null cuenta como 0), escala 0-95.
+      3. Sin ningún dato en el trimestre        → null
 
     Returns:
         { procesados: int }
     """
+    if mes is None:
+        return {'procesados': 0}
+
     materia_id  = profesor_curso.materia.id
     curso_id    = profesor_curso.curso.id
     profesor_id = profesor_curso.profesor.id
@@ -492,38 +498,40 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
 
     _DIMS = {'ser': 10.0, 'saber': 45.0, 'hacer': 40.0}
 
-    # ── Autoevaluación ────────────────────────────────────────────────────────
+    # ── Autoevaluación (viene del Excel, no de detalle_notas) ─────────────────
     autoeval_por_nro = {}
     for col_data in headers_actividades.get('_autoeval', [{}]):
         for n in col_data.get('notas', []):
             autoeval_por_nro[n['nro']] = n['nota']
 
-    if mes is None:
+    # ── Columnas NUEVAS: documentos con mes == mes_carga ─────────────────────
+    # (guardar_notas ya corrió antes; estos son los InsertOne de esta carga)
+    nuevas_docs = list(_get_db()['detalle_notas'].find({
+        'materia_id':  materia_id,
+        'curso_id':    curso_id,
+        'profesor_id': profesor_id,
+        'gestion':     gestion,
+        'trimestre':   trimestre,
+        'mes':         mes,
+    }, {'_id': 0, 'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1, 'nota': 1}))
+
+    if not nuevas_docs:
         return {'procesados': 0}
 
-    # ── Extraer notas del mes y todos los estudiantes ─────────────────────────
-    student_data = defaultdict(lambda: defaultdict(list))  # eid → dim → [notas del mes]
-    cols_del_mes = defaultdict(int)   # dim → nro de columnas con fecha == mes
+    # Agrupar notas nuevas por estudiante y dimensión
+    cols_del_mes = defaultdict(set)                       # dim → set de col_idx nuevos
+    student_data = defaultdict(lambda: defaultdict(list)) # eid → dim → [notas]
     all_students = set()
 
-    for dimension, columnas in headers_actividades.items():
-        if dimension.startswith('_'):
-            continue
-        for col_data in columnas:
-            fecha_activ = _parsear_fecha(col_data['titulo'])
-            if not fecha_activ or fecha_activ.month != mes:
-                continue
-            cols_del_mes[dimension] += 1
-            for n in col_data.get('notas', []):
-                all_students.add(n['nro'])
-                student_data[n['nro']][dimension].append(n['nota'])
+    for doc in nuevas_docs:
+        dim = doc['dimension']
+        cols_del_mes[dim].add(doc['columna_idx'])
+        all_students.add(doc['estudiante_id'])
+        student_data[doc['estudiante_id']][dim].append(doc['nota'])
 
-    if not all_students:
-        return {'procesados': 0}
-
-    # ── Acumulado del trimestre para dims sin notas nuevas ────────────────────
-    dims_sin_notas = [d for d in _DIMS if cols_del_mes.get(d, 0) == 0]
-    acumulado = {}  # eid → {dim: avg_raw}
+    # ── Acumulado del trimestre para dims sin columnas nuevas ─────────────────
+    dims_sin_notas = [d for d in _DIMS if not cols_del_mes.get(d)]
+    acumulado = {}  # eid → {dim: promedio_acum}
 
     if dims_sin_notas:
         pipeline_acum = [
@@ -558,7 +566,7 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
         nota_mensual = 0.0
 
         for dim in _DIMS:
-            n_cols = cols_del_mes.get(dim, 0)
+            n_cols = len(cols_del_mes.get(dim, set()))
             if n_cols > 0:
                 val = _promedio_todos(notas_mes.get(dim, []), n_cols)
             elif dim in notas_acum:
@@ -569,7 +577,7 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
             dim_fields[dim]  = val
             nota_mensual    += val if val is not None else 0.0
 
-        n_hacer = cols_del_mes.get('hacer', 0)
+        n_hacer = len(cols_del_mes.get('hacer', set()))
         if n_hacer > 0:
             hacer_notas = notas_mes.get('hacer', [])
             dim_fields.update({
@@ -578,7 +586,7 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
                 'cantidad_tareas_total':      n_hacer,
             })
 
-        n_saber = cols_del_mes.get('saber', 0)
+        n_saber = len(cols_del_mes.get('saber', set()))
         if n_saber > 0:
             saber_notas = notas_mes.get('saber', [])
             dim_fields.update({
