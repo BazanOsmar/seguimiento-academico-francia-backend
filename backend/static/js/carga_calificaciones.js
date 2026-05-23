@@ -1592,7 +1592,7 @@ async function _ejecutarEliminarNotasMes(mes, password) {
             `${data.detalle_notas_revertidos ?? 0} revertidas.`,
             'success',
         );
-        setTimeout(() => window.location.reload(), 1200);
+        setTimeout(() => window.history.back(), 1200);
         return 'ok';
     } catch (err) {
         console.error(err);
