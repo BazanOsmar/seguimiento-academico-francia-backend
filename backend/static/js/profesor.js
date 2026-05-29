@@ -2010,6 +2010,17 @@ async function _abrirModalDetalleCit(id) {
     document.getElementById('detalleCitBadge').innerHTML =
         `<span class="estado-badge ${BADGE_CLS[asist] || ''}">${_escapeHtml(ASISTENCIA_LABELS[asist] || asist)}</span>`;
 
+    const estadoEnvio = data.estado || 'ENVIADA';
+    const estadoEnvioEl = document.getElementById('detalleCitEstadoEnvio');
+    if (estadoEnvioEl) {
+        estadoEnvioEl.innerHTML = estadoEnvio === 'VISTO'
+            ? `<span class="estado-badge" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);">
+                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:3px;">
+                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                   </svg>Visto</span>`
+            : `<span class="estado-badge" style="background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.25);">Enviada</span>`;
+    }
+
     document.getElementById('detalleCitMotivo').textContent  = MOTIVOS[data.motivo] || data.motivo || '—';
     document.getElementById('detalleCitTutor').textContent   = data.tutor_nombre || 'Sin tutor';
     document.getElementById('detalleCitEmisor').textContent  = `${data.emitido_por_nombre || '—'} (${data.emitido_por_cargo || '—'})`;

@@ -51,6 +51,11 @@ htmlcov/
 .tox/
 .nox/
 
+# Artefactos de pruebas de interfaz (se versiona el script, no lo generado/secreto)
+tests/ui/.auth.json
+tests/ui/screenshots/
+tests/ui/reporte.json
+
 # IDE
 .vscode/
 .idea/
@@ -75,4 +80,14 @@ analisis_nombres_estudiantes.md
 .claude/
 
 
-seed_asignaciones_2026.sqlstaging_dump.json
+# Seeds y dumps locales (no versionar datos de carga)
+seed_asignaciones_2026.sql
+seed_simulacion_t1.py
+seed_notas_v2.py
+staging_dump.json
+
+# Documentacion de contexto (no es codigo del sistema)
+CONTEXTO_PROYECTO.md
+
+# Pruebas de UI locales
+tests/

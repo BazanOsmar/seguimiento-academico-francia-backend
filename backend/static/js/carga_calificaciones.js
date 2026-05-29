@@ -804,20 +804,124 @@ function _initTableScrollSync() {
     window.addEventListener('resize', updateGhostRange, { once: true });
 }
 
+function _restoreTableScroll(dashboard, scrollLeft, scrollTop, pageY) {
+    const apply = () => {
+        const bodyWrap = dashboard.querySelector('.cc-success-table-body-wrap');
+        const headWrap = dashboard.querySelector('.cc-success-table-head-wrap');
+        const ghost    = dashboard.querySelector('.cc-success-ghost-scroll');
+        if (bodyWrap) { bodyWrap.scrollLeft = scrollLeft; bodyWrap.scrollTop = scrollTop; }
+        if (headWrap)   headWrap.scrollLeft = scrollLeft;
+        if (ghost)      ghost.scrollLeft    = scrollLeft;
+        if (pageY)      window.scrollTo({ top: pageY, behavior: 'instant' });
+    };
+    apply();
+    setTimeout(apply, 0);
+}
+
 function _toggleModoAnterior() {
-    _modoAnterior = !_modoAnterior;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
-    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, _soloLectura);
-    _initTableScrollSync();
+
+    _modoAnterior = !_modoAnterior;
+
+    // Actualizar botón
+    const btn = document.getElementById('btnToggleModoAnterior');
+    if (btn) {
+        btn.style.borderColor = _modoAnterior ? 'rgba(251,191,36,.5)' : 'rgba(251,191,36,.3)';
+        btn.style.background  = _modoAnterior ? 'rgba(251,191,36,.15)' : 'rgba(251,191,36,.08)';
+        const lbl = document.getElementById('btnToggleModoAnteriorLabel');
+        if (lbl) lbl.textContent = _modoAnterior ? 'Ver Excel actual' : 'Ver datos anteriores';
+    }
+
+    // Mostrar/ocultar hint
+    const hint = document.getElementById('hintModoAnterior');
+    if (hint) hint.style.display = _modoAnterior ? 'inline-block' : 'none';
+
+    // Celdas modificadas
+    dashboard.querySelectorAll('[data-modkey]').forEach(cell => {
+        if (_modoAnterior) {
+            const ant = parseFloat(cell.dataset.notaAnterior);
+            cell.style.cssText = 'background:rgba(245,158,11,.13);color:#b45309;font-weight:700;';
+            cell.textContent   = Number.isFinite(ant) ? _fmt1(ant) : '-';
+        } else {
+            const act = parseFloat(cell.dataset.notaActual);
+            cell.style.cssText = Number.isFinite(act)
+                ? 'background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;'
+                : '';
+            cell.textContent   = Number.isFinite(act) ? _fmt1(act) : '-';
+        }
+    });
+
+    // Celdas de columnas nuevas
+    dashboard.querySelectorAll('[data-newkey]').forEach(cell => {
+        if (_modoAnterior) {
+            cell.style.cssText = 'color:var(--text-muted);font-style:italic;letter-spacing:.02em;';
+            cell.textContent   = '—';
+        } else {
+            const act = parseFloat(cell.dataset.notaActual);
+            cell.style.cssText = '';
+            cell.textContent   = Number.isFinite(act) ? _fmt1(act) : '-';
+        }
+    });
+
+    // Celdas normales: opacas en modo anterior, normales en modo actual
+    dashboard.querySelectorAll('.cc-score--norm').forEach(cell => {
+        cell.style.color = _modoAnterior ? 'var(--text-muted)' : '';
+    });
+
+    // Headers con título renombrado
+    dashboard.querySelectorAll('[data-headerck]').forEach(th => {
+        const span = th.querySelector('span');
+        if (!span) return;
+        if (_modoAnterior) {
+            th.title      = `Nuevo: ${th.dataset.tituloNuevo}`;
+            span.innerHTML = _rotHeaderHtml(th.dataset.tituloViejo);
+        } else {
+            th.title      = `Antes: ${th.dataset.tituloViejo}`;
+            span.innerHTML = _rotHeaderHtml(th.dataset.tituloNuevo);
+        }
+    });
 }
 
 function _toggleVistaHistorial() {
-    _mostrandoOriginal = !_mostrandoOriginal;
     const dashboard = document.getElementById('ccDashboard');
     if (!dashboard) return;
-    dashboard.innerHTML = _renderSuccessDashboard(_lastResultado, null, true);
-    _initTableScrollSync();
+
+    _mostrandoOriginal = !_mostrandoOriginal;
+
+    // Actualizar texto del botón
+    const label = document.getElementById('btnToggleHistorialLabel');
+    if (label) {
+        const mesesNombre = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                             'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const mesNum = parseInt(_mesHasta || _mes, 10);
+        const mesLbl = (mesNum >= 1 && mesNum <= 12) ? mesesNombre[mesNum] : 'el mes';
+        label.textContent = _mostrandoOriginal ? 'Ver nota actual' : `Ver nota de ${mesLbl}`;
+    }
+
+    // Actualizar celdas modificadas in-place (sin tocar el DOM ni el scroll)
+    const tooltip = 'Esta nota fue modificada en un mes posterior';
+    _modHistorialMap.forEach((entry, histKey) => {
+        const cell = dashboard.querySelector(`[data-histkey="${histKey}"]`);
+        if (!cell) return;
+        if (_mostrandoOriginal) {
+            cell.style.background  = 'rgba(239,68,68,.13)';
+            cell.style.color       = '#f87171';
+            cell.style.fontWeight  = '700';
+            cell.style.cursor      = 'help';
+            cell.title             = tooltip;
+            cell.textContent       = _fmt1(entry.nota_original);
+        } else {
+            const val = entry.nota_actual;
+            cell.style.background  = 'rgba(59,130,246,.13)';
+            cell.style.color       = '#60a5fa';
+            cell.style.fontWeight  = '700';
+            cell.style.cursor      = 'help';
+            cell.title             = tooltip;
+            cell.textContent       = Number.isFinite(val) ? _fmt1(val) : '-';
+        }
+    });
+
     _renderBotonEliminarSiDirector(parseInt(_mesHasta || _mes, 10));
 }
 
@@ -994,8 +1098,9 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
             const ck          = `${dim.key}-${colIdx}`;
             const tituloViejo = _colTituloMap.get(ck);
             const thStyle     = tituloViejo ? ' style="background:#151e2d;box-shadow:inset 0 0 0 9999px rgba(245,158,11,.22);"' : '';
-            let titleAttr, headerTitulo;
+            let titleAttr, headerTitulo, headerDataAttrs = '';
             if (tituloViejo) {
+                headerDataAttrs = ` data-headerck="${ck}" data-titulo-nuevo="${_esc(col.titulo)}" data-titulo-viejo="${_esc(tituloViejo)}"`;
                 if (_modoAnterior) {
                     titleAttr    = `title="Nuevo: ${_esc(col.titulo)}"`;
                     headerTitulo = tituloViejo;
@@ -1007,7 +1112,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                 titleAttr    = `title="${_esc(col.titulo || '')}"`;
                 headerTitulo = col.titulo;
             }
-            return `<th class="cc-success-table__head cc-success-table__head--rot" ${titleAttr}${thStyle}>
+            return `<th class="cc-success-table__head cc-success-table__head--rot" ${titleAttr}${thStyle}${headerDataAttrs}>
                 <span>${_rotHeaderHtml(headerTitulo)}</span>
             </th>`;
         }),
@@ -1027,18 +1132,23 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                     const histKey = `${dim.key}-${col.col}_${row.nro}`;
                     const histEntry = _modHistorialMap.get(histKey);
                     if (histEntry) {
+                        const tooltip = 'Esta nota fue modificada en un mes posterior';
                         if (_mostrandoOriginal) {
-                            const notaOrig = histEntry.nota_original;
-                            const tooltip  = 'Esta nota fue modificada en un mes posterior';
                             return `<td class="cc-success-table__score cc-score--modificada"
+                                        data-histkey="${histKey}"
                                         title="${_esc(tooltip)}"
                                         style="background:rgba(239,68,68,.13);color:#f87171;font-weight:700;cursor:help;">
-                                        ${_fmt1(notaOrig)}
+                                        ${_fmt1(histEntry.nota_original)}
                                     </td>`;
                         } else {
                             return Number.isFinite(value)
-                                ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
-                                : `<td class="cc-success-table__score is-empty">-</td>`;
+                                ? `<td class="cc-success-table__score cc-score--modificada"
+                                       data-histkey="${histKey}"
+                                       title="${_esc(tooltip)}"
+                                       style="background:rgba(59,130,246,.13);color:#60a5fa;font-weight:700;cursor:help;">
+                                       ${_fmt1(value)}
+                                   </td>`
+                                : `<td class="cc-success-table__score is-empty" data-histkey="${histKey}">-</td>`;
                         }
                     }
                     return Number.isFinite(value)
@@ -1047,27 +1157,32 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                 }
 
                 // ── Modo validación: diff con Excel anterior ──────────────
-                if (_modoAnterior) {
-                    if (modEntry) {
-                        return `<td class="cc-success-table__score" style="background:rgba(245,158,11,.13);color:#b45309;font-weight:700;">${_fmt1(modEntry.nota_anterior)}</td>`;
-                    }
-                    if (esNueva) {
-                        return `<td class="cc-success-table__score" style="color:var(--text-muted);font-style:italic;letter-spacing:.02em;">—</td>`;
-                    }
-                    return Number.isFinite(value)
-                        ? `<td class="cc-success-table__score" style="color:var(--text-muted);">${_fmt1(value)}</td>`
-                        : `<td class="cc-success-table__score is-empty">-</td>`;
-                }
-
-                // Vista "Excel actual" (default)
+                const _notaActualAttr = Number.isFinite(value) ? ` data-nota-actual="${value}"` : ' data-nota-actual=""';
                 if (modEntry) {
+                    const _notaAntAttr = Number.isFinite(modEntry.nota_anterior) ? ` data-nota-anterior="${modEntry.nota_anterior}"` : ' data-nota-anterior=""';
+                    if (_modoAnterior) {
+                        return `<td class="cc-success-table__score" data-modkey="${row.nro}_${cellKey}"${_notaActualAttr}${_notaAntAttr} style="background:rgba(245,158,11,.13);color:#b45309;font-weight:700;">${_fmt1(modEntry.nota_anterior)}</td>`;
+                    }
                     return Number.isFinite(value)
-                        ? `<td class="cc-success-table__score" style="background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;">${_fmt1(value)}</td>`
-                        : `<td class="cc-success-table__score is-empty">-</td>`;
+                        ? `<td class="cc-success-table__score" data-modkey="${row.nro}_${cellKey}"${_notaActualAttr}${_notaAntAttr} style="background:rgba(99,102,241,.12);color:var(--accent);font-weight:700;">${_fmt1(value)}</td>`
+                        : `<td class="cc-success-table__score is-empty" data-modkey="${row.nro}_${cellKey}"${_notaAntAttr} data-nota-actual="">-</td>`;
+                }
+                if (esNueva) {
+                    if (_modoAnterior) {
+                        return `<td class="cc-success-table__score" data-newkey="${row.nro}_${cellKey}"${_notaActualAttr} style="color:var(--text-muted);font-style:italic;letter-spacing:.02em;">—</td>`;
+                    }
+                    return Number.isFinite(value)
+                        ? `<td class="cc-success-table__score" data-newkey="${row.nro}_${cellKey}"${_notaActualAttr}>${_fmt1(value)}</td>`
+                        : `<td class="cc-success-table__score is-empty" data-newkey="${row.nro}_${cellKey}" data-nota-actual="">-</td>`;
+                }
+                if (_modoAnterior) {
+                    return Number.isFinite(value)
+                        ? `<td class="cc-success-table__score cc-score--norm"${_notaActualAttr} style="color:var(--text-muted);">${_fmt1(value)}</td>`
+                        : `<td class="cc-success-table__score is-empty cc-score--norm" data-nota-actual="">-</td>`;
                 }
                 return Number.isFinite(value)
-                    ? `<td class="cc-success-table__score">${_fmt1(value)}</td>`
-                    : `<td class="cc-success-table__score is-empty">-</td>`;
+                    ? `<td class="cc-success-table__score cc-score--norm"${_notaActualAttr}>${_fmt1(value)}</td>`
+                    : `<td class="cc-success-table__score is-empty cc-score--norm" data-nota-actual="">-</td>`;
             }).join('');
 
             const dimProm = row.dimPromedios[dim.key];
@@ -1129,14 +1244,14 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                    //   Si _mostrandoOriginal=false (estás viendo la nota actual), el botón
                    //   ofrece volver a la nota original del mes.
                    return `
-               <button class="cc-success-tool" type="button" onclick="_toggleVistaHistorial()"
+               <button id="btnToggleHistorial" class="cc-success-tool" type="button" onclick="_toggleVistaHistorial()"
                    style="border-color:rgba(96,165,250,.4);color:#60a5fa;">
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                         stroke-linecap="round" stroke-linejoin="round">
                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                        <circle cx="12" cy="12" r="3"/>
                    </svg>
-                   ${textoBtn}
+                   <span id="btnToggleHistorialLabel">${textoBtn}</span>
                </button>`;
                })() : ''}
                <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
@@ -1201,6 +1316,7 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                         son las notas corregidas. Revisa los cambios antes de confirmar.
                     </p>
                     <button
+                        id="btnToggleModoAnterior"
                         onclick="_toggleModoAnterior()"
                         style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;
                                border:1px solid ${_modoAnterior ? 'rgba(251,191,36,.5)' : 'rgba(251,191,36,.3)'};
@@ -1212,11 +1328,11 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
                             <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
                             <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
                         </svg>
-                        ${_modoAnterior ? 'Ver Excel actual' : 'Ver datos anteriores'}
+                        <span id="btnToggleModoAnteriorLabel">${_modoAnterior ? 'Ver Excel actual' : 'Ver datos anteriores'}</span>
                     </button>
-                    ${_modoAnterior ? `<span style="display:inline-block;margin-left:10px;font-size:.76rem;color:#fde68a;">
+                    <span id="hintModoAnterior" style="display:${_modoAnterior ? 'inline-block' : 'none'};margin-left:10px;font-size:.76rem;color:#fde68a;">
                         Valores en <strong style="color:#fcd34d;">naranja</strong> = lo que había antes · <em>—</em> = nota nueva
-                    </span>` : ''}
+                    </span>
                 </div>
             </div>` : ''}
 

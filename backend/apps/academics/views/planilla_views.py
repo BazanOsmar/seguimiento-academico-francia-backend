@@ -377,7 +377,8 @@ class EstadoNotasView(APIView):
         if not hay_notas_mes(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion):
             return Response({'ya_subidas': False})
 
-        headers_por_trim = obtener_notas_mes(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion)
+        resultado = notas_historico(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion)
+        headers_por_trim = resultado.get('headers_por_trim', {})
         return Response({'ya_subidas': True, 'headers_por_trim': headers_por_trim})
 
 

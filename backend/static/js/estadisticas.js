@@ -124,10 +124,43 @@ function _actualizarKPIsKmeans(estudiantes) {
     document.getElementById('kpi-nota-prom').textContent       = estudiantes.length ? promedio : '—';
 }
 
+function _actualizarIndicadoresKmeans(estudiantes) {
+    const totalGruposEl = document.getElementById('kmeansTotalGrupos');
+    const cursoAlertaEl = document.getElementById('kmeansCursoAlerta');
+    const grupoPrincipalEl = document.getElementById('kmeansGrupoPrincipal');
+
+    if (!totalGruposEl || !cursoAlertaEl || !grupoPrincipalEl) return;
+
+    if (!estudiantes.length) {
+        totalGruposEl.textContent = '-';
+        cursoAlertaEl.textContent = '-';
+        grupoPrincipalEl.textContent = '-';
+        return;
+    }
+
+    const porGrupo = {};
+    const riesgoPorCurso = {};
+    estudiantes.forEach(e => {
+        porGrupo[e.cluster] = (porGrupo[e.cluster] || 0) + 1;
+        const clusterKey = String(e.cluster || '').toLowerCase();
+        if (clusterKey.includes('riesgo') || clusterKey.includes('requiere apoyo')) {
+            riesgoPorCurso[e.curso] = (riesgoPorCurso[e.curso] || 0) + 1;
+        }
+    });
+
+    const grupoPrincipal = Object.entries(porGrupo).sort((a, b) => b[1] - a[1])[0];
+    const cursoAlerta = Object.entries(riesgoPorCurso).sort((a, b) => b[1] - a[1])[0];
+
+    totalGruposEl.textContent = Object.keys(porGrupo).length;
+    cursoAlertaEl.textContent = cursoAlerta ? cursoAlerta[0] : 'Sin alerta';
+    grupoPrincipalEl.textContent = grupoPrincipal ? grupoPrincipal[0] : '-';
+}
+
 function _resetKPIsKmeans() {
     ['kpi-riesgo-critico', 'kpi-requiere-apoyo', 'kpi-nota-prom'].forEach(id => {
         document.getElementById(id).textContent = '—';
     });
+    _actualizarIndicadoresKmeans([]);
 }
 
 function _toggleKmeansContent(hayDatos) {
@@ -170,6 +203,7 @@ async function _cargarKMeans(mes, gestion) {
     estadoEl.textContent = `Último análisis: ${mesesNombres[mes]} ${gestion} · ${data.estudiantes.length} estudiantes · ${data.k} grupos · Generado: ${fechaStr}`;
 
     _actualizarKPIsKmeans(data.estudiantes);
+    _actualizarIndicadoresKmeans(data.estudiantes);
     _renderScatterKmeans(data.estudiantes);
     _renderClusterCards(data.estudiantes);
     _renderPerfilGrupo(data.estudiantes);
@@ -575,8 +609,8 @@ function _renderArbolMaterias(porMateria) {
     const sorted = [...porMateria].sort((a, b) => b.pct_reprobacion - a.pct_reprobacion);
     const labels  = sorted.map(m => m.materia);
     const valores = sorted.map(m => m.pct_reprobacion);
-    const colores = valores.map(v => v >= 50 ? '#ef4444cc' : v >= 25 ? '#f59e0bcc' : '#22c55ecc');
-    const bordes  = valores.map(v => v >= 50 ? '#ef4444' : v >= 25 ? '#f59e0b' : '#22c55e');
+    const colores = valores.map(v => v >= 50 ? '#ef4444cc' : v >= 25 ? '#f97316cc' : '#22c55ecc');
+    const bordes  = valores.map(v => v >= 50 ? '#ef4444' : v >= 25 ? '#f97316' : '#22c55e');
 
     const wrap = document.getElementById('arbolMatWrap');
     wrap.style.height = `${Math.max(300, sorted.length * 36)}px`;

@@ -26,6 +26,46 @@ def _parse_mes_gestion(request):
     return (mes, gestion) if 1 <= mes <= 12 else (None, None)
 
 
+def _meses_trimestre(trimestre):
+    if trimestre == 1:
+        return [1, 2, 3, 4]
+    if trimestre == 2:
+        return [5, 6, 7, 8]
+    if trimestre == 3:
+        return [9, 10, 11, 12]
+    return []
+
+
+def _parse_periodo(request):
+    try:
+        gestion = int(request.query_params.get('gestion', timezone.now().year))
+    except (ValueError, TypeError):
+        return None, None, None
+
+    trimestre_param = request.query_params.get('trimestre')
+    if trimestre_param not in (None, ''):
+        try:
+            trimestre = int(trimestre_param)
+        except (ValueError, TypeError):
+            return None, None, None
+        meses = _meses_trimestre(trimestre)
+        return (trimestre, gestion, meses) if meses else (None, None, None)
+
+    mes, gestion = _parse_mes_gestion(request)
+    if mes is None:
+        return None, None, None
+    trimestre = 1 if mes <= 4 else 2 if mes <= 8 else 3
+    return trimestre, gestion, [mes]
+
+
+def _periodo_payload(trimestre, gestion, meses):
+    return {
+        'trimestre': trimestre,
+        'gestion': gestion,
+        'meses': meses,
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Rendimiento académico general
 # ─────────────────────────────────────────────────────────────────────────────
@@ -39,15 +79,16 @@ class ReporteRendimientoView(APIView):
     permission_classes = [IsAuthenticated, IsDirector]
 
     def get(self, request):
-        mes, gestion = _parse_mes_gestion(request)
-        if mes is None:
+        trimestre, gestion, meses = _parse_periodo(request)
+        if trimestre is None:
             return Response({'errores': 'Parámetros inválidos.'}, status=400)
 
         db = _get_db()
+        match_periodo = {'gestion': gestion, 'trimestre': trimestre}
 
         # ── Promedio global + total estudiantes con notas ─────────────────────
         res_global = list(db['notas_mensuales'].aggregate([
-            {'$match': {'gestion': gestion, 'mes': mes}},
+            {'$match': match_periodo},
             {'$group': {'_id': '$estudiante_id', 'nota': {'$avg': '$nota_mensual'}}},
             {'$group': {'_id': None, 'promedio': {'$avg': '$nota'}, 'total': {'$sum': 1}}},
         ]))
@@ -56,7 +97,7 @@ class ReporteRendimientoView(APIView):
 
         if total_estudiantes == 0:
             return Response({
-                'mes': mes, 'gestion': gestion,
+                **_periodo_payload(trimestre, gestion, meses),
                 'promedio_colegio': 0, 'total_estudiantes': 0,
                 'top5': [], 'bottom5': [],
                 'materias_ranking': [], 'cursos_ranking': [], 'profesores_ranking': [],
@@ -65,7 +106,7 @@ class ReporteRendimientoView(APIView):
         # ── Ranking por estudiante ────────────────────────────────────────────
         est_docs = sorted(
             db['notas_mensuales'].aggregate([
-                {'$match': {'gestion': gestion, 'mes': mes}},
+                {'$match': match_periodo},
                 {'$group': {'_id': '$estudiante_id', 'nota': {'$avg': '$nota_mensual'}}},
             ]),
             key=lambda x: x['nota'], reverse=True,
@@ -92,7 +133,7 @@ class ReporteRendimientoView(APIView):
 
         # ── Ranking por materia (peores primero) ──────────────────────────────
         mat_docs = list(db['notas_mensuales'].aggregate([
-            {'$match': {'gestion': gestion, 'mes': mes}},
+            {'$match': match_periodo},
             {'$group': {'_id': '$materia_id', 'promedio': {'$avg': '$nota_mensual'}, 'total': {'$sum': 1}}},
             {'$sort': {'promedio': 1}},
         ]))
@@ -105,7 +146,7 @@ class ReporteRendimientoView(APIView):
 
         # ── Ranking por curso (peores primero) ────────────────────────────────
         cur_docs = list(db['notas_mensuales'].aggregate([
-            {'$match': {'gestion': gestion, 'mes': mes}},
+            {'$match': match_periodo},
             {'$group': {'_id': {'c': '$curso_id', 'e': '$estudiante_id'}, 'nota': {'$avg': '$nota_mensual'}}},
             {'$group': {'_id': '$_id.c', 'promedio': {'$avg': '$nota'}, 'total': {'$sum': 1}}},
             {'$sort': {'promedio': 1}},
@@ -122,7 +163,7 @@ class ReporteRendimientoView(APIView):
 
         # ── Ranking profesores (mejores primero) ──────────────────────────────
         prof_docs = list(db['notas_mensuales'].aggregate([
-            {'$match': {'gestion': gestion, 'mes': mes}},
+            {'$match': match_periodo},
             {'$group': {'_id': '$profesor_id', 'promedio': {'$avg': '$nota_mensual'}, 'total': {'$sum': 1}}},
             {'$sort': {'promedio': -1}},
         ]))
@@ -140,7 +181,7 @@ class ReporteRendimientoView(APIView):
         ]
 
         return Response({
-            'mes': mes, 'gestion': gestion,
+            **_periodo_payload(trimestre, gestion, meses),
             'promedio_colegio':   promedio_colegio,
             'total_estudiantes':  total_estudiantes,
             'top5':               top5,
@@ -164,8 +205,8 @@ class ReporteAsistenciaView(APIView):
     permission_classes = [IsAuthenticated, IsDirector]
 
     def get(self, request):
-        mes, gestion = _parse_mes_gestion(request)
-        if mes is None:
+        trimestre, gestion, meses = _parse_periodo(request)
+        if trimestre is None:
             return Response({'errores': 'Parámetros inválidos.'}, status=400)
 
         from backend.apps.attendance.models import Asistencia, AsistenciaSesion
@@ -174,7 +215,7 @@ class ReporteAsistenciaView(APIView):
         # ── Sesiones del mes ──────────────────────────────────────────────────
         sesiones = list(
             AsistenciaSesion.objects
-            .filter(fecha__year=gestion, fecha__month=mes)
+            .filter(fecha__year=gestion, fecha__month__in=meses)
             .values('curso_id', 'fecha')
         )
         total_sesiones     = len(sesiones)
@@ -190,7 +231,7 @@ class ReporteAsistenciaView(APIView):
         # ── Asistencias del mes ───────────────────────────────────────────────
         asistencias = list(
             Asistencia.objects
-            .filter(sesion__fecha__year=gestion, sesion__fecha__month=mes)
+            .filter(sesion__fecha__year=gestion, sesion__fecha__month__in=meses)
             .values('sesion__curso_id', 'estado')
             .annotate(total=Count('id'))
         )
@@ -223,7 +264,7 @@ class ReporteAsistenciaView(APIView):
         dias = [{'dia': dias_nombres[d], 'sesiones': c} for d, c in sorted(dia_counts.items())]
 
         return Response({
-            'mes': mes, 'gestion': gestion,
+            **_periodo_payload(trimestre, gestion, meses),
             'total_sesiones':    total_sesiones,
             'total_cursos':      total_cursos,
             'cursos_con_sesion': cursos_con_sesion,
@@ -252,8 +293,8 @@ class ReporteCitacionesView(APIView):
     permission_classes = [IsAuthenticated, IsDirector]
 
     def get(self, request):
-        mes, gestion = _parse_mes_gestion(request)
-        if mes is None:
+        trimestre, gestion, meses = _parse_periodo(request)
+        if trimestre is None:
             return Response({'errores': 'Parámetros inválidos.'}, status=400)
 
         from backend.apps.discipline.models import Citacion
@@ -264,7 +305,7 @@ class ReporteCitacionesView(APIView):
 
         all_cit = list(
             Citacion.objects
-            .filter(fecha_envio__year=gestion, fecha_envio__month=mes)
+            .filter(fecha_envio__year=gestion, fecha_envio__month__in=meses)
             .values('estudiante__curso_id', 'asistencia', 'fecha_limite_asistencia', 'motivo')
         )
 
@@ -295,7 +336,7 @@ class ReporteCitacionesView(APIView):
         pct_asistio = round(asistencia_counts['ASISTIO'] / total * 100, 1) if total else 0
 
         return Response({
-            'mes': mes, 'gestion': gestion,
+            **_periodo_payload(trimestre, gestion, meses),
             'total':         total,
             'vencidas':      vencidas,
             'pct_asistio':   pct_asistio,
@@ -325,8 +366,8 @@ class ReporteComunicadosView(APIView):
     permission_classes = [IsAuthenticated, IsDirector]
 
     def get(self, request):
-        mes, gestion = _parse_mes_gestion(request)
-        if mes is None:
+        trimestre, gestion, meses = _parse_periodo(request)
+        if trimestre is None:
             return Response({'errores': 'Parámetros inválidos.'}, status=400)
 
         from backend.apps.comunicados.models import Comunicado, ComunicadoEstudiante
@@ -337,7 +378,7 @@ class ReporteComunicadosView(APIView):
 
         comunicados = list(
             Comunicado.objects
-            .filter(fecha_creacion__year=gestion, fecha_creacion__month=mes, estado='ACTIVO')
+            .filter(fecha_creacion__year=gestion, fecha_creacion__month__in=meses, estado='ACTIVO')
             .values('id', 'fecha_expiracion')
         )
         total_comunicados = len(comunicados)
@@ -354,7 +395,7 @@ class ReporteComunicadosView(APIView):
 
         if not com_ids:
             return Response({
-                'mes': mes, 'gestion': gestion,
+                **_periodo_payload(trimestre, gestion, meses),
                 'total_comunicados': 0, 'total_entregas': 0,
                 'leidas': 0, 'no_leidas': 0, 'pct_lectura': 0,
                 'proximos_vencer': 0, 'tutores_nunca_leen': 0,
@@ -382,7 +423,7 @@ class ReporteComunicadosView(APIView):
         tutores_nunca_leen = sum(1 for t in tutor_stats.values() if t['leidas'] == 0 and t['total'] > 0)
 
         return Response({
-            'mes': mes, 'gestion': gestion,
+            **_periodo_payload(trimestre, gestion, meses),
             'total_comunicados':   total_comunicados,
             'total_entregas':      total_entregas,
             'leidas':              leidas,
@@ -406,8 +447,8 @@ class ReporteActividadProfesoresView(APIView):
     permission_classes = [IsAuthenticated, IsDirector]
 
     def get(self, request):
-        mes, gestion = _parse_mes_gestion(request)
-        if mes is None:
+        trimestre, gestion, meses = _parse_periodo(request)
+        if trimestre is None:
             return Response({'errores': 'Parámetros inválidos.'}, status=400)
 
         from backend.apps.academics.models import ProfesorCurso, ProfesorPlan
@@ -423,13 +464,13 @@ class ReporteActividadProfesoresView(APIView):
         # Notas en MongoDB
         db = _get_db()
         prof_con_notas = set(
-            db['notas_mensuales'].distinct('profesor_id', {'gestion': gestion, 'mes': mes})
+            db['notas_mensuales'].distinct('profesor_id', {'gestion': gestion, 'trimestre': trimestre})
         )
 
         # Planes completos (4+)
         pc_con_4_planes = set(
             ProfesorPlan.objects
-            .filter(mes=mes, eliminado=False)
+            .filter(mes__in=meses, eliminado=False)
             .values('profesor_curso_id')
             .annotate(total=Count('id'))
             .filter(total__gte=4)
@@ -440,7 +481,7 @@ class ReporteActividadProfesoresView(APIView):
         # Citaciones emitidas ese mes
         cit_por_prof = dict(
             Citacion.objects
-            .filter(fecha_envio__year=gestion, fecha_envio__month=mes)
+            .filter(fecha_envio__year=gestion, fecha_envio__month__in=meses)
             .exclude(asistencia='ANULADA')
             .values('emisor_id')
             .annotate(total=Count('id'))
@@ -469,7 +510,7 @@ class ReporteActividadProfesoresView(APIView):
 
         total = len(profesores)
         return Response({
-            'mes': mes, 'gestion': gestion,
+            **_periodo_payload(trimestre, gestion, meses),
             'total_profesores': total,
             'con_notas':        sum(1 for p in profesores if p['notas_cargadas']),
             'sin_notas':        sum(1 for p in profesores if not p['notas_cargadas']),

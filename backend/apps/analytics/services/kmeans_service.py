@@ -24,7 +24,7 @@ from backend.apps.academics.services.notas_mongo_service import _get_db
 # ─────────────────────────────────────────────────────────────────────────────
 
 K_DEFAULT = 4
-K_MIN, K_MAX = 2, 5
+K_MIN, K_MAX = 3, 5
 MIN_MATERIAS_CON_NOTAS = 5
 
 # Citaciones: más de este número = tasa = 1.0 (riesgo máximo)

@@ -21,10 +21,11 @@ Chart.defaults.borderColor = 'rgba(59,130,246,.12)';
 
 /* ── Referencias DOM ─────────────────────────────────────────── */
 const _rpt$ = id => document.getElementById(id);
-const selMes    = _rpt$('selMes');
-const selGest   = _rpt$('selGestion');
+const selTrim   = _rpt$('selTrimestre');
 const btnCargar = _rpt$('btnCargar');
 const rptLoad   = _rpt$('rptLoading');
+const rptEmpty  = _rpt$('rptEmptyState');
+const rptContent = _rpt$('rptContent');
 
 /* ── Instancias de gráficas (para destruir al recargar) ──────── */
 const _rptCharts = {};
@@ -60,6 +61,29 @@ function showError(msg) {
 function setLoading(on) {
     btnCargar.disabled = on;
     rptLoad.style.display = on ? 'flex' : 'none';
+}
+
+function trimestreActual() {
+    const mes = new Date().getMonth() + 1;
+    if (mes <= 4) return 1;
+    if (mes <= 8) return 2;
+    return 3;
+}
+
+function setEmptyState(show) {
+    if (rptEmpty) rptEmpty.style.display = show ? 'block' : 'none';
+    if (rptContent) rptContent.style.display = show ? 'none' : '';
+}
+
+function tieneDatosReporte(respuestas) {
+    const [rRend, rAsist, rCit, rCom, rProf] = respuestas;
+    return Boolean(
+        (rRend.ok && (rRend.data?.total_estudiantes || 0) > 0) ||
+        (rAsist.ok && (rAsist.data?.total_sesiones || 0) > 0) ||
+        (rCit.ok && (rCit.data?.total || 0) > 0) ||
+        (rCom.ok && ((rCom.data?.total_comunicados || rCom.data?.total || 0) > 0)) ||
+        (rProf.ok && ((rProf.data?.con_notas || 0) > 0 || (rProf.data?.con_planes || 0) > 0))
+    );
 }
 
 function buildDonut(key, canvas, labels, data, colors) {
@@ -121,20 +145,28 @@ function statList(containerId, items) {
 
 /* ── Carga de datos ──────────────────────────────────────────── */
 async function cargarTodo() {
-    const mes    = selMes.value;
-    const gestion = selGest.value;
+    const trimestre = selTrim.value;
+    const gestion = new Date().getFullYear();
     setLoading(true);
 
     const [rRend, rAsist, rCit, rCom, rProf, rTut] = await Promise.all([
-        fetchAPI(`/api/analytics/reportes/rendimiento/?mes=${mes}&gestion=${gestion}`),
-        fetchAPI(`/api/analytics/reportes/asistencia/?mes=${mes}&gestion=${gestion}`),
-        fetchAPI(`/api/analytics/reportes/citaciones/`),
-        fetchAPI(`/api/analytics/reportes/comunicados/`),
-        fetchAPI(`/api/analytics/reportes/profesores/?mes=${mes}&gestion=${gestion}`),
+        fetchAPI(`/api/analytics/reportes/rendimiento/?trimestre=${trimestre}&gestion=${gestion}`),
+        fetchAPI(`/api/analytics/reportes/asistencia/?trimestre=${trimestre}&gestion=${gestion}`),
+        fetchAPI(`/api/analytics/reportes/citaciones/?trimestre=${trimestre}&gestion=${gestion}`),
+        fetchAPI(`/api/analytics/reportes/comunicados/?trimestre=${trimestre}&gestion=${gestion}`),
+        fetchAPI(`/api/analytics/reportes/profesores/?trimestre=${trimestre}&gestion=${gestion}`),
         fetchAPI(`/api/analytics/reportes/tutores/`),
     ]);
 
     setLoading(false);
+
+    const respuestas = [rRend, rAsist, rCit, rCom, rProf, rTut];
+    if (!tieneDatosReporte(respuestas)) {
+        setEmptyState(true);
+        return false;
+    }
+
+    setEmptyState(false);
 
     if (rRend.ok)  renderAcademico(rRend.data);
     if (rAsist.ok) renderAsistencia(rAsist.data);
@@ -142,6 +174,7 @@ async function cargarTodo() {
     if (rCom.ok)   renderComunicados(rCom.data);
     if (rProf.ok)  renderProfesores(rProf.data);
     if (rTut.ok)   renderTutores(rTut.data);
+    return true;
 }
 
 /* ── Académico ───────────────────────────────────────────────── */
@@ -244,26 +277,26 @@ function renderCitaciones(d) {
     txt('cit-total',      num(d.total));
     txt('cit-pct-asistio', pct(d.pct_asistio));
     txt('cit-vencidas',   num(d.vencidas));
-    txt('cit-auto',       num(d.automaticas));
+    txt('cit-auto',       num(d.automaticas ?? d.auto));
 
     /* Donut estados */
-    const est = d.por_estado || {};
+    const est = d.por_estado || d.por_asistencia || {};
     buildDonut('chartCitDonut', _rpt$('chartCitDonut'),
         ['Asistió', 'No asistió', 'Atraso', 'Pendiente', 'Anulada'],
         [est.ASISTIO ?? 0, est.NO_ASISTIO ?? 0, est.ATRASO ?? 0, est.PENDIENTE ?? 0, est.ANULADA ?? 0],
         [GREEN, RED, YELLOW, BLUE, PURPLE]);
 
     /* Cursos */
-    const cursos = (d.cursos || []).slice(0, 8);
+    const cursos = (d.cursos || d.cursos_ranking || []).slice(0, 8);
     buildBar('chartCitCursos', _rpt$('chartCitCursos'),
-        cursos.map(c => c.curso),
+        cursos.map(c => c.curso || c.nombre),
         [{ label: 'Citaciones', data: cursos.map(c => c.total), backgroundColor: BLUE, borderRadius: 6 }],
         { horizontal: true });
 }
 
 /* ── Comunicados ─────────────────────────────────────────────── */
 function renderComunicados(d) {
-    txt('com-total',  num(d.total));
+    txt('com-total',  num(d.total ?? d.total_comunicados));
     txt('com-pct',    pct(d.pct_lectura));
     txt('com-nunca',  num(d.tutores_nunca_leen));
     txt('com-vencer', num(d.proximos_vencer));
@@ -271,15 +304,15 @@ function renderComunicados(d) {
     /* Donut lectura */
     buildDonut('chartComDonut', _rpt$('chartComDonut'),
         ['Leídos', 'No leídos'],
-        [d.total_leidos ?? 0, d.total_no_leidos ?? 0],
+        [d.total_leidos ?? d.leidas ?? 0, d.total_no_leidos ?? d.no_leidas ?? 0],
         [GREEN, RED]);
 
     /* Stat list */
     statList('comStatList', [
-        ['Total comunicados activos',   num(d.total),              ''],
-        ['Recepciones totales',         num(d.total_recepciones),  ''],
-        ['Leídas',                      num(d.total_leidos),       'rpt-stat-list__val--green'],
-        ['No leídas',                   num(d.total_no_leidos),    ''],
+        ['Total comunicados activos',   num(d.total ?? d.total_comunicados),              ''],
+        ['Recepciones totales',         num(d.total_recepciones ?? d.total_entregas),  ''],
+        ['Leídas',                      num(d.total_leidos ?? d.leidas),       'rpt-stat-list__val--green'],
+        ['No leídas',                   num(d.total_no_leidos ?? d.no_leidas),    ''],
         ['Por vencer (≤3 días)',        num(d.proximos_vencer),    ''],
         ['Tutores sin leer nunca',      num(d.tutores_nunca_leen), ''],
     ]);
@@ -290,11 +323,13 @@ function renderProfesores(d) {
     txt('prof-total',      num(d.total_profesores));
     txt('prof-con-notas',  num(d.con_notas));
     txt('prof-sin-notas',  num(d.sin_notas));
-    txt('prof-con-planes', num(d.con_planes_completos));
+    txt('prof-con-planes', num(d.con_planes_completos ?? d.con_planes));
 
     fillTable('tablaProfsDetalle', (d.profesores || []).map(p => {
-        const badgeNotas  = p.tiene_notas  ? `<span class="rpt-badge rpt-badge--green">Sí</span>`  : `<span class="rpt-badge rpt-badge--red">No</span>`;
-        const badgePlanes = p.planes_ok    ? `<span class="rpt-badge rpt-badge--green">Sí</span>`  : `<span class="rpt-badge rpt-badge--yellow">No</span>`;
+        const tieneNotas = p.tiene_notas ?? p.notas_cargadas;
+        const planesOk = p.planes_ok ?? p.planes_completos;
+        const badgeNotas  = tieneNotas  ? `<span class="rpt-badge rpt-badge--green">Sí</span>`  : `<span class="rpt-badge rpt-badge--red">No</span>`;
+        const badgePlanes = planesOk    ? `<span class="rpt-badge rpt-badge--green">Sí</span>`  : `<span class="rpt-badge rpt-badge--yellow">No</span>`;
         return `<tr>
             <td>${p.nombre}</td>
             <td>${num(p.asignaciones)}</td>
@@ -339,7 +374,14 @@ function renderTutores(d) {
 btnCargar.addEventListener('click', cargarTodo);
 
 window.rptInit = function () {
-    const m = new Date().getMonth() + 1;
-    if (selMes) selMes.value = String(m);
-    cargarTodo();
+    const inicio = trimestreActual();
+    const probar = async () => {
+        for (let t = inicio; t >= 1; t--) {
+            if (selTrim) selTrim.value = String(t);
+            const ok = await cargarTodo();
+            if (ok) return;
+        }
+        setEmptyState(true);
+    };
+    probar();
 };

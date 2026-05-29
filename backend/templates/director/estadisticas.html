@@ -216,8 +216,8 @@
                  3. K-MEANS PANEL
             ════════════════════════════════════════════════════ -->
             <div id="panelKmeans" class="tab-panel active">
-            <div class="section-block">
-                <div class="section-header director-estadisticas-inline-style-2">
+            <div class="section-block kmeans-workspace">
+                <div class="section-header director-estadisticas-inline-style-2 kmeans-panel-header">
                     <span class="section-title">Agrupamiento de Estudiantes</span>
                     <span class="section-badge badge-ml-kmeans">K-Means</span>
                     <span class="section-desc director-estadisticas-inline-style-3">Agrupamiento automático por asistencia, notas y disciplina</span>
@@ -243,7 +243,7 @@
                 </div>
 
                 <!-- Estado / último análisis -->
-                <p id="kmeansEstado" class="director-estadisticas-inline-style-7"></p>
+                <p id="kmeansEstado" class="director-estadisticas-inline-style-7 kmeans-status"></p>
 
                 <!-- Banner sin datos -->
                 <div id="kmeansEmptyState" class="analytics-empty-state" style="display:none">
@@ -257,22 +257,40 @@
                 </div>
 
                 <!-- Contenido K-Means (se oculta si no hay datos) -->
-                <div id="kmeansContent">
+                <div id="kmeansContent" class="kmeans-content">
 
-                <div class="two-col">
-                    <div class="chart-card" style="display:flex;flex-direction:column;">
+                <div class="kmeans-indicator-row">
+                    <div class="kmeans-indicator">
+                        <span class="kmeans-indicator__label">Grupos detectados</span>
+                        <strong id="kmeansTotalGrupos">&mdash;</strong>
+                        <small>segmentos activos</small>
+                    </div>
+                    <div class="kmeans-indicator">
+                        <span class="kmeans-indicator__label">Curso con mayor alerta</span>
+                        <strong id="kmeansCursoAlerta">&mdash;</strong>
+                        <small>por estudiantes en riesgo</small>
+                    </div>
+                    <div class="kmeans-indicator">
+                        <span class="kmeans-indicator__label">Grupo principal</span>
+                        <strong id="kmeansGrupoPrincipal">&mdash;</strong>
+                        <small>mayor cantidad</small>
+                    </div>
+                </div>
+
+                <div class="two-col kmeans-chart-grid">
+                    <div class="chart-card kmeans-chart-card kmeans-chart-card--scatter" style="display:flex;flex-direction:column;">
                         <div class="chart-card__title">Agrupamiento por Componentes Principales (PCA)</div>
                         <div class="chart-wrap chart-wrap--tall" style="flex:1;">
                             <canvas id="chartBurbuja"></canvas>
                         </div>
                     </div>
-                    <div class="cluster-cards-col" id="clusterCards">
+                    <div class="cluster-cards-col kmeans-cluster-list" id="clusterCards">
                         <div class="director-estadisticas-inline-style-8">Selecciona un mes y ejecuta el análisis.</div>
                     </div>
                 </div>
 
                 <!-- Perfil promedio por grupo -->
-                <div class="chart-card director-estadisticas-inline-style-9">
+                <div class="chart-card director-estadisticas-inline-style-9 kmeans-chart-card">
                     <div class="chart-card__title">Perfil Promedio por Grupo</div>
                     <div class="chart-wrap" style="height:260px">
                         <canvas id="chartPerfilGrupo"></canvas>
@@ -280,7 +298,7 @@
                 </div>
 
                 <!-- Distribución por curso -->
-                <div class="chart-card director-estadisticas-inline-style-9">
+                <div class="chart-card director-estadisticas-inline-style-9 kmeans-chart-card">
                     <div class="chart-card__title">Distribución de Grupos por Curso</div>
                     <div class="chart-wrap director-estadisticas-inline-style-10" id="distCursoWrap">
                         <canvas id="chartDistCurso"></canvas>
@@ -288,8 +306,8 @@
                 </div>
 
                 <!-- Tabla detalle de estudiantes -->
-                <div class="chart-card director-estadisticas-inline-style-9">
-                    <div class="director-estadisticas-inline-style-11">
+                <div class="chart-card director-estadisticas-inline-style-9 kmeans-table-card">
+                    <div class="director-estadisticas-inline-style-11 kmeans-table-head">
                         <span class="chart-card__title director-estadisticas-inline-style-12">Detalle por Estudiante</span>
                         <select id="filtroKmeansCurso" class="director-estadisticas-inline-style-13">
                             <option value="">Todos los cursos</option>
@@ -299,8 +317,8 @@
                         </select>
                         <span id="kmeansConteo" class="director-estadisticas-inline-style-14"></span>
                     </div>
-                    <div class="director-estadisticas-inline-style-15">
-                        <table class="data-table director-estadisticas-inline-style-16" id="tablaKmeans">
+                    <div class="director-estadisticas-inline-style-15 kmeans-table-scroll">
+                        <table class="data-table director-estadisticas-inline-style-16 kmeans-table" id="tablaKmeans">
                             <thead>
                                 <tr>
                                     <th>Estudiante</th>
@@ -335,8 +353,8 @@
                  4. ÁRBOLES DE DECISIÓN PANEL
             ════════════════════════════════════════════════════ -->
             <div id="panelArbol" class="tab-panel">
-            <div class="section-block">
-                <div class="section-header director-estadisticas-inline-style-2">
+            <div class="section-block arbol-workspace">
+                <div class="section-header director-estadisticas-inline-style-2 arbol-panel-header">
                     <span class="section-title">Riesgo de Reprobación por Materia</span>
                     <span class="section-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">Árbol de Decisión</span>
                     <span class="section-desc director-estadisticas-inline-style-3">Predicción individual por estudiante y materia</span>
@@ -358,7 +376,7 @@
                     </div>
                 </div>
 
-                <p id="arbolEstado" class="director-estadisticas-inline-style-7"></p>
+                <p id="arbolEstado" class="director-estadisticas-inline-style-7 arbol-status"></p>
 
                 <!-- Banner sin datos -->
                 <div id="arbolEmptyState" class="analytics-empty-state" style="display:none">
@@ -372,10 +390,10 @@
                 </div>
 
                 <!-- Contenido árbol (se oculta si no hay datos) -->
-                <div id="arbolContent">
+                <div id="arbolContent" class="arbol-content">
 
                 <!-- KPIs árbol -->
-                <div class="arbol-kpi-row">
+                <div class="arbol-kpi-row arbol-kpi-grid">
                     <div class="arbol-kpi arbol-kpi--alto">
                         <div class="arbol-kpi__val" id="arbol-kpi-est-alto">—</div>
                         <div class="arbol-kpi__lbl">Estudiantes en Riesgo</div>
@@ -395,14 +413,14 @@
                 </div>
 
                 <!-- Gráficas árbol -->
-                <div class="two-col" style="margin-top:16px">
-                    <div class="chart-card" style="display:flex;flex-direction:column;">
+                <div class="two-col arbol-chart-grid" style="margin-top:16px">
+                    <div class="chart-card arbol-chart-card arbol-chart-card--materias" style="display:flex;flex-direction:column;">
                         <div class="chart-card__title">Riesgo de Reprobación por Materia</div>
                         <div class="chart-wrap" style="flex:1;min-height:300px" id="arbolMatWrap">
                             <canvas id="chartArbolMaterias"></canvas>
                         </div>
                     </div>
-                    <div class="chart-card" style="display:flex;flex-direction:column;justify-content:center;">
+                    <div class="chart-card arbol-chart-card arbol-chart-card--donut" style="display:flex;flex-direction:column;justify-content:center;">
                         <div class="chart-card__title">Distribución de Predicciones</div>
                         <div class="chart-wrap" style="height:280px">
                             <canvas id="chartArbolDonut"></canvas>
@@ -411,8 +429,8 @@
                 </div>
 
                 <!-- Tabla detalle -->
-                <div class="chart-card">
-                    <div class="director-estadisticas-inline-style-11">
+                <div class="chart-card arbol-table-card">
+                    <div class="director-estadisticas-inline-style-11 arbol-table-head">
                         <span class="chart-card__title director-estadisticas-inline-style-12">Detalle por Estudiante y Materia</span>
                         <select id="filtroArbolCurso" class="director-estadisticas-inline-style-13">
                             <option value="">Todos los cursos</option>
@@ -428,8 +446,8 @@
                         </select>
                         <span id="arbolConteo" class="director-estadisticas-inline-style-14"></span>
                     </div>
-                    <div class="director-estadisticas-inline-style-15">
-                        <table class="data-table director-estadisticas-inline-style-16" id="tablaArbol" style="min-width:700px">
+                    <div class="director-estadisticas-inline-style-15 arbol-table-scroll">
+                        <table class="data-table director-estadisticas-inline-style-16 arbol-table" id="tablaArbol" style="min-width:700px">
                             <thead>
                                 <tr>
                                     <th>Estudiante</th>
@@ -463,21 +481,11 @@
                 <!-- Selectores de período -->
                 <div class="rpt-period-bar">
                     <div class="rpt-period-group">
-                        <label class="rpt-period-label">Mes</label>
-                        <select id="selMes" class="rpt-select">
-                            <option value="1">Enero</option><option value="2">Febrero</option>
-                            <option value="3">Marzo</option><option value="4">Abril</option>
-                            <option value="5">Mayo</option><option value="6">Junio</option>
-                            <option value="7">Julio</option><option value="8">Agosto</option>
-                            <option value="9">Septiembre</option><option value="10">Octubre</option>
-                            <option value="11">Noviembre</option><option value="12">Diciembre</option>
-                        </select>
-                    </div>
-                    <div class="rpt-period-group">
-                        <label class="rpt-period-label">Gestión</label>
-                        <select id="selGestion" class="rpt-select">
-                            <option value="2026">2026</option>
-                            <option value="2025">2025</option>
+                        <label class="rpt-period-label">Trimestre</label>
+                        <select id="selTrimestre" class="rpt-select">
+                            <option value="1">Trimestre 1</option>
+                            <option value="2">Trimestre 2</option>
+                            <option value="3">Trimestre 3</option>
                         </select>
                     </div>
                     <button id="btnCargar" class="rpt-btn-cargar">
@@ -490,7 +498,19 @@
                     </span>
                 </div>
 
+                <div id="rptEmptyState" class="analytics-empty-state" style="display:none">
+                    <div class="analytics-empty-state__icon">
+                        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 3v18h18"/>
+                            <path d="M7 16l4-4 3 3 5-7"/>
+                        </svg>
+                    </div>
+                    <div class="analytics-empty-state__title">Sin datos para mostrar</div>
+                    <div class="analytics-empty-state__desc">No existen registros institucionales para el trimestre seleccionado.</div>
+                </div>
+
                 <!-- Tab nav reportes -->
+                <div id="rptContent">
                 <div class="rpt-tab-nav">
                     <button class="rpt-tab active" data-tab="academico">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Académico
@@ -600,6 +620,7 @@
                     <div class="rpt-card"><div class="rpt-card__title">Resumen de acceso</div><ul class="rpt-stat-list" id="tutStatList"></ul></div>
                 </div>
 
+                </div>
             </div><!-- /#panelReportes -->
 
         </div><!-- /.page-inner -->
