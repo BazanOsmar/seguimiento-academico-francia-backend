@@ -383,7 +383,7 @@ function _renderTablaKmeans(lista) {
         const color = CLUSTER_COLORES[e.cluster] || '#94a3b8';
         const f = e.features;
         return `
-            <tr>
+            <tr data-est-id="${e.estudiante_id}" title="Ver detalle">
                 <td style="font-weight:500">${e.nombre}</td>
                 <td style="color:var(--text-muted)">${e.curso}</td>
                 <td>
@@ -403,6 +403,14 @@ function _renderTablaKmeans(lista) {
         `;
     }).join('');
 
+    tbody.querySelectorAll('tr[data-est-id]').forEach(tr => {
+        tr.addEventListener('click', () => {
+            const id  = parseInt(tr.dataset.estId);
+            const est = _kmeansData?.estudiantes.find(e => e.estudiante_id === id);
+            if (est) _mostrarModalKmeans(est);
+        });
+    });
+
     document.getElementById('kmeansConteo').textContent = `${lista.length} estudiantes`;
 
     if (lista.length > _KMEANS_PAGE) {
@@ -414,6 +422,253 @@ function _renderTablaKmeans(lista) {
         pagRow.style.display = 'none';
     }
 }
+
+// ── Modal detalle K-Means ────────────────────────────────────
+const _MESES_MODAL = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function _featureBarColor(label, pct) {
+    if (label === 'Atrasos' || label === 'Citaciones') {
+        if (pct >= 60) return '#ef4444';
+        if (pct >= 30) return '#f97316';
+        return '#22c55e';
+    }
+    if (pct >= 70) return '#22c55e';
+    if (pct >= 40) return '#f59e0b';
+    return '#ef4444';
+}
+
+function _tendenciaFila(val) {
+    let icon, texto, color;
+    if (val > 0.1)       { icon = '↑'; texto = 'Subió';   color = '#22c55e'; }
+    else if (val < -0.1) { icon = '↓'; texto = 'Bajó';    color = '#ef4444'; }
+    else                 { icon = '→'; texto = 'Estable';  color = '#64748b'; }
+    return `
+        <div class="km-feat-row">
+            <div class="km-feat-lbl">Tendencia</div>
+            <div class="km-feat-bar-wrap km-feat-bar-wrap--tend">
+                <span style="color:${color};font-size:1.1rem;font-weight:700">${icon}</span>
+                <span style="color:${color};font-size:0.8rem;margin-left:6px">${texto}</span>
+            </div>
+            <div class="km-feat-val" style="color:${color}">${val}</div>
+        </div>`;
+}
+
+function _mostrarModalKmeans(est) {
+    const color = CLUSTER_COLORES[est.cluster] || '#94a3b8';
+    const f     = est.features;
+
+    document.getElementById('kmModalNombre').textContent = est.nombre;
+    document.getElementById('kmModalCurso').textContent  = est.curso;
+    document.getElementById('kmModalNota').textContent   = est.nota_mensual;
+
+    const badge = document.getElementById('kmModalCluster');
+    badge.textContent = est.cluster;
+    badge.style.cssText = `background:${color}22;color:${color};border-color:${color}44`;
+
+    const mes = _kmeansData?.mes;
+    document.getElementById('kmModalFooter').textContent =
+        mes ? `Análisis K-Means · ${_MESES_MODAL[mes]} ${_kmeansData.gestion}` : 'Análisis K-Means';
+
+    const defs = [
+        {
+            label:  'SER',
+            barPct: f.ser_pct,
+            display: `${+(f.ser_pct / 10).toFixed(2)} / 10`,
+            nota:   'Promedio SER del mes (máx. 10 pts)',
+        },
+        {
+            label:  'SABER',
+            barPct: f.saber_pct,
+            display: `${+(f.saber_pct * 0.45).toFixed(2)} / 45`,
+            nota:   'Promedio SABER del mes (máx. 45 pts)',
+        },
+        {
+            label:  'HACER',
+            barPct: f.hacer_pct,
+            display: `${+(f.hacer_pct * 0.40).toFixed(2)} / 40`,
+            nota:   'Promedio HACER del mes (máx. 40 pts)',
+        },
+        {
+            label:  'Entrega tareas',
+            barPct: f.tasa_entrega_tareas,
+            display: `${f.tasa_entrega_tareas}%`,
+            nota:   '% de tareas entregadas en el mes',
+        },
+        {
+            label:  'Exámenes',
+            barPct: f.promedio_examenes,
+            display: `${+(f.promedio_examenes * 0.45).toFixed(2)} / 45`,
+            nota:   'Promedio de exámenes del mes (máx. 45 pts)',
+        },
+        {
+            label:  'Asistencia',
+            barPct: f.pct_asistencia,
+            display: `${f.pct_asistencia}%`,
+            nota:   '% de sesiones presentes en el mes (incluye atrasos y licencias)',
+        },
+        {
+            label:  'Atrasos',
+            barPct: f.pct_atrasos,
+            display: `${f.pct_atrasos}%`,
+            nota:   '% de sesiones con atraso',
+        },
+        {
+            label:  'Citaciones',
+            barPct: f.tasa_citaciones,
+            display: `${+(f.tasa_citaciones / 100 * 5).toFixed(1)} / 5`,
+            nota:   'Citaciones del mes (tope 5)',
+        },
+    ];
+
+    const filasFeatures = defs.map(d => {
+        const pct      = Math.min(Math.max(d.barPct, 0), 100);
+        const barColor = _featureBarColor(d.label, pct);
+        return `
+            <div class="km-feat-row">
+                <div class="km-feat-lbl" title="${d.nota}">${d.label}</div>
+                <div class="km-feat-bar-wrap"><div class="km-feat-bar" style="width:${pct}%;background:${barColor}"></div></div>
+                <div class="km-feat-val">${d.display}</div>
+            </div>`;
+    }).join('');
+
+    document.getElementById('kmModalFeatures').innerHTML = filasFeatures;
+
+    const overlay = document.getElementById('modalKmeansOverlay');
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function _cerrarModalKmeans() {
+    document.getElementById('modalKmeansOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// ── Modal detalle Árbol de Decisión ─────────────────────────
+const _RIESGO_COLORES_MODAL = { Alto: '#ef4444', Medio: '#f97316', Bajo: '#22c55e' };
+
+function _arbolFeatRow(label, val, barPct, nota) {
+    const pct      = Math.min(Math.max(barPct * 100, 0), 100);
+    const barColor = _featureBarColor(label, pct);
+    return `
+        <div class="km-feat-row">
+            <div class="km-feat-lbl" title="${nota}">${label}</div>
+            <div class="km-feat-bar-wrap"><div class="km-feat-bar" style="width:${pct}%;background:${barColor}"></div></div>
+            <div class="km-feat-val">${val}</div>
+        </div>`;
+}
+
+function _arbolTrimestreHTML(f, prefijo, label) {
+    const p = n => (f[`${prefijo}${n}`] ?? null);
+    const hacer   = p('hacer_pct');
+    const saber   = p('saber_pct');
+    const ser     = p('ser_pct');
+    const tareas  = p('tareas_realizadas_pct');
+    const faltas  = p('faltas');
+    const autoeval = p('autoeval_ser_pct');
+    const brecha  = p('brecha_autoeval_ser');
+
+    const filas = [];
+    if (hacer   !== null) filas.push(_arbolFeatRow('HACER',         `${+(hacer  * 40).toFixed(2)} / 40`, hacer,   'Promedio HACER del trimestre (máx. 40 pts)'));
+    if (saber   !== null) filas.push(_arbolFeatRow('SABER',         `${+(saber  * 45).toFixed(2)} / 45`, saber,   'Promedio SABER del trimestre (máx. 45 pts)'));
+    if (ser     !== null) filas.push(_arbolFeatRow('SER',           `${+(ser    * 10).toFixed(2)} / 10`, ser,     'Promedio SER del trimestre (máx. 10 pts)'));
+    if (autoeval !== null) filas.push(_arbolFeatRow('Autoeval SER', `${+(autoeval* 5).toFixed(2)} / 5`,  autoeval,'Autoevaluación SER del trimestre (máx. 5 pts)'));
+    if (brecha  !== null) {
+        const signo = brecha >= 0 ? '+' : '';
+        filas.push(`
+            <div class="km-feat-row">
+                <div class="km-feat-lbl" title="Diferencia entre SER y autoevaluación (positivo = sobreestimación)">Brecha SER</div>
+                <div class="km-feat-bar-wrap km-feat-bar-wrap--tend">
+                    <span style="color:${brecha > 0.05 ? '#f97316' : brecha < -0.05 ? '#22c55e' : '#64748b'};font-size:0.8rem">
+                        ${brecha > 0.05 ? 'Sobreestima' : brecha < -0.05 ? 'Subestima' : 'Acertado'}
+                    </span>
+                </div>
+                <div class="km-feat-val" style="color:${Math.abs(brecha) > 0.1 ? '#f97316' : '#94a3b8'}">${signo}${brecha.toFixed(3)}</div>
+            </div>`);
+    }
+    if (tareas  !== null) filas.push(_arbolFeatRow('Tareas',        `${+(tareas * 100).toFixed(1)}%`,    tareas,  '% de tareas entregadas en el trimestre'));
+    if (faltas  !== null) filas.push(`
+        <div class="km-feat-row">
+            <div class="km-feat-lbl" title="Total de faltas en el trimestre">Faltas</div>
+            <div class="km-feat-bar-wrap km-feat-bar-wrap--tend">
+                <span style="color:${faltas >= 6 ? '#ef4444' : faltas >= 3 ? '#f97316' : '#22c55e'};font-size:0.85rem;font-weight:700">${faltas}</span>
+            </div>
+            <div class="km-feat-val" style="color:${faltas >= 6 ? '#ef4444' : faltas >= 3 ? '#f97316' : '#94a3b8'}">${faltas} falta${faltas !== 1 ? 's' : ''}</div>
+        </div>`);
+
+    if (!filas.length) return '';
+    return `<div class="arbol-modal-trimestre">${label}</div><div class="km-modal-features">${filas.join('')}</div>`;
+}
+
+async function _mostrarModalArbol(estId, matId, gestion, mes) {
+    const overlay  = document.getElementById('modalArbolOverlay');
+    const loading  = document.getElementById('arbolModalLoading');
+    const body     = document.getElementById('arbolModalBody');
+
+    loading.style.display = 'flex';
+    body.style.display    = 'none';
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    const { ok, data } = await fetchAPI(
+        `/api/analytics/arbol/detalle/?estudiante_id=${estId}&materia_id=${matId}&gestion=${gestion}&mes=${mes}`
+    );
+
+    loading.style.display = 'none';
+
+    if (!ok) {
+        body.style.display = 'block';
+        body.innerHTML = `<div style="text-align:center;color:#ef4444;padding:32px">${data?.errores || 'Error al cargar el detalle.'}</div>
+            <button class="km-modal-close" onclick="document.getElementById('modalArbolOverlay').style.display='none';document.body.style.overflow=''">✕</button>`;
+        return;
+    }
+
+    const color = _RIESGO_COLORES_MODAL[data.riesgo] || '#94a3b8';
+
+    document.getElementById('arbolModalNombre').textContent  = data.nombre;
+    document.getElementById('arbolModalCurso').textContent   = data.curso;
+    document.getElementById('arbolModalMateria').textContent = data.materia;
+    document.getElementById('arbolModalProb').textContent    = data.probabilidad_reprobar;
+
+    const riesgoBadge = document.getElementById('arbolModalRiesgo');
+    riesgoBadge.textContent = data.riesgo;
+    riesgoBadge.style.cssText = `background:${color}22;color:${color};border:1px solid ${color}44;display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700`;
+
+    const predEl = document.getElementById('arbolModalPrediccion');
+    predEl.textContent = data.prediccion === 1 ? 'REPROBARÁ' : 'APROBARÁ';
+    predEl.style.color = data.prediccion === 1 ? '#ef4444' : '#22c55e';
+
+    const mesesNombres = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                          'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('arbolModalFooter').textContent =
+        `Árbol de Decisión · Modelo ${data.modelo === 1 ? 'T1' : 'T1+T2'} · ${mesesNombres[mes]} ${gestion}`;
+
+    const f = data.features || {};
+    let featHTML = _arbolTrimestreHTML(f, 't1_', 'Trimestre 1');
+    if (data.modelo === 2) featHTML += _arbolTrimestreHTML(f, 't2_', 'Trimestre 2');
+    document.getElementById('arbolModalFeatures').innerHTML = featHTML;
+
+    body.style.display = 'block';
+}
+
+function _cerrarModalArbol() {
+    document.getElementById('modalArbolOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('kmModalClose').addEventListener('click', _cerrarModalKmeans);
+    document.getElementById('modalKmeansOverlay').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalKmeans();
+    });
+    document.getElementById('arbolModalClose').addEventListener('click', _cerrarModalArbol);
+    document.getElementById('modalArbolOverlay').addEventListener('click', e => {
+        if (e.target === e.currentTarget) _cerrarModalArbol();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { _cerrarModalKmeans(); _cerrarModalArbol(); }
+    });
+});
 
 const _ORDEN_CLUSTERS = [
     'Excelente', 'Rendimiento Adecuado', 'Satisfactorio', 'Muy Bien',
@@ -782,11 +1037,11 @@ function _renderTablaArbol(resultados, total, pages) {
     }
 
     tbody.innerHTML = resultados.map(r => {
-        const badgeClass = `risk-badge risk-badge--${r.riesgo}`;
-        const probColor  = r.riesgo === 'Alto' ? '#ef4444' : r.riesgo === 'Medio' ? '#f59e0b' : '#22c55e';
+        const badgeClass  = `risk-badge risk-badge--${r.riesgo}`;
+        const probColor   = r.riesgo === 'Alto' ? '#ef4444' : r.riesgo === 'Medio' ? '#f59e0b' : '#22c55e';
         const modeloLabel = r.modelo === 1 ? 'T1' : 'T1+T2';
         return `
-            <tr>
+            <tr data-est-id="${r.estudiante_id}" data-mat-id="${r.materia_id}" title="Ver detalle">
                 <td style="font-weight:500">${r.nombre}</td>
                 <td style="color:var(--text-muted)">${r.curso}</td>
                 <td>${r.materia}</td>
@@ -796,6 +1051,19 @@ function _renderTablaArbol(resultados, total, pages) {
             </tr>
         `;
     }).join('');
+
+    tbody.querySelectorAll('tr[data-est-id]').forEach(tr => {
+        tr.addEventListener('click', () => {
+            const mes     = parseInt(document.getElementById('arbolMes').value);
+            const gestion = new Date().getFullYear();
+            _mostrarModalArbol(
+                parseInt(tr.dataset.estId),
+                parseInt(tr.dataset.matId),
+                gestion,
+                mes,
+            );
+        });
+    });
 
     document.getElementById('arbolConteo').textContent = `${total} resultado${total !== 1 ? 's' : ''}`;
 
@@ -848,10 +1116,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mesActual = new Date().getMonth() + 1;
     const gestion   = new Date().getFullYear();
 
+    // Mostrar spinner y ocultar contenido mientras se busca el último mes
+    const kInitLoad = document.getElementById('kmeansInitLoad');
+    const aInitLoad = document.getElementById('arbolInitLoad');
+    kInitLoad.style.display = 'flex';
+    aInitLoad.style.display = 'flex';
+    document.getElementById('kmeansContent').style.display    = 'none';
+    document.getElementById('kmeansEmptyState').style.display = 'none';
+    document.getElementById('arbolContent').style.display     = 'none';
+    document.getElementById('arbolEmptyState').style.display  = 'none';
+
+    // Consultar último mes con datos para cada modelo (en paralelo)
+    const [resK, resA] = await Promise.all([
+        fetchAPI(`/api/analytics/kmeans/ultimo-mes/?gestion=${gestion}`),
+        fetchAPI(`/api/analytics/arbol/ultimo-mes/?gestion=${gestion}`),
+    ]);
+
+    const mesKmeans = (resK.ok && resK.data.mes) ? resK.data.mes : mesActual;
+    const mesArbol  = (resA.ok && resA.data.mes) ? resA.data.mes : mesActual;
+
+    // Ocultar spinners — los _cargar* manejan su propio estado a partir de aquí
+    kInitLoad.style.display = 'none';
+    aInitLoad.style.display = 'none';
+
     // K-Means
     const selMesKmeans = document.getElementById('kmeansMes');
-    selMesKmeans.value = mesActual;
-    _cargarKMeans(mesActual, gestion);
+    selMesKmeans.value = mesKmeans;
+    _cargarKMeans(mesKmeans, gestion);
     selMesKmeans.addEventListener('change', () =>
         _cargarKMeans(parseInt(selMesKmeans.value), gestion)
     );
@@ -859,8 +1150,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Árboles
     const selMesArbol = document.getElementById('arbolMes');
-    selMesArbol.value = mesActual;
+    selMesArbol.value = mesArbol;
     _inicializarFiltrosArbol();
-    _cargarEstadisticasArbol(mesActual, gestion);
-    _cargarArbol(mesActual, gestion, 1);
+    _cargarEstadisticasArbol(mesArbol, gestion);
+    _cargarArbol(mesArbol, gestion, 1);
 });

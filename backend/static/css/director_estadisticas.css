@@ -800,3 +800,288 @@
         width: 100%;
     }
 }
+
+/* ── Modal detalle K-Means ──────────────────────────────────── */
+.km-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .65);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.km-modal {
+    background: #0f1a2e;
+    border: 1px solid #1a2540;
+    border-radius: 20px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+    animation: km-slide-in .18s ease;
+}
+
+@keyframes km-slide-in {
+    from { opacity: 0; transform: translateY(12px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+}
+
+.km-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.km-modal-nombre {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+
+.km-modal-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.km-modal-curso {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.km-modal-cluster-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.km-modal-close {
+    background: #0d1729;
+    border: 1px solid #1a2540;
+    border-radius: 8px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.9rem;
+    height: 30px;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color .12s, background .12s;
+}
+
+.km-modal-close:hover {
+    background: #1a2540;
+    color: #f1f5f9;
+}
+
+.km-modal-nota {
+    background: #070e1a;
+    border: 1px solid #1a2540;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.km-modal-nota__lbl {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    flex: 1;
+}
+
+.km-modal-nota__val {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: -.02em;
+    line-height: 1;
+}
+
+.km-modal-nota__max {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.km-modal-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 12px;
+}
+
+.km-modal-features {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.km-feat-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 72px;
+    align-items: center;
+    gap: 10px;
+}
+
+.km-feat-lbl {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.km-feat-bar-wrap {
+    background: #070e1a;
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+}
+
+.km-feat-bar-wrap--tend {
+    background: none;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    height: auto;
+}
+
+.km-feat-bar {
+    height: 100%;
+    border-radius: 4px;
+    min-width: 2px;
+    transition: width .3s ease;
+}
+
+.km-feat-val {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.km-modal-footer {
+    font-size: 0.72rem;
+    color: #475569;
+    text-align: center;
+    padding-top: 12px;
+    border-top: 1px solid #1a2540;
+}
+
+.kmeans-table tbody tr,
+.arbol-table tbody tr {
+    cursor: pointer;
+}
+
+/* ── Modal árbol de decisión ──────────────────────────────── */
+.arbol-modal-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 52px 0;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.arbol-modal-materia {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: .02em;
+}
+
+.arbol-modal-prediccion {
+    background: #070e1a;
+    border: 1px solid #1a2540;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.arbol-modal-prediccion__prob {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.arbol-modal-pred-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: right;
+    margin-top: 4px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.arbol-modal-trimestre {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 16px 0 8px;
+}
+
+.arbol-modal-trimestre:first-child {
+    margin-top: 0;
+}
+
+/* ── Estado de carga inicial ─────────────────────────────────── */
+.analytics-init-loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 52px 0;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.analytics-init-loading__spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, .08);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: _km-spin .7s linear infinite;
+}
+
+@keyframes _km-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+    .km-feat-row {
+        grid-template-columns: 90px 1fr 64px;
+    }
+}

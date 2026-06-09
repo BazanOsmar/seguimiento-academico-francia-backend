@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     EjecutarKMeansView, ResultadosKMeansView,
-    ResultadosArbolView, EstadisticasArbolView,
+    UltimoMesKMeansView, UltimoMesArbolView,
+    ResultadosArbolView, EstadisticasArbolView, DetalleArbolView,
     KMeansTutorView, ArbolTutorView,
 )
 from .reportes_views import (
@@ -12,9 +13,12 @@ from .reportes_views import (
 urlpatterns = [
     path('kmeans/ejecutar/',      EjecutarKMeansView.as_view()),
     path('kmeans/resultados/',    ResultadosKMeansView.as_view()),
+    path('kmeans/ultimo-mes/',    UltimoMesKMeansView.as_view()),
     path('kmeans/tutor/',         KMeansTutorView.as_view()),
     path('arbol/resultados/',     ResultadosArbolView.as_view()),
     path('arbol/estadisticas/',   EstadisticasArbolView.as_view()),
+    path('arbol/detalle/',        DetalleArbolView.as_view()),
+    path('arbol/ultimo-mes/',     UltimoMesArbolView.as_view()),
     path('arbol/tutor/',          ArbolTutorView.as_view()),
 
     # Reportes institucionales

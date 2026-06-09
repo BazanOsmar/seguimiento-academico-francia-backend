@@ -245,6 +245,12 @@
                 <!-- Estado / último análisis -->
                 <p id="kmeansEstado" class="director-estadisticas-inline-style-7 kmeans-status"></p>
 
+                <!-- Carga inicial -->
+                <div id="kmeansInitLoad" class="analytics-init-loading">
+                    <div class="analytics-init-loading__spinner"></div>
+                    <span>Buscando último análisis disponible…</span>
+                </div>
+
                 <!-- Banner sin datos -->
                 <div id="kmeansEmptyState" class="analytics-empty-state" style="display:none">
                     <div class="analytics-empty-state__icon">
@@ -377,6 +383,12 @@
                 </div>
 
                 <p id="arbolEstado" class="director-estadisticas-inline-style-7 arbol-status"></p>
+
+                <!-- Carga inicial -->
+                <div id="arbolInitLoad" class="analytics-init-loading">
+                    <div class="analytics-init-loading__spinner"></div>
+                    <span>Buscando último análisis disponible…</span>
+                </div>
 
                 <!-- Banner sin datos -->
                 <div id="arbolEmptyState" class="analytics-empty-state" style="display:none">
@@ -625,6 +637,67 @@
 
         </div><!-- /.page-inner -->
     </main>
+
+<!-- Modal detalle Árbol de Decisión -->
+<div id="modalArbolOverlay" class="km-modal-overlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="km-modal">
+        <!-- Estado carga -->
+        <div id="arbolModalLoading" class="arbol-modal-loading">
+            <div class="analytics-init-loading__spinner"></div>
+            <span>Cargando detalle…</span>
+        </div>
+        <!-- Contenido -->
+        <div id="arbolModalBody" style="display:none">
+            <div class="km-modal-header">
+                <div>
+                    <div class="km-modal-nombre" id="arbolModalNombre"></div>
+                    <div class="km-modal-meta">
+                        <span id="arbolModalCurso" class="km-modal-curso"></span>
+                        <span id="arbolModalMateria" class="arbol-modal-materia"></span>
+                    </div>
+                </div>
+                <button class="km-modal-close" id="arbolModalClose" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="arbol-modal-prediccion">
+                <div class="arbol-modal-prediccion__prob">
+                    <span class="km-modal-nota__lbl">Prob. de reprobar</span>
+                    <span class="km-modal-nota__val" id="arbolModalProb"></span>
+                    <span class="km-modal-nota__max">%</span>
+                </div>
+                <div>
+                    <div id="arbolModalRiesgo" class="km-modal-cluster-badge" style="font-size:0.85rem;padding:4px 14px"></div>
+                    <div id="arbolModalPrediccion" class="arbol-modal-pred-label"></div>
+                </div>
+            </div>
+            <div id="arbolModalFeatures"></div>
+            <div class="km-modal-footer" id="arbolModalFooter"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal detalle K-Means -->
+<div id="modalKmeansOverlay" class="km-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="kmModalNombre">
+    <div class="km-modal">
+        <div class="km-modal-header">
+            <div>
+                <div class="km-modal-nombre" id="kmModalNombre"></div>
+                <div class="km-modal-meta">
+                    <span id="kmModalCurso" class="km-modal-curso"></span>
+                    <span id="kmModalCluster" class="km-modal-cluster-badge"></span>
+                </div>
+            </div>
+            <button class="km-modal-close" id="kmModalClose" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="km-modal-nota">
+            <span class="km-modal-nota__lbl">Nota mensual</span>
+            <span class="km-modal-nota__val" id="kmModalNota"></span>
+            <span class="km-modal-nota__max">/ 95</span>
+        </div>
+        <div class="km-modal-section-title">Datos utilizados por K-Means</div>
+        <div class="km-modal-features" id="kmModalFeatures"></div>
+        <div class="km-modal-footer" id="kmModalFooter"></div>
+    </div>
+</div>
 
 <script src="{% static 'js/estadisticas.js' %}"></script>
 <script src="{% static 'js/director_reportes_inline.js' %}"></script>

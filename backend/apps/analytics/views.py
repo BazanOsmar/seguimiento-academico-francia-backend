@@ -10,6 +10,91 @@ from backend.apps.students.models import Estudiante
 from backend.apps.academics.models import Materia, Curso as CursoModel
 
 
+class UltimoMesKMeansView(APIView):
+    """GET /api/analytics/kmeans/ultimo-mes/?gestion=2026 — mes más reciente con predicciones K-Means."""
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        try:
+            gestion = int(request.query_params.get('gestion', timezone.now().year))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc = _get_db()['predicciones'].find_one(
+            {'gestion': gestion},
+            sort=[('mes', -1)],
+            projection={'mes': 1, '_id': 0},
+        )
+        return Response({'gestion': gestion, 'mes': doc['mes'] if doc else None})
+
+
+class DetalleArbolView(APIView):
+    """
+    GET /api/analytics/arbol/detalle/
+        ?estudiante_id=X&materia_id=Y&gestion=Z&mes=W
+
+    Devuelve la predicción completa (incluye features usadas por el modelo)
+    para un par (estudiante, materia) en el mes indicado.
+    """
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        try:
+            est_id  = int(request.query_params['estudiante_id'])
+            mat_id  = int(request.query_params['materia_id'])
+            gestion = int(request.query_params.get('gestion', timezone.now().year))
+            mes     = int(request.query_params.get('mes',     timezone.now().month))
+        except (KeyError, ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc = _get_db()['predicciones_arbol'].find_one(
+            {'estudiante_id': est_id, 'materia_id': mat_id, 'gestion': gestion, 'mes': mes},
+            {'_id': 0},
+        )
+        if not doc:
+            return Response({'errores': 'Predicción no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        est = Estudiante.objects.filter(id=est_id).select_related('curso').first()
+        materia_nombre = Materia.objects.filter(id=mat_id).values_list('nombre', flat=True).first() or '—'
+
+        nombre = (
+            f"{est.apellido_paterno} {est.apellido_materno}, {est.nombre}".strip()
+            if est else f'Estudiante {est_id}'
+        )
+        curso = f"{est.curso.grado} \"{est.curso.paralelo}\"" if est else '—'
+
+        return Response({
+            'estudiante_id':         est_id,
+            'nombre':                nombre,
+            'curso':                 curso,
+            'materia':               materia_nombre,
+            'riesgo':                doc.get('riesgo', ''),
+            'probabilidad_reprobar': round(doc.get('probabilidad_reprobar', 0), 1),
+            'prediccion':            doc.get('prediccion', 0),
+            'modelo':                doc.get('modelo', 1),
+            'features':              doc.get('features', {}),
+            'fecha_analisis':        doc['fecha_analisis'].isoformat() if doc.get('fecha_analisis') else None,
+        })
+
+
+class UltimoMesArbolView(APIView):
+    """GET /api/analytics/arbol/ultimo-mes/?gestion=2026 — mes más reciente con predicciones del árbol."""
+    permission_classes = [IsAuthenticated, IsDirector]
+
+    def get(self, request):
+        try:
+            gestion = int(request.query_params.get('gestion', timezone.now().year))
+        except (ValueError, TypeError):
+            return Response({'errores': 'Parámetros inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc = _get_db()['predicciones_arbol'].find_one(
+            {'gestion': gestion},
+            sort=[('mes', -1)],
+            projection={'mes': 1, '_id': 0},
+        )
+        return Response({'gestion': gestion, 'mes': doc['mes'] if doc else None})
+
+
 class EjecutarKMeansView(APIView):
     """
     POST /api/analytics/kmeans/ejecutar/
