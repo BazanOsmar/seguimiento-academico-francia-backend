@@ -153,8 +153,12 @@ class ValidarPlanillaView(APIView):
                     'Recarga la página e intenta de nuevo.'
                 )
 
-            gestion = timezone.now().year
-            diferencias = comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=gestion)
+            gestion     = timezone.now().year
+            mapa_nro_pk = val_est.get('mapa_nro_id', {})
+            diferencias = comparar_notas_con_mongo(
+                profesor_curso, headers_por_trim,
+                gestion=gestion, mapa_nro_pk=mapa_nro_pk,
+            )
 
             token = str(uuid.uuid4())
             cache.set(_DRAFT_PREFIX + token, {
@@ -162,6 +166,7 @@ class ValidarPlanillaView(APIView):
                 'headers_por_trim':  headers_por_trim,
                 'gestion':           gestion,
                 'mes':               mes_num,
+                'mapa_nro_pk':       mapa_nro_pk,
             }, timeout=_DRAFT_TTL)
 
             return Response({
@@ -249,10 +254,14 @@ class ConfirmarPlanillaView(APIView):
             'mensuales_procesados': 0,
         }
 
+        mapa_nro_pk = draft.get('mapa_nro_pk')
+
         for hoja, dims in draft['headers_por_trim'].items():
             t  = _TRIM_MAP.get(hoja, 1)
-            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
-            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
+            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes,
+                               mapa_nro_pk=mapa_nro_pk)
+            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes,
+                                          mapa_nro_pk=mapa_nro_pk)
             resultado['insertados']            += r['insertados']
             resultado['actualizados']          += r['actualizados']
             resultado['sin_cambios']           += r['sin_cambios']
