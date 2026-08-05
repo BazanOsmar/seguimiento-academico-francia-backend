@@ -40,7 +40,7 @@ def _parse_mes(mes_str):
         try:
             y, m = mes_str.split('-')
             y, m = int(y), int(m)
-            if not (1 <= m <= 12):
+            if not (1 <= m <= 12) or not (2000 <= y <= 2100):
                 raise ValueError
             return y, m
         except (ValueError, AttributeError):

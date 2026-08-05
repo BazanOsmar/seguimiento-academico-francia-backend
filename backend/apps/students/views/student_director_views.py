@@ -1,3 +1,6 @@
+import logging
+import re
+
 from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,6 +16,10 @@ from backend.apps.students.serializers import (
 from backend.apps.students.services import crear_estudiante_solo
 from rest_framework.exceptions import NotFound
 
+logger = logging.getLogger(__name__)
+
+_NOMBRE_RE = re.compile(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$')
+
 
 class EstudianteDirectorListView(APIView):
     """
@@ -26,9 +33,12 @@ class EstudianteDirectorListView(APIView):
         qs = Estudiante.objects.select_related('curso', 'tutor').order_by(
             'curso__grado', 'curso__paralelo', 'apellido_paterno', 'apellido_materno', 'nombre'
         )
-        curso_id = request.query_params.get('curso')
+        curso_id = request.query_params.get('curso', '').strip()
         if curso_id:
-            qs = qs.filter(curso_id=curso_id)
+            if not curso_id.isdigit():
+                return Response({'errores': 'El parámetro curso debe ser un id numérico.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(curso_id=int(curso_id))
 
         q = request.query_params.get('q', '').strip()
         if q:
@@ -59,8 +69,13 @@ class EstudianteSoloCreateView(APIView):
 
         try:
             estudiante = crear_estudiante_solo(serializer.validated_data)
-        except Exception as exc:
-            return Response({'errores': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception('No se pudo crear el estudiante (curso=%s)',
+                             serializer.validated_data.get('curso'))
+            return Response(
+                {'errores': 'No se pudo crear el estudiante. Intenta nuevamente.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(
             EstudianteDirectorSerializer(estudiante).data,
@@ -107,6 +122,12 @@ class EstudianteDetailView(APIView):
                 return Response({'errores': 'El nombre es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
             if not paterno and not materno:
                 return Response({'errores': 'Al menos un apellido es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
+            for campo, valor in (('nombre', nombre), ('apellido paterno', paterno), ('apellido materno', materno)):
+                if valor and not _NOMBRE_RE.match(valor):
+                    return Response(
+                        {'errores': f'El {campo} solo puede contener letras y espacios.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
             estudiante.nombre           = nombre
             estudiante.apellido_paterno = paterno
             estudiante.apellido_materno = materno

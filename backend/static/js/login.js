@@ -102,7 +102,7 @@ form.addEventListener('submit', async (e) => {
         return;
     }
     if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
-        showError(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`);
+        showError(`La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres.`);
         passwordInput.focus();
         return;
     }

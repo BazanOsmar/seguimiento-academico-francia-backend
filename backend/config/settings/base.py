@@ -94,6 +94,18 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# ── Cache compartido entre procesos ───────────────────────────────
+# Los draft_token de la carga de planillas viven aquí; con LocMemCache
+# (el default) cada worker de gunicorn tendría su propia memoria y el
+# confirmar fallaría de forma intermitente en el VPS.
+# Requiere: python manage.py createcachetable
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
+    }
+}
+
 # ── Firebase Admin SDK ────────────────────────────────────────────
 import firebase_admin
 from firebase_admin import credentials as fb_credentials
@@ -112,6 +124,10 @@ LOGGING = {
     },
     'loggers': {
         'backend.apps.attendance': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+        'backend.apps.academics': {
             'handlers': ['console'],
             'level': 'WARNING',
         },

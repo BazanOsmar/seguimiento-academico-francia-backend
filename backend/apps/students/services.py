@@ -9,6 +9,7 @@ _PATRON_HOJA       = re.compile(r'^\S+\s+[A-Za-z]$')
 _COLUMNAS_ESPERADAS = ['PATERNO', 'MATERNO', 'NOMBRES']
 
 
+@transaction.atomic
 def crear_estudiante_solo(datos):
     """
     Crea un Estudiante sin tutor, generando el identificador automáticamente

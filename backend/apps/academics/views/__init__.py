@@ -14,7 +14,7 @@ from .planilla_views import (
 from .comparador_views import ComparadorNombresView
 from .estadisticas_views import ProfesorEstadisticasView
 from .director_notas_views import (
-    DirectorResumenNotasMesView, DirectorSeguimientoProfesoresView, DirectorCentralizadorView,
-    DirectorMesesConNotasView, DirectorProfesoresConNotasView, DirectorNotasExportView,
-    DirectorEliminarNotasMesView,
+    DirectorResumenNotasMesView, DirectorNotasMesDetalleView, DirectorSeguimientoProfesoresView,
+    DirectorCentralizadorView, DirectorMesesConNotasView, DirectorProfesoresConNotasView,
+    DirectorNotasExportView, DirectorEliminarNotasMesView,
 )

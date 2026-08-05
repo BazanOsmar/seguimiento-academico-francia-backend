@@ -356,6 +356,11 @@ class ResultadosArbolView(APIView):
         })
 
 
+# % promedio de probabilidad de reprobar (entre las materias del estudiante)
+# a partir del cual se lo cuenta como "en riesgo de reprobar" en el donut
+_UMBRAL_RIESGO_ESTUDIANTE = 60
+
+
 class EstadisticasArbolView(APIView):
     """
     GET /api/analytics/arbol/estadisticas/?gestion=2026&mes=4
@@ -388,6 +393,22 @@ class EstadisticasArbolView(APIView):
         reprobados          = col.count_documents({**filtro, 'prediccion': 1})
         estudiantes_alto    = len(col.distinct('estudiante_id', {**filtro, 'riesgo': 'Alto'}))
         tasa_reprobacion    = round(reprobados / total * 100, 1)
+
+        # Nivel estudiante: en riesgo de reprobar si su probabilidad promedio
+        # entre todas sus materias supera el umbral (para el donut, evita
+        # inflar el conteo con una predicción por materia)
+        est_riesgo = list(col.aggregate([
+            {'$match': filtro},
+            {'$group': {'_id': '$estudiante_id', 'prom': {'$avg': '$probabilidad_reprobar'}}},
+            {'$group': {
+                '_id':       None,
+                'total':     {'$sum': 1},
+                'en_riesgo': {'$sum': {'$cond': [
+                    {'$gt': ['$prom', _UMBRAL_RIESGO_ESTUDIANTE]}, 1, 0]}},
+            }},
+        ]))
+        estudiantes_analizados = est_riesgo[0]['total'] if est_riesgo else 0
+        estudiantes_reprobando = est_riesgo[0]['en_riesgo'] if est_riesgo else 0
 
         fecha_doc = col.find_one(filtro, {'fecha_analisis': 1, '_id': 0})
         fecha_analisis = fecha_doc['fecha_analisis'].isoformat() if fecha_doc and fecha_doc.get('fecha_analisis') else None
@@ -427,6 +448,9 @@ class EstadisticasArbolView(APIView):
             'fecha_analisis':       fecha_analisis,
             'total_predicciones':   total,
             'estudiantes_riesgo_alto': estudiantes_alto,
+            'estudiantes_analizados':  estudiantes_analizados,
+            'estudiantes_reprobando':  estudiantes_reprobando,
+            'umbral_riesgo':        _UMBRAL_RIESGO_ESTUDIANTE,
             'tasa_reprobacion':     tasa_reprobacion,
             'por_riesgo':           por_riesgo,
             'por_materia':          por_materia,

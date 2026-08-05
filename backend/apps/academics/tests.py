@@ -7,7 +7,9 @@ from django.test import TestCase
 
 from backend.apps.students.models import Estudiante
 from .models import Curso
-from .services.planilla_validator import _normalizar, _palabras, _coincide_nombre
+from .services.planilla_validator import (
+    _normalizar, _palabras, _coincide_nombre, validar_estudiantes,
+)
 from .services.comparador_nombres import comparar_nombres_excel_bd
 
 
@@ -84,3 +86,41 @@ class CompararNombresExcelBDTests(TestCase):
         self.assertEqual(resultado['en_ambos'], 2)
         self.assertEqual(resultado['solo_en_excel'], [])
         self.assertEqual(resultado['solo_en_bd'], [])
+
+
+class ValidarEstudiantesMapaNroIdTests(TestCase):
+    """validar_estudiantes debe mapear la posición en la planilla al PK real."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.curso = Curso.objects.create(grado='2do', paralelo='B')
+        cls.e1 = Estudiante.objects.create(
+            nombre='Juan', apellido_paterno='Pérez', apellido_materno='Lopez',
+            identificador='M1', curso=cls.curso,
+        )
+        cls.e2 = Estudiante.objects.create(
+            nombre='Ana', apellido_paterno='Soto', apellido_materno='Vega',
+            identificador='M2', curso=cls.curso,
+        )
+        cls.e3 = Estudiante.objects.create(
+            nombre='Carla', apellido_paterno='Quiroga', apellido_materno='Mamani',
+            identificador='M3', curso=cls.curso, activo=False,
+        )
+
+    def test_mapa_nro_id_apunta_al_pk_real(self):
+        nombres_excel = ['Perez Lopez Juan', 'Soto Vega Ana']
+        resultado = validar_estudiantes(nombres_excel, self.curso.id)
+
+        self.assertTrue(resultado['es_valido'])
+        self.assertEqual(resultado['mapa_nro_id'], {1: self.e1.id, 2: self.e2.id})
+        self.assertEqual(resultado['lista_estudiantes'][0]['estudiante_id'], self.e1.id)
+
+    def test_mapa_incluye_inactivos_pero_no_desconocidos(self):
+        nombres_excel = ['Perez Lopez Juan', 'Soto Vega Ana',
+                         'Quiroga Mamani Carla', 'Inventado Total Pedro']
+        resultado = validar_estudiantes(nombres_excel, self.curso.id)
+
+        # El inactivo (nro 3) sí se mapea; el desconocido (nro 4) no
+        self.assertEqual(resultado['mapa_nro_id'],
+                         {1: self.e1.id, 2: self.e2.id, 3: self.e3.id})
+        self.assertFalse(resultado['es_valido'])  # 'no_en_bd' es error

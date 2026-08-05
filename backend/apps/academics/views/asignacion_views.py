@@ -65,16 +65,23 @@ class AsignacionDetailView(APIView):
         except ProfesorCurso.DoesNotExist:
             return Response({"errores": "Asignación no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
+        from django.db.models import ProtectedError
         from backend.apps.auditoria.services import registrar
-        director = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
-        registrar(
-            request.user, 'ELIMINAR_ASIGNACION',
-            f"{director} eliminó asignación: {asignacion.profesor.username} — "
-            f"{asignacion.materia.nombre} en {asignacion.curso.grado} '{asignacion.curso.paralelo}'",
-            request,
-        )
 
-        asignacion.delete()
+        descripcion = (
+            f"eliminó asignación: {asignacion.profesor.username} — "
+            f"{asignacion.materia.nombre} en {asignacion.curso.grado} '{asignacion.curso.paralelo}'"
+        )
+        try:
+            asignacion.delete()
+        except ProtectedError:
+            return Response(
+                {"errores": "No se puede eliminar: la asignación tiene planes de trabajo registrados."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        director = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        registrar(request.user, 'ELIMINAR_ASIGNACION', f"{director} {descripcion}", request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -96,11 +103,17 @@ class DirectorProfesorAsignacionesView(APIView):
         if getattr(profesor.tipo_usuario, 'nombre', None) != 'Profesor':
             return Response({"errores": "El usuario no es un profesor."}, status=status.HTTP_400_BAD_REQUEST)
 
-        asignaciones = (
+        asignaciones = list(
             ProfesorCurso.objects
             .filter(profesor=profesor)
             .select_related('curso', 'materia')
             .order_by('curso__grado', 'curso__paralelo', 'materia__nombre')
+        )
+
+        # Pares (materia, curso) con notas en Mongo — para advertir antes de eliminar
+        from ..services.notas_mongo_service import asignaciones_con_notas
+        pares_con_notas = asignaciones_con_notas(
+            [(a.materia_id, a.curso_id) for a in asignaciones]
         )
 
         return Response({
@@ -115,6 +128,7 @@ class DirectorProfesorAsignacionesView(APIView):
                     'curso_nombre':  f"{a.curso.grado} \"{a.curso.paralelo}\"",
                     'materia_id':    a.materia.id,
                     'materia_nombre': a.materia.nombre,
+                    'tiene_notas':   (a.materia_id, a.curso_id) in pares_con_notas,
                 }
                 for a in asignaciones
             ],

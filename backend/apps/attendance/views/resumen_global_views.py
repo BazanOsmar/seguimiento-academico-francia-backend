@@ -59,7 +59,7 @@ class ResumenGlobalView(APIView):
             try:
                 year, month = mes_str.split('-')
                 year, month = int(year), int(month)
-                if not (1 <= month <= 12):
+                if not (1 <= month <= 12) or not (2000 <= year <= 2100):
                     raise ValueError
             except (ValueError, AttributeError):
                 return Response(

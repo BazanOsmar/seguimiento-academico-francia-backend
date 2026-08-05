@@ -384,8 +384,8 @@ function _setArchivo(file) {
     _hideInlineObservation();
 
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['xlsx', 'xls'].includes(ext)) {
-        showToast('La plantilla no cumple el formato requerido', 'warning');
+    if (ext !== 'xlsx') {
+        showToast('Solo se aceptan archivos .xlsx. Guarda la planilla como .xlsx e intenta de nuevo.', 'warning');
         return;
     }
 
@@ -970,8 +970,8 @@ function _renderSuccessDashboard(r, activeTrim, soloLectura = false) {
     const _hayModificadas = _modForTrim.length > 0;
 
     const dimensionDefs = [
-        { key: 'saber', label: 'HACER',  css: 'saber', short: 'Hacer' },
-        { key: 'hacer', label: 'SABER',  css: 'hacer', short: 'Saber' },
+        { key: 'saber', label: 'SABER',  css: 'saber', short: 'Saber' },
+        { key: 'hacer', label: 'HACER',  css: 'hacer', short: 'Hacer' },
         { key: 'ser',   label: 'SER',    css: 'ser',   short: 'Ser'   },
     ];
 

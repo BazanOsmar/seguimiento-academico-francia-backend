@@ -1,3 +1,4 @@
+from django.utils.dateparse import parse_date
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -63,23 +64,37 @@ class CitacionListView(APIView):
             queryset = queryset.filter(asistencia=asistencia)
 
         # Filtrar por curso del estudiante, ej: ?curso_id=3
-        curso_id = request.query_params.get("curso_id")
+        curso_id = request.query_params.get("curso_id", "").strip()
         if curso_id:
-            queryset = queryset.filter(estudiante__curso_id=curso_id)
+            if not curso_id.isdigit():
+                return Response({"errores": "curso_id debe ser un id numérico."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            queryset = queryset.filter(estudiante__curso_id=int(curso_id))
 
         # Filtrar por estudiante, ej: ?estudiante_id=5
-        estudiante_id = request.query_params.get("estudiante_id")
+        estudiante_id = request.query_params.get("estudiante_id", "").strip()
         if estudiante_id:
-            queryset = queryset.filter(estudiante_id=estudiante_id)
+            if not estudiante_id.isdigit():
+                return Response({"errores": "estudiante_id debe ser un id numérico."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            queryset = queryset.filter(estudiante_id=int(estudiante_id))
 
         # Filtrar por fecha de creación, ej: ?fecha_creacion=2026-03-09
         fecha_creacion = request.query_params.get("fecha_creacion")
         if fecha_creacion:
+            fecha_creacion = parse_date(fecha_creacion)
+            if not fecha_creacion:
+                return Response({"errores": "fecha_creacion inválida. Use YYYY-MM-DD."},
+                                status=status.HTTP_400_BAD_REQUEST)
             queryset = queryset.filter(fecha_envio__date=fecha_creacion)
 
         # Filtrar por fecha de actualización de asistencia, ej: ?fecha_actualizacion=2026-03-09
         fecha_actualizacion = request.query_params.get("fecha_actualizacion")
         if fecha_actualizacion:
+            fecha_actualizacion = parse_date(fecha_actualizacion)
+            if not fecha_actualizacion:
+                return Response({"errores": "fecha_actualizacion inválida. Use YYYY-MM-DD."},
+                                status=status.HTTP_400_BAD_REQUEST)
             queryset = queryset.filter(fecha_asistencia=fecha_actualizacion)
 
         serializer = CitacionListSerializer(queryset, many=True)

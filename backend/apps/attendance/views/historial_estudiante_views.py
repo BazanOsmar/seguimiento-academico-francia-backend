@@ -1,6 +1,8 @@
+from django.utils.dateparse import parse_date
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from backend.core.permissions import IsDirectorOrRegente
@@ -38,8 +40,16 @@ class HistorialEstudianteView(APIView):
         fecha_hasta = request.query_params.get('fecha_hasta')
 
         if fecha_desde:
+            fecha_desde = parse_date(fecha_desde)
+            if not fecha_desde:
+                return Response({'errores': 'fecha_desde inválida. Use YYYY-MM-DD.'},
+                                status=status.HTTP_400_BAD_REQUEST)
             qs = qs.filter(sesion__fecha__gte=fecha_desde)
         if fecha_hasta:
+            fecha_hasta = parse_date(fecha_hasta)
+            if not fecha_hasta:
+                return Response({'errores': 'fecha_hasta inválida. Use YYYY-MM-DD.'},
+                                status=status.HTTP_400_BAD_REQUEST)
             qs = qs.filter(sesion__fecha__lte=fecha_hasta)
 
         serializer = HistorialEstudianteSerializer(qs, many=True)

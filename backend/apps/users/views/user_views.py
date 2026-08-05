@@ -166,6 +166,9 @@ class MiPerfilView(APIView):
         return Response({'first_name': u.first_name, 'last_name': u.last_name})
 
     def post(self, request):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        from backend.apps.authentication.validators import validar_password
+
         password_actual = request.data.get('password_actual', '')
         password_nueva  = request.data.get('password_nueva',  '')
 
@@ -173,8 +176,13 @@ class MiPerfilView(APIView):
             return Response({'errores': 'La contraseña actual es obligatoria.'}, status=status.HTTP_400_BAD_REQUEST)
         if not password_nueva:
             return Response({'errores': 'La contraseña nueva es obligatoria.'}, status=status.HTTP_400_BAD_REQUEST)
-        if len(password_nueva) < 8 or len(password_nueva) > 20:
-            return Response({'errores': 'La contraseña debe tener entre 8 y 20 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validar_password(password_nueva)
+        except DRFValidationError as exc:
+            return Response(
+                {'errores': ' '.join(str(m) for m in exc.detail)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         u = request.user
         if not u.check_password(password_actual):

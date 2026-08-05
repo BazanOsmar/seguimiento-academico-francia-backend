@@ -217,7 +217,8 @@ class CitacionVistoView(APIView):
 
     def post(self, request, citacion_id):
         try:
-            citacion = Citacion.objects.get(id=citacion_id)
+            # Solo citaciones de estudiantes vinculados al tutor autenticado
+            citacion = Citacion.objects.get(id=citacion_id, estudiante__tutor=request.user)
         except Citacion.DoesNotExist:
             return Response(
                 {"errores": "Citación no encontrada."},

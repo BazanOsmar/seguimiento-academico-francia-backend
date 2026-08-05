@@ -40,9 +40,9 @@ class ImportarEstudiantesExcelView(APIView):
             )
 
         nombre = archivo.name.lower()
-        if not (nombre.endswith('.xlsx') or nombre.endswith('.xls')):
+        if not nombre.endswith('.xlsx'):
             return Response(
-                {"errores": "Solo se aceptan archivos .xlsx o .xls"},
+                {"errores": "Solo se aceptan archivos .xlsx. Si tu archivo es .xls, guárdalo como .xlsx antes de subirlo."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

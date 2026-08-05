@@ -212,7 +212,12 @@ class DirectorPlanesView(APIView):
             qs = qs.filter(mes=mes)
 
         if profesor_id:
-            qs = qs.filter(profesor_curso__profesor_id=profesor_id)
+            if not str(profesor_id).isdigit():
+                return Response(
+                    {'errores': 'El parámetro profesor_id debe ser un id numérico.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            qs = qs.filter(profesor_curso__profesor_id=int(profesor_id))
 
         qs = qs.order_by(
             'profesor_curso__profesor__last_name',
@@ -251,7 +256,12 @@ class DirectorPlanesExportarView(APIView):
 
         profesor_id = request.query_params.get('profesor_id')
         if profesor_id:
-            planes = planes.filter(profesor_curso__profesor_id=profesor_id)
+            if not str(profesor_id).isdigit():
+                return Response(
+                    {'errores': 'El parámetro profesor_id debe ser un id numérico.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            planes = planes.filter(profesor_curso__profesor_id=int(profesor_id))
 
         planes = planes.order_by(
             'profesor_curso__profesor__last_name',
@@ -270,6 +280,7 @@ class DirectorPlanesExportarView(APIView):
             por_profesor[pid].append(pp)
 
         nombre_mes = self._MESES[mes]
+        gestion    = timezone.localdate().year
 
         if not por_profesor:
             return Response(
@@ -303,7 +314,7 @@ class DirectorPlanesExportarView(APIView):
 
             ws.merge_cells(f"A1:{LAST_COL}1")
             tc           = ws["A1"]
-            tc.value     = f"Planes de Trabajo — {nombre_mes} 2026"
+            tc.value     = f"Planes de Trabajo — {nombre_mes} {gestion}"
             tc.font      = Font(bold=True, size=14, color="1E3A5F", name="Calibri")
             tc.alignment = Alignment(horizontal="center", vertical="center")
             ws.row_dimensions[1].height = 30
@@ -359,7 +370,7 @@ class DirectorPlanesExportarView(APIView):
         wb.save(buffer)
         buffer.seek(0)
 
-        filename = f"planes_trabajo_{nombre_mes.lower()}_2026.xlsx"
+        filename = f"planes_trabajo_{nombre_mes.lower()}_{gestion}.xlsx"
         response = HttpResponse(
             buffer.read(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

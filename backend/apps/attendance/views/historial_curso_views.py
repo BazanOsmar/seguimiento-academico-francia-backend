@@ -27,8 +27,9 @@ class HistorialCursoView(APIView):
 
         mes = request.query_params.get("mes", "").strip()
         if mes and len(mes) == 7:
-            anio, num_mes = mes.split("-")
-            qs = qs.filter(fecha__year=anio, fecha__month=num_mes)
+            partes = mes.split("-")
+            if len(partes) == 2 and partes[0].isdigit() and partes[1].isdigit():
+                qs = qs.filter(fecha__year=int(partes[0]), fecha__month=int(partes[1]))
 
         sesiones = (
             qs
@@ -37,7 +38,11 @@ class HistorialCursoView(APIView):
                 faltas=Count("asistencias", filter=Q(asistencias__estado="FALTA")),
                 atrasos=Count("asistencias", filter=Q(asistencias__estado="ATRASO")),
                 licencias=Count("asistencias", filter=Q(asistencias__estado="LICENCIA")),
-                sin_uniforme=Count("asistencias", filter=Q(asistencias__uniforme=False)),
+                sin_uniforme=Count(
+                    "asistencias",
+                    filter=Q(asistencias__uniforme=False)
+                    & ~Q(asistencias__estado__in=("FALTA", "LICENCIA")),
+                ),
             )
             .order_by("-fecha")
         )

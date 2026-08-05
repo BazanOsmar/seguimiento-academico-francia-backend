@@ -101,7 +101,10 @@
             if (!last_name)  { setErr('inputApellidos', 'errApellidos', 'Obligatorio.'); return; }
 
             btn.disabled = true;
-            const res = await fetchAPI('/api/users/mi-perfil/', 'PATCH', { first_name, last_name });
+            const res = await fetchAPI('/api/users/mi-perfil/', {
+                method: 'PATCH',
+                body:   JSON.stringify({ first_name, last_name }),
+            });
             btn.disabled = false;
 
             if (res.ok) {
@@ -165,8 +168,8 @@
             let ok = true;
             if (!password_actual) { setErr('inputPassActual', 'errPassActual', 'Obligatorio.'); ok = false; }
             if (!password_nueva)  { setErr('inputPassNueva',  'errPassNueva',  'Obligatorio.'); ok = false; }
-            else if (password_nueva.length < 8 || password_nueva.length > 20) {
-                setErr('inputPassNueva', 'errPassNueva', 'Entre 8 y 20 caracteres.'); ok = false;
+            else if (password_nueva.length < 8 || password_nueva.length > 64) {
+                setErr('inputPassNueva', 'errPassNueva', 'Entre 8 y 64 caracteres.'); ok = false;
             }
             if (password_nueva && confirm !== password_nueva) {
                 setErr('inputPassConfirm', 'errPassConfirm', 'No coinciden.'); ok = false;
@@ -191,7 +194,10 @@
             const password_nueva  = document.getElementById('inputPassNueva').value;
 
             btn.disabled = true;
-            const res = await fetchAPI('/api/users/mi-perfil/', 'POST', { password_actual, password_nueva });
+            const res = await fetchAPI('/api/users/mi-perfil/', {
+                method: 'POST',
+                body:   JSON.stringify({ password_actual, password_nueva }),
+            });
             btn.disabled = false;
 
             if (res.ok) {
@@ -199,10 +205,14 @@
                 toast('Contraseña actualizada. Redirigiendo...');
                 setTimeout(() => { localStorage.clear(); window.location.replace('/login/'); }, 2200);
             } else {
-                // Error (ej: contraseña actual incorrecta) → volver al formulario con el error
+                // Error → volver al formulario con el error en el campo que corresponde
                 modalConfirmPass.classList.remove('visible');
                 modalPass.classList.add('visible');
-                if (res.data?.errores) setErr('inputPassActual', 'errPassActual', res.data.errores);
+                if (res.data?.errores) {
+                    const esActual = res.data.errores.toLowerCase().includes('actual');
+                    if (esActual) setErr('inputPassActual', 'errPassActual', res.data.errores);
+                    else          setErr('inputPassNueva',  'errPassNueva',  res.data.errores);
+                }
             }
         });
 

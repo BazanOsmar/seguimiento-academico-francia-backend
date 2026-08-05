@@ -499,6 +499,7 @@ function _renderProfesorDetalle(data) {
                     data-asig-id="${a.id}"
                     data-course="${_escapeHtml(a.curso_nombre)}"
                     data-subject="${_escapeHtml(a.materia_nombre)}"
+                    data-tiene-notas="${a.tiene_notas ? '1' : ''}"
                     aria-label="Eliminar asignación ${_escapeHtml(a.curso_nombre)} ${_escapeHtml(a.materia_nombre)}">
                     ${_TRASH_ICON}
                 </button>
@@ -544,6 +545,7 @@ function _renderProfesorDetalle(data) {
             btn.dataset.asigId,
             btn.dataset.course,
             btn.dataset.subject,
+            btn.dataset.tieneNotas === '1',
         ));
     });
 
@@ -609,7 +611,14 @@ async function _crearAsignacionProfesorDetalle(profesorId) {
     await _cargarVistaProfesor();
 }
 
-function _eliminarAsignacionProfesor(asigId, curso, materia) {
+function _eliminarAsignacionProfesor(asigId, curso, materia, tieneNotas = false) {
+    const warnings = [
+        'Esta acción no elimina al profesor, curso ni materia.',
+        'Solo se borra esta asignación académica.',
+    ];
+    if (tieneNotas) {
+        warnings.unshift('Esta asignación tiene notas cargadas: quedarán en el histórico (centralizador y reportes) aunque elimines la asignación.');
+    }
     _abrirDelModal({
         step1Title: '¿Eliminar asignación?',
         step1Subtitle: 'Se eliminará la relación entre el profesor, el curso y la materia.',
@@ -617,10 +626,7 @@ function _eliminarAsignacionProfesor(asigId, curso, materia) {
         confirmLabel: 'Eliminar asignación',
         confirmBg: '#ef4444',
         toastMsg: `Asignación de "${materia}" en ${curso} eliminada.`,
-        warnings: [
-            'Esta acción no elimina al profesor, curso ni materia.',
-            'Solo se borra esta asignación académica.',
-        ],
+        warnings,
         action: password => _eliminarAsignacionProfesorRequest(asigId, password),
         onSuccess: async () => {
             if (_vpProfesorDetalleId) await _abrirProfesorDetalle(_vpProfesorDetalleId);

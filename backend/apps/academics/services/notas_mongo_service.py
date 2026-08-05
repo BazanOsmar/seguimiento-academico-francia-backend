@@ -5,7 +5,8 @@ Colección: detalle_notas
 Estructura de cada documento:
 {
     _id:             ObjectId  — generado por Mongo
-    estudiante_id:   int       — FK → tabla estudiantes (SQL)
+    estudiante_id:   int       — FK → tabla estudiantes (SQL, PK real)
+    nro_planilla:    int       — posición del estudiante en la planilla Excel (1..N)
     materia_id:      int       — FK → tabla materias (SQL)
     curso_id:        int       — FK → tabla cursos (SQL)
     profesor_id:     int       — FK → tabla usuarios (SQL)
@@ -30,13 +31,33 @@ CONEXIÓN:
     descomentar la inicialización del cliente más abajo.
 """
 
+import logging
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
+
+_LA_PAZ = ZoneInfo('America/La_Paz')
+
+
+def _rango_mes_utc(gestion, mes):
+    """
+    Rango [inicio, fin) del mes calendario de Bolivia expresado en UTC,
+    para filtrar campos datetime guardados en UTC (p. ej. fecha_cambio).
+    """
+    inicio = datetime(gestion, mes, 1, tzinfo=_LA_PAZ)
+    if mes == 12:
+        fin = datetime(gestion + 1, 1, 1, tzinfo=_LA_PAZ)
+    else:
+        fin = datetime(gestion, mes + 1, 1, tzinfo=_LA_PAZ)
+    return inicio.astimezone(timezone.utc), fin.astimezone(timezone.utc)
 
 # ── Conexión MongoDB ──────────────────────────────────────────────────────────
 from django.conf import settings
 from pymongo import MongoClient, ASCENDING, UpdateOne, InsertOne
+from pymongo.errors import BulkWriteError
 
 _client          = None
 _db              = None
@@ -62,13 +83,23 @@ def ensure_indexes():
     try:
         db = _get_db()
 
-        # detalle_notas
+        # detalle_notas — si existe la versión vieja del índice único (sin
+        # gestion/curso_id, causaba colisiones entre paralelos), se elimina
+        # para recrearlo con la clave completa.
+        idx_detalle = db['detalle_notas'].index_information()
+        if 'upsert_key' in idx_detalle:
+            claves_viejas = [c for c, _ in idx_detalle['upsert_key'].get('key', [])]
+            if 'gestion' not in claves_viejas:
+                db['detalle_notas'].drop_index('upsert_key')
+
         db['detalle_notas'].create_index([
-            ('estudiante_id', ASCENDING),
+            ('gestion',       ASCENDING),
+            ('curso_id',      ASCENDING),
             ('materia_id',    ASCENDING),
             ('trimestre',     ASCENDING),
             ('dimension',     ASCENDING),
             ('columna_idx',   ASCENDING),
+            ('estudiante_id', ASCENDING),
         ], unique=True, name='upsert_key')
 
         db['detalle_notas'].create_index([
@@ -125,7 +156,7 @@ def ensure_indexes():
 
         _indexes_ensured = True
     except Exception:
-        pass
+        logger.exception('No se pudieron crear los índices de Mongo (notas)')
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -175,12 +206,18 @@ def _promedio_rendidos(notas):
 
 # ── API pública ───────────────────────────────────────────────────────────────
 
-def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, mes=None):
+def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, mes=None,
+                  mapa_nro_pk=None):
     """
     Guarda las notas del Excel en detalle_notas con lógica de comparación:
       - Documento nuevo      → INSERT  (fecha_carga = ahora)
       - Nota o título cambió → UPDATE  (fecha_actualizacion = ahora, fecha_carga intacta)
       - Sin cambios          → omitir  (no se escribe en Mongo)
+
+    mapa_nro_pk: dict {nro_planilla → estudiante.id (PK SQL)} construido por
+    validar_estudiantes(). Cada nota se guarda con el PK real como estudiante_id
+    y el nro de la planilla como nro_planilla. Las notas cuyo nro no esté en el
+    mapa se cuentan como errores (no se escriben con un ID ambiguo).
 
     Optimización: un solo find() carga todos los existentes en memoria;
     todas las escrituras se envían en un único bulk_write al final.
@@ -199,7 +236,8 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
     # ── 1. Cargar todos los existentes de este trimestre en memoria ───────────
     existentes = {}
     for doc in col.find(
-        {'materia_id': materia_id, 'curso_id': curso_id, 'trimestre': trimestre},
+        {'materia_id': materia_id, 'curso_id': curso_id,
+         'gestion': gestion, 'trimestre': trimestre},
         {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1, 'nota': 1, 'titulo': 1},
     ):
         clave = (doc['estudiante_id'], doc['dimension'], doc['columna_idx'])
@@ -208,7 +246,7 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
     # ── 2. Construir operaciones comparando en memoria ────────────────────────
     operaciones    = []
     historial_ops  = []
-    insertados     = actualizados = sin_cambios = 0
+    insertados     = actualizados = sin_cambios = errores = 0
 
     for dimension, columnas in headers_actividades.items():
         if dimension.startswith('_'):
@@ -221,12 +259,22 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
             mes_doc     = mes
 
             for n in col_data.get('notas', []):
-                clave = (n['nro'], dimension, col_idx)
+                eid = mapa_nro_pk.get(n['nro']) if mapa_nro_pk is not None else n['nro']
+                if eid is None:
+                    logger.warning(
+                        'Nota sin estudiante_id resoluble: nro=%s materia=%s curso=%s',
+                        n['nro'], materia_id, curso_id,
+                    )
+                    errores += 1
+                    continue
+
+                clave = (eid, dimension, col_idx)
                 prev  = existentes.get(clave)
 
                 if prev is None:
                     operaciones.append(InsertOne({
-                        'estudiante_id':      n['nro'],
+                        'estudiante_id':      eid,
+                        'nro_planilla':       n['nro'],
                         'nombre_estudiante':  n.get('nombre', ''),
                         'materia_id':         materia_id,
                         'curso_id':           curso_id,
@@ -246,9 +294,11 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
 
                 elif prev['nota'] != n['nota'] or prev.get('titulo') != titulo:
                     operaciones.append(UpdateOne(
-                        {'estudiante_id': n['nro'], 'materia_id': materia_id,
+                        {'estudiante_id': eid, 'materia_id': materia_id,
+                         'curso_id': curso_id, 'gestion': gestion,
                          'trimestre': trimestre, 'dimension': dimension, 'columna_idx': col_idx},
                         {'$set': {
+                            'nro_planilla':        n['nro'],
                             'nombre_estudiante':   n.get('nombre', ''),
                             'titulo':              titulo,
                             'fecha_actividad':     fecha_activ,
@@ -268,7 +318,8 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
                         'titulo' if titulo_cambio else None,
                     ]))
                     historial_ops.append(InsertOne({
-                        'estudiante_id':   n['nro'],
+                        'estudiante_id':   eid,
+                        'nro_planilla':    n['nro'],
                         'materia_id':      materia_id,
                         'curso_id':        curso_id,
                         'profesor_id':     profesor_id,
@@ -288,12 +339,29 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
                     sin_cambios += 1
 
     # ── 3. Enviar todo en un solo round trip ──────────────────────────────────
-    errores = 0
     if operaciones:
         try:
             col.bulk_write(operaciones, ordered=False)
+        except BulkWriteError as exc:
+            # Con ordered=False la escritura es parcial: contar lo que sí entró
+            detalles     = exc.details or {}
+            write_errors = detalles.get('writeErrors', [])
+            insertados   = detalles.get('nInserted', 0)
+            actualizados = detalles.get('nModified', 0)
+            errores     += len(write_errors)
+            logger.error(
+                'bulk_write parcial en detalle_notas (materia=%s curso=%s trim=%s): '
+                '%s errores, %s insertados, %s actualizados. Primer error: %s',
+                materia_id, curso_id, trimestre, len(write_errors),
+                insertados, actualizados,
+                write_errors[0].get('errmsg', '?') if write_errors else '?',
+            )
         except Exception:
-            errores = len(operaciones)
+            logger.exception(
+                'bulk_write de detalle_notas falló (materia=%s curso=%s trim=%s)',
+                materia_id, curso_id, trimestre,
+            )
+            errores += len(operaciones)
             insertados = actualizados = 0
 
     # Historial solo si el bulk principal no falló en su totalidad
@@ -301,7 +369,11 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
         try:
             db['historial_notas'].bulk_write(historial_ops, ordered=False)
         except Exception:
-            pass  # El historial no bloquea el guardado principal
+            # El historial no bloquea el guardado principal
+            logger.exception(
+                'bulk_write de historial_notas falló (materia=%s curso=%s trim=%s)',
+                materia_id, curso_id, trimestre,
+            )
 
     return {'insertados': insertados, 'actualizados': actualizados,
             'sin_cambios': sin_cambios, 'errores': errores}
@@ -310,10 +382,14 @@ def guardar_notas(profesor_curso, trimestre, headers_actividades, gestion=2026, 
 _TRIM_MAP = {'1TRIM': 1, '2TRIM': 2, '3TRIM': 3}
 
 
-def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
+def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026, mapa_nro_pk=None):
     """
     Compara las notas del Excel (headers_por_trim) contra las guardadas en
     detalle_notas, trimestre por trimestre.
+
+    mapa_nro_pk: dict {nro_planilla → estudiante.id} — misma traducción que
+    guardar_notas(), necesaria para que las claves calcen contra documentos
+    guardados con el PK real.
 
     Devuelve un resumen listo para incluir en la respuesta de ValidarPlanillaView,
     para que el profesor sepa qué va a cambiar antes de confirmar.
@@ -353,12 +429,16 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
             # Un find por trimestre, igual que en guardar_notas
             existentes = {}
             for doc in col.find(
-                {'materia_id': materia_id, 'curso_id': curso_id, 'trimestre': trimestre},
+                {'materia_id': materia_id, 'curso_id': curso_id,
+                 'gestion': gestion, 'trimestre': trimestre},
                 {'estudiante_id': 1, 'dimension': 1, 'columna_idx': 1,
                  'nota': 1, 'titulo': 1, 'nombre_estudiante': 1},
             ):
                 clave = (doc['estudiante_id'], doc['dimension'], doc['columna_idx'])
                 existentes[clave] = doc
+
+            def _eid(n):
+                return mapa_nro_pk.get(n['nro']) if mapa_nro_pk is not None else n['nro']
 
             for dimension, columnas in dims.items():
                 if dimension.startswith('_'):
@@ -370,7 +450,7 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
 
                     # Columna nueva si ningún estudiante tiene entrada previa en Mongo
                     if notas and not any(
-                        existentes.get((n['nro'], dimension, col_idx)) is not None
+                        existentes.get((_eid(n), dimension, col_idx)) is not None
                         for n in notas
                     ):
                         nuevas_columnas.append({
@@ -380,7 +460,8 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                         })
 
                     for n in notas:
-                        clave = (n['nro'], dimension, col_idx)
+                        eid   = _eid(n)
+                        clave = (eid, dimension, col_idx)
                         prev  = existentes.get(clave)
 
                         if prev is None:
@@ -388,7 +469,8 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
                         elif prev['nota'] != n['nota'] or prev.get('titulo') != titulo:
                             _titulo_cambiado = prev.get('titulo') != titulo
                             modificadas.append({
-                                'estudiante_id':   n['nro'],
+                                'estudiante_id':   eid,
+                                'nro_planilla':    n['nro'],
                                 'nombre':          n.get('nombre') or prev.get('nombre_estudiante', ''),
                                 'trimestre':       trimestre,
                                 'dimension':       dimension,
@@ -410,6 +492,7 @@ def comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=2026):
         }
 
     except Exception:
+        logger.exception('comparar_notas_con_mongo falló — el preview mostrará "sin cambios"')
         return {'sin_cambios': 0, 'nuevas': 0, 'modificadas': [], 'nuevas_columnas': []}
 
 
@@ -434,6 +517,7 @@ def asignaciones_con_notas(pares, mes=None):
         ]
         return {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}
     except Exception:
+        logger.exception('asignaciones_con_notas falló')
         return set()
 
 
@@ -470,7 +554,8 @@ def obtener_notas(materia_id, curso_id, trimestre):
     return list(actividades.values())
 
 
-def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, gestion=2026, mes=None):
+def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, gestion=2026, mes=None,
+                             mapa_nro_pk=None):
     """
     Calcula y guarda notas_mensuales para el mes indicado.
 
@@ -499,10 +584,14 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
     _DIMS = {'ser': 10.0, 'saber': 45.0, 'hacer': 40.0}
 
     # ── Autoevaluación (viene del Excel, no de detalle_notas) ─────────────────
-    autoeval_por_nro = {}
+    # Se indexa por el mismo estudiante_id que usan los documentos (PK real
+    # cuando hay mapa_nro_pk, nro de planilla en cargas legacy).
+    autoeval_por_est = {}
     for col_data in headers_actividades.get('_autoeval', [{}]):
         for n in col_data.get('notas', []):
-            autoeval_por_nro[n['nro']] = n['nota']
+            eid = mapa_nro_pk.get(n['nro']) if mapa_nro_pk is not None else n['nro']
+            if eid is not None:
+                autoeval_por_est[eid] = n['nota']
 
     # ── Columnas NUEVAS: documentos con mes == mes_carga ─────────────────────
     # (guardar_notas ya corrió antes; estos son los InsertOne de esta carga)
@@ -595,8 +684,8 @@ def calcular_notas_mensuales(profesor_curso, trimestre, headers_actividades, ges
                 'cantidad_examenes_total':    n_saber,
             })
 
-        if autoeval_por_nro.get(estudiante_id) is not None:
-            dim_fields['autoeval_ser'] = autoeval_por_nro[estudiante_id]
+        if autoeval_por_est.get(estudiante_id) is not None:
+            dim_fields['autoeval_ser'] = autoeval_por_est[estudiante_id]
 
         filtro = {
             'estudiante_id': estudiante_id,
@@ -756,6 +845,7 @@ def pc_ids_con_notas_mes(asignaciones, profesor_id, mes, gestion):
         pares = {(r['_id']['materia_id'], r['_id']['curso_id']) for r in col.aggregate(pipeline)}
         return {a['id'] for a in asignaciones if (a['materia_id'], a['curso_id']) in pares}
     except Exception:
+        logger.exception('pc_ids_con_notas_mes falló (profesor=%s mes=%s)', profesor_id, mes)
         return set()
 
 
@@ -833,10 +923,15 @@ def eliminar_notas_mes(profesor_id, mes, gestion, curso_id=None, materia_id=None
 
     # ── 2) MODIFICACIONES hechas en M: historial_notas cuyo fecha_cambio
     #      cae dentro del mes M (mismo profesor, gestión, opcionales).
+    #      fecha_cambio está en UTC; el mes M es el calendario de Bolivia,
+    #      por eso se filtra con el rango convertido (no con $month, que
+    #      corría en UTC y desplazaba los cambios hechos después de las
+    #      20:00 del último día del mes).
+    inicio_utc, fin_utc = _rango_mes_utc(gestion, mes)
     filtro_hist = {
-        'profesor_id': profesor_id,
-        'gestion':     gestion,
-        '$expr': {'$eq': [{'$month': '$fecha_cambio'}, mes]},
+        'profesor_id':  profesor_id,
+        'gestion':      gestion,
+        'fecha_cambio': {'$gte': inicio_utc, '$lt': fin_utc},
         **filtro_extra,
     }
     # Se ordena por fecha_cambio ASC para revertir en orden cronológico — si
@@ -949,6 +1044,10 @@ def hay_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
             'gestion':     gestion,
         }, limit=1) > 0
     except Exception:
+        logger.exception(
+            'hay_notas_mes falló (materia=%s curso=%s mes=%s) — se asume False',
+            materia_id, curso_id, mes,
+        )
         return False
 
 
@@ -998,7 +1097,9 @@ def obtener_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
             trim_key = _TRIM_INV.get(doc['trimestre'], '1TRIM')
             dim      = doc['dimension']
             col_idx  = doc['columna_idx']
-            nro      = doc['estudiante_id']
+            eid      = doc['estudiante_id']
+            # nro visible = posición en la planilla; docs legacy usaban el nro como id
+            nro      = doc.get('nro_planilla', eid)
             nombre   = doc.get('nombre_estudiante') or nro_a_nombre.get(nro, f'Estudiante {nro}')
 
             buckets.setdefault(trim_key, {}).setdefault(dim, {})
@@ -1025,6 +1126,10 @@ def obtener_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
         return result
 
     except Exception:
+        logger.exception(
+            'obtener_notas_mes falló (materia=%s curso=%s mes=%s) — modo lectura mostrará vacío',
+            materia_id, curso_id, mes,
+        )
         return {}
 
 
@@ -1107,6 +1212,10 @@ def obtener_cambios_notas_mes(materia_id, curso_id, profesor_id, mes, gestion):
         return list(cambios_por_key.values())
 
     except Exception:
+        logger.exception(
+            'obtener_cambios_notas_mes falló (materia=%s curso=%s mes=%s)',
+            materia_id, curso_id, mes,
+        )
         return []
 
 
@@ -1153,6 +1262,7 @@ def promedios_saber_hacer_por_materia(estudiante_id, materia_ids, trimestre=None
         return resultado
 
     except Exception:
+        logger.exception('promedios_saber_hacer_por_materia falló (estudiante=%s)', estudiante_id)
         return {mid: None for mid in materia_ids}
 
 
@@ -1197,6 +1307,7 @@ def ultima_carga_por_materia(estudiante_id, materia_ids, trimestre=None):
         return resultado
 
     except Exception:
+        logger.exception('ultima_carga_por_materia falló (estudiante=%s)', estudiante_id)
         return {mid: None for mid in materia_ids}
 
 
@@ -1222,6 +1333,7 @@ def historial_meses_profesor(profesor_id: int, gestion: int, total_asignaciones:
         ]
         por_mes = {r['_id']: r['con_notas'] for r in col.aggregate(pipeline) if r['_id']}
     except Exception:
+        logger.exception('historial_meses_profesor falló (profesor=%s)', profesor_id)
         por_mes = {}
 
     resultado = []
@@ -1269,6 +1381,7 @@ def estado_asignaciones_mes_historico(asignaciones: list, profesor_id: int, mes:
             for r in col.aggregate(pipeline)
         }
     except Exception:
+        logger.exception('estado_asignaciones_mes_historico falló (profesor=%s mes=%s)', profesor_id, mes)
         return {}
 
 
@@ -1333,7 +1446,9 @@ def notas_historico(materia_id: int, curso_id: int, profesor_id: int, mes_hasta:
             trim_key = _TRIM_INV.get(doc['trimestre'], '1TRIM')
             dim      = doc['dimension']
             col_idx  = doc['columna_idx']
-            nro      = doc['estudiante_id']
+            eid      = doc['estudiante_id']
+            # nro visible = posición en la planilla; docs legacy usaban el nro como id
+            nro      = doc.get('nro_planilla', eid)
             nombre   = doc.get('nombre_estudiante') or nro_a_nombre.get(nro, f'Estudiante {nro}')
 
             buckets.setdefault(trim_key, {}).setdefault(dim, {})
@@ -1345,7 +1460,7 @@ def notas_historico(materia_id: int, curso_id: int, profesor_id: int, mes_hasta:
             buckets[trim_key][dim][col_idx]['notas'].append(
                 {'nro': nro, 'nombre': nombre, 'nota': doc['nota']}
             )
-            actuales[(doc['trimestre'], dim, col_idx, nro)] = doc['nota']
+            actuales[(doc['trimestre'], dim, col_idx, eid)] = doc['nota']
 
         headers_por_trim = {
             trim_key: {
@@ -1401,6 +1516,10 @@ def notas_historico(materia_id: int, curso_id: int, profesor_id: int, mes_hasta:
         return {'headers_por_trim': headers_por_trim, 'notas_modificadas': notas_modificadas}
 
     except Exception:
+        logger.exception(
+            'notas_historico falló (materia=%s curso=%s mes_hasta=%s)',
+            materia_id, curso_id, mes_hasta,
+        )
         return {'headers_por_trim': {}, 'notas_modificadas': []}
 
 
@@ -1417,6 +1536,7 @@ def ultima_fecha_carga_profesor(profesor_id: int):
         )
         return doc['fecha_carga'] if doc and doc.get('fecha_carga') else None
     except Exception:
+        logger.exception('ultima_fecha_carga_profesor falló (profesor=%s)', profesor_id)
         return None
 
 
@@ -1448,6 +1568,7 @@ def todos_cargaron_mes(mes: int, gestion: int) -> bool:
         cargados = resultado[0]['total'] if resultado else 0
         return cargados >= total_asignaciones
     except Exception:
+        logger.exception('todos_cargaron_mes falló (mes=%s gestion=%s)', mes, gestion)
         return False
 
 
@@ -1469,6 +1590,7 @@ def cursos_con_notas_mes(mes, gestion):
             for r in col.aggregate(pipeline)
         }
     except Exception:
+        logger.exception('cursos_con_notas_mes falló (mes=%s gestion=%s)', mes, gestion)
         return set()
 
 
@@ -1493,4 +1615,5 @@ def todos_pc_con_notas_mes(mes, gestion):
             for r in col.aggregate(pipeline)
         }
     except Exception:
+        logger.exception('todos_pc_con_notas_mes falló (mes=%s gestion=%s)', mes, gestion)
         return set()

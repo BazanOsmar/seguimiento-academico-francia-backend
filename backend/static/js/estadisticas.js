@@ -854,7 +854,7 @@ async function _cargarEstadisticasArbol(mes, gestion) {
     document.getElementById('arbol-kpi-pred-bajo').textContent = pr['Bajo']  ?? 0;
 
     _renderArbolMaterias(data.por_materia || []);
-    _renderArbolDonut(pr);
+    _renderArbolDonut(data);
 }
 
 function _renderArbolMaterias(porMateria) {
@@ -913,16 +913,17 @@ function _renderArbolMaterias(porMateria) {
     });
 }
 
-function _renderArbolDonut(porRiesgo) {
+function _renderArbolDonut(data) {
     const ctx = document.getElementById('chartArbolDonut').getContext('2d');
     if (_charts.arbolDonut) _charts.arbolDonut.destroy();
 
-    const labels = ['Aprobado', 'Reprobado'];
-    const bajo   = porRiesgo['Bajo']  || 0;
-    const medio  = porRiesgo['Medio'] || 0;
-    const alto   = porRiesgo['Alto']  || 0;
-    const aprobados   = bajo + medio;
-    const reprobados  = alto;
+    // Nivel estudiante: en riesgo si su probabilidad promedio de reprobar
+    // supera el umbral del backend (evita contar una predicción por materia)
+    const umbral      = data.umbral_riesgo ?? 60;
+    const total       = data.estudiantes_analizados || 0;
+    const reprobados  = data.estudiantes_reprobando || 0;
+    const aprobados   = total - reprobados;
+    const labels = ['Sin riesgo', `Riesgo de reprobar (>${umbral}%)`];
 
     _charts.arbolDonut = new Chart(ctx, {
         type: 'doughnut',

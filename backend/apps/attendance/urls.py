@@ -6,6 +6,7 @@ from backend.apps.attendance.views.resumen_mensual_views import ResumenMensualCu
 from backend.apps.attendance.views.resumen_global_views import ResumenGlobalView
 from backend.apps.attendance.views.resumen_cursos_views import ResumenCursosTodosView, ResumenEstudiantesCursoView
 from backend.apps.attendance.views.calendario_estudiante_views import CalendarioEstudianteView
+from backend.apps.attendance.views.calendario_mensual_views import CalendarioMensualView
 from .views import EstadoAsistenciaDiariaView, RegistrosRecientesView, HistorialEstudianteView, HistorialCursoView
 from backend.apps.attendance.views.historial_tutor_views import HistorialTutorView
 from backend.apps.attendance.views.sin_uniforme_views import SinUniformeView
@@ -25,6 +26,11 @@ urlpatterns = [
         "cursos/<int:curso_id>/resumen-mensual/",
         ResumenMensualCursoView.as_view(),
         name="resumen-mensual-curso",
+    ),
+    path(
+        "calendario-mensual/",
+        CalendarioMensualView.as_view(),
+        name="calendario-mensual",
     ),
     path(
         "resumen-global/",

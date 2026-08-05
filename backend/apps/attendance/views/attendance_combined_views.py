@@ -1,4 +1,6 @@
-from django.db import transaction
+from datetime import date as _date
+
+from django.db import IntegrityError, transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -75,10 +77,18 @@ class AsistenciaCursoView(APIView):
         """
         # Validar parámetro fecha
         fecha = request.query_params.get('fecha')
-        
+
         if not fecha:
             return Response(
                 {"errores": "Debe especificar la fecha en el formato YYYY-MM-DD"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            fecha = _date.fromisoformat(fecha)
+        except ValueError:
+            return Response(
+                {"errores": "Formato de fecha inválido. Use YYYY-MM-DD."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -144,6 +154,13 @@ class AsistenciaCursoView(APIView):
         fecha = serializer.validated_data["fecha"]
         asistencias_data = serializer.validated_data["asistencias"]
 
+        from django.utils import timezone
+        if fecha > timezone.localdate():
+            return Response(
+                {"errores": "No se puede registrar asistencia en una fecha futura."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Verificar que el curso existe
         try:
             curso = Curso.objects.get(id=curso_id)
@@ -193,13 +210,21 @@ class AsistenciaCursoView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Crear sesión
-        sesion = AsistenciaSesion.objects.create(
-            curso=curso,
-            fecha=fecha,
-            registrado_por=request.user,
-            estado="ENVIADA"
-        )
+        # Crear sesión (savepoint: si otro request la creó en paralelo,
+        # el unique_together lanza IntegrityError y respondemos 400)
+        try:
+            with transaction.atomic():
+                sesion = AsistenciaSesion.objects.create(
+                    curso=curso,
+                    fecha=fecha,
+                    registrado_por=request.user,
+                    estado="ENVIADA"
+                )
+        except IntegrityError:
+            return Response(
+                {"errores": "La asistencia de este curso ya fue registrada para esta fecha."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Crear asistencias
         asistencias_objs = [
@@ -216,6 +241,15 @@ class AsistenciaCursoView(APIView):
         Asistencia.objects.bulk_create(asistencias_objs)
 
         verificar_faltas_atrasos_consecutivos(sesion)
+
+        from backend.apps.auditoria.services import registrar
+        nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        registrar(
+            request.user,
+            'REGISTRAR_ASISTENCIA',
+            f"{nombre} registró asistencia del curso {curso} ({fecha:%d/%m/%Y})",
+            request,
+        )
 
         return Response(
             {

@@ -1,4 +1,5 @@
 import io
+import logging
 import uuid
 
 import openpyxl as _xl
@@ -14,7 +15,7 @@ from ..models import ProfesorCurso
 from ..services.planilla_validator import validar_estructura, validar_pertenencia, extraer_notas, validar_estudiantes
 from ..services.planilla_validator_2026 import (
     es_formato_2026, validar_estructura_2026, validar_pertenencia_2026,
-    validar_formato_headers, validar_completitud_notas,
+    validar_formato_headers, validar_completitud_notas, validar_rango_notas,
 )
 from ..services.notas_mongo_service import (
     guardar_notas, obtener_notas, calcular_notas_mensuales,
@@ -23,6 +24,8 @@ from ..services.notas_mongo_service import (
     todos_cargaron_mes, ultima_fecha_carga_profesor,
     historial_meses_profesor, estado_asignaciones_mes_historico, notas_historico,
 )
+
+logger = logging.getLogger(__name__)
 
 _DRAFT_TTL  = 1800          # 30 minutos
 _DRAFT_PREFIX = 'planilla_draft_'
@@ -52,8 +55,11 @@ class ValidarPlanillaView(APIView):
             return _error('Debes adjuntar un archivo Excel antes de continuar.')
 
         nombre = archivo.name.lower()
-        if not (nombre.endswith('.xlsx') or nombre.endswith('.xls')):
-            return _error('El archivo debe ser .xlsx o .xls. No se aceptan otros formatos.')
+        if not nombre.endswith('.xlsx'):
+            return _error(
+                'El archivo debe ser .xlsx. Si tu planilla es .xls, '
+                'ábrela en Excel y guárdala como .xlsx antes de subirla.'
+            )
 
         profesor_curso_id = request.data.get('profesor_curso_id')
         if not profesor_curso_id:
@@ -125,6 +131,13 @@ class ValidarPlanillaView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            val_rango = validar_rango_notas(headers_por_trim)
+            if not val_rango['es_valido']:
+                return Response(
+                    {'es_valido': False, 'errores_notas': val_rango['errores']},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         # ── Nivel 7: completitud de notas (solo formato 2026) ─────────
         if es_2026:
             nombres_activos = [
@@ -153,8 +166,12 @@ class ValidarPlanillaView(APIView):
                     'Recarga la página e intenta de nuevo.'
                 )
 
-            gestion = timezone.now().year
-            diferencias = comparar_notas_con_mongo(profesor_curso, headers_por_trim, gestion=gestion)
+            gestion     = timezone.localtime(timezone.now()).year
+            mapa_nro_pk = val_est.get('mapa_nro_id', {})
+            diferencias = comparar_notas_con_mongo(
+                profesor_curso, headers_por_trim,
+                gestion=gestion, mapa_nro_pk=mapa_nro_pk,
+            )
 
             token = str(uuid.uuid4())
             cache.set(_DRAFT_PREFIX + token, {
@@ -162,6 +179,7 @@ class ValidarPlanillaView(APIView):
                 'headers_por_trim':  headers_por_trim,
                 'gestion':           gestion,
                 'mes':               mes_num,
+                'mapa_nro_pk':       mapa_nro_pk,
             }, timeout=_DRAFT_TTL)
 
             return Response({
@@ -222,7 +240,7 @@ class ConfirmarPlanillaView(APIView):
             )
 
         mes     = draft.get('mes', 0)
-        gestion = draft.get('gestion', timezone.now().year)
+        gestion = draft.get('gestion', timezone.localtime(timezone.now()).year)
 
         # Verificar que el mes del draft coincide con el mes actual del sistema
         if mes and mes != timezone.localtime(timezone.now()).month:
@@ -249,18 +267,43 @@ class ConfirmarPlanillaView(APIView):
             'mensuales_procesados': 0,
         }
 
+        mapa_nro_pk = draft.get('mapa_nro_pk')
+
         for hoja, dims in draft['headers_por_trim'].items():
-            t  = _TRIM_MAP.get(hoja, 1)
-            r  = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
-            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes)
-            resultado['insertados']            += r['insertados']
-            resultado['actualizados']          += r['actualizados']
-            resultado['sin_cambios']           += r['sin_cambios']
-            resultado['errores']               += r['errores']
-            resultado['mensuales_procesados']  += rm['procesados']
+            t = _TRIM_MAP.get(hoja, 1)
+            r = guardar_notas(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes,
+                              mapa_nro_pk=mapa_nro_pk)
+            resultado['insertados']   += r['insertados']
+            resultado['actualizados'] += r['actualizados']
+            resultado['sin_cambios']  += r['sin_cambios']
+            resultado['errores']      += r['errores']
+
+            # No calcular el snapshot mensual sobre un guardado fallido/parcial
+            if r['errores'] > 0:
+                continue
+
+            rm = calcular_notas_mensuales(profesor_curso, t, dims, gestion=draft['gestion'], mes=mes,
+                                          mapa_nro_pk=mapa_nro_pk)
+            resultado['mensuales_procesados'] += rm['procesados']
 
         # Invalidar el token tras el uso
         cache.delete(_DRAFT_PREFIX + token)
+
+        # Si hubo errores de escritura, reportar el fallo en vez de "éxito"
+        # (guardar_notas ya dejó el detalle en el log)
+        if resultado['errores'] > 0:
+            return Response(
+                {
+                    'errores': (
+                        'No se pudieron guardar todas las notas '
+                        f"({resultado['errores']} fallidas). "
+                        'Intenta nuevamente; si el problema persiste, contacta al director.'
+                    ),
+                    'guardado':  False,
+                    'resultado': resultado,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         # ── Notificar al director que el profesor confirmó su planilla ────────
         _notificar_carga_notas(profesor_curso, mes, gestion)
@@ -316,7 +359,8 @@ def _notificar_carga_notas(profesor_curso, mes, gestion):
                 daemon=True,
             ).start()
     except Exception:
-        pass
+        # La notificación no bloquea la confirmación de la planilla
+        logger.exception('No se pudo notificar al director la carga de notas')
 
 
 class NotasMongoView(APIView):
@@ -372,7 +416,7 @@ class EstadoNotasView(APIView):
         except ProfesorCurso.DoesNotExist:
             return Response({'ya_subidas': False})
 
-        gestion = timezone.now().year
+        gestion = timezone.localtime(timezone.now()).year
 
         if not hay_notas_mes(pc.materia.id, pc.curso.id, pc.profesor.id, mes, gestion):
             return Response({'ya_subidas': False})
@@ -400,7 +444,7 @@ class NotasEstadoMesView(APIView):
         if not 1 <= mes <= 12:
             return Response({'pc_ids_con_notas': []})
 
-        gestion      = timezone.now().year
+        gestion      = timezone.localtime(timezone.now()).year
         asignaciones = list(
             ProfesorCurso.objects
             .filter(profesor=request.user)

@@ -162,7 +162,7 @@ def validar_estructura(archivo):
     # 4. Validar año académico (gestión)
     gestion_raw = str(metadatos_extraidos.get('gestion') or '')
     digitos_gestion = re.findall(r'\d{4}', gestion_raw)
-    año_actual = timezone.now().year
+    año_actual = timezone.localtime(timezone.now()).year
     if digitos_gestion and str(año_actual) not in digitos_gestion:
         resultado['es_valido'] = False
         resultado['mensaje']   = (
@@ -301,7 +301,7 @@ def validar_estudiantes(nombres_excel, curso_id):
     estudiantes_db = list(
         Estudiante.objects
         .filter(curso_id=curso_id)
-        .values('nombre', 'apellido_paterno', 'apellido_materno', 'activo')
+        .values('id', 'nombre', 'apellido_paterno', 'apellido_materno', 'activo')
     )
 
     db_activos   = []
@@ -309,6 +309,7 @@ def validar_estudiantes(nombres_excel, curso_id):
     for e in estudiantes_db:
         nombre_completo = f"{e['apellido_paterno']} {e['apellido_materno']} {e['nombre']}"
         entry = {
+            'id':             e['id'],
             'nombre_display': nombre_completo.strip(),
             'palabras':       _palabras(nombre_completo),
             'activo':         e['activo'],
@@ -322,17 +323,25 @@ def validar_estudiantes(nombres_excel, curso_id):
     # Precomputar palabras de los nombres del Excel una sola vez
     excel_entries = [{'nombre': n, 'palabras': _palabras(n)} for n in nombres_excel]
 
-    # Verificación 1: cada nombre del Excel debe existir en la BD
-    for exc in excel_entries:
+    # Verificación 1: cada nombre del Excel debe existir en la BD.
+    # De paso se construye mapa_nro_id: posición en la planilla (1..N, orden de
+    # FILIACION) → PK real del estudiante, para que las notas se guarden en
+    # Mongo con el ID correcto (ver guardar_notas).
+    mapa_nro_id = {}
+    for nro, exc in enumerate(excel_entries, start=1):
         palabras_exc   = exc['palabras']
         nombre_excel   = exc['nombre']
         match_activo   = next((e for e in db_activos   if _coincide_nombre(palabras_exc, e['palabras'])), None)
         match_inactivo = next((e for e in db_inactivos if _coincide_nombre(palabras_exc, e['palabras'])), None)
 
         if match_activo:
-            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': True, 'activo': True})
+            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': True, 'activo': True,
+                                      'estudiante_id': match_activo['id']})
+            mapa_nro_id[nro] = match_activo['id']
         elif match_inactivo:
-            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': True, 'activo': False})
+            lista_estudiantes.append({'nombre': nombre_excel, 'encontrado': True, 'activo': False,
+                                      'estudiante_id': match_inactivo['id']})
+            mapa_nro_id[nro] = match_inactivo['id']
             advertencias.append(f"El estudiante {nombre_excel} figura como inactivo en el sistema.")
         else:
             errores.append({
@@ -363,6 +372,7 @@ def validar_estudiantes(nombres_excel, curso_id):
         'es_valido':        len(errores) == 0,
         'errores':          errores,
         'advertencias':     advertencias,
+        'mapa_nro_id':      mapa_nro_id,
         'lista_estudiantes': lista_estudiantes,
         'activos':          sum(1 for e in lista_estudiantes if e.get('activo') is True),
         'inactivos':        sum(1 for e in lista_estudiantes if e.get('activo') is False and e.get('encontrado') is True),

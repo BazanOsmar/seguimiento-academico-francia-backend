@@ -3,6 +3,7 @@ import os
 from django.conf import settings
 from django.contrib.auth.models import update_last_login
 from django.core.mail import send_mail
+from django.db import IntegrityError
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -195,7 +196,14 @@ class CambiarCredencialesView(APIView):
             user.set_password(password_nueva)
 
         user.primer_ingreso = False
-        user.save()
+        try:
+            user.save()
+        except IntegrityError:
+            # El username se validó como libre, pero otro request lo tomó antes del save
+            return Response(
+                {'errores': 'Ese nombre de usuario ya está en uso. Elige otro.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response({
             'mensaje': 'Credenciales actualizadas correctamente.',
@@ -302,25 +310,35 @@ class RegistroTutorView(APIView):
         estudiantes = data['_estudiantes']
 
         from django.db import transaction
+        from django.utils import timezone
         from backend.apps.users.models import User, TipoUsuario
 
         tipo_tutor = TipoUsuario.objects.get(nombre='Tutor')
 
         from backend.apps.comunicados.services import asignar_comunicados_pendientes
 
-        with transaction.atomic():
-            user = User.objects.create_user(
-                username=data['username'],
-                first_name=data['nombre'],
-                last_name=data['apellidos'],
-                password=data['password'],
-                tipo_usuario=tipo_tutor,
-                primer_ingreso=False,
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=data['username'],
+                    first_name=data['nombre'],
+                    last_name=data['apellidos'],
+                    password=data['password'],
+                    tipo_usuario=tipo_tutor,
+                    primer_ingreso=False,
+                    accepted_terms=True,
+                    accepted_terms_at=timezone.now(),
+                )
+                for estudiante in estudiantes:
+                    estudiante.tutor = user
+                    estudiante.save(update_fields=['tutor'])
+                    asignar_comunicados_pendientes(estudiante)
+        except IntegrityError:
+            # El username se validó como libre, pero otro registro lo tomó antes
+            return Response(
+                {'username': ['Este nombre de usuario ya está en uso.']},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            for estudiante in estudiantes:
-                estudiante.tutor = user
-                estudiante.save(update_fields=['tutor'])
-                asignar_comunicados_pendientes(estudiante)
 
         from backend.apps.auditoria.services import registrar
         nombre_tutor = f"{user.first_name} {user.last_name}".strip() or user.username
@@ -412,6 +430,9 @@ class VincularEstudianteView(APIView):
     def post(self, request):
         from backend.apps.students.models import Estudiante
         from backend.apps.auditoria.services import registrar
+
+        if getattr(request.user.tipo_usuario, 'nombre', None) != 'Tutor':
+            return Response({'errores': 'Solo los tutores pueden usar este endpoint.'}, status=status.HTTP_403_FORBIDDEN)
 
         identificador = request.data.get('identificador_estudiante', '').strip()
         if not identificador:

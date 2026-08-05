@@ -128,6 +128,13 @@ function _apiToast(message, type = 'error', onAccept = null) {
 }
 
 /* ----------------------------------------------------------------
+   showToast(message, type)
+   Alias global de _apiToast para páginas que no cargan main.js
+   (carga_calificaciones.js, academico.js la invocan directamente).
+----------------------------------------------------------------- */
+window.showToast = _apiToast;
+
+/* ----------------------------------------------------------------
    _logout()
    Limpia tokens y redirige al login.
 ----------------------------------------------------------------- */

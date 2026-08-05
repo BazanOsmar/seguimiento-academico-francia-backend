@@ -28,8 +28,8 @@
 
     function setArchivo(file) {
         const ext = file.name.split('.').pop().toLowerCase();
-        if (!['xlsx', 'xls'].includes(ext)) {
-            errorEl.textContent  = 'Solo se aceptan archivos .xlsx o .xls';
+        if (ext !== 'xlsx') {
+            errorEl.textContent  = 'Solo se aceptan archivos .xlsx. Guarda el archivo como .xlsx e intenta de nuevo.';
             errorEl.style.display = 'block';
             return;
         }

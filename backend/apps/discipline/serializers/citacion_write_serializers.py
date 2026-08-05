@@ -12,11 +12,12 @@ class CitacionCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Citacion
+        # 'estado' no se expone: siempre nace ENVIADA y solo la app del
+        # tutor lo cambia a VISTO
         fields = [
             "estudiante",
             "motivo",
             "descripcion",
-            "estado",
             "fecha_limite_asistencia",
         ]
 

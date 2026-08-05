@@ -44,7 +44,12 @@ class ActualizarAsistenciaIndividualView(APIView):
             return Response({'estado': nuevo_estado})
 
         asistencia.estado = nuevo_estado
-        asistencia.save(update_fields=['estado'])
+        campos = ['estado']
+        # El uniforme no aplica en FALTA/LICENCIA — igual que en el registro original
+        if nuevo_estado in ('FALTA', 'LICENCIA') and not asistencia.uniforme:
+            asistencia.uniforme = True
+            campos.append('uniforme')
+        asistencia.save(update_fields=campos)
 
         nombre_director = (
             f"{request.user.first_name} {request.user.last_name}".strip()

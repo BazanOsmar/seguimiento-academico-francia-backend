@@ -4,7 +4,11 @@ Servicio de estadísticas de notas para el panel del profesor.
 Normaliza todas las notas a escala 0-100 con la ponderación de dimensiones:
   saber=45, hacer=40, ser=10  → total máximo=95 → normalizado a 100.
 """
+import logging
+
 from .notas_mongo_service import _get_db
+
+logger = logging.getLogger(__name__)
 
 _MAX_DIM = {'saber': 45.0, 'hacer': 40.0, 'ser': 10.0}
 
@@ -41,6 +45,7 @@ def estadisticas_notas_profesor(profesor_id: int, gestion: int, curso_ids=None) 
             }},
         ]))
     except Exception:
+        logger.exception('estadisticas_notas_profesor falló (profesor=%s gestion=%s)', profesor_id, gestion)
         return _empty()
 
     # (eid, cid) → {nombre, trims: {trim: {dim: avg}}}

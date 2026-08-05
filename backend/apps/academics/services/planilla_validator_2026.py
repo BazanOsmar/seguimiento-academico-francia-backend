@@ -237,7 +237,7 @@ def validar_estructura_2026(wb):
     gestion_raw = ws_car['F14'].value
     gestion_str = str(gestion_raw).strip() if gestion_raw else ''
     digitos_gestion = re.findall(r'\d{4}', gestion_str)
-    año_actual = timezone.now().year
+    año_actual = timezone.localtime(timezone.now()).year
     if digitos_gestion and str(año_actual) not in digitos_gestion:
         resultado['es_valido'] = False
         resultado['mensaje']   = (
@@ -377,6 +377,43 @@ def validar_formato_headers(headers_por_trim):
                             f"(ej: 15/01/2026 - Evaluación 1)."
                         )
                     })
+    return {'es_valido': len(errores) == 0, 'errores': errores}
+
+
+_MAXIMOS_DIM = {'ser': 10, 'saber': 45, 'hacer': 40, '_autoeval': 5}
+
+
+def validar_rango_notas(headers_por_trim):
+    """
+    Verifica que cada nota esté dentro del rango permitido de su dimensión:
+    SER 0–10, SABER 0–45, HACER 0–40, autoevaluación 0–5.
+    Reporta estudiante, actividad y dimensión de cada nota fuera de rango.
+
+    Returns:
+        { es_valido: bool, errores: [str] }
+    """
+    errores = []
+    for hoja, dims in headers_por_trim.items():
+        trim_label = _TRIM_LABEL.get(hoja, hoja)
+        for dimension, columnas in dims.items():
+            maximo = _MAXIMOS_DIM.get(dimension)
+            if maximo is None:
+                continue
+            dim_label = (
+                'AUTOEVALUACIÓN' if dimension == '_autoeval'
+                else _DIM_LABEL.get(dimension, dimension.upper())
+            )
+            for col_data in columnas:
+                titulo = col_data.get('titulo', '')
+                for n in col_data.get('notas', []):
+                    nota = n.get('nota')
+                    if nota is None or 0 <= nota <= maximo:
+                        continue
+                    nombre = n.get('nombre') or f"Estudiante {n.get('nro')}"
+                    errores.append(
+                        f"{nombre} tiene {nota} en '{titulo}' ({dim_label}, {trim_label}); "
+                        f"el rango permitido es 0–{maximo}. Corrige la nota antes de continuar."
+                    )
     return {'es_valido': len(errores) == 0, 'errores': errores}
 
 
