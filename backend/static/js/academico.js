@@ -67,8 +67,21 @@ document.addEventListener('DOMContentLoaded', () => {
     _initModalNuevaAsig();
     _initPlanDetalleModal();
     _initProfesorDetalleModal();
-    // Cargar vista por defecto
-    _cargarVistaProfesor();
+
+    // Retorno desde "Cargar notas" (carga_calificaciones.js): reabrir
+    // directamente en Control Calificaciones, mismo mes y mismo profesor.
+    const _bootParams = new URLSearchParams(window.location.search);
+    if (_bootParams.get('pivot') === 'notas') {
+        const mesParam = parseInt(_bootParams.get('mes'), 10);
+        if (mesParam >= 1 && mesParam <= 12) _pnMes = mesParam;
+        const profParam = parseInt(_bootParams.get('abrir_profesor'), 10);
+        if (profParam) _pnAutoAbrirProfId = profParam;
+        window.history.replaceState(null, '', '/director/academico/');
+        _activarPivot('notas');
+    } else {
+        // Cargar vista por defecto
+        _cargarVistaProfesor();
+    }
     cargarMaterias({ notifyError: false }); // precarga silenciosa
 });
 
@@ -2560,6 +2573,7 @@ let _pnDatos      = [];   // datos de la última carga
 let _pnMes        = new Date().getMonth() + 1;
 let _pnFiltro     = 'todos';
 let _pnIniciado   = false;
+let _pnAutoAbrirProfId = null; // id de profesor a reabrir automáticamente tras la carga
 
 // ── Inicialización (lazy: solo la primera vez que se activa el pivot) ──
 function _pnActivar() {
@@ -2629,6 +2643,12 @@ async function _pnCargar() {
     _pnDatos = data.profesores || [];
     _pnActualizarContadores();
     _pnRenderGrid();
+
+    if (_pnAutoAbrirProfId) {
+        const idx = _pnDatos.findIndex(p => p.id === _pnAutoAbrirProfId);
+        _pnAutoAbrirProfId = null;
+        if (idx !== -1) _pnAbrirProfesor(idx);
+    }
 }
 
 // ── Contadores de tabs ────────────────────────────────────────────
@@ -2840,17 +2860,25 @@ function _pnAbrirModalProfesor(prof, tarjetas, cargando = false, error = false) 
     } else if (!tarjetas || !tarjetas.length) {
         list.innerHTML = '<div class="pn-picker-empty">Este profesor no tiene asignaciones registradas.</div>';
     } else {
+        const puedeCargar = _pnEsMesActual();
         list.innerHTML = tarjetas.map((t, i) => `
-            <button type="button"
-                    class="pn-picker-card${t.tiene_notas ? '' : ' pn-picker-card--disabled'}"
-                    data-idx="${i}"
-                    title="${t.tiene_notas ? 'Ver notas cargadas' : 'Sin notas en ' + mes}">
-                <span class="pn-picker-card__curso">${_escapeHtml(t.curso)}</span>
-                <span class="pn-picker-card__materia">${_escapeHtml(t.materia)}</span>
-                ${t.tiene_notas
-                    ? '<span class="pn-picker-card__badge pn-picker-card__badge--ok">Con notas</span>'
-                    : '<span class="pn-picker-card__badge pn-picker-card__badge--off">Sin notas</span>'}
-            </button>
+            <div class="pn-picker-row">
+                <button type="button"
+                        class="pn-picker-card${t.tiene_notas ? '' : ' pn-picker-card--disabled'}"
+                        data-idx="${i}"
+                        title="${t.tiene_notas ? 'Ver notas cargadas' : 'Sin notas en ' + mes}">
+                    <span class="pn-picker-card__curso">${_escapeHtml(t.curso)}</span>
+                    <span class="pn-picker-card__materia">${_escapeHtml(t.materia)}</span>
+                    ${t.tiene_notas
+                        ? '<span class="pn-picker-card__badge pn-picker-card__badge--ok">Con notas</span>'
+                        : '<span class="pn-picker-card__badge pn-picker-card__badge--off">Sin notas</span>'}
+                </button>
+                ${puedeCargar ? `
+                <button type="button" class="pn-picker-card__load-btn" data-idx="${i}"
+                        title="${t.tiene_notas ? 'Reemplazar las notas cargadas' : 'Cargar notas de este curso'}">
+                    Cargar notas
+                </button>` : ''}
+            </div>
         `).join('');
 
         list.querySelectorAll('.pn-picker-card').forEach(btn => {
@@ -2859,6 +2887,15 @@ function _pnAbrirModalProfesor(prof, tarjetas, cargando = false, error = false) 
                 if (!t || !t.tiene_notas) return;
                 _pnCerrarPicker();
                 _pnNavegar(t.pc_id, prof.nombre, t.curso, t.materia);
+            });
+        });
+
+        list.querySelectorAll('.pn-picker-card__load-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const t = tarjetas[parseInt(btn.dataset.idx, 10)];
+                if (!t) return;
+                _pnCerrarPicker();
+                _pnNavegar(t.pc_id, prof.nombre, t.curso, t.materia, { modo: 'carga', profId: prof.id });
             });
         });
     }
@@ -2886,15 +2923,26 @@ function _pnChipClick(profIdx, cursoIdx) {
     }
 }
 
-function _pnNavegar(pcId, profesor, curso, materia) {
+function _pnEsMesActual() {
+    return _pnMes === (new Date().getMonth() + 1);
+}
+
+function _pnNavegar(pcId, profesor, curso, materia, opts = {}) {
     const params = new URLSearchParams({
         pc_id: pcId,
         label: `${materia} — ${curso}`,
         materia: materia,
         curso: curso,
-        mes_hasta: String(_pnMes),
-        modo: 'historial',
     });
+    if (profesor) params.set('profesor', profesor);
+    if (opts.modo === 'carga') {
+        params.set('modo', 'carga');
+        params.set('mes', String(_pnMes));
+        if (opts.profId) params.set('prof_id', String(opts.profId));
+    } else {
+        params.set('mes_hasta', String(_pnMes));
+        params.set('modo', 'historial');
+    }
     window.location.href = `/director/calificaciones/?${params.toString()}`;
 }
 

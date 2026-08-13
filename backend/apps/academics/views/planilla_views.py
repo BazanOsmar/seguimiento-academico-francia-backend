@@ -46,7 +46,7 @@ class ValidarPlanillaView(APIView):
 
     En caso de éxito devuelve un `draft_token` válido por 30 minutos.
     """
-    permission_classes = [IsAuthenticated, IsProfesor]
+    permission_classes = [IsAuthenticated, IsDirectorOrProfesor]
 
     def post(self, request):
         # ── Nivel 2: recepción ────────────────────────────────────────
@@ -68,11 +68,13 @@ class ValidarPlanillaView(APIView):
             profesor_curso_id = int(profesor_curso_id)
         except (ValueError, TypeError):
             return _error('Asignación no válida.')
+
+        es_director = getattr(request.user.tipo_usuario, 'nombre', '') == 'Director'
         try:
+            qs = ProfesorCurso.objects.select_related('profesor', 'materia', 'curso')
             profesor_curso = (
-                ProfesorCurso.objects
-                .select_related('profesor', 'materia', 'curso')
-                .get(pk=profesor_curso_id, profesor=request.user)
+                qs.get(pk=profesor_curso_id) if es_director
+                else qs.get(pk=profesor_curso_id, profesor=request.user)
             )
         except ProfesorCurso.DoesNotExist:
             return _error('Asignación no válida o no te pertenece.')
@@ -209,7 +211,7 @@ class ConfirmarPlanillaView(APIView):
     en MongoDB (detalle_notas + notas_mensuales).
     El token expira a los 30 minutos — si venció, el profesor debe revalidar.
     """
-    permission_classes = [IsAuthenticated, IsProfesor]
+    permission_classes = [IsAuthenticated, IsDirectorOrProfesor]
 
     def post(self, request):
         token = request.data.get('draft_token', '').strip()
@@ -226,12 +228,14 @@ class ConfirmarPlanillaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Verificar que la asignación sigue perteneciendo al profesor autenticado
+        # Verificar que la asignación sigue siendo válida (dueña del profesor, o
+        # cualquiera si quien confirma es el Director)
+        es_director = getattr(request.user.tipo_usuario, 'nombre', '') == 'Director'
         try:
+            qs = ProfesorCurso.objects.select_related('profesor', 'materia', 'curso')
             profesor_curso = (
-                ProfesorCurso.objects
-                .select_related('profesor', 'materia', 'curso')
-                .get(pk=draft['profesor_curso_id'], profesor=request.user)
+                qs.get(pk=draft['profesor_curso_id']) if es_director
+                else qs.get(pk=draft['profesor_curso_id'], profesor=request.user)
             )
         except ProfesorCurso.DoesNotExist:
             return Response(
@@ -250,8 +254,9 @@ class ConfirmarPlanillaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Verificar que no se hayan subido notas de ese mes previamente
-        if mes and hay_notas_mes(
+        # Verificar que no se hayan subido notas de ese mes previamente.
+        # El Director sí puede reemplazar/corregir notas ya cargadas.
+        if not es_director and mes and hay_notas_mes(
             profesor_curso.materia.id, profesor_curso.curso.id,
             profesor_curso.profesor.id, mes, gestion,
         ):
@@ -306,7 +311,7 @@ class ConfirmarPlanillaView(APIView):
             )
 
         # ── Notificar al director que el profesor confirmó su planilla ────────
-        _notificar_carga_notas(profesor_curso, mes, gestion)
+        _notificar_carga_notas(profesor_curso, mes, gestion, actor=request.user)
 
         # ── Trigger automático de K-Means y árbol de decisión ───────────────
         if mes and todos_cargaron_mes(mes, gestion):
@@ -328,7 +333,7 @@ class ConfirmarPlanillaView(APIView):
         return Response({'guardado': True, 'resultado': resultado})
 
 
-def _notificar_carga_notas(profesor_curso, mes, gestion):
+def _notificar_carga_notas(profesor_curso, mes, gestion, actor=None):
     import threading
     from backend.apps.notifications.models import Notificacion
     from backend.apps.notifications.services import enviar_notificacion
@@ -341,11 +346,21 @@ def _notificar_carga_notas(profesor_curso, mes, gestion):
         meses_es = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
                     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
         mes_nombre = meses_es[mes] if 1 <= mes <= 12 else str(mes)
-        descripcion = (
-            f"{nombre_prof} cargó notas de {profesor_curso.materia.nombre} "
-            f"en {profesor_curso.curso.grado} {profesor_curso.curso.paralelo} "
-            f"({mes_nombre} {gestion})."
-        )
+
+        actor_es_director = actor is not None and actor.pk != profesor_curso.profesor_id
+        if actor_es_director:
+            nombre_actor = actor.get_full_name() or actor.username
+            descripcion = (
+                f"{nombre_actor} (Director) cargó notas de {profesor_curso.materia.nombre} "
+                f"en {profesor_curso.curso.grado} {profesor_curso.curso.paralelo} "
+                f"a nombre de {nombre_prof} ({mes_nombre} {gestion})."
+            )
+        else:
+            descripcion = (
+                f"{nombre_prof} cargó notas de {profesor_curso.materia.nombre} "
+                f"en {profesor_curso.curso.grado} {profesor_curso.curso.paralelo} "
+                f"({mes_nombre} {gestion})."
+            )
         Notificacion.objects.bulk_create([
             Notificacion(emisor=None, receptor=d, descripcion=descripcion)
             for d in directores

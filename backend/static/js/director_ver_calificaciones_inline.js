@@ -50,3 +50,17 @@ document.getElementById('btnLogout').addEventListener('click', () => {
     localStorage.clear();
     window.location.replace('/login/');
 });
+
+// ── Volver a Control Calificaciones (visible solo en modo "carga") ────
+const _btnBackCalificaciones = document.getElementById('btnBackCalificaciones');
+if (_btnBackCalificaciones) {
+    _btnBackCalificaciones.addEventListener('click', () => {
+        const params = new URLSearchParams(window.location.search);
+        const profId = params.get('prof_id');
+        const mes    = params.get('mes') || params.get('mes_hasta');
+        const target = new URLSearchParams({ pivot: 'notas' });
+        if (mes)    target.set('mes', mes);
+        if (profId) target.set('abrir_profesor', profId);
+        window.location.href = `/director/academico/?${target.toString()}`;
+    });
+}

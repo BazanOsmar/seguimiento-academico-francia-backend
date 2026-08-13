@@ -8,6 +8,7 @@ const _curso     = _params.get('curso')    || '—';
 const _mes       = _params.get('mes')      || '';
 const _mesHasta  = _params.get('mes_hasta') || '';
 const _modoParam = _params.get('modo')     || '';
+const _profesor  = _params.get('profesor') || '';
 
 // ── Estado interno ────────────────────────────────────────────────
 let _archivo = null;
@@ -47,6 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Poblar metadatos
     document.getElementById('ccCurso').textContent   = _curso;
     document.getElementById('ccMateria').textContent = _materia;
+    if (_esDirector && _profesor) {
+        document.getElementById('ccProfesor').textContent = _profesor;
+        document.getElementById('ccMetaProfesorItem').style.display = '';
+    }
 
     // Badge período
     const mesRef  = parseInt(_mesHasta || _mes, 10);
@@ -61,8 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
     _initDragDrop();
     _initButtons();
 
-    // Director: siempre modo historial (solo lectura, sin upload).
-    if (_esDirector) {
+    // Director con intención explícita de cargar/reemplazar notas (botón
+    // "Cargar notas" del picker de Control Calificaciones): mismo flujo de
+    // upload que usa el profesor.
+    if (_esDirector && _modoParam === 'carga' && _pcId) {
+        _mostrarVistaUpload();
+    } else if (_esDirector) {
+        // Director en modo consulta: siempre modo historial (solo lectura, sin upload).
         _modoHistorial = true;
         const loaderLabel = document.querySelector('#ccInitLoader .cc-init-loader__label');
         if (loaderLabel) loaderLabel.textContent = 'Cargando notas...';
@@ -269,7 +279,7 @@ function _initButtons() {
     dlgCancelar.addEventListener('click', () => dlg.close());
     dlgCerrar.addEventListener('click', () => {
         dlg.close();
-        window.location.href = '/profesor/';
+        window.location.href = _esDirector ? '/director/academico/' : '/profesor/';
     });
 
     // Bloquear cierre con backdrop durante la carga
